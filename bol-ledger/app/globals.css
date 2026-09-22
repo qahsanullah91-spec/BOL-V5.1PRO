@@ -1,0 +1,449 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(0.95 0.02 220);
+  --foreground: oklch(0.2 0.03 230);
+  --card: oklch(0.98 0.01 220 / 0.7);
+  --card-foreground: oklch(0.2 0.03 230);
+  --popover: oklch(0.98 0.01 220 / 0.9);
+  --popover-foreground: oklch(0.2 0.03 230);
+  --primary: oklch(0.45 0.15 240);
+  --primary-foreground: oklch(0.98 0.01 220);
+  --secondary: oklch(0.85 0.05 220 / 0.6);
+  --secondary-foreground: oklch(0.2 0.03 230);
+  --muted: oklch(0.9 0.03 220 / 0.5);
+  --muted-foreground: oklch(0.4 0.03 230);
+  --accent: oklch(0.6 0.12 220);
+  --accent-foreground: oklch(0.98 0.01 220);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.8 0.03 220 / 0.4);
+  --input: oklch(0.95 0.02 220 / 0.6);
+  --ring: oklch(0.5 0.15 240);
+  --chart-1: oklch(0.45 0.15 240);
+  --chart-2: oklch(0.6 0.12 220);
+  --chart-3: oklch(0.5 0.1 200);
+  --chart-4: oklch(0.7 0.1 210);
+  --chart-5: oklch(0.55 0.13 230);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.95 0.02 220 / 0.8);
+  --sidebar-foreground: oklch(0.2 0.03 230);
+  --sidebar-primary: oklch(0.45 0.15 240);
+  --sidebar-primary-foreground: oklch(0.98 0.01 220);
+  --sidebar-accent: oklch(0.85 0.05 220 / 0.6);
+  --sidebar-accent-foreground: oklch(0.2 0.03 230);
+  --sidebar-border: oklch(0.8 0.03 220 / 0.4);
+  --sidebar-ring: oklch(0.5 0.15 240);
+  --glass: oklch(0.98 0.01 220 / 0.6);
+  --glass-border: oklch(1 0 0 / 0.3);
+}
+
+.dark {
+  --background: oklch(0.15 0.02 230);
+  --foreground: oklch(0.95 0.01 220);
+  --card: oklch(0.2 0.02 230 / 0.7);
+  --card-foreground: oklch(0.95 0.01 220);
+  --popover: oklch(0.2 0.02 230 / 0.9);
+  --popover-foreground: oklch(0.95 0.01 220);
+  --primary: oklch(0.6 0.15 240);
+  --primary-foreground: oklch(0.98 0.01 220);
+  --secondary: oklch(0.25 0.03 230 / 0.6);
+  --secondary-foreground: oklch(0.95 0.01 220);
+  --muted: oklch(0.25 0.02 230 / 0.5);
+  --muted-foreground: oklch(0.7 0.02 220);
+  --accent: oklch(0.5 0.12 220);
+  --accent-foreground: oklch(0.95 0.01 220);
+  --destructive: oklch(0.5 0.2 27.325);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.3 0.03 230 / 0.4);
+  --input: oklch(0.25 0.02 230 / 0.6);
+  --ring: oklch(0.6 0.15 240);
+  --sidebar: oklch(0.18 0.02 230 / 0.8);
+  --sidebar-foreground: oklch(0.95 0.01 220);
+  --sidebar-primary: oklch(0.6 0.15 240);
+  --sidebar-primary-foreground: oklch(0.98 0.01 220);
+  --sidebar-accent: oklch(0.25 0.03 230 / 0.6);
+  --sidebar-accent-foreground: oklch(0.95 0.01 220);
+  --sidebar-border: oklch(0.3 0.03 230 / 0.4);
+  --sidebar-ring: oklch(0.6 0.15 240);
+  --glass: oklch(0.2 0.02 230 / 0.6);
+  --glass-border: oklch(0.4 0.02 230 / 0.3);
+}
+
+@theme inline {
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-glass: var(--glass);
+  --color-glass-border: var(--glass-border);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Liquid Glass morphism utilities */
+.glass {
+  background: linear-gradient(135deg, oklch(1 0 0 / 0.55), oklch(0.97 0.02 220 / 0.35));
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid oklch(1 0 0 / 0.5);
+  box-shadow: 0 8px 32px oklch(0.45 0.15 240 / 0.12), inset 0 1px 0 oklch(1 0 0 / 0.6);
+}
+
+.glass-strong {
+  background: linear-gradient(135deg, oklch(1 0 0 / 0.75), oklch(0.97 0.02 220 / 0.5));
+  backdrop-filter: blur(36px) saturate(200%);
+  -webkit-backdrop-filter: blur(36px) saturate(200%);
+  border: 1px solid oklch(1 0 0 / 0.6);
+  box-shadow: 0 12px 40px oklch(0.45 0.15 240 / 0.15), inset 0 1px 0 oklch(1 0 0 / 0.7);
+}
+
+/* Liquid glass card — layered highlights for a wet, refractive look */
+.liquid-glass {
+  position: relative;
+  background: linear-gradient(135deg, oklch(1 0 0 / 0.5) 0%, oklch(0.96 0.03 225 / 0.28) 50%, oklch(0.92 0.05 235 / 0.35) 100%);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid oklch(1 0 0 / 0.45);
+  box-shadow:
+    0 10px 40px oklch(0.45 0.15 240 / 0.15),
+    0 2px 8px oklch(0.45 0.15 240 / 0.08),
+    inset 0 1px 0 oklch(1 0 0 / 0.65),
+    inset 0 -1px 0 oklch(0.7 0.08 230 / 0.15);
+}
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 80% at 15% 0%, oklch(1 0 0 / 0.35) 0%, transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Animated liquid sheen for hero surfaces */
+@keyframes liquid-sheen {
+  0% { transform: translateX(-120%) skewX(-18deg); }
+  100% { transform: translateX(220%) skewX(-18deg); }
+}
+.liquid-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.liquid-sheen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.35), transparent);
+  animation: liquid-sheen 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Print styles for invoices and ledgers */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .glass, .glass-strong {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Print container with background */
+  .print-container {
+    min-height: 100vh !important;
+    padding: 10mm !important;
+    box-sizing: border-box !important;
+  }
+  .print-background {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Ledger print table styles - Clean Blue/White Design */
+  .ledger-print-table {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    font-size: 9px !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif !important;
+    background: #ffffff !important;
+    border: 1px solid #93c5fd !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+  }
+  .ledger-print-table th,
+  .ledger-print-table td {
+    border-right: 1px solid #bfdbfe !important;
+    border-bottom: 1px solid #bfdbfe !important;
+    padding: 4px 5px !important;
+    vertical-align: middle !important;
+  }
+  .ledger-print-table th:last-child,
+  .ledger-print-table td:last-child {
+    border-right: none !important;
+  }
+  .ledger-print-table th {
+    background: #dbeafe !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    color: #1e3a8a !important;
+    border-bottom: 1.5px solid #60a5fa !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ledger-print-table td {
+    text-align: center !important;
+    background: #ffffff !important;
+    color: #1e3a8a !important;
+  }
+  .ledger-print-table tbody tr:nth-child(even) td {
+    background: #f5f9ff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ledger-print-table td.text-left {
+    text-align: left !important;
+  }
+  .ledger-print-table td.text-right {
+    text-align: right !important;
+  }
+  .ledger-print-table .header-en {
+    font-size: 8px !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+    color: #1e3a8a !important;
+    letter-spacing: 0.02em !important;
+  }
+  .ledger-print-table .header-ps {
+    font-size: 7px !important;
+    font-weight: normal !important;
+    direction: rtl !important;
+    color: #3b82f6 !important;
+  }
+  .ledger-print-table .totals-row {
+    background: #dbeafe !important;
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ledger-print-table .totals-row td {
+    background: #dbeafe !important;
+    border-top: 1.5px solid #60a5fa !important;
+    color: #1e3a8a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ledger-print-table tbody tr.credit-row td,
+  .ledger-print-table tbody tr.credit-row:nth-child(even) td {
+    background: #d1fae5 !important;
+    border-color: #6ee7b7 !important;
+    color: #065f46 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ledger-print-table .debit-cell {
+    color: #dc2626 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .ledger-print-table .credit-cell {
+    color: #059669 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-weight: 600 !important;
+  }
+  .ledger-print-table .balance-cell {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-weight: 700 !important;
+    background: #eff6ff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Force colors to print */
+  .text-green-600 {
+    color: #16a34a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .text-destructive {
+    color: #dc2626 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .bg-primary\/10 {
+    background: #e0e7ff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Page break handling */
+  @page {
+    size: A4 landscape;
+    margin: 5mm;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+  
+  /* Print header styling - Clean Blue Design */
+  .print-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    margin-bottom: 12px !important;
+    padding: 12px 16px !important;
+    border-bottom: 2px solid #1e40af !important;
+    background: #eff6ff !important;
+    border-radius: 8px 8px 0 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-header h1 {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    margin: 0 !important;
+    color: #1e3a8a !important;
+  }
+  .print-date {
+    font-size: 10px !important;
+    text-align: left !important;
+    margin-bottom: 5px !important;
+    font-weight: bold !important;
+    color: #1e40af !important;
+  }
+  
+  /* Print footer styling - Clean Blue Design */
+  .print-footer {
+    font-size: 7px !important;
+    margin-top: 12px !important;
+    border-top: 1px solid #93c5fd !important;
+    padding: 10px 16px !important;
+    background: #eff6ff !important;
+    border-radius: 0 0 8px 8px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-footer p {
+    margin: 0 !important;
+    line-height: 1.4 !important;
+    color: #1e40af !important;
+  }
+  
+  /* Print logo */
+  .print-logo {
+    max-height: 50px !important;
+    max-width: 120px !important;
+    object-fit: contain !important;
+  }
+  
+  /* Print container wrapper */
+  .print-wrapper {
+    background: #ffffff !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 12px !important;
+    padding: 14px !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Impeccable Craft Floor: Themed Browser Surfaces */
+::selection {
+  background-color: rgba(245, 158, 11, 0.28);
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Sleek unobtrusive custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
