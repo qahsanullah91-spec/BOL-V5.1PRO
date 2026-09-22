@@ -1,0 +1,856 @@
+/* ============================================================================
+   EXPORT ACCOUNT LEDGER - PREMIUM CSS GRID LAYOUT  v2.0
+   ============================================================================
+   Modern iOS/macOS glassmorphism design. Compact media thumbnails. 
+   Full green credit rows. Clean professional logistics ledger.
+   
+   Column order (LTR):
+   S.NO | DATE | DESCRIPTION | B/L | CONTAINER | QTY/PKG | DEBIT | CREDIT | BALANCE | MEDIA | ACTIONS
+*/
+
+/* ============================================================================
+   ROOT VARIABLES
+============================================================================ */
+
+:root {
+  --ledger-col-sno: 36px;
+  --ledger-col-date: 85px;
+  --ledger-col-desc: minmax(130px, 1.8fr);
+  --ledger-col-bl: 105px;
+  --ledger-col-container: 95px;
+  --ledger-col-qty: 75px;
+  --ledger-col-debit: 90px;
+  --ledger-col-credit: 90px;
+  --ledger-col-balance: 90px;
+  --ledger-col-media: 85px;
+  --ledger-col-actions: 44px;
+
+  --ledger-font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Noto Naskh Arabic", "Noto Sans Arabic", Tahoma, sans-serif;
+  --ledger-font-rtl: "Noto Naskh Arabic", "Noto Sans Arabic", Tahoma, "Arial Unicode MS", Arial, sans-serif;
+
+  --ledger-thumb-w: 80px;
+  --ledger-thumb-h: 60px;
+  --ledger-thumb-w-compact: 72px;
+  --ledger-thumb-h-compact: 54px;
+  --ledger-thumb-w-comfortable: 96px;
+  --ledger-thumb-h-comfortable: 70px;
+
+  --color-credit-bg: #f0fdf4;
+  --color-credit-bg-hover: #dcfce7;
+  --color-credit-border: #16a34a;
+  --color-credit-text: #15803d;
+  --color-debit-bg: #fff9f9;
+  --color-debit-border: #ef4444;
+  --color-debit-text: #b91c1c;
+}
+
+/* ============================================================================
+   TABLE GRID LAYOUT
+============================================================================ */
+
+.ledger-table-grid {
+  display: grid;
+  grid-template-columns:
+    var(--ledger-col-sno)
+    var(--ledger-col-date)
+    var(--ledger-col-desc)
+    var(--ledger-col-bl)
+    var(--ledger-col-container)
+    var(--ledger-col-qty)
+    var(--ledger-col-debit)
+    var(--ledger-col-credit)
+    var(--ledger-col-balance)
+    var(--ledger-col-media)
+    var(--ledger-col-actions);
+  width: 100%;
+  min-width: 1000px;
+  background: transparent;
+}
+
+/* Header Row */
+.ledger-table-grid-header-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: inherit;
+  gap: 0;
+  background: linear-gradient(180deg, #eef2ff 0%, #e8f0fe 100%);
+  border-bottom: 2px solid #bfdbfe;
+  border-radius: 12px 12px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.ledger-table-grid-header-cell {
+  padding: 10px 8px;
+  text-align: left;
+  border-right: 1px solid rgba(191, 219, 254, 0.5);
+  font-weight: 900;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1e3a8a;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 52px;
+}
+
+.ledger-table-grid-header-cell:last-child { border-right: none; text-align: center; }
+.ledger-table-grid-header-cell:first-child { text-align: center; justify-content: center; align-items: center; }
+
+.ledger-table-grid-header-en {
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  color: #1e3a8a;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+}
+
+.ledger-table-grid-header-ps {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #3b82f6;
+  line-height: 1.2;
+  font-family: var(--ledger-font-rtl);
+  direction: rtl;
+  text-align: right;
+}
+
+/* Body */
+.ledger-table-grid-body {
+  display: contents;
+}
+
+/* ============================================================================
+   ROW STYLING
+============================================================================ */
+
+.ledger-table-grid-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: inherit;
+  gap: 0;
+  align-items: stretch;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 0;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  transition: background 0.15s ease;
+  position: relative;
+  min-height: 0;
+}
+
+.ledger-table-grid-row:first-child { border-radius: 0; }
+.ledger-table-grid-row:last-child { border-bottom: none; border-radius: 0 0 10px 10px; }
+
+.ledger-table-grid-row:hover {
+  background: rgba(239, 246, 255, 0.85);
+}
+
+.ledger-table-grid-row.is-selected {
+  background: rgba(219, 234, 254, 0.65) !important;
+  border-left: 3px solid #3b82f6 !important;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+.ledger-table-grid-row.is-editing {
+  background: rgba(240, 249, 255, 0.95) !important;
+  border-left: 3px solid #06b6d4 !important;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.15);
+  z-index: 5;
+}
+
+/* ============================================================================
+   CREDIT ROW - FULL GREEN (Priority when credit > 0)
+============================================================================ */
+
+.ledger-table-grid-row.ledger-row-credit {
+  background: linear-gradient(135deg, var(--color-credit-bg) 0%, #d1fae5 100%) !important;
+  border-left: 4px solid var(--color-credit-border) !important;
+  border-bottom-color: #bbf7d0 !important;
+}
+
+.ledger-table-grid-row.ledger-row-credit:hover {
+  background: linear-gradient(135deg, var(--color-credit-bg-hover) 0%, #a7f3d0 100%) !important;
+}
+
+.ledger-table-grid-row.ledger-row-credit .ledger-cell-credit-amount {
+  color: var(--color-credit-text) !important;
+  font-weight: 900 !important;
+}
+
+.ledger-table-grid-row.ledger-row-credit .ledger-cell-balance-value {
+  color: var(--color-credit-text);
+}
+
+/* ============================================================================
+   DEBIT ROW - SUBTLE RED
+============================================================================ */
+
+.ledger-table-grid-row.ledger-row-debit {
+  background: linear-gradient(135deg, var(--color-debit-bg) 0%, #fff1f2 100%) !important;
+  border-left: 3px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+/* ============================================================================
+   CELL LAYOUT
+============================================================================ */
+
+.ledger-table-grid-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 8px 8px;
+  border-right: 1px solid rgba(226, 232, 240, 0.5);
+  background: transparent;
+  min-height: 60px;
+  max-height: 120px;
+  overflow: hidden;
+  font-family: var(--ledger-font);
+}
+
+.ledger-table-grid-cell:last-child {
+  border-right: none;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Row density variants */
+.ledger-density-compact .ledger-table-grid-cell { min-height: 48px; max-height: 90px; padding: 5px 6px; }
+.ledger-density-comfortable .ledger-table-grid-cell { min-height: 72px; max-height: 140px; padding: 10px 10px; }
+
+/* S.NO cell */
+.ledger-cell-sno-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.ledger-cell-sno {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1e40af;
+  font-size: 11px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Date cell */
+.ledger-cell-date-main {
+  font-weight: 800;
+  font-size: 11px;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+.ledger-cell-date-meta {
+  font-size: 9px;
+  color: #94a3b8;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Description cell */
+.ledger-cell-desc-main {
+  font-weight: 700;
+  font-size: 11px;
+  color: #1e293b;
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.ledger-cell-desc-main[dir="rtl"] {
+  font-family: var(--ledger-font-rtl);
+  text-align: right;
+}
+
+.ledger-cell-desc-secondary {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* B/L cell */
+.ledger-cell-bol-number {
+  font-weight: 800;
+  color: #1e293b;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.ledger-cell-bol-consignee {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Container cell */
+.ledger-cell-container-type {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.ledger-cell-container-number {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Quantity cell */
+.ledger-cell-qty-value {
+  font-weight: 700;
+  font-size: 11px;
+  color: #1e293b;
+}
+
+.ledger-cell-qty-packing {
+  font-size: 9px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+/* Debit cell */
+.ledger-cell-debit-amount {
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--color-debit-text);
+}
+
+.ledger-cell-debit-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #ef4444;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+  opacity: 0.7;
+}
+
+/* Credit cell */
+.ledger-cell-credit-amount {
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--color-credit-text);
+}
+
+.ledger-cell-credit-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+  opacity: 0.7;
+}
+
+/* Receipt badge */
+.ledger-receipt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  background: #bbf7d0;
+  border: 1px solid #86efac;
+  border-radius: 99px;
+  color: #15803d;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-top: 3px;
+  transition: background 0.15s;
+}
+
+.ledger-receipt-badge:hover {
+  background: #86efac;
+}
+
+/* Balance cell */
+.ledger-cell-balance {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ledger-cell-balance-value {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ledger-cell-balance-value.positive {
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
+}
+
+.ledger-cell-balance-value.negative {
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+}
+
+.ledger-cell-balance-value.zero {
+  background: rgba(100, 116, 139, 0.08);
+  color: #64748b;
+}
+
+/* ============================================================================
+   MEDIA COLUMN - STRICTLY COMPACT THUMBNAILS
+============================================================================ */
+
+.ledger-cell-media {
+  align-items: flex-start;
+  justify-content: center;
+  padding: 6px 6px;
+  overflow: hidden;
+}
+
+/* The media grid inside the cell */
+.ledger-media-thumb-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-width: calc(var(--ledger-thumb-w) * 2 + 6px);
+  /* Prevent the grid from ever expanding the row */
+  flex-shrink: 0;
+}
+
+/* Individual thumbnail — FIXED SIZE, NO EXCEPTIONS */
+.ledger-media-thumb {
+  position: relative;
+  width: var(--ledger-thumb-w);
+  height: var(--ledger-thumb-h);
+  flex-shrink: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  background: #f8fafc;
+  transition: border-color 0.15s;
+}
+
+.ledger-media-thumb:hover {
+  border-color: #93c5fd;
+}
+
+.ledger-media-thumb img,
+.ledger-media-thumb video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  /* Prevent any size from leaking outside the fixed container */
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+.ledger-media-thumb-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.ledger-media-thumb-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+}
+
+/* Compact density overrides */
+.ledger-density-compact {
+  --ledger-thumb-w: var(--ledger-thumb-w-compact);
+  --ledger-thumb-h: var(--ledger-thumb-h-compact);
+}
+
+.ledger-density-comfortable {
+  --ledger-thumb-w: var(--ledger-thumb-w-comfortable);
+  --ledger-thumb-h: var(--ledger-thumb-h-comfortable);
+}
+
+/* Add media button */
+.ledger-media-add-btn {
+  width: var(--ledger-thumb-w);
+  height: var(--ledger-thumb-h);
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1.5px dashed #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(239, 246, 255, 0.6);
+  transition: background 0.15s;
+}
+
+.ledger-media-add-btn:hover {
+  background: rgba(219, 234, 254, 0.8);
+  border-color: #93c5fd;
+}
+
+.ledger-media-no-media {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   EDITABLE CELLS
+============================================================================ */
+
+.ledger-cell-edit-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.ledger-cell-edit-mode input,
+.ledger-cell-edit-mode textarea,
+.ledger-cell-edit-mode select {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e293b;
+  background: white;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.ledger-cell-edit-mode input:focus,
+.ledger-cell-edit-mode textarea:focus,
+.ledger-cell-edit-mode select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
+
+.ledger-cell-edit-mode textarea {
+  resize: none;
+  min-height: 44px;
+}
+
+/* ============================================================================
+   ROW ACTIONS COLUMN
+============================================================================ */
+
+.ledger-row-actions-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+
+.ledger-table-grid-row:hover .ledger-row-actions-panel,
+.ledger-table-grid-row.is-editing .ledger-row-actions-panel,
+.ledger-table-grid-row.is-selected .ledger-row-actions-panel {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ledger-row-action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.ledger-row-action-btn:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.ledger-row-action-btn.save {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: white;
+}
+
+.ledger-row-action-btn.save:hover {
+  background: #1e293b;
+}
+
+.ledger-row-action-btn.cancel {
+  background: white;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.ledger-row-action-btn.delete {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #e11d48;
+}
+
+.ledger-row-action-btn.delete:hover {
+  background: #ffe4e6;
+  border-color: #fda4af;
+}
+
+/* ============================================================================
+   BADGES
+============================================================================ */
+
+.ledger-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.ledger-badge--blue { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); color: #1d4ed8; }
+.ledger-badge--green { background: rgba(5, 150, 105, 0.1); border: 1px solid rgba(5, 150, 105, 0.25); color: #059669; }
+.ledger-badge--red { background: rgba(220, 38, 38, 0.08); border: 1px solid rgba(220, 38, 38, 0.2); color: #dc2626; }
+.ledger-badge--gold { background: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.28); color: #a87300; }
+.ledger-badge--gray { background: rgba(100, 116, 139, 0.08); border: 1px solid rgba(100, 116, 139, 0.2); color: #475569; }
+
+/* ============================================================================
+   LEDGER SUMMARY FOOTER
+============================================================================ */
+
+.ledger-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(248,250,252,0.9) 100%);
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 12px 12px;
+  flex-wrap: wrap;
+}
+
+.ledger-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.85);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.ledger-summary-label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9ca3af;
+}
+
+.ledger-summary-value {
+  font-size: 12px;
+  font-weight: 900;
+  color: #1e293b;
+}
+
+.ledger-summary-value.credit { color: #059669; }
+.ledger-summary-value.debit { color: #dc2626; }
+
+/* ============================================================================
+   SCROLLBAR
+============================================================================ */
+
+.ledger-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.ledger-scroll::-webkit-scrollbar-track { background: rgba(226, 232, 240, 0.4); border-radius: 3px; }
+.ledger-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.5); border-radius: 3px; }
+.ledger-scroll::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.7); }
+
+/* ============================================================================
+   CONTEXT MENU
+============================================================================ */
+
+.ledger-context-menu {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(191, 219, 254, 0.8);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.18), 0 0 1px rgba(0,0,0,0.05);
+  padding: 6px;
+  min-width: 200px;
+}
+
+.ledger-context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.12s;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+}
+
+.ledger-context-menu-item:hover {
+  background: rgba(239, 246, 255, 0.9);
+  color: #1d4ed8;
+}
+
+.ledger-context-menu-item.danger:hover {
+  background: rgba(254, 242, 242, 0.9);
+  color: #dc2626;
+}
+
+.ledger-context-menu-separator {
+  height: 1px;
+  background: rgba(226, 232, 240, 0.7);
+  margin: 4px 0;
+}
+
+/* ============================================================================
+   PRINT MEDIA
+============================================================================ */
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  .ledger-table-grid {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .ledger-row-actions-panel,
+  .ledger-table-grid-header-cell:last-child,
+  .ledger-table-grid-cell:last-child {
+    display: none !important;
+  }
+
+  /* Force green credit row to print */
+  .ledger-table-grid-row.ledger-row-credit {
+    background: #dcfce7 !important;
+    border-left: 4px solid #16a34a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide thumbnails, show count */
+  .ledger-media-thumb-grid {
+    display: none !important;
+  }
+
+  .ledger-cell-media::before {
+    content: attr(data-media-count);
+    font-size: 9px;
+    color: #64748b;
+    font-weight: 700;
+  }
+
+  .ledger-table-grid-row {
+    page-break-inside: avoid;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE
+============================================================================ */
+
+@media (max-width: 1280px) {
+  .ledger-table-grid {
+    --ledger-col-desc: minmax(150px, 1.8fr);
+    --ledger-col-bl: 110px;
+    --ledger-col-container: 100px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .ledger-table-grid {
+    --ledger-col-sno: 36px;
+    --ledger-col-date: 80px;
+    --ledger-col-desc: minmax(130px, 1.5fr);
+    --ledger-col-bl: 95px;
+    --ledger-col-container: 90px;
+    --ledger-col-qty: 70px;
+    --ledger-col-debit: 90px;
+    --ledger-col-credit: 90px;
+    --ledger-col-balance: 90px;
+    --ledger-col-media: 90px;
+    --ledger-col-actions: 40px;
+  }
+}
