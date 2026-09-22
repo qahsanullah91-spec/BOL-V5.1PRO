@@ -1,0 +1,32 @@
+{
+    "gitlens.views.contributors.showAllBranches": true,
+    "python.testing.pytestArgs": [
+        "app"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "svn.ignoreMissingSvnWarning": true,
+    "cSpell.words": [
+        "skybalam",
+        "Glassmorphism",
+        "ARIANA",
+        "skyariana",
+        "Balam",
+        "BARAN",
+        "Jalali",
+        "skybol",
+        "BOLPDF",
+        "PDFS",
+        "pdfs",
+        "Pdfs",
+        "BOLS",
+        "bols",
+        "vazirmatn",
+        "Licence",
+        "MADES",
+        "شرکت",
+        "المللی",
+        "اسناد",
+        "ذخیره"
+    ]
+}
