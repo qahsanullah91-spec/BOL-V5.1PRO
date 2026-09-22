@@ -1,0 +1,105 @@
+import path from "path"
+import { getDataPath } from "@/lib/server-paths"
+import { mutateJsonFile, readJsonFile, writeJsonFile } from "./blob-db"
+import { mergeLedgerRows, isCleanCompanyName } from "./account-ledger-storage-service"
+
+export type BolAccountLedgerDatabase = {
+  customCompanies: string[]
+  ledgerRecords: Record<string, any[]>
+  deletedLedgerEntries?: any[]
+  updated_at?: string
+}
+
+const bolAccountLedgerFile = getDataPath(".local-bol-account-ledgers.json")
+
+const emptyDatabase: BolAccountLedgerDatabase = {
+  customCompanies: [],
+  ledgerRecords: {},
+  deletedLedgerEntries: [],
+}
+
+export async function getBolAccountLedgerDatabase() {
+  const database = await readJsonFile<BolAccountLedgerDatabase>(bolAccountLedgerFile, emptyDatabase)
+
+  return {
+    customCompanies: Array.isArray(database.customCompanies) ? database.customCompanies : [],
+    ledgerRecords: database.ledgerRecords && typeof database.ledgerRecords === "object" ? database.ledgerRecords : {},
+    deletedLedgerEntries: Array.isArray(database.deletedLedgerEntries) ? database.deletedLedgerEntries : [],
+    updated_at: database.updated_at || null,
+  }
+}
+
+export async function saveBolAccountLedgerDatabase(data: Partial<BolAccountLedgerDatabase>) {
+  const next = await mutateJsonFile<BolAccountLedgerDatabase>(bolAccountLedgerFile, emptyDatabase, (rawExisting) => {
+  const existing = {
+    customCompanies: Array.isArray(rawExisting.customCompanies) ? rawExisting.customCompanies : [],
+    ledgerRecords: rawExisting.ledgerRecords && typeof rawExisting.ledgerRecords === "object" ? rawExisting.ledgerRecords : {},
+    deletedLedgerEntries: Array.isArray(rawExisting.deletedLedgerEntries) ? rawExisting.deletedLedgerEntries : [],
+  }
+
+  const mergedDeleted = Array.from(new Set([
+    ...(Array.isArray(existing.deletedLedgerEntries) ? existing.deletedLedgerEntries : []),
+    ...(Array.isArray(data.deletedLedgerEntries) ? data.deletedLedgerEntries : []),
+  ]))
+
+  // Smart row-by-row merge for each company key
+  const mergedRecords: Record<string, any[]> = { ...(existing.ledgerRecords || {}) }
+  if (data.ledgerRecords && typeof data.ledgerRecords === "object") {
+    for (const [key, rows] of Object.entries(data.ledgerRecords)) {
+      if (Array.isArray(rows)) {
+        mergedRecords[key] = mergeLedgerRows(mergedRecords[key] || [], rows)
+      } else {
+        mergedRecords[key] = rows
+      }
+    }
+  }
+
+  // Clean out any deleted rows from all company ledger records
+  if (mergedDeleted.length > 0) {
+    const delBolSet = new Set(
+      mergedDeleted.map((d: any) => (d.entry?.barnamehNo || d.entry?.bolNo || '').trim().toLowerCase()).filter(Boolean)
+    )
+    const delIdSet = new Set(
+      mergedDeleted.map((d: any) => d.entry?.id).filter(Boolean)
+    )
+
+    Object.keys(mergedRecords).forEach((key) => {
+      if (Array.isArray(mergedRecords[key])) {
+        mergedRecords[key] = mergedRecords[key].filter((row: any) => {
+          const rBol = (row.barnamehNo || row.bolNo || '').trim().toLowerCase()
+          const rId = row.id
+          if (rId && delIdSet.has(rId)) return false
+          if (rBol && delBolSet.has(rBol)) return false
+          return true
+        })
+      }
+    })
+  }
+
+  const rawCompanies = Array.isArray(data.customCompanies) ? data.customCompanies : existing.customCompanies
+  const cleanCompanies = Array.from(new Set(rawCompanies.filter(isCleanCompanyName)))
+
+  const cleanMergedRecords: Record<string, any[]> = {}
+  for (const [k, rows] of Object.entries(mergedRecords)) {
+    if (Array.isArray(rows) && rows.length > 0) {
+      cleanMergedRecords[k] = rows
+    }
+  }
+
+  return {
+    customCompanies: cleanCompanies,
+    ledgerRecords: cleanMergedRecords,
+    deletedLedgerEntries: mergedDeleted,
+    updated_at: new Date().toISOString(),
+  }
+  })
+
+  const backupFile = getDataPath(".local-bol-account-ledgers.backup.json")
+  try {
+    await writeJsonFile(backupFile, next)
+  } catch (error) {
+    console.error("[bol-ledger] Primary save succeeded but backup failed:", error)
+  }
+
+  return next
+}
