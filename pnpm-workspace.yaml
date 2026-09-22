@@ -1,0 +1,26 @@
+packages:
+  - '.'
+  - 'bol-ledger'
+allowBuilds:
+  esbuild: true
+  core-js: true
+  sharp: true
+  better-sqlite3: true
+onlyBuiltDependencies:
+  - core-js
+  - esbuild
+  - sharp
+  - better-sqlite3
+allowedDeprecatedVersions:
+  '@esbuild-kit/core-utils': '*'
+  '@esbuild-kit/esm-loader': '*'
+  '@humanwhocodes/config-array': '*'
+  '@humanwhocodes/object-schema': '*'
+  boolean: '*'
+  glob: '*'
+  inflight: '*'
+  rimraf: '*'
+  '@types/uuid': '*'
+  recharts: '*'
+  eslint: '*'
+

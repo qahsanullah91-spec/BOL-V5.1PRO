@@ -1,0 +1,70 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env*.local
+
+# Common ignores
+node_modules
+.next/
+.next-production/
+.next-candidate/
+.build-temp/
+.DS_Store
+.vercel
+.env*
+e n v . b a c k u p  
+ e n v . p r o d . b a c k u p  
+__pycache__/
+*.pyc
+*.pyo
+*.tsbuildinfo
+.codeboarding/
+.vercel
+.env*
+.local-*.json
+*.log
+audit_*.json
+validation_report.json
+backend/data/*.db-shm
+backend/data/*.db-wal
+awesome-claude-code-subagents/
+*.exe
+*.dll
+*.so
+.pnpm-store/
+.next-review/
+.next-footer-dev/
+release/
+release-desktop/
+.desktop-package/
+dist-electron/
+scratch/
+*.bak
+public/uploads/bol-pdfs/
+app/uploads/
+_backend_offline/
+
+.vercel
+.env*
+!.env.example
+
+# Local JSON DBs
+/data/
+.local-*.json
+.local-*.key
+.pre_restore_backup_*.json
+sync_status.json
+validation_report.json
+sync_audit_report.json
+dist-test/
+find-err.js
+inspect-*.js
+patch-*.js
+.codex-logs/
+*.tsbuildinfo
