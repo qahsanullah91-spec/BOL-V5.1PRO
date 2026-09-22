@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 180" width="140" height="180" fill="none">
+    <defs>
+        <linearGradient id="bgA" x1="0" x2="1">
+            <stop offset="0%" stop-color="#f6fbff" />
+            <stop offset="100%" stop-color="#eef8ff" />
+        </linearGradient>
+        <linearGradient id="skyG" x1="0" x2="1">
+            <stop offset="0%" stop-color="#60a5fa" />
+            <stop offset="100%" stop-color="#89d3f0" />
+        </linearGradient>
+        <filter id="softA" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="6" result="gA" />
+            <feBlend in="SourceGraphic" in2="gA" />
+        </filter>
+    </defs>
+
+    <rect x="8" y="8" rx="22" width="124" height="164" fill="url(#bgA)" stroke="#e1f0ff" stroke-width="1.6" />
+    <path d="M18 26 C48 12, 92 12, 122 26 L122 36 C92 22, 48 22, 18 36 Z" fill="#ffffff" opacity="0.06" />
+    <rect x="20" y="50" rx="12" width="100" height="84" fill="url(#skyG)" opacity="0.12" filter="url(#softA)" />
+
+    <g transform="translate(18,78)">
+        <path d="M20 18 L60 6 L70 10 L74 14 L64 20 L48 22 L36 28 L20 18 Z" fill="#ffffff" opacity="0.98" />
+        <rect x="6" y="28" width="76" height="8" rx="4" fill="#ffffff" opacity="0.12" />
+    </g>
+</svg>

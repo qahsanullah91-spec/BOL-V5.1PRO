@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 180" width="140" height="180" fill="none">
+    <defs>
+        <linearGradient id="bgG" x1="0" x2="1">
+            <stop offset="0%" stop-color="#f0f8ff" />
+            <stop offset="100%" stop-color="#e8fbff" />
+        </linearGradient>
+        <linearGradient id="blueG" x1="0" x2="1">
+            <stop offset="0%" stop-color="#4f8ffb" />
+            <stop offset="100%" stop-color="#0ea5c9" />
+        </linearGradient>
+        <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="8" result="g" />
+            <feBlend in="SourceGraphic" in2="g" />
+        </filter>
+    </defs>
+
+    <!-- rounded glossy panel -->
+    <rect x="8" y="8" rx="22" ry="22" width="124" height="164" fill="url(#bgG)" stroke="#d7ebff" stroke-width="1.6" />
+    <!-- top sheen -->
+    <path d="M18 26 C48 12, 92 12, 122 26 L122 36 C92 22, 48 22, 18 36 Z" fill="#ffffff" opacity="0.08" />
+
+    <!-- soft colored backdrop -->
+    <rect x="20" y="54" rx="14" width="100" height="78" fill="url(#blueG)" opacity="0.12" filter="url(#softGlow)" />
+
+    <!-- main truck artwork (simplified silhouette) -->
+    <g transform="translate(24,74) scale(1)">
+        <rect x="0" y="10" width="64" height="26" rx="5" fill="#ffffff" opacity="0.98" />
+        <rect x="54" y="2" width="26" height="18" rx="4" fill="#ffffff" opacity="0.98" />
+        <circle cx="14" cy="44" r="6" fill="#0b1220" />
+        <circle cx="58" cy="44" r="6" fill="#0b1220" />
+        <rect x="4" y="16" width="40" height="10" fill="#ffffff" opacity="0.16" />
+    </g>
+
+</svg>
