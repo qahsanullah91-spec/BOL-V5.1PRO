@@ -8,6 +8,20 @@
   "main": "dist-electron/main.js",
   "private": true,
   "packageManager": "pnpm@9.15.4",
+  "allowScripts": {
+    "core-js": true,
+    "electron": true,
+    "electron-winstaller": true,
+    "esbuild": true
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "core-js",
+      "electron",
+      "electron-winstaller",
+      "esbuild"
+    ]
+  },
   "scripts": {
     "dev": "next dev --webpack -p 3001",
     "electron:dev": "concurrently -k -s first \"npm:dev\" \"npm:electron:dev:launch\"",
