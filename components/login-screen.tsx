@@ -132,7 +132,7 @@ export function LoginScreen() {
           <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
         </div>
         <div className="text-[11px] font-black tracking-wider uppercase">
-          SKY ARIANA LIMITED <span className="text-amber-400 font-bold ml-1 text-[9px]">v5.1pro</span>
+          AQ COMPANIES <span className="text-amber-400 font-bold ml-1 text-[9px]">v5.1pro</span>
         </div>
       </div>
 
@@ -162,15 +162,15 @@ export function LoginScreen() {
                 <div className="absolute -inset-1.5 bg-gradient-to-tr from-blue-600/30 to-amber-400/20 rounded-full blur-md" />
                 <div className="relative p-1 bg-white rounded-full shadow-[0_8px_20px_-4px_rgba(10,37,64,0.15)] border border-slate-100">
                   <img 
-                    src="/logo.png" 
-                    alt="SKY ARIANA LIMITED" 
+                    src="/images/company_stamp_signature.png" 
+                    alt="AQ COMPANIES" 
                     className="h-20 sm:h-22 w-auto object-contain transition-transform hover:scale-105 duration-300"
                   />
                 </div>
               </div>
               
               <h1 className="text-lg font-black tracking-tight text-[#0a2540] uppercase text-center leading-tight">
-                SKY ARIANA LIMITED
+                AQ COMPANIES
               </h1>
               <p className="text-[9px] font-extrabold tracking-[0.2em] text-slate-500 uppercase mt-0.5" dir="rtl">
                 سکای آریانا لمیتد • Global Logistics
