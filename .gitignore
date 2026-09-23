@@ -68,3 +68,5 @@ inspect-*.js
 patch-*.js
 .codex-logs/
 *.tsbuildinfo
+
+.next-dev/
