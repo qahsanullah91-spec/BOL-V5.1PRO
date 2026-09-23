@@ -136,7 +136,7 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         {/* Header Section */}
         <div className="relative bg-linear-to-b from-blue-950/70 via-slate-900/90 to-slate-900 p-6 sm:p-8 border-b border-slate-800 text-center">
           <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-linear-to-br from-blue-500/20 to-amber-500/10 rounded-2xl border border-blue-400/30 p-2.5 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/10">
-            <img src="/logo.png" alt="Sky Ariana Logistics" className="w-full h-full object-contain" />
+            <img src="/placeholder-logo.svg" alt="Sky Ariana Logistics" className="w-full h-full object-contain" />
           </div>
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs font-semibold mb-3">
