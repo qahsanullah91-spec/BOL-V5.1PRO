@@ -55,14 +55,16 @@ _backend_offline/
 !.env.example
 
 # Local JSON DBs
-/data/
+/data/*
+!/data/.local-ledger-system.json
 .local-*.json
 .local-*.key
 .pre_restore_backup_*.json
 sync_status.json
 validation_report.json
 sync_audit_report.json
-dist-test/
+dist-test/*
+!dist-test/portal-helpers.cjs
 find-err.js
 inspect-*.js
 patch-*.js
