@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect, memo, type ReactNode } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo, useDeferredValue, memo, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Plus, Trash2, Edit3, Printer, ChevronDown, Receipt, Upload, FileSpreadsheet, FileText, X, Check, AlertCircle, Settings2, Loader2, Image as ImageIcon, CheckCircle2, RotateCcw, AlertTriangle, RefreshCw, Undo2, History, Eye, Download, ZoomIn, ZoomOut, Maximize2, BookOpen, LayoutGrid, LayoutList, SlidersHorizontal, ArrowUpDown, Layers, Save } from 'lucide-react'
 import { toast } from 'sonner'
@@ -43,7 +43,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useApp } from '@/lib/app-context'
 import { LedgerEntry } from '@/lib/types'
 import { EditLedgerEntryDialog } from '@/components/edit-ledger-entry-dialog'
-import * as XLSX from 'xlsx'
 import Image from 'next/image'
 import { SupportedCurrency, CURRENCY_CONFIGS, convertFromUSD, formatCurrencyAmount, exportToUtf8CSV } from '@/lib/utils/currency'
 
@@ -161,6 +160,7 @@ export const LedgerView = memo(function LedgerView() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const deferredSearchTerm = useDeferredValue(searchTerm)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -184,11 +184,85 @@ export const LedgerView = memo(function LedgerView() {
   const [mobileViewMode, setMobileViewMode] = useState<'cards' | 'table'>('cards')
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving'>('saved')
   const [lastSavedTime, setLastSavedTime] = useState<string>('')
+  const [serverLedgerEntries, setServerLedgerEntries] = useState<LedgerEntry[]>([])
+  const [serverLedgerTotals, setServerLedgerTotals] = useState<{
+    openingBalance: number
+    totalDebit: number
+    totalCredit: number
+    closingBalance: number
+    total: number
+    page: number
+    totalPages: number
+  } | null>(null)
+  const [isServerLedgerMode, setIsServerLedgerMode] = useState(false)
+  const [serverLedgerPage, setServerLedgerPage] = useState(1)
+
+  const fetchServerLedger = useCallback(async (targetPage = 1) => {
+    if (!currentAccount && !currentCompany) return
+    const accId = currentAccount?.id || currentCompany?.id || currentCompany?.name || ""
+    try {
+      const params = new URLSearchParams()
+      params.set("server_driven", "true")
+      params.set("account_id", accId)
+      if (startDate) params.set("date_from", startDate)
+      if (endDate) params.set("date_to", endDate)
+      if (selectedCurrency) params.set("currency", selectedCurrency)
+      params.set("page", String(targetPage))
+      params.set("page_size", "50")
+
+      const res = await fetch(`/api/account-ledgers?${params.toString()}`, {
+        headers: { Accept: "application/json" },
+      })
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && json.data && Array.isArray(json.data.items)) {
+          const d = json.data
+          const mapped: LedgerEntry[] = d.items.map((item: any, idx: number) => ({
+            id: item.id || `server-ledger-${idx}`,
+            sNo: item.s_no ?? ((targetPage - 1) * 50 + idx + 1),
+            date: item.transaction_date || "",
+            shipperDescription: item.description || "",
+            invoiceNo: item.invoice_no || "",
+            dateOfShip: item.transaction_date || "",
+            billOfLanding: item.bol_number || "",
+            surrenderedBL: false,
+            containerNo: item.container_number || "",
+            containerType: "",
+            containerDetails: "",
+            consignee: item.consignee_name || "",
+            quantity: item.quantity || "",
+            debit: Number(item.debit) || 0,
+            credit: Number(item.credit) || 0,
+            balance: Number(item.balance) || 0,
+            driverFreight: item.driver_freight || "",
+          }))
+          setServerLedgerEntries(mapped)
+          setServerLedgerTotals({
+            openingBalance: Number(d.opening_balance) || 0,
+            totalDebit: Number(d.total_debit ?? d.period_debit) || 0,
+            totalCredit: Number(d.total_credit ?? d.period_credit) || 0,
+            closingBalance: Number(d.closing_balance) || 0,
+            total: d.total ?? mapped.length,
+            page: d.page ?? targetPage,
+            totalPages: d.pages ?? d.total_pages ?? Math.max(1, Math.ceil((d.total ?? mapped.length) / 50)),
+          })
+          setIsServerLedgerMode(true)
+          setServerLedgerPage(targetPage)
+          return
+        }
+      }
+    } catch {}
+    setIsServerLedgerMode(false)
+  }, [currentAccount, currentCompany, startDate, endDate, selectedCurrency])
+
+  useEffect(() => {
+    void fetchServerLedger(1)
+  }, [fetchServerLedger])
 
   const handleManualAutoSave = useCallback(() => {
     setAutoSaveStatus('saving')
     if (currentAccount && currentCompany) {
-      currentCompany.ledgerEntries.forEach((e) => {
+      currentCompany.ledgerEntries.forEach((e: LedgerEntry) => {
         saveFinancialsForEntry(e.barnamehNo, e.id, e)
       })
       window.dispatchEvent(new CustomEvent('skybol:account-ledger-updated', { detail: {} }))
@@ -521,8 +595,13 @@ export const LedgerView = memo(function LedgerView() {
     setIsExportingPDF(true)
     try {
       if (typeof document !== 'undefined' && document.fonts) {
-        await document.fonts.ready
+        try {
+          await document.fonts.ready
+        } catch {}
       }
+
+      // Cooperative yield to ensure UI loader renders
+      await new Promise((resolve) => setTimeout(resolve, 0))
 
       const printContainer = document.querySelector('#sky-ledger-print-root') || document.querySelector('.ledger-print-root')
       if (!printContainer) throw new Error('Print container not found')
@@ -531,7 +610,7 @@ export const LedgerView = memo(function LedgerView() {
       const { jsPDF } = await import('jspdf')
 
       const canvas = await toCanvas(printContainer as HTMLElement, {
-        pixelRatio: 2.5,
+        pixelRatio: 1.8, // ~172 DPI optimal sharpness without main-thread canvas exhaustion
         quality: 0.98,
         skipFonts: true,
         backgroundColor: '#ffffff',
@@ -545,7 +624,10 @@ export const LedgerView = memo(function LedgerView() {
         },
       })
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.98)
+      // Cooperative yield between rasterization and PDF generation
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.96)
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
@@ -569,6 +651,9 @@ export const LedgerView = memo(function LedgerView() {
         pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, canvasHeightMM, undefined, 'FAST')
         heightLeft -= pdfHeight
       }
+
+      // Final yield before save
+      await new Promise((resolve) => setTimeout(resolve, 0))
 
       const compName = currentCompany?.name || 'Company'
       const fileName = `${compName.replace(/[^a-z0-9]/gi, '_')}_Account_Ledger_${new Date().toISOString().split('T')[0]}.pdf`
@@ -700,8 +785,10 @@ export const LedgerView = memo(function LedgerView() {
 
       // Parse workbook
       let workbook
+      let XLSXModule: typeof import('xlsx')
       try {
-        workbook = XLSX.read(data)
+        XLSXModule = await import('xlsx')
+        workbook = XLSXModule.read(data)
       } catch (parseError) {
         setImportError('Could not parse the file. Please ensure it is a valid Excel file (.xlsx, .xls, or .csv).')
         return
@@ -722,7 +809,7 @@ export const LedgerView = memo(function LedgerView() {
       }
 
       // Convert to JSON with proper type handling
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false }) as unknown[][]
+      const jsonData = XLSXModule.utils.sheet_to_json(worksheet, { header: 1, blankrows: false }) as unknown[][]
 
       if (jsonData.length === 0) {
         setImportError('The file appears to be empty or has no data rows.')
@@ -1096,36 +1183,55 @@ export const LedgerView = memo(function LedgerView() {
     }))
   }
 
-  const allCompanyEntries = currentCompany?.ledgerEntries || []
-  const debitCount = allCompanyEntries.filter(e => e.debit > 0).length
-  const creditCount = allCompanyEntries.filter(e => e.credit > 0).length
-  const surrenderCount = allCompanyEntries.filter(e => e.surrenderedBL).length
-  const driverRentCount = allCompanyEntries.filter(e => e.driverFreight && e.driverFreight.trim() !== '').length
-
-  const filteredEntries = allCompanyEntries.filter((entry) => {
-    if (filterType === 'debit' && entry.debit <= 0) return false
-    if (filterType === 'credit' && entry.credit <= 0) return false
-    if (filterType === 'surrender' && !entry.surrenderedBL) return false
-    if (filterType === 'driverRent' && (!entry.driverFreight || entry.driverFreight.trim() === '')) return false
-    if (startDate && entry.date && entry.date < startDate) return false
-    if (endDate && entry.date && entry.date > endDate) return false
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase().trim()
-      const matchBarnameh = (entry.barnamehNo || "").toLowerCase().includes(q)
-      const matchInvoice = (entry.invoiceNo || "").toLowerCase().includes(q)
-      const matchConsignee = (entry.consignee || "").toLowerCase().includes(q)
-      const matchContainer = (entry.containerNo || "").toLowerCase().includes(q)
-      const matchDesc = (entry.shipperDescription || "").toLowerCase().includes(q)
-      const matchDate = (entry.date || "").toLowerCase().includes(q)
-      const matchDriver = (entry.driverFreight || "").toLowerCase().includes(q)
-      return matchBarnameh || matchInvoice || matchConsignee || matchContainer || matchDesc || matchDate || matchDriver
+  const allCompanyEntries: LedgerEntry[] = currentCompany?.ledgerEntries || []
+  const { debitCount, creditCount, surrenderCount, driverRentCount } = useMemo(() => {
+    let dr = 0, cr = 0, sr = 0, df = 0
+    for (const e of allCompanyEntries) {
+      if (e.debit > 0) dr++
+      if (e.credit > 0) cr++
+      if (e.surrenderedBL) sr++
+      if (e.driverFreight && e.driverFreight.trim() !== '') df++
     }
-    return true
-  })
+    return { debitCount: dr, creditCount: cr, surrenderCount: sr, driverRentCount: df }
+  }, [allCompanyEntries])
 
-  const totalDebit = filteredEntries.reduce((sum, e) => sum + e.debit, 0)
-  const totalCredit = filteredEntries.reduce((sum, e) => sum + e.credit, 0)
-  const finalBalance = totalDebit - totalCredit
+  const filteredEntries = useMemo(() => {
+    return allCompanyEntries.filter((entry: LedgerEntry) => {
+      if (filterType === 'debit' && entry.debit <= 0) return false
+      if (filterType === 'credit' && entry.credit <= 0) return false
+      if (filterType === 'surrender' && !entry.surrenderedBL) return false
+      if (filterType === 'driverRent' && (!entry.driverFreight || entry.driverFreight.trim() === '')) return false
+      if (startDate && entry.date && entry.date < startDate) return false
+      if (endDate && entry.date && entry.date > endDate) return false
+      if (deferredSearchTerm.trim()) {
+        const q = deferredSearchTerm.toLowerCase().trim()
+        const matchBarnameh = (entry.barnamehNo || "").toLowerCase().includes(q)
+        const matchInvoice = (entry.invoiceNo || "").toLowerCase().includes(q)
+        const matchConsignee = (entry.consignee || "").toLowerCase().includes(q)
+        const matchContainer = (entry.containerNo || "").toLowerCase().includes(q)
+        const matchDesc = (entry.shipperDescription || "").toLowerCase().includes(q)
+        const matchDate = (entry.date || "").toLowerCase().includes(q)
+        const matchDriver = (entry.driverFreight || "").toLowerCase().includes(q)
+        return matchBarnameh || matchInvoice || matchConsignee || matchContainer || matchDesc || matchDate || matchDriver
+      }
+      return true
+    })
+  }, [allCompanyEntries, filterType, startDate, endDate, deferredSearchTerm])
+
+  const displayEntries = isServerLedgerMode && serverLedgerEntries.length > 0 ? serverLedgerEntries : filteredEntries
+
+  const { totalDebit, totalCredit, finalBalance } = useMemo(() => {
+    if (isServerLedgerMode && serverLedgerTotals) {
+      return {
+        totalDebit: serverLedgerTotals.totalDebit,
+        totalCredit: serverLedgerTotals.totalCredit,
+        finalBalance: serverLedgerTotals.closingBalance,
+      }
+    }
+    const dr = filteredEntries.reduce((sum: number, e: LedgerEntry) => sum + e.debit, 0)
+    const cr = filteredEntries.reduce((sum: number, e: LedgerEntry) => sum + e.credit, 0)
+    return { totalDebit: dr, totalCredit: cr, finalBalance: dr - cr }
+  }, [isServerLedgerMode, serverLedgerTotals, filteredEntries])
 
   const parseDriverFreightAFN = (e: LedgerEntry): number => {
     const freightStr = e.driverFreight?.trim()
@@ -1146,12 +1252,55 @@ export const LedgerView = memo(function LedgerView() {
   }
 
   const totalDriverRentAFN = filteredEntries.reduce(
-    (sum, e) => sum + parseDriverFreightAFN(e),
+    (sum: number, e: LedgerEntry) => sum + parseDriverFreightAFN(e),
     0
   )
 
-  const handleExportExcel = () => {
-    const exportData = filteredEntries.map((e, idx) => ({
+  const handleExportExcel = async () => {
+    // If large ledger (> 250 rows), attempt background worker streaming to eliminate UI thread latency
+    if (filteredEntries.length > 250) {
+      try {
+        const { offloadLedgerExcelExport } = await import('@/lib/services/shipment-document-offload')
+        const toastId = toast.loading("Streaming ledger workbook from background engine...")
+        const offloaded = await offloadLedgerExcelExport({
+          account_name: currentCompany?.name || "Ledger",
+          currency: selectedCurrency || "USD",
+          opening_balance: 0,
+          entries: filteredEntries.map((e: LedgerEntry) => ({
+            date: e.date || "",
+            bol_number: e.barnamehNo || "",
+            description: e.shipperDescription || "",
+            debit: e.debit || 0,
+            credit: e.credit || 0,
+            balance: e.balance || 0,
+            truck_number: (e as any).truckNo || "",
+            driver_name: (e as any).driverName || "",
+          })),
+        })
+        if (offloaded) {
+          const url = URL.createObjectURL(offloaded.blob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = offloaded.filename
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          setTimeout(() => URL.revokeObjectURL(url), 1000)
+          toast.dismiss(toastId)
+          toast.success("Ledger workbook exported via streaming engine!")
+          return
+        }
+        toast.dismiss(toastId)
+      } catch {
+        // Fallback transparently to browser-side XLSX
+      }
+    }
+
+    // Cooperative yield so UI remains responsive
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const XLSX = await import('xlsx')
+    const exportData = filteredEntries.map((e: LedgerEntry, idx: number) => ({
       "S.NO": idx + 1,
       "DATE": e.date || "",
       "SHIPPER/DESCRIPTION": e.shipperDescription || "",
@@ -1191,7 +1340,7 @@ export const LedgerView = memo(function LedgerView() {
       "BALANCE (USD)",
     ]
 
-    const rows = filteredEntries.map((e, idx) => [
+    const rows = filteredEntries.map((e: LedgerEntry, idx: number) => [
       idx + 1,
       e.date || "",
       e.shipperDescription || "",
@@ -2198,7 +2347,7 @@ export const LedgerView = memo(function LedgerView() {
           {/* Dedicated Mobile Cards View (Visible on small screens when in cards mode) */}
           {mobileViewMode === 'cards' && (
             <div className="block md:hidden p-3 space-y-3 no-print">
-              {filteredEntries.length === 0 ? (
+              {displayEntries.length === 0 ? (
                 <div className="p-8 text-center bg-white/60 rounded-2xl border border-blue-100 space-y-3">
                   <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
                     <BookOpen className="h-6 w-6" />
@@ -2218,7 +2367,7 @@ export const LedgerView = memo(function LedgerView() {
                 </div>
               ) : (
                 <>
-                  {filteredEntries.map((entry, idx) => {
+                  {displayEntries.map((entry: LedgerEntry, idx: number) => {
                     const isCredit = entry.credit > 0
                     return (
                       <div
@@ -2495,7 +2644,7 @@ export const LedgerView = memo(function LedgerView() {
                 </tr>
               </thead>
               <tbody>
-                {filteredEntries.length === 0 ? (
+                {displayEntries.length === 0 ? (
                   <>
                     {/* Show 17 empty rows to match PDF */}
                     {Array.from({ length: 17 }).map((_, idx) => (
@@ -2544,7 +2693,7 @@ export const LedgerView = memo(function LedgerView() {
                   </>
                 ) : (
                   <>
-                    {filteredEntries.map((entry, idx) => {
+                    {displayEntries.map((entry: LedgerEntry, idx: number) => {
                       const isCredit = entry.credit > 0;
                       return (
                       <tr 
@@ -2714,6 +2863,42 @@ export const LedgerView = memo(function LedgerView() {
               </tbody>
             </table>
           </div>
+
+          {/* Server-Driven Ledger Pagination Toolbar */}
+          {isServerLedgerMode && serverLedgerTotals && serverLedgerTotals.totalPages > 1 && (
+            <div className="m-3 p-3 rounded-2xl bg-white/90 border border-blue-200 flex flex-wrap items-center justify-between gap-3 no-print shadow-xs">
+              <span className="text-xs font-bold text-slate-700">
+                Showing entries <span className="text-blue-900 font-black">{((serverLedgerPage - 1) * 50) + 1}</span> to{" "}
+                <span className="text-blue-900 font-black">{Math.min(serverLedgerPage * 50, serverLedgerTotals.total)}</span> of{" "}
+                <span className="text-blue-900 font-black">{serverLedgerTotals.total.toLocaleString()}</span> entries
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={serverLedgerPage <= 1}
+                  onClick={() => void fetchServerLedger(Math.max(1, serverLedgerPage - 1))}
+                  className="h-8 px-3 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Previous
+                </Button>
+                <span className="text-xs font-black text-slate-800 px-2">
+                  Page {serverLedgerPage} of {serverLedgerTotals.totalPages}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={serverLedgerPage >= serverLedgerTotals.totalPages}
+                  onClick={() => void fetchServerLedger(Math.min(serverLedgerTotals.totalPages, serverLedgerPage + 1))}
+                  className="h-8 px-3 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Driver Rent Summary Highlight Banner */}
           <div className="m-3 p-3 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border border-amber-300/80 flex flex-col sm:flex-row items-center justify-between gap-3 no-print backdrop-blur-md shadow-xs">
@@ -2893,7 +3078,7 @@ export const LedgerView = memo(function LedgerView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEntries.map((entry, idx) => {
+                  {filteredEntries.map((entry: LedgerEntry, idx: number) => {
                     const isCredit = entry.credit > 0;
                     return (
                     <tr 
@@ -3355,7 +3540,7 @@ export const LedgerView = memo(function LedgerView() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredEntries.map((entry, idx) => {
+                      {filteredEntries.map((entry: LedgerEntry, idx: number) => {
                         const isCredit = entry.credit > 0;
                         return (
                         <tr 

@@ -7,5 +7,15 @@ import {
 } from 'next-themes'
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  return (
+    <NextThemesProvider {...props}>
+      {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
+    </NextThemesProvider>
+  )
 }

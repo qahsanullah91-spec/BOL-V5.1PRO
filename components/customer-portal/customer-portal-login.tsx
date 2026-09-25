@@ -59,10 +59,10 @@ export function CustomerPortalLogin({ onLoginSuccess, onAdminBack }: CustomerPor
       <Card className="w-full max-w-md border-slate-800 bg-slate-900/90 text-slate-100 shadow-2xl backdrop-blur-xl relative z-10">
         <CardHeader className="space-y-3 text-center pb-6">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-950/60 border border-blue-500/30 flex items-center justify-center p-2 shadow-inner">
-            <Image src="/logo.png" alt="Sky Ariana Logo" width={48} height={48} className="object-contain" priority />
+            <Image src="/logo.png" alt="AQ Companies Logo" width={48} height={48} className="object-contain" priority />
           </div>
           <div>
-            <span className="text-[10px] font-bold tracking-widest uppercase text-blue-400">Sky Ariana Limited</span>
+            <span className="text-[10px] font-bold tracking-widest uppercase text-blue-400">AQ Companies</span>
             <CardTitle className="text-2xl font-extrabold tracking-tight text-white mt-0.5">
               Customer Portal
             </CardTitle>

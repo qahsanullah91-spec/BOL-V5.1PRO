@@ -112,11 +112,12 @@ export function CustomerLedgerView({ session }: CustomerLedgerProps) {
               ${rowsHtml}
             </tbody>
           </table>
-          <script>window.print();</script>
         </body>
       </html>
     `)
     printWindow.document.close()
+    printWindow.focus()
+    printWindow.print()
   }
 
   return (

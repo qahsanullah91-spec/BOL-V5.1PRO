@@ -13,6 +13,7 @@ import {
   HardDrive,
   Download,
   Shield,
+  Activity,
   UserPlus,
   Trash2,
   CheckCircle2,
@@ -67,6 +68,11 @@ import { RecentlyDeletedView } from "@/components/sync/recently-deleted-view"
 import { ClientPortalTab } from "./settings/client-portal-tab"
 import { UsersPermissionsTab } from "./settings/users-permissions-tab"
 import { ServerModeCard } from "@/components/server/server-mode-card"
+import { ServerConnectionTab } from "./settings/server-connection-tab"
+import { BackupRecoveryView } from "@/components/backup/backup-recovery-view"
+import { AccountingPeriodsSettings } from "./settings/accounting-periods-settings"
+import { AIAssistantSettingsTab } from "./settings/ai-assistant-settings-tab"
+import { PerformanceDiagnosticsTab } from "./settings/performance-diagnostics-tab"
 import {
   COMPANY_STAMP_SIGNATURE_SRC,
   COMPANY_STAMP_SIGNATURE_DATA_URL,
@@ -129,7 +135,7 @@ const PRESET_SEALS = [
   },
 ]
 
-export type SettingsTab = "all" | "users" | "client_portal" | "stamp" | "company" | "cloud" | "security" | "updates" | "vault" | "gdrive" | "deleted" | "server"
+export type SettingsTab = "all" | "users" | "client_portal" | "stamp" | "company" | "cloud" | "security" | "updates" | "vault" | "gdrive" | "deleted" | "server" | "backup_recovery" | "accounting_periods" | "ai_assistant" | "performance"
 
 const DEFAULT_BADGE = {
   label: "Staff User",
@@ -846,6 +852,71 @@ export function SettingsView() {
             <span>Server & LAN</span>
           </button>
 
+          {/* Tab: Enterprise Backup & Health */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("backup_recovery")}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === "backup_recovery"
+                ? "bg-emerald-900 text-white shadow-md ring-2 ring-emerald-400/60"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Backup & Recovery</span>
+            <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+              PRO
+            </span>
+          </button>
+
+          {/* Tab: Accounting Periods & Financial Locks */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("accounting_periods")}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === "accounting_periods"
+                ? "bg-blue-900 text-white shadow-md ring-2 ring-blue-400/60"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5 text-blue-500" />
+            <span>Accounting Periods</span>
+          </button>
+
+          {/* Tab: AI Operations Assistant */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("ai_assistant")}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === "ai_assistant"
+                ? "bg-purple-900 text-white shadow-md ring-2 ring-purple-400/60"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>AI Assistant</span>
+            <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-purple-500/20 text-purple-800 dark:text-purple-300">
+              NEW
+            </span>
+          </button>
+
+          {/* Tab: Performance Diagnostics */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("performance")}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === "performance"
+                ? "bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-400"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5 text-amber-500" />
+            <span>Diagnostics</span>
+            <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300">
+              FAST
+            </span>
+          </button>
+
           {/* Tab 10: System Build */}
           <button
             type="button"
@@ -908,6 +979,14 @@ export function SettingsView() {
               <a href="#section-server" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-blue-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
                 <Server className="w-3 h-3 text-blue-400" />
                 <span>LAN Server</span>
+              </a>
+              <a href="#section-ai-assistant" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-purple-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-purple-400" />
+                <span>AI Assistant</span>
+              </a>
+              <a href="#section-performance" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+                <Activity className="w-3 h-3 text-amber-400" />
+                <span>Diagnostics</span>
               </a>
               <a href="#section-updates" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-emerald-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
                 <Smartphone className="w-3 h-3 text-emerald-400" />
@@ -2437,7 +2516,157 @@ export function SettingsView() {
               </button>
             </div>
           )}
+          <ServerConnectionTab />
           <ServerModeCard />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: ENTERPRISE BACKUP & RECOVERY                                         */}
+      {/* ========================================================================= */}
+      {(activeTab === "all" || activeTab === "backup_recovery") && (
+        <div id="section-backup-recovery" className="scroll-mt-28 space-y-4 animate-in fade-in duration-300">
+          {activeTab === "all" && (
+            <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-emerald-950 to-blue-950 text-white shadow-md border border-slate-700/60">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-xs shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-sm sm:text-base font-black text-white">Enterprise Automatic Backup, Safe Recovery & Database Health</h2>
+                    <span className="text-xs text-emerald-300 font-[vazirmatn] font-bold" dir="rtl">
+                      پشتیبان‌گیری خودکار، بازیابی ایمن و سلامت پایگاه داده
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 hidden sm:block">Automated versioned archives, multi-step safe restore, relational integrity audits, and import rollback</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("backup_recovery")}
+                className="px-3 py-1.5 rounded-xl text-xs font-black bg-white/10 hover:bg-white/20 text-white transition border border-white/20 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                title="Focus Backup & Recovery tab only"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden md:inline">Focus Section</span>
+              </button>
+            </div>
+          )}
+          <BackupRecoveryView />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: ACCOUNTING PERIODS & FINANCIAL LOCKS                                 */}
+      {/* ========================================================================= */}
+      {(activeTab === "all" || activeTab === "accounting_periods") && (
+        <div id="section-accounting-periods" className="scroll-mt-28 space-y-4 animate-in fade-in duration-300">
+          {activeTab === "all" && (
+            <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white shadow-md border border-slate-700/60">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-xs shrink-0">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-sm sm:text-base font-black text-white">Financial Period Closing & Server Lock Controls</h2>
+                    <span className="text-xs text-blue-300 font-[vazirmatn] font-bold" dir="rtl">
+                      مدیریت دوره‌های مالی و قفل امنیتی دفتر کل
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 hidden sm:block">Enforce strict server-side lock on closed periods, pre-close backup verification, and multi-currency carry-forward</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("accounting_periods")}
+                className="px-3 py-1.5 rounded-xl text-xs font-black bg-white/10 hover:bg-white/20 text-white transition border border-white/20 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                title="Focus Accounting Periods tab only"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-blue-400" />
+                <span className="hidden md:inline">Focus Section</span>
+              </button>
+            </div>
+          )}
+          <AccountingPeriodsSettings />
+        </div>
+      )}
+
+
+      {/* ========================================================================= */}
+      {/* TAB: AI OPERATIONS ASSISTANT (SKY AI)                                     */}
+      {/* ========================================================================= */}
+      {(activeTab === "all" || activeTab === "ai_assistant") && (
+        <div id="section-ai-assistant" className="scroll-mt-28 space-y-4 animate-in fade-in duration-300">
+          {activeTab === "all" && (
+            <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-purple-950 to-indigo-950 text-white shadow-md border border-slate-700/60">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-purple-600 text-white font-black text-xs flex items-center justify-center shadow-xs shrink-0">
+                  <Sparkles className="w-4 h-4 text-purple-200" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-sm sm:text-base font-black text-white">AI Operations Assistant (SKY AI)</h2>
+                    <span className="text-xs text-purple-300 font-[vazirmatn] font-bold" dir="rtl">
+                      دستیار هوشمند عملیاتی و رهگیری
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 hidden sm:block">
+                    Configure Google Gemini API, model selection, execution mode (Read-only vs Actions), and language preferences
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("ai_assistant")}
+                className="px-3 py-1.5 rounded-xl text-xs font-black bg-white/10 hover:bg-white/20 text-white transition border border-white/20 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                title="Focus AI Assistant tab only"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
+                <span className="hidden md:inline">Focus Section</span>
+              </button>
+            </div>
+          )}
+          <AIAssistantSettingsTab />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: PERFORMANCE & DIAGNOSTICS                                            */}
+      {/* ========================================================================= */}
+      {(activeTab === "all" || activeTab === "performance") && (
+        <div id="section-performance" className="scroll-mt-28 space-y-4 animate-in fade-in duration-300">
+          {activeTab === "all" && (
+            <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-amber-950 to-slate-950 text-white shadow-md border border-slate-700/60">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-xs shrink-0">
+                  <Activity className="w-4 h-4 text-slate-950" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-sm sm:text-base font-black text-white">System Performance & Diagnostics</h2>
+                    <span className="text-xs text-amber-300 font-[vazirmatn] font-bold" dir="rtl">
+                      کارایی و تشخیص سیستم
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 hidden sm:block">
+                    Monitor network latency, chunk caching status, DOM element load, and browser storage memory
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("performance")}
+                className="px-3 py-1.5 rounded-xl text-xs font-black bg-white/10 hover:bg-white/20 text-white transition border border-white/20 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                title="Focus Performance Diagnostics tab only"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden md:inline">Focus Section</span>
+              </button>
+            </div>
+          )}
+          <PerformanceDiagnosticsTab />
         </div>
       )}
 

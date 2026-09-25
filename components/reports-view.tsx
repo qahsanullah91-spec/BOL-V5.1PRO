@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { createPortal } from "react-dom"
@@ -66,7 +66,6 @@ import { Badge } from "@/components/ui/badge"
 import { SavedBolReport } from "@/components/reports/saved-bol-report"
 import { SaveToDriveButton } from "@/components/google-drive/save-to-drive-button"
 import { toast } from "sonner"
-import * as XLSX from "xlsx"
 import {
   getActiveExchangeRate,
   setActiveExchangeRate,
@@ -1330,9 +1329,9 @@ export function ReportsView() {
   // =========================================================================
   // EXPORT TO EXCEL SPREADSHEET (.xlsx)
   // =========================================================================
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     try {
-      const wb = XLSX.utils.book_new()
+      toast.info("Preparing Excel export...")
 
       // 1. Container P&L Worksheet
       const containerRows = filteredContainers.map(r => ({
@@ -1364,6 +1363,42 @@ export function ReportsView() {
         "Loss Cause / Remarks": r.lossReason || (r.status === 'Profitable' ? 'Normal Operations' : '-'),
         "Exchange Rate Applied (AFN/USD)": r.exchangeRateUsed || exchangeRate
       }))
+
+      // Try High-Speed Python Streaming Excel Export First (Zero UI Freeze)
+      try {
+        const filename = `SkyAriana_Container_Freight_Report_${new Date().toISOString().slice(0, 10)}.xlsx`
+        const res = await fetch("/api/v1/documents/excel-export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename,
+            rows: containerRows,
+            sheet_title: "Container Manifest",
+            title: "SKY ARIANA LIMITED - CONTAINER & FREIGHT REPORT",
+          }),
+          signal: AbortSignal.timeout(4000),
+        })
+        if (res.ok) {
+          const json = await res.json()
+          if (json.success && json.data?.download_url) {
+            const dl = document.createElement("a")
+            dl.href = json.data.download_url
+            dl.download = json.data.filename || filename
+            document.body.appendChild(dl)
+            dl.click()
+            document.body.removeChild(dl)
+            toast.success("Container Excel report exported via streaming engine!")
+            return
+          }
+        }
+      } catch (backendErr) {
+        // Fallback transparently to browser-side XLSX
+      }
+
+      // Browser-Side XLSX Fallback (Offline-First Guarantee)
+      const XLSX = await import("xlsx")
+      const wb = XLSX.utils.book_new()
+
       const wsContainers = XLSX.utils.json_to_sheet(containerRows)
       XLSX.utils.book_append_sheet(wb, wsContainers, "Container Manifest")
 
@@ -1374,7 +1409,7 @@ export function ReportsView() {
         ["Direction Filter", directionFilter.toUpperCase()],
         ["Exchange Rate Applied", `1 USD = ${exchangeRate} AFN`],
         [],
-        ["METRIC", "TOTAL", "EXPORT (ØµØ§Ø¯Ø±Ø§Øª)", "IMPORT (ÙˆØ§Ø±Ø¯Ø§Øª)", "TRANSIT (ØªØ±Ø§Ù†Ø²ÛŒØª)"],
+        ["METRIC", "TOTAL", "EXPORT", "IMPORT", "TRANSIT"],
         ["Container Count", containerMetrics.totalContainers, containerMetrics.exportCount, containerMetrics.importCount, containerMetrics.transitCount],
         ["Total TEU", containerMetrics.totalTEU, containerMetrics.exportCount * 2, containerMetrics.importCount * 2, containerMetrics.transitCount * 2],
         ["Gross Weight (MT)", (containerMetrics.totalGrossWeightKg / 1000).toFixed(1), (containerMetrics.exportWeightKg / 1000).toFixed(1), (containerMetrics.importWeightKg / 1000).toFixed(1), "-"],

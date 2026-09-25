@@ -50,7 +50,11 @@ const bgImages = [
   }
 ]
 
-export function LoginScreen() {
+export interface LoginScreenProps {
+  onLogin?: () => void
+}
+
+export function LoginScreen({ onLogin }: LoginScreenProps = {}) {
   const { login } = useApp()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -68,7 +72,7 @@ export function LoginScreen() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentBg((prev) => (prev + 1) % bgImages.length)
-    }, 8000)
+    }, 6000)
     return () => clearInterval(timer)
   }, [])
 
@@ -79,6 +83,8 @@ export function LoginScreen() {
     const success = login(u, p, rememberMe)
     if (!success) {
       setError("Invalid username or password. Please try again.")
+    } else {
+      onLogin?.()
     }
   }
 
@@ -100,6 +106,7 @@ export function LoginScreen() {
         setIsLoading(false)
       } else {
         setIsLoading(false)
+        onLogin?.()
       }
     } catch (err) {
       setError("An unexpected error occurred during login.")
@@ -162,7 +169,7 @@ export function LoginScreen() {
                 <div className="absolute -inset-1.5 bg-gradient-to-tr from-blue-600/30 to-amber-400/20 rounded-full blur-md" />
                 <div className="relative p-1 bg-white rounded-full shadow-[0_8px_20px_-4px_rgba(10,37,64,0.15)] border border-slate-100">
                   <img 
-                    src="/images/company_stamp_signature.png" 
+                    src="/logo.png" 
                     alt="AQ COMPANIES" 
                     className="h-20 sm:h-22 w-auto object-contain transition-transform hover:scale-105 duration-300"
                   />

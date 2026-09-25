@@ -348,7 +348,7 @@ test("Filter Engine: Real-time search and multi-field filtering", () => {
 // ==================================================
 // 7. EXCEL MULTI-SHEET GENERATION
 // ==================================================
-test("Excel Export: Generates professional multi-sheet workbook (.xlsx)", () => {
+test("Excel Export: Generates professional multi-sheet workbook (.xlsx)", async () => {
   let XLSX;
   try {
     XLSX = require("xlsx");
@@ -367,7 +367,7 @@ test("Excel Export: Generates professional multi-sheet workbook (.xlsx)", () => 
   };
 
   try {
-    exportReportToExcel(MOCK_BOLS, "QA-Test-Excel");
+    await exportReportToExcel(MOCK_BOLS, "QA-Test-Excel");
     assert.deepEqual(exportedSheets, [
       "Summary",
       "Detailed BOLs",

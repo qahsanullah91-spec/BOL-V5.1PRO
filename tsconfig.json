@@ -42,6 +42,9 @@
     "node_modules",
     "bol-ledger",
     "awesome-claude-code-subagents",
-    "scripts/fleet"
+    "scripts/fleet",
+    "release",
+    "release-desktop",
+    ".desktop-package"
   ]
 }

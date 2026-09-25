@@ -222,18 +222,26 @@ export function BolQuickView({
                 </p>
               </div>
             </div>
-            <div className="border-t border-slate-100 pt-2 flex items-center justify-between">
+            <div className="border-t border-slate-100 pt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
               <div>
                 <span className="text-[10px] text-slate-400 uppercase font-black">Truck License Plate</span>
                 <p className="font-black font-mono text-slate-900 mt-0.5 flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-slate-400" />
-                  {doc.truck_number || "-"}
+                  <Truck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate">{doc.truck_number || "-"}</span>
                 </p>
               </div>
               {doc.driver_name && (
-                <div className="text-right">
+                <div>
                   <span className="text-[10px] text-slate-400 uppercase font-black">Driver</span>
-                  <p className="font-bold text-slate-900 mt-0.5">{doc.driver_name}</p>
+                  <p className="font-bold text-slate-900 mt-0.5 truncate" title={doc.driver_name}>{doc.driver_name}</p>
+                </div>
+              )}
+              {(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent) && (
+                <div className={!doc.driver_name ? "text-right" : ""}>
+                  <span className="text-[10px] text-amber-700 uppercase font-black">Driver Rent</span>
+                  <p className="font-black font-mono text-amber-900 mt-0.5 truncate" dir="ltr" title={doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent}>
+                    {doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent}
+                  </p>
                 </div>
               )}
             </div>

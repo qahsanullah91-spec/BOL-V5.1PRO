@@ -51,6 +51,8 @@ export type PermissionCategory =
   | "CLIENT_PORTAL"
   | "USERS"
   | "SETTINGS"
+  | "MANAGEMENT_REPORTS"
+  | "COMMUNICATIONS"
 
 export interface PermissionItem {
   id: string
@@ -103,6 +105,7 @@ export interface ExtendedUser {
   updated_at?: string
   created_by?: string
 }
+export type User = ExtendedUser
 
 export type ApprovalActionType =
   | "supplier_payment_post"

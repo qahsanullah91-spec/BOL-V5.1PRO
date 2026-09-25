@@ -511,21 +511,21 @@
   @keyframes workspace-dialog-in {
     0% {
       opacity: 0;
-      transform: translate3d(-50%, calc(-50% + 6px), 0) scale3d(0.975, 0.975, 1);
+      transform: translate3d(0, 8px, 0) scale3d(0.98, 0.98, 1);
     }
     100% {
       opacity: 1;
-      transform: translate3d(-50%, -50%, 0) scale3d(1, 1, 1);
+      transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
     }
   }
   @keyframes workspace-dialog-out {
     0% {
       opacity: 1;
-      transform: translate3d(-50%, -50%, 0) scale3d(1, 1, 1);
+      transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
     }
     100% {
       opacity: 0;
-      transform: translate3d(-50%, calc(-50% + 4px), 0) scale3d(0.98, 0.98, 1);
+      transform: translate3d(0, 6px, 0) scale3d(0.985, 0.985, 1);
     }
   }
   :is(body:has(.liquid-workspace), body) :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"])[data-state="open"] {

@@ -45,9 +45,9 @@ export function PrintableInvoiceModal({
         <div className="flex items-center justify-between px-6 py-4 bg-white border-b sticky top-0 z-10 print:hidden">
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-blue-600" />
-            <h2 className="text-lg font-bold text-slate-800">
+            <DialogTitle className="text-lg font-bold text-slate-800">
               Tax Invoice — {invoice.invoice_number}
-            </h2>
+            </DialogTitle>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">

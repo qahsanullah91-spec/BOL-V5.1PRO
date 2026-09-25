@@ -97,18 +97,19 @@ export async function setServerCollection<T>(collectionName: string, data: T): P
  * Atomically generates the next sequential BOL number.
  * Thread-safe and process-safe.
  */
-export async function getNextServerBolNumber(year?: number): Promise<string> {
+export async function getNextServerBolNumber(year?: number, customStartSeq?: number): Promise<string> {
   const targetYear = year || new Date().getFullYear()
   const counterFile = getDbFilePath("counters.json")
+  const baselineStart = customStartSeq ? customStartSeq - 1 : 470
 
-  let nextSeq = 471
-  await mutateJsonFile<SequenceCounters>(counterFile, { ...DEFAULT_COUNTERS, year: targetYear }, (current) => {
-    let curr = current || { ...DEFAULT_COUNTERS, year: targetYear }
+  let nextSeq = baselineStart + 1
+  await mutateJsonFile<SequenceCounters>(counterFile, { ...DEFAULT_COUNTERS, year: targetYear, bolSequence: baselineStart }, (current) => {
+    let curr = current || { ...DEFAULT_COUNTERS, year: targetYear, bolSequence: baselineStart }
     if (curr.year !== targetYear) {
       curr.year = targetYear
-      curr.bolSequence = 470
+      curr.bolSequence = baselineStart
     }
-    curr.bolSequence = (curr.bolSequence || 470) + 1
+    curr.bolSequence = (curr.bolSequence !== undefined ? curr.bolSequence : baselineStart) + 1
     curr.updated_at = new Date().toISOString()
     nextSeq = curr.bolSequence
     return curr

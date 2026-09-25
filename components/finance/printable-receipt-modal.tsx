@@ -37,9 +37,9 @@ export function PrintableReceiptModal({
         <div className="flex items-center justify-between px-6 py-4 bg-white border-b sticky top-0 z-10 print:hidden">
           <div className="flex items-center gap-2">
             <Receipt className="h-5 w-5 text-emerald-600" />
-            <h2 className="text-lg font-bold text-slate-800">
+            <DialogTitle className="text-lg font-bold text-slate-800">
               Payment Receipt — {receipt.receipt_number}
-            </h2>
+            </DialogTitle>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">

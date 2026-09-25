@@ -112,7 +112,14 @@ export function saveDeviceProfile(device: SyncDevice): void {
     try {
       const dir = path.dirname(DEVICE_FILE)
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-      fs.writeFileSync(DEVICE_FILE, JSON.stringify(cachedDevice, null, 2), "utf-8")
+      const tmpPath = `${DEVICE_FILE}.tmp.${Date.now()}`
+      fs.writeFileSync(tmpPath, JSON.stringify(cachedDevice, null, 2), "utf-8")
+      try {
+        fs.renameSync(tmpPath, DEVICE_FILE)
+      } catch {
+        fs.copyFileSync(tmpPath, DEVICE_FILE)
+        try { fs.unlinkSync(tmpPath) } catch {}
+      }
     } catch (e) {
       console.error("[device] Failed to persist device profile to disk:", e)
     }

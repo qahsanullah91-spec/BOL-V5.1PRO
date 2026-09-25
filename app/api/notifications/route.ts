@@ -1,132 +1,127 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server"
 import {
-  getNotificationsForUser,
-  getNotificationMetricsForUser,
-  markDeliveryAsRead,
-  markAllDeliveriesAsRead,
-  acknowledgeDelivery,
-  snoozeDelivery,
-  pinDelivery,
-  createOrUpdateNotificationEvent,
-  NotificationFilter,
-} from '@/lib/notifications/notification-service'
-import { runNotificationEvaluationPass } from '@/lib/notifications/notification-evaluator'
-import { User, UserRole } from '@/lib/types'
+  getNotifications,
+  createNotification,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  clearAllNotifications,
+  evaluateSystemEvents,
+} from "@/lib/services/notification-center-service"
+import type {
+  NotificationCategory,
+  NotificationPriority,
+} from "@/lib/types/communication"
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
-function extractUserFromRequest(req: NextRequest): User {
-  const { searchParams } = new URL(req.url)
-  const username = searchParams.get('user') || req.headers.get('x-user-name') || 'admin'
-  const role = (searchParams.get('role') || req.headers.get('x-user-role') || 'admin') as UserRole
-  const clientId = searchParams.get('clientId') || undefined
-  const clientName = searchParams.get('clientName') || undefined
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
 
-  return {
-    id: username,
-    username,
-    name: username,
-    role,
-    clientId,
-    clientName,
+    // Optionally evaluate system events on query if requested
+    if (searchParams.get("evaluate") === "true") {
+      await evaluateSystemEvents()
+    }
+
+    const filters = {
+      user_id: searchParams.get("user_id") || undefined,
+      category: (searchParams.get("category") as NotificationCategory) || undefined,
+      priority: (searchParams.get("priority") as NotificationPriority) || undefined,
+      unreadOnly: searchParams.get("unreadOnly") === "true",
+      search: searchParams.get("search") || undefined,
+      limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : 100,
+      offset: searchParams.get("offset") ? parseInt(searchParams.get("offset")!) : 0,
+    }
+
+    const result = await getNotifications(filters)
+    return NextResponse.json({ success: true, ...result })
+  } catch (error: any) {
+    console.error("[API Notifications] GET error:", error)
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to load notifications" },
+      { status: 500 }
+    )
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const user = extractUserFromRequest(req)
-    const { searchParams } = new URL(req.url)
-
-    const category = (searchParams.get('category') as any) || undefined
-    const severity = (searchParams.get('severity') as any) || undefined
-    const unreadOnly = searchParams.get('unreadOnly') === 'true'
-    const criticalOnly = searchParams.get('criticalOnly') === 'true'
-    const activeOnly = searchParams.get('activeOnly') !== 'false' // default active
-    const search = searchParams.get('search') || undefined
-
-    const filter: NotificationFilter = {
-      category,
-      severity,
-      unreadOnly,
-      criticalOnly,
-      activeOnly,
-      search,
+    const body = await request.json()
+    if (!body.title || !body.message || !body.entity_id || !body.deduplication_key) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Missing required fields: title, message, entity_id, deduplication_key",
+        },
+        { status: 400 }
+      )
     }
 
-    const [notifications, metrics] = await Promise.all([
-      getNotificationsForUser(user, filter),
-      getNotificationMetricsForUser(user),
-    ])
-
-    return NextResponse.json({
-      success: true,
-      notifications,
-      metrics,
-    })
+    const res = await createNotification(body)
+    return NextResponse.json({ success: true, ...res })
   } catch (error: any) {
-    console.error('[API Notifications] GET error:', error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    console.error("[API Notifications] POST error:", error)
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to create notification" },
+      { status: 500 }
+    )
   }
 }
 
-export async function PATCH(req: NextRequest) {
+export async function PATCH(request: NextRequest) {
   try {
-    const user = extractUserFromRequest(req)
-    const body = await req.json()
-    const { action, deliveryId, untilISO, pinned } = body
+    const body = await request.json()
 
-    if (action === 'markRead' && deliveryId) {
-      const ok = await markDeliveryAsRead(deliveryId, user.username)
-      return NextResponse.json({ success: ok })
+    if (body.markAll) {
+      const res = await markAllAsRead(body.user_id)
+      return NextResponse.json({ success: true, ...res })
     }
 
-    if (action === 'markAllRead') {
-      const count = await markAllDeliveriesAsRead(user.username)
-      return NextResponse.json({ success: true, count })
+    if (body.id) {
+      const updated = await markAsRead(body.id)
+      return NextResponse.json({ success: true, notification: updated })
     }
 
-    if (action === 'acknowledge' && deliveryId) {
-      const ok = await acknowledgeDelivery(deliveryId, user.username)
-      return NextResponse.json({ success: ok })
-    }
-
-    if (action === 'snooze' && deliveryId && untilISO) {
-      const ok = await snoozeDelivery(deliveryId, user.username, untilISO)
-      return NextResponse.json({ success: ok })
-    }
-
-    if (action === 'pin' && deliveryId) {
-      const ok = await pinDelivery(deliveryId, user.username, !!pinned)
-      return NextResponse.json({ success: ok })
-    }
-
-    return NextResponse.json({ success: false, error: 'Invalid notification action' }, { status: 400 })
+    return NextResponse.json(
+      { success: false, error: "Provide id or markAll: true" },
+      { status: 400 }
+    )
   } catch (error: any) {
-    console.error('[API Notifications] PATCH error:', error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    console.error("[API Notifications] PATCH error:", error)
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to update notification" },
+      { status: 500 }
+    )
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function DELETE(request: NextRequest) {
   try {
-    const body = await req.json()
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+    const clearAll = searchParams.get("clearAll") === "true"
+    const userId = searchParams.get("user_id") || undefined
 
-    // Evaluation trigger
-    if (body.action === 'evaluate') {
-      const result = await runNotificationEvaluationPass()
-      return NextResponse.json({ success: true, result })
+    if (clearAll) {
+      const res = await clearAllNotifications(userId)
+      return NextResponse.json({ success: true, ...res })
     }
 
-    // Manual or rule creation
-    const { event } = body
-    if (!event || !event.title) {
-      return NextResponse.json({ success: false, error: 'Notification title is required' }, { status: 400 })
+    if (id) {
+      const deleted = await deleteNotification(id)
+      return NextResponse.json({ success: true, deleted })
     }
 
-    const res = await createOrUpdateNotificationEvent(event)
-    return NextResponse.json({ success: true, event: res.event, created: res.created })
+    return NextResponse.json(
+      { success: false, error: "Provide id or clearAll=true" },
+      { status: 400 }
+    )
   } catch (error: any) {
-    console.error('[API Notifications] POST error:', error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    console.error("[API Notifications] DELETE error:", error)
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to delete notification" },
+      { status: 500 }
+    )
   }
 }

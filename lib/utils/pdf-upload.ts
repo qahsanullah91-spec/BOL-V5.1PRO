@@ -1318,9 +1318,12 @@ export async function generatePDFBlob(
   try {
     const { toCanvas } = await import("html-to-image")
 
+    // Cooperative yield to keep UI responsive and spinners rendering
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
     const canvas = await toCanvas(a4Element, {
-      pixelRatio: 4, // 384 DPI publication-grade sharpness
-      quality: 1.0,
+      pixelRatio: 2.2, // ~210 DPI publication-grade sharpness with 70% lower memory than 4x
+      quality: 0.98,
       cacheBust: false,
       skipFonts: true, // Embedded via fontEmbedCSS to avoid stylesheet CORS/SecurityError crashes
       fontEmbedCSS: fontCSS,
@@ -1339,6 +1342,9 @@ export async function generatePDFBlob(
       },
     })
 
+    // Cooperative yield between canvas rasterization and PDF encoding
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -1355,8 +1361,8 @@ export async function generatePDFBlob(
       creator: "Sky Ariana BOL PDF Export",
     })
 
-    const imageData = canvas.toDataURL("image/png", 1.0)
-    pdf.addImage(imageData, "PNG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
+    const imageData = canvas.toDataURL("image/jpeg", 0.96)
+    pdf.addImage(imageData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
 
     const blob = pdf.output("blob") as Blob
     return await normalizePDFBlob(blob)
@@ -1407,8 +1413,11 @@ export async function generatePDFBlob(
     wrapper.appendChild(clonedElement)
     document.body.appendChild(wrapper)
 
+    // Cooperative yield before fallback canvas creation
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
     const canvas = await html2canvas(clonedElement, {
-      scale: 4, // 384 DPI sharpness
+      scale: 2.2, // ~210 DPI sharpness without 14MP memory freeze
       useCORS: true,
       logging: false,
       backgroundColor: "#ffffff",
@@ -1470,6 +1479,9 @@ export async function generatePDFBlob(
       },
     })
 
+    // Cooperative yield before PDF compilation
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -1485,8 +1497,8 @@ export async function generatePDFBlob(
       creator: "Sky Ariana BOL PDF Export",
     })
 
-    const imageData = canvas.toDataURL("image/png")
-    pdf.addImage(imageData, "PNG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
+    const imageData = canvas.toDataURL("image/jpeg", 0.96)
+    pdf.addImage(imageData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
 
     const blob = pdf.output("blob") as Blob
     return normalizePDFBlob(blob)

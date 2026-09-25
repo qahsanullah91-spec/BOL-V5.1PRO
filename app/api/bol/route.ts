@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import * as localStorage from "@/lib/services/local-storage-service"
-import { getNextAtomicBolNumber } from "@/lib/services/bol-sequence"
+import { getNextAtomicBolNumber, getNextAvailableBolNumber, advanceBolSequenceIfHigher } from "@/lib/services/bol-sequence"
 
 function extractBolNumberSuffix(bolNum: any): number {
   if (!bolNum) return 0
@@ -21,12 +21,12 @@ export async function GET(request: Request) {
   
   if (action === "next-number") {
     try {
-      const bolNumber = await getNextAtomicBolNumber()
+      const advance = searchParams.get("advance") === "true"
+      const bolNumber = advance ? await getNextAtomicBolNumber() : await getNextAvailableBolNumber()
       return NextResponse.json({ bolNumber })
     } catch (err) {
       console.error("[bol API] Error generating next number:", err)
-      const currentYear = new Date().getFullYear()
-      return NextResponse.json({ bolNumber: `BOL-${currentYear}-NSA471` })
+      return NextResponse.json({ bolNumber: "BOL-NSA598" })
     }
   }
 
@@ -46,7 +46,44 @@ export async function GET(request: Request) {
     }
   }
 
-  // Default: List all BOLs - try Supabase first, fallback to local storage
+  // 1. Ultra-Fast FastAPI SQLite Backend with server-side pagination (<10ms)
+  try {
+    const fastApiUrl = new URL("http://127.0.0.1:8000/api/v1/bols")
+    const searchParam = searchParams.get("search") || searchParams.get("q")
+    if (searchParam) fastApiUrl.searchParams.set("q", searchParam)
+    const pageParam = searchParams.get("page")
+    if (pageParam) fastApiUrl.searchParams.set("page", pageParam)
+    const pageSizeParam = searchParams.get("page_size") || searchParams.get("limit")
+    if (pageSizeParam) fastApiUrl.searchParams.set("page_size", pageSizeParam)
+
+    const filterKeys = ["status", "date_from", "date_to", "shipper", "consignee", "notify_party", "company_id"]
+    for (const key of filterKeys) {
+      const val = searchParams.get(key)
+      if (val) fastApiUrl.searchParams.set(key, val)
+    }
+
+    const fastRes = await fetch(fastApiUrl.toString(), {
+      signal: AbortSignal.timeout(600),
+      headers: { Accept: "application/json" },
+    })
+    if (fastRes.ok) {
+      const fastResult = await fastRes.json()
+      if (fastResult && Array.isArray(fastResult.items)) {
+        return NextResponse.json({
+          data: fastResult.items,
+          total: fastResult.total,
+          page: fastResult.page,
+          page_size: fastResult.page_size,
+          total_pages: Math.ceil(fastResult.total / (fastResult.page_size || 50)),
+          source: "fastapi-sqlite",
+        })
+      }
+    }
+  } catch {
+    // Seamless fallback to Supabase and local storage
+  }
+
+  // Fallback: List all BOLs - try Supabase first, fallback to local storage
   try {
     let data: any[] | null = null
     if (supabase) {
@@ -125,7 +162,38 @@ export async function GET(request: Request) {
       })
     }
 
-    return NextResponse.json({ data: allBols, source: localBols.length ? "merged" : "supabase" })
+    const pageParam = searchParams.get("page")
+    const pageSizeParam = searchParams.get("page_size") || searchParams.get("limit")
+    const searchFilter = (searchParams.get("search") || "").trim().toLowerCase()
+
+    if (searchFilter) {
+      allBols = allBols.filter((bol) => {
+        const bNum = (bol.bol_number || "").toLowerCase()
+        const sName = (bol.shipper_name || "").toLowerCase()
+        const cName = (bol.consignee_name || "").toLowerCase()
+        const dName = (bol.driver_name || "").toLowerCase()
+        return bNum.includes(searchFilter) || sName.includes(searchFilter) || cName.includes(searchFilter) || dName.includes(searchFilter)
+      })
+    }
+
+    if (pageParam) {
+      const page = Math.max(1, parseInt(pageParam, 10) || 1)
+      const pageSize = Math.max(1, Math.min(100, parseInt(pageSizeParam || "50", 10) || 50))
+      const total = allBols.length
+      const start = (page - 1) * pageSize
+      const paged = allBols.slice(start, start + pageSize)
+
+      return NextResponse.json({
+        data: paged,
+        total,
+        page,
+        page_size: pageSize,
+        total_pages: Math.ceil(total / pageSize),
+        source: localBols.length ? "merged" : "supabase",
+      })
+    }
+
+    return NextResponse.json({ data: allBols, total: allBols.length, source: localBols.length ? "merged" : "supabase" })
   } catch (err) {
     console.error("[v0] Error fetching BOLs:", err instanceof Error ? err.message : String(err))
     const localBols = await localStorage.getAllLocalBOLs()
@@ -148,8 +216,41 @@ export async function GET(request: Request) {
       })
     }
 
+    const pageParam = searchParams.get("page")
+    const pageSizeParam = searchParams.get("page_size") || searchParams.get("limit")
+    const searchFilter = (searchParams.get("search") || "").trim().toLowerCase()
+
+    if (searchFilter) {
+      sortedLocal = sortedLocal.filter((bol) => {
+        const bNum = (bol.bol_number || "").toLowerCase()
+        const sName = (bol.shipper_name || "").toLowerCase()
+        const cName = (bol.consignee_name || "").toLowerCase()
+        const dName = (bol.driver_name || "").toLowerCase()
+        return bNum.includes(searchFilter) || sName.includes(searchFilter) || cName.includes(searchFilter) || dName.includes(searchFilter)
+      })
+    }
+
+    if (pageParam) {
+      const page = Math.max(1, parseInt(pageParam, 10) || 1)
+      const pageSize = Math.max(1, Math.min(100, parseInt(pageSizeParam || "50", 10) || 50))
+      const total = sortedLocal.length
+      const start = (page - 1) * pageSize
+      const paged = sortedLocal.slice(start, start + pageSize)
+
+      return NextResponse.json({
+        data: paged,
+        total,
+        page,
+        page_size: pageSize,
+        total_pages: Math.ceil(total / pageSize),
+        source: "local",
+        notice: "Using locally cached BOLs",
+      })
+    }
+
     return NextResponse.json({ 
       data: sortedLocal, 
+      total: sortedLocal.length,
       source: "local",
       notice: "Using locally cached BOLs"
     })
@@ -211,6 +312,36 @@ export async function POST(request: Request) {
 
       // Persist locally
       await localStorage.storeLocalBOL(bolNumber, bolData)
+      await advanceBolSequenceIfHigher(bolNumber)
+
+      // Forward creation to FastAPI SQLite backend (<10ms)
+      try {
+        await fetch("http://127.0.0.1:8000/api/v1/bols", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            bol_number: bolNumber,
+            issue_date: bolData.issue_date,
+            origin: bolData.origin || "Bandar Abbas",
+            destination: bolData.destination || "Kabul",
+            border_station: bolData.border_station || "Islam Qala",
+            driver_name: bolData.driver_name || "",
+            father_name: bolData.driver_father_name || bolData.father_name || null,
+            driver_rent: parseFloat(bolData.driver_rent || "0") || 0,
+            carton_count: parseInt(bolData.number_of_packages || "0", 10) || 0,
+            gross_weight_kg: parseFloat(bolData.gross_weight || "0") || 0,
+            net_weight_kg: parseFloat(bolData.net_weight || "0") || 0,
+            cargo_description: bolData.cargo_description || bolData.goods_description || null,
+            status: "active",
+            shipper_name: bolData.shipper_name || null,
+            consignee_name: bolData.consignee_name || null,
+            notify_party_name: bolData.notify_party || null,
+            truck_number: bolData.truck_number || null,
+            driver_phone: bolData.driver_contact || null,
+          }),
+          signal: AbortSignal.timeout(1200),
+        })
+      } catch {}
 
       // Automatically connect BOL to Accounting Ledger
       try {

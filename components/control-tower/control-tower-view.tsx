@@ -164,10 +164,14 @@ export function ControlTowerView({
 
   const fetchTowerData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 8000)
+
     try {
       const userRole = currentUser?.role || "admin"
       const res = await fetch(`/api/control-tower?role=${encodeURIComponent(userRole)}`, {
         cache: "no-store",
+        signal: controller.signal,
       })
       if (res.ok) {
         const json = await res.json()
@@ -175,10 +179,13 @@ export function ControlTowerView({
       } else {
         if (!silent) toast.error("Failed to update control tower data")
       }
-    } catch (err) {
-      console.error("Control tower fetch error:", err)
-      if (!silent) toast.error("Connection error loading control tower")
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        console.error("Control tower fetch error:", err)
+        if (!silent) toast.error("Connection error loading control tower")
+      }
     } finally {
+      clearTimeout(timer)
       if (!silent) setLoading(false)
     }
   }, [currentUser?.role])

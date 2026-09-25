@@ -6,9 +6,12 @@ import path from "node:path"
 import { registerIpcHandlers } from "./ipc/register-ipc"
 import { atomicWriteFile } from "./services/atomic-file"
 import { initializeDataDirectory } from "./services/data"
+import { backendManager } from "./backend-manager"
 
-const PRODUCT_NAME = "Sky Ariana BOL"
-const DEVELOPER_NAME = "AHSANULLAH QURESHI"
+const PRODUCT_NAME = "AQ COMPANIES"
+const PRODUCT_DESCRIPTION = "Logistics & BOL Management"
+const DEVELOPER_NAME = "Ahsanullah Qureshi"
+app.setName(PRODUCT_NAME)
 let mainWindow: BrowserWindow | null = null
 let applicationServer: ChildProcess | null = null
 let applicationUrl = ""
@@ -123,6 +126,7 @@ async function createMainWindow(): Promise<void> {
   const seedDirectory = app.isPackaged ? path.join(process.resourcesPath, "seed-data") : process.cwd()
   await initializeDataDirectory(dataDirectory, seedDirectory)
   process.env.SKY_DATA_DIR = dataDirectory
+  void backendManager.start(dataDirectory).catch((err) => console.error("Python backend start warning:", err))
   const state = await readWindowState(statePath)
   const icon = nativeImage.createFromPath(
     app.isPackaged ? path.join(process.resourcesPath, "app-icon.png") : path.join(process.cwd(), "public", "icon-512x512.png"),
@@ -130,7 +134,7 @@ async function createMainWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
     title: PRODUCT_NAME,
     width: Math.max(1100, state.width), height: Math.max(700, state.height), x: state.x, y: state.y,
-    minWidth: 1024, minHeight: 680, show: false, backgroundColor: "#eaf2ff", icon,
+    minWidth: 1024, minHeight: 680, show: false, backgroundColor: "#020617", icon,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -185,7 +189,11 @@ else {
   }).catch((error) => { console.error(error); dialogError(error) })
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) void createMainWindow() })
   app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit() })
-  app.on("before-quit", () => { applicationServer?.kill(); applicationServer = null })
+  app.on("before-quit", () => {
+    void backendManager.stop().catch(console.error)
+    applicationServer?.kill()
+    applicationServer = null
+  })
 }
 
 function dialogError(error: unknown): void {

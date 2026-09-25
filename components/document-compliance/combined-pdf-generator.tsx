@@ -52,6 +52,7 @@ export function CombinedPdfGenerator({ bolData, open, onOpenChange, complianceRe
       document.body.appendChild(a)
       a.click()
       a.remove()
+      setTimeout(() => window.URL.revokeObjectURL(url), 150)
       
       toast.success("Shipment PDF combined and downloaded!")
       onOpenChange(false)

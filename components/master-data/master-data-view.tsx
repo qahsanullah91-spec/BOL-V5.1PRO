@@ -24,6 +24,7 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   Sparkles,
+  Plane,
 } from "lucide-react"
 import { useApp } from "@/lib/app-context"
 import { MasterEntity, MasterEntityType } from "@/lib/types/master-data"
@@ -47,9 +48,16 @@ const ENTITY_ICONS: Record<MasterEntityType, React.ElementType> = {
   NOTIFY_PARTY: User,
   AGENT: ShieldCheck,
   SHIPPING_LINE: Ship,
+  AIRLINE: Plane,
   DRIVER: Truck,
   SUPPLIER: Building2,
   CUSTOMER: Building2,
+  INSURANCE_COMPANY: ShieldCheck,
+  SURVEYOR: Search,
+  LEAD: Sparkles,
+  PROSPECT: User,
+  FORMER_CUSTOMER: Building2,
+  PARTNER: ShieldCheck,
 }
 
 const ROLE_COLORS: Record<MasterEntityType, string> = {
@@ -58,9 +66,16 @@ const ROLE_COLORS: Record<MasterEntityType, string> = {
   NOTIFY_PARTY: "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-800",
   AGENT: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800",
   SHIPPING_LINE: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+  AIRLINE: "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200 dark:border-sky-800",
   DRIVER: "bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300 border-orange-200 dark:border-orange-800",
   SUPPLIER: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700",
   CUSTOMER: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+  INSURANCE_COMPANY: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+  SURVEYOR: "bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200 dark:border-teal-800",
+  LEAD: "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/40 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-800",
+  PROSPECT: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300 border-violet-200 dark:border-violet-800",
+  FORMER_CUSTOMER: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700",
+  PARTNER: "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700",
 }
 
 export function MasterDataView() {

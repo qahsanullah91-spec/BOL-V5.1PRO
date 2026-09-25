@@ -179,9 +179,11 @@ export function OperationsReportTab({
   }
 
   // Handle Export Excel
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const toastId = toast.loading("Preparing Excel Operations Report...")
     try {
-      exportOperationsReportToExcel(report)
+      await exportOperationsReportToExcel(report)
+      toast.dismiss(toastId)
       toast.success("Excel Operations Report (.xlsx) downloaded successfully! 📊")
     } catch (err) {
       console.error(err)

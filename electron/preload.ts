@@ -12,4 +12,10 @@ contextBridge.exposeInMainWorld("skyDesktop", {
   exportBackup: () => ipcRenderer.invoke("backup:export"),
   restoreBackup: () => ipcRenderer.invoke("backup:restore"),
   windowAction: (action: "minimize" | "maximize" | "close" | "fullscreen") => ipcRenderer.invoke("window:action", action),
+  // Phase 7 Network Bridge
+  getNetworkStatus: () => ipcRenderer.invoke("network:get-status"),
+  getNetworkConfig: () => ipcRenderer.invoke("network:get-config"),
+  saveNetworkConfig: (config: any) => ipcRenderer.invoke("network:save-config", config),
+  testServerConnection: (url: string) => ipcRenderer.invoke("network:test-connection", url),
+  switchNetworkMode: (mode: "local" | "server", serverConfig?: any) => ipcRenderer.invoke("network:switch-mode", { mode, serverConfig }),
 })

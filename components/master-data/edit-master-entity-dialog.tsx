@@ -13,7 +13,7 @@ import { Plus, Trash2, AlertTriangle, Building2, Landmark, Check, ShieldCheck } 
 import { toast } from "sonner"
 
 const ENTITY_TYPES: MasterEntityType[] = [
-  "SHIPPER", "CONSIGNEE", "NOTIFY_PARTY", "AGENT", "SHIPPING_LINE", "DRIVER", "SUPPLIER", "CUSTOMER"
+  "SHIPPER", "CONSIGNEE", "NOTIFY_PARTY", "AGENT", "SHIPPING_LINE", "AIRLINE", "DRIVER", "SUPPLIER", "CUSTOMER", "INSURANCE_COMPANY", "SURVEYOR", "LEAD", "PROSPECT", "FORMER_CUSTOMER", "PARTNER"
 ]
 
 export function EditMasterEntityDialog({

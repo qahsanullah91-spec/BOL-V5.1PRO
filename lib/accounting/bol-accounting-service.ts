@@ -30,6 +30,7 @@ import {
 } from "./invoice-generator"
 import { createPaymentReceipt } from "./payment-receipt-service"
 import { getInvoice, saveInvoice } from "../services/invoice-storage-service"
+import { assertAccountingPeriodOpen } from "./period-closing/period-service"
 
 export async function getBolAccounting(bolId: string): Promise<{
   accounting: BolAccountingRecord | null
@@ -302,6 +303,13 @@ export async function postBolToLedger(
 
   const now = new Date().toISOString()
   const txDate = now.split("T")[0]
+
+  await assertAccountingPeriodOpen(txDate, {
+    actor: user,
+    entityType: "bol_posting",
+    entityId: bolId,
+  })
+
   const txId = `TX-BOL-${bolId}-${Date.now()}`
 
   const chargeLinesDesc = charges
@@ -422,6 +430,13 @@ export async function createBolAdjustment(params: {
 
   const now = new Date().toISOString()
   const txDate = now.split("T")[0]
+
+  await assertAccountingPeriodOpen(txDate, {
+    actor: user,
+    entityType: "bol_adjustment",
+    entityId: bolId,
+  })
+
   const isIncrease = diff > 0
   const absDiff = Math.abs(diff)
 
@@ -506,6 +521,12 @@ export async function voidBolPosting(
   const reversalAmount = origTx ? origTx.debit : accounting.total_charges
   const now = new Date().toISOString()
   const txDate = now.split("T")[0]
+
+  await assertAccountingPeriodOpen(txDate, {
+    actor: user,
+    entityType: "bol_void",
+    entityId: bolId,
+  })
 
   // Create balancing credit reversal transaction
   const reversalTx: LedgerTransactionRecord = {
@@ -626,6 +647,13 @@ export async function recordBolPayment(params: {
 
   const now = new Date().toISOString()
   const payDate = date || now.split("T")[0]
+
+  await assertAccountingPeriodOpen(payDate, {
+    actor: user,
+    entityType: "bol_payment",
+    entityId: bolId,
+  })
+
   const payId = `PAY-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`
 
   // 1. Create Payment Record

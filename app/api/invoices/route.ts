@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAllInvoices, nextInvoiceNumber, saveInvoice } from "@/lib/services/invoice-storage-service"
 import { createClient } from "@/lib/supabase/server"
+import { assertAccountingPeriodOpen } from "@/lib/accounting/period-closing/period-service"
 
 export async function GET(request: Request) {
   let user: any = null
@@ -54,6 +55,22 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
+    const postingDate = body.posting_date || body.postingDate || body.date || body.invoice_date || body.invoiceDate
+    try {
+      await assertAccountingPeriodOpen(postingDate, {
+        role,
+        actor: user?.email || role || "user",
+        entityType: "invoice",
+        entityId: body.invoice_number || body.invoiceNumber,
+      })
+    } catch (err: any) {
+      return NextResponse.json({
+        success: false,
+        error: err.message,
+        period_locked: true,
+      }, { status: 403 })
+    }
+
     const invoice = await saveInvoice(body)
     return NextResponse.json({ success: true, data: invoice })
   } catch (error) {

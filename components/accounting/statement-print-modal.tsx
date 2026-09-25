@@ -98,7 +98,7 @@ export function StatementPrintModal({
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-slate-100/90 dark:bg-slate-900/90 px-6 py-3 no-print backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <Printer className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">A4 Ledger Statement Preview</span>
+            <DialogTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">A4 Ledger Statement Preview</DialogTitle>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleCopyWhatsApp} className="gap-1.5 text-xs">
@@ -122,10 +122,10 @@ export function StatementPrintModal({
           <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
             <div className="flex items-center gap-4">
               <div className="h-14 w-14 relative shrink-0">
-                <Image src="/logo.png" alt="Sky Ariana" width={56} height={56} className="object-contain" priority />
+                <Image src="/logo.png" alt="AQ Companies" width={56} height={56} className="object-contain" priority />
               </div>
               <div>
-                <h1 className="text-xl font-black tracking-tight text-slate-900">SKY ARIANA LIMITED</h1>
+                <h1 className="text-xl font-black tracking-tight text-slate-900">AQ COMPANIES</h1>
                 <p className="text-[11px] text-slate-600 font-medium">International Freight Forwarding & Logistics Management</p>
                 <p className="text-[10px] text-slate-500">
                   Licence: 2401-2198 | Kandahar Chowk, Etimad Rahmi Market | Email: info@skyariana.com

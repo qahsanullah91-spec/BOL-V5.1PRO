@@ -4,9 +4,10 @@ import * as localStorage from "@/lib/services/local-storage-service"
 import { createClient } from "@/lib/supabase/server"
 
 const SEQUENCE_FILE = getDataPath(".local-bol-sequence.json")
-const START_SEQUENCE = 470
+export const START_SEQUENCE = 598
+export const DEFAULT_BOL_PREFIX = "BOL-NSA"
 
-function extractBolNumberSuffix(bolNum: any): number {
+export function extractBolNumberSuffix(bolNum: any): number {
   if (!bolNum) return 0
   const str = String(bolNum)
   const match = str.match(/NSA(\d+)/i) || str.match(/(\d+)\s*$/)
@@ -17,63 +18,120 @@ function extractBolNumberSuffix(bolNum: any): number {
   return 0
 }
 
-async function findBaselineMaxSequence(year: number): Promise<number> {
-  let maxFound = START_SEQUENCE - 1
-
-  try {
-    const localBols = await localStorage.getAllLocalBOLs()
-    for (const bol of localBols) {
-      const numStr = bol.bol_number || bol.billOfLadingNumber || bol.id || ""
-      const parsed = extractBolNumberSuffix(numStr)
-      if (parsed > maxFound) maxFound = parsed
-    }
-  } catch (e) {
-    console.error("[bol-sequence] Error reading local BOLs:", e)
-  }
-
-  try {
-    const snapPath = getDataPath(".local-full-snapshot.json")
-    const snapshot = await readJsonFile<any>(snapPath, {})
-    if (snapshot && Array.isArray(snapshot.documents)) {
-      for (const bol of snapshot.documents) {
-        const numStr = bol.bol_number || bol.billOfLadingNumber || bol.id || ""
-        const parsed = extractBolNumberSuffix(numStr)
-        if (parsed > maxFound) maxFound = parsed
-      }
-    }
-  } catch (e) {
-    console.error("[bol-sequence] Error reading snapshot documents:", e)
-  }
-
-  return maxFound
+export interface BolSequenceState {
+  year: number
+  sequence: number
+  startSequence: number
+  prefix: string
+  updated_at: string
 }
 
+/**
+ * Non-destructive peek: Returns what the next BOL number will be without burning or advancing the sequence.
+ */
+export async function getNextAvailableBolNumber(): Promise<string> {
+  const currentYear = new Date().getFullYear()
+  const state = await readJsonFile<BolSequenceState>(SEQUENCE_FILE, {
+    year: currentYear,
+    sequence: START_SEQUENCE - 1,
+    startSequence: START_SEQUENCE,
+    prefix: DEFAULT_BOL_PREFIX,
+    updated_at: new Date().toISOString(),
+  })
+
+  const configuredStart = typeof state?.startSequence === "number" ? state.startSequence : START_SEQUENCE
+  const currentSeq = typeof state?.sequence === "number" ? state.sequence : (configuredStart - 1)
+  const prefix = state?.prefix || DEFAULT_BOL_PREFIX
+  const nextSeq = Math.max(currentSeq + 1, configuredStart)
+
+  return `${prefix}${nextSeq}`
+}
+
+/**
+ * When a document is saved, ensure the sequence tracker advances past this saved BOL number.
+ */
+export async function advanceBolSequenceIfHigher(savedBolNumber: string): Promise<number> {
+  const currentYear = new Date().getFullYear()
+  const suffix = extractBolNumberSuffix(savedBolNumber)
+  if (suffix <= 0) return 0
+
+  let updatedSequence = suffix
+  await mutateJsonFile(
+    SEQUENCE_FILE,
+    { year: currentYear, sequence: START_SEQUENCE - 1, startSequence: START_SEQUENCE, prefix: DEFAULT_BOL_PREFIX, updated_at: new Date().toISOString() },
+    (current: BolSequenceState) => {
+      const configuredStart = typeof current?.startSequence === "number" ? current.startSequence : START_SEQUENCE
+      const currentSeq = typeof current?.sequence === "number" ? current.sequence : (configuredStart - 1)
+      const prefix = current?.prefix || DEFAULT_BOL_PREFIX
+
+      if (suffix > currentSeq) {
+        updatedSequence = suffix
+        return {
+          ...current,
+          year: currentYear,
+          sequence: suffix,
+          startSequence: configuredStart,
+          prefix,
+          updated_at: new Date().toISOString(),
+        }
+      }
+      updatedSequence = currentSeq
+      return current
+    }
+  )
+
+  return updatedSequence
+}
+
+/**
+ * Configures the starting sequence and prefix explicitly.
+ */
+export async function setBolStartingSequence(startSeq: number, prefix: string = DEFAULT_BOL_PREFIX): Promise<void> {
+  const currentYear = new Date().getFullYear()
+  await mutateJsonFile(
+    SEQUENCE_FILE,
+    { year: currentYear, sequence: startSeq - 1, startSequence: startSeq, prefix, updated_at: new Date().toISOString() },
+    () => ({
+      year: currentYear,
+      sequence: startSeq - 1,
+      startSequence: startSeq,
+      prefix,
+      updated_at: new Date().toISOString(),
+    })
+  )
+}
+
+/**
+ * Atomically allocates and increments the next BOL sequence number.
+ */
 export async function getNextAtomicBolNumber(): Promise<string> {
   const currentYear = new Date().getFullYear()
 
   let allocatedSeq = START_SEQUENCE
+  let prefix = DEFAULT_BOL_PREFIX
 
   await mutateJsonFile(
     SEQUENCE_FILE,
-    { year: currentYear, sequence: START_SEQUENCE - 1 },
-    async (current: { year?: number; sequence?: number }) => {
-      let currentSeq = typeof current?.sequence === "number" ? current.sequence : 0
-      const recordedYear = current?.year || currentYear
+    { year: currentYear, sequence: START_SEQUENCE - 1, startSequence: START_SEQUENCE, prefix: DEFAULT_BOL_PREFIX, updated_at: new Date().toISOString() },
+    async (current: BolSequenceState) => {
+      prefix = current?.prefix || DEFAULT_BOL_PREFIX
+      const configuredStart = typeof current?.startSequence === "number" ? current.startSequence : START_SEQUENCE
+      let currentSeq = typeof current?.sequence === "number" ? current.sequence : (configuredStart - 1)
 
-      if (recordedYear !== currentYear || currentSeq < START_SEQUENCE) {
-        const baseline = await findBaselineMaxSequence(currentYear)
-        currentSeq = Math.max(baseline, START_SEQUENCE - 1)
+      if (currentSeq < configuredStart - 1) {
+        currentSeq = configuredStart - 1
       }
 
       allocatedSeq = currentSeq + 1
       return {
         year: currentYear,
         sequence: allocatedSeq,
+        startSequence: configuredStart,
+        prefix,
         updated_at: new Date().toISOString(),
       }
     }
   )
 
-  const padded = String(allocatedSeq).padStart(3, "0")
-  return `BOL-${currentYear}-NSA${padded}`
+  return `${prefix}${allocatedSeq}`
 }

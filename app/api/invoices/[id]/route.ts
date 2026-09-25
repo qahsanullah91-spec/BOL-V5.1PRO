@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { deleteInvoice, getInvoice, saveInvoice } from "@/lib/services/invoice-storage-service"
 import { createClient } from "@/lib/supabase/server"
+import { assertAccountingPeriodOpen } from "@/lib/accounting/period-closing/period-service"
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   let user: any = null
@@ -56,6 +57,35 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const body = await request.json()
     const existing = await getInvoice(id)
+    if (!existing) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
+    }
+
+    const existingDate = (existing as any).posting_date || (existing as any).postingDate || (existing as any).date || (existing as any).invoice_date || (existing as any).invoiceDate
+    const newDate = body.posting_date || body.postingDate || body.date || body.invoice_date || body.invoiceDate || existingDate
+    try {
+      await assertAccountingPeriodOpen(existingDate, {
+        role,
+        actor: user?.email || role || "user",
+        entityType: "invoice",
+        entityId: id,
+      })
+      if (newDate && newDate !== existingDate) {
+        await assertAccountingPeriodOpen(newDate, {
+          role,
+          actor: user?.email || role || "user",
+          entityType: "invoice",
+          entityId: id,
+        })
+      }
+    } catch (err: any) {
+      return NextResponse.json({
+        success: false,
+        error: err.message,
+        period_locked: true,
+      }, { status: 403 })
+    }
+
     const invoice = await saveInvoice({ ...existing, ...body, id: existing?.id || id })
     return NextResponse.json({ success: true, data: invoice })
   } catch (error) {
@@ -84,6 +114,25 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ error: "Forbidden: Unauthorized to delete invoices" }, { status: 403 })
   }
   
+  const existing = await getInvoice(id)
+  if (existing) {
+    const existingDate = (existing as any).posting_date || (existing as any).postingDate || (existing as any).date || (existing as any).invoice_date || (existing as any).invoiceDate
+    try {
+      await assertAccountingPeriodOpen(existingDate, {
+        role,
+        actor: user?.email || role || "user",
+        entityType: "invoice",
+        entityId: id,
+      })
+    } catch (err: any) {
+      return NextResponse.json({
+        success: false,
+        error: err.message,
+        period_locked: true,
+      }, { status: 403 })
+    }
+  }
+
   await deleteInvoice(id)
   return NextResponse.json({ success: true })
 }

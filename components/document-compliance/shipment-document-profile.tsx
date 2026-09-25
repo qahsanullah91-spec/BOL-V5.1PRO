@@ -68,7 +68,7 @@ export function ShipmentDocumentProfile({ bolData }: { bolData: any }) {
 
   if (loading || !result) return <div className="p-12 text-center">Loading compliance profile...</div>
 
-  const renderDocumentRow = (docType: DocumentType, status: "MISSING" | "PENDING" | "COMPLETED" | "NOT_REQUIRED", isCorrection = false) => {
+  const renderDocumentRow = (docType: DocumentType, status: "MISSING" | "PENDING" | "COMPLETED" | "NOT_REQUIRED", isCorrection = false, keyPrefix = "") => {
     let icon = <CheckCircle2 className="h-5 w-5 text-emerald-500" />
     let badge = <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Complete</Badge>
     
@@ -88,8 +88,10 @@ export function ShipmentDocumentProfile({ bolData }: { bolData: any }) {
       badge = <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">Needs Correction</Badge>
     }
 
+    const rowKey = `${keyPrefix || status}-${docType}`
+
     return (
-      <div key={docType} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-lg shadow-sm">
+      <div key={rowKey} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-lg shadow-sm">
         <div className="flex items-center gap-4">
           {icon}
           <div>
@@ -139,12 +141,12 @@ export function ShipmentDocumentProfile({ bolData }: { bolData: any }) {
               <CardDescription>Documents required based on origin, destination, and commodity.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {result.missingDocs.map(doc => renderDocumentRow(doc, "MISSING"))}
-              {result.correctionDocs.map(doc => renderDocumentRow(doc, "PENDING", true))}
-              {result.pendingDocs.map(doc => renderDocumentRow(doc, "PENDING"))}
+              {result.missingDocs.map((doc, idx) => renderDocumentRow(doc, "MISSING", false, `missing-${idx}`))}
+              {result.correctionDocs.map((doc, idx) => renderDocumentRow(doc, "PENDING", true, `correction-${idx}`))}
+              {result.pendingDocs.map((doc, idx) => renderDocumentRow(doc, "PENDING", false, `pending-${idx}`))}
               
               {/* Show completed */}
-              {Array.from({length: result.completedCount}).map((_, i) => renderDocumentRow(`COMPLETED_DOC_${i}` as any, "COMPLETED"))}
+              {Array.from({length: result.completedCount}).map((_, i) => renderDocumentRow(`COMPLETED_DOC_${i}` as any, "COMPLETED", false, `completed-${i}`))}
             </CardContent>
           </Card>
         </div>

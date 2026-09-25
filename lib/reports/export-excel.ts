@@ -2,7 +2,6 @@
  * Sky Ariana Logistics — Professional Multi-Sheet Excel (.xlsx) Export Engine
  */
 
-import * as XLSX from "xlsx"
 import { SavedDocument } from "./types"
 import { calculateOverviewKpis } from "./calculations"
 import {
@@ -33,12 +32,20 @@ function autoFitColumns(rows: (string | number | undefined | null)[][]): { wch: 
 
 /**
  * Generates and downloads a complete 6-Sheet Excel Workbook for the filtered BOL data.
+ * Uses dynamic import and cooperative event loop yielding so large exports never lock the UI.
  */
-export function exportReportToExcel(
+export async function exportReportToExcel(
   docs: SavedDocument[],
   fileNamePrefix: string = "Sky-Ariana-Operations-Report"
-): void {
-  const kpis = calculateOverviewKpis(docs)
+): Promise<void> {
+  // Yield to browser event loop before heavy computation
+  await new Promise((resolve) => setTimeout(resolve, 0))
+
+  const [XLSX, kpis] = await Promise.all([
+    import("xlsx"),
+    Promise.resolve().then(() => calculateOverviewKpis(docs)),
+  ])
+
   const shippers = groupShippers(docs)
   const consignees = groupConsignees(docs)
   const commodities = groupCommodities(docs)

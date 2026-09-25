@@ -42,7 +42,14 @@ function writeConflictsToDisk(conflicts: SyncConflict[]): void {
     try {
       const dir = path.dirname(CONFLICTS_FILE)
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-      fs.writeFileSync(CONFLICTS_FILE, JSON.stringify(conflicts, null, 2), "utf-8")
+      const tmpPath = `${CONFLICTS_FILE}.tmp.${Date.now()}`
+      fs.writeFileSync(tmpPath, JSON.stringify(conflicts, null, 2), "utf-8")
+      try {
+        fs.renameSync(tmpPath, CONFLICTS_FILE)
+      } catch {
+        fs.copyFileSync(tmpPath, CONFLICTS_FILE)
+        try { fs.unlinkSync(tmpPath) } catch {}
+      }
     } catch (e) {
       console.error("[conflict-resolver] Failed to write conflicts file:", e)
     }

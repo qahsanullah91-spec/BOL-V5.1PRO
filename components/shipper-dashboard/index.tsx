@@ -406,12 +406,12 @@ export function ShipperDashboardView() {
           {/* Brand & Client Identity */}
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white p-1 border border-amber-400/40 shadow-md shadow-amber-500/10 flex items-center justify-center shrink-0">
-              <img src="/logo.png" alt="Sky Ariana Logo" className="w-full h-full object-contain" />
+              <img src="/logo.png" alt="AQ Companies Logo" className="w-full h-full object-contain" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm sm:text-base md:text-lg font-black tracking-tight text-white uppercase truncate">
-                  SKY ARIANA LIMITED
+                  AQ COMPANIES
                 </span>
                 <Badge className="bg-amber-400/15 text-amber-300 border-amber-400/30 text-[9.5px] font-extrabold uppercase px-2 py-0.2">
                   SHIPPER PORTAL

@@ -9,6 +9,8 @@ import { OutstandingDashboardTab } from "./outstanding-dashboard-tab"
 import { AgingReportTab } from "./aging-report-tab"
 import { ReconciliationTab } from "./reconciliation-tab"
 import { BackupRestoreTab } from "./backup-restore-tab"
+import { PeriodClosingView } from "./period-closing/period-closing-view"
+import { TreasuryWorkspace } from "./treasury/treasury-workspace"
 import { MergeAccountsDialog } from "./merge-accounts-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -27,6 +29,8 @@ import {
   Plus,
   ArrowLeft,
   FileSpreadsheet,
+  Lock,
+  Landmark,
 } from "lucide-react"
 
 export function AccountingWorkspace() {
@@ -155,6 +159,14 @@ export function AccountingWorkspace() {
                 <Database className="h-3.5 w-3.5" />
                 Backup & Restore
               </TabsTrigger>
+              <TabsTrigger value="period-closing" className="text-xs font-semibold gap-1.5 cursor-pointer">
+                <Lock className="h-3.5 w-3.5 text-blue-600" />
+                Period Closing
+              </TabsTrigger>
+              <TabsTrigger value="treasury" className="text-xs font-semibold gap-1.5 cursor-pointer">
+                <Landmark className="h-3.5 w-3.5 text-emerald-600" />
+                Treasury & Bank/Cash
+              </TabsTrigger>
             </TabsList>
 
             {/* Submodule Contents */}
@@ -179,6 +191,14 @@ export function AccountingWorkspace() {
 
             <TabsContent value="backup" className="mt-4">
               <BackupRestoreTab />
+            </TabsContent>
+
+            <TabsContent value="period-closing" className="mt-4">
+              <PeriodClosingView />
+            </TabsContent>
+
+            <TabsContent value="treasury" className="mt-4">
+              <TreasuryWorkspace />
             </TabsContent>
           </Tabs>
         </div>

@@ -82,6 +82,22 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
 
     const currentAcc = db.accounts[accIdx]
+
+    if (body.currency && body.currency !== currentAcc.currency) {
+      const hasTransactions = db.ledger_transactions.some(
+        (t) => t.account_id === id && !t.is_deleted
+      )
+      if (hasTransactions) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Cannot change currency of account [${currentAcc.account_name}] from ${currentAcc.currency} to ${body.currency} because active ledger transactions exist. Multi-currency segregation requires creating a separate currency sub-account or running an authorized ledger currency conversion.`
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     const updatedAcc = {
       ...currentAcc,
       display_name: body.display_name?.trim() || currentAcc.display_name,

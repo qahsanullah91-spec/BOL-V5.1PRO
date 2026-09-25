@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useCallback, startTransition, memo, type ChangeEvent, type MouseEvent } from "react"
+import { useEffect, useMemo, useState, useCallback, startTransition, useDeferredValue, memo, type ChangeEvent, type MouseEvent } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,6 +44,9 @@ import {
   Coins,
   Printer,
   BarChart3,
+  Banknote,
+  Wallet,
+  FolderArchive,
 } from "lucide-react"
 import { generateBOLPDFBlob, savePDFToDevice, buildBolSmartFileName } from "@/lib/utils/pdf-upload"
 import { generateShippingDocumentsPDF, deriveShippingDocumentData, buildShippingDocumentFileName } from "@/lib/utils/shipping-documents"
@@ -276,15 +279,34 @@ const DocumentGridCard = memo(function DocumentGridCard({
           </div>
         )}
 
+        {/* Driver Rent (if present) */}
+        {(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent) && (
+          <div
+            className="flex items-center justify-between text-[11px] font-black text-amber-950 bg-gradient-to-r from-amber-50/90 via-amber-100/40 to-orange-50/70 px-2 py-0.5 rounded-lg border border-amber-200/80 shadow-2xs"
+            title={`Driver Rent: ${(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent)}${doc.driver_name ? ` • Driver: ${doc.driver_name}` : ""}`}
+          >
+            <span className="text-amber-800 font-bold text-[10px] flex items-center gap-1">
+              <Banknote className="h-3 w-3 text-amber-700 shrink-0" />
+              <span>Driver Rent</span>
+            </span>
+            <span className="font-mono font-bold truncate max-w-[170px]" dir="ltr">
+              {doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent}
+            </span>
+          </div>
+        )}
+
         {/* Date & Truck Number */}
         <div className="flex items-center justify-between text-[10.5px] font-bold text-slate-700 pt-0.5 border-t border-blue-100/60">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3 text-slate-600 shrink-0" />
             <span>{doc.issue_date ? new Date(doc.issue_date).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "No date"}</span>
           </span>
-          <span className="flex items-center gap-1 text-slate-800 font-extrabold">
+          <span
+            className="flex items-center gap-1 text-slate-800 font-extrabold"
+            title={doc.driver_name ? `Truck: ${doc.truck_number || "—"}${doc.driver_name ? ` • Driver: ${doc.driver_name}` : ""}` : undefined}
+          >
             <Truck className="h-3 w-3 text-slate-600 shrink-0" />
-            <span className="truncate max-w-[90px]">{doc.truck_number || "No truck #"}</span>
+            <span className="truncate max-w-[110px]">{doc.truck_number || (doc.driver_name ? doc.driver_name : "No truck #")}</span>
           </span>
         </div>
       </div>
@@ -472,7 +494,12 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   // Keep the first tab render free of synchronous storage parsing.
   const [documents, setDocuments] = useState<SavedDocument[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [visibleCount, setVisibleCount] = useState(30)
+  const [visibleCount, setVisibleCount] = useState(50)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const [totalPages, setTotalPages] = useState(1)
+  const [serverTotal, setServerTotal] = useState<number | null>(null)
+  const [isServerMode, setIsServerMode] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [uploadingId, setUploadingId] = useState<string | null>(null)
   const [openingPdfId, setOpeningPdfId] = useState<string | null>(null)
@@ -481,6 +508,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   const [selectedCompanyName, setSelectedCompanyName] = useState<string | null>(null)
   const [openCompanyTabs, setOpenCompanyTabs] = useState<string[]>([])
   const [query, setQuery] = useState("")
+  const deferredQuery = useDeferredValue(query)
   const [newCompanyName, setNewCompanyName] = useState("")
   const [activeCategory, setActiveCategory] = useState<DocumentCategoryKey>("all")
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "7days" | "month">("all")
@@ -497,7 +525,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   const [showSavedBolReport, setShowSavedBolReport] = useState(false)
   const [reportInitialTab, setReportInitialTab] = useState<ReportTab>("detailed")
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async (pageToFetch = 1, searchToFetch = "") => {
     // 1. Immediately read local storage with zero delay
     try {
       const storedLocal1 = window.localStorage.getItem("sky-bol-browser-documents")
@@ -512,86 +540,101 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
         if (k && !localMap.has(k)) localMap.set(k, d)
       }
       const initialValid = Array.from(localMap.values()).filter(isMeaningfulBOL)
-      if (initialValid.length > 0) {
+      if (initialValid.length > 0 && !isServerMode) {
         setDocuments(initialValid)
         setIsLoading(false)
       }
     } catch (e) {}
 
-    // 2. Fetch server records in background with 5s timeout
+    // 2. Fetch server records with server-side pagination & search
     try {
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), 5000)
-      const response = await fetch("/api/bol", { signal: controller.signal })
+      const params = new URLSearchParams()
+      params.set("page", String(pageToFetch))
+      params.set("page_size", String(pageSize))
+      if (searchToFetch && searchToFetch.trim()) {
+        params.set("q", searchToFetch.trim())
+      }
+      const response = await fetch(`/api/bol?${params.toString()}`, { signal: controller.signal })
       clearTimeout(timer)
 
-      let serverDocs: SavedDocument[] = []
       if (response.ok) {
         const result = await response.json()
+        if (result.source === "fastapi-sqlite" && Array.isArray(result.data)) {
+          setDocuments(result.data)
+          setServerTotal(result.total ?? result.data.length)
+          setCurrentPage(result.page ?? pageToFetch)
+          setTotalPages(result.total_pages ?? Math.max(1, Math.ceil((result.total ?? result.data.length) / pageSize)))
+          setIsServerMode(true)
+          setVisibleCount(result.data.length)
+          setIsLoading(false)
+          return
+        }
+
+        let serverDocs: SavedDocument[] = []
         if (Array.isArray(result.data)) {
           serverDocs = result.data
         }
-      }
 
-      let clientLocalDocs: SavedDocument[] = []
-      try {
-        const storedLocal1 = window.localStorage.getItem("sky-bol-browser-documents")
-        const storedLocal2 = window.localStorage.getItem("skybol:saved-documents")
-        const storedLocal3 = window.localStorage.getItem("skybol:backup-documents")
-        const list1: SavedDocument[] = storedLocal1 ? JSON.parse(storedLocal1) : []
-        const list2: SavedDocument[] = storedLocal2 ? JSON.parse(storedLocal2) : []
-        const list3: SavedDocument[] = storedLocal3 ? JSON.parse(storedLocal3) : []
-        clientLocalDocs = [...list1, ...list2, ...list3]
-      } catch (e) {
-        console.error("Error reading browser local documents:", e)
-      }
+        let clientLocalDocs: SavedDocument[] = []
+        try {
+          const storedLocal1 = window.localStorage.getItem("sky-bol-browser-documents")
+          const storedLocal2 = window.localStorage.getItem("skybol:saved-documents")
+          const storedLocal3 = window.localStorage.getItem("skybol:backup-documents")
+          const list1: SavedDocument[] = storedLocal1 ? JSON.parse(storedLocal1) : []
+          const list2: SavedDocument[] = storedLocal2 ? JSON.parse(storedLocal2) : []
+          const list3: SavedDocument[] = storedLocal3 ? JSON.parse(storedLocal3) : []
+          clientLocalDocs = [...list1, ...list2, ...list3]
+        } catch (e) {
+          console.error("Error reading browser local documents:", e)
+        }
 
-      const mergedMap = new Map<string, SavedDocument>()
-      const addOrUpdate = (d: SavedDocument) => {
-        const key = (d.bol_number || d.id || "").trim()
-        if (!key) return
-        const existing = mergedMap.get(key)
-        if (!existing) {
-          mergedMap.set(key, d)
-        } else {
-          const timeExisting = new Date((existing as any).updated_at || existing.created_at || (existing as any).issue_date || 0).getTime()
-          const timeNew = new Date((d as any).updated_at || d.created_at || (d as any).issue_date || 0).getTime()
-          if (timeNew >= timeExisting) {
+        const mergedMap = new Map<string, SavedDocument>()
+        const addOrUpdate = (d: SavedDocument) => {
+          const key = (d.bol_number || d.id || "").trim()
+          if (!key) return
+          const existing = mergedMap.get(key)
+          if (!existing) {
             mergedMap.set(key, d)
+          } else {
+            const timeExisting = new Date((existing as any).updated_at || existing.created_at || (existing as any).issue_date || 0).getTime()
+            const timeNew = new Date((d as any).updated_at || d.created_at || (d as any).issue_date || 0).getTime()
+            if (timeNew >= timeExisting) {
+              mergedMap.set(key, d)
+            }
           }
         }
+
+        for (const d of serverDocs) addOrUpdate(d)
+        for (const d of clientLocalDocs) addOrUpdate(d)
+
+        const mergedList = Array.from(mergedMap.values()).sort((a, b) => {
+          const dateA = new Date((a as any).updated_at || a.created_at || a.issue_date || 0).getTime()
+          const dateB = new Date((b as any).updated_at || b.created_at || b.issue_date || 0).getTime()
+          if (dateB !== dateA) return dateB - dateA
+          return parseBolSeq(b.bol_number || "") - parseBolSeq(a.bol_number || "")
+        })
+
+        const validDocs = mergedList.filter(isMeaningfulBOL)
+        if (validDocs.length > 0) {
+          try {
+            const jsonStr = JSON.stringify(validDocs)
+            window.localStorage.setItem("sky-bol-browser-documents", jsonStr)
+            window.localStorage.setItem("skybol:saved-documents", jsonStr)
+            window.localStorage.setItem("skybol:backup-documents", jsonStr)
+          } catch (e) {}
+        }
+
+        setDocuments(validDocs)
+        setIsServerMode(false)
       }
-
-      for (const d of serverDocs) addOrUpdate(d)
-      for (const d of clientLocalDocs) addOrUpdate(d)
-
-      const mergedList = Array.from(mergedMap.values()).sort((a, b) => {
-        const dateA = new Date((a as any).updated_at || a.created_at || a.issue_date || 0).getTime()
-        const dateB = new Date((b as any).updated_at || b.created_at || b.issue_date || 0).getTime()
-        if (dateB !== dateA) return dateB - dateA
-        return parseBolSeq(b.bol_number || "") - parseBolSeq(a.bol_number || "")
-      })
-
-      // Strict filter: purge any placeholder / draft BOLs without shipper or quantity
-      const validDocs = mergedList.filter(isMeaningfulBOL)
-
-      // If valid BOLs exist, sync to browser localStorage
-      if (validDocs.length > 0) {
-        try {
-          const jsonStr = JSON.stringify(validDocs)
-          window.localStorage.setItem("sky-bol-browser-documents", jsonStr)
-          window.localStorage.setItem("skybol:saved-documents", jsonStr)
-          window.localStorage.setItem("skybol:backup-documents", jsonStr)
-        } catch (e) {}
-      }
-
-      setDocuments(validDocs)
     } catch (error) {
       console.warn("Saved documents background sync notice:", error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [pageSize, isServerMode])
 
   const handleRecoverAllBOLs = async () => {
     const toastId = toast.loading("Recovering saved BOL documents...")
@@ -706,6 +749,12 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   }, [refreshTrigger])
 
   useEffect(() => {
+    if (isServerMode) {
+      void fetchDocuments(1, deferredQuery)
+    }
+  }, [deferredQuery, fetchDocuments, isServerMode])
+
+  useEffect(() => {
     try {
       const stored = window.localStorage.getItem(DOCUMENT_CATEGORY_STORAGE_KEY)
       if (stored) {
@@ -769,6 +818,13 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       doc.shipper_name,
       doc.consignee_name,
       doc.truck_number,
+      doc.driver_name,
+      doc.driver_rent,
+      (doc as any).driverFreight,
+      (doc as any).driverRent,
+      doc.goods_value,
+      doc.invoice_no,
+      doc.invoice_number,
       getAssignedCategory(doc),
       extra.category,
       extra.document_category,
@@ -802,7 +858,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
 
   // Sorted and Filtered Documents (Bringing Latest First by Default)
   const filteredDocuments = useMemo(() => {
-    const cleanQuery = query.trim().toLowerCase()
+    const cleanQuery = deferredQuery.trim().toLowerCase()
     const now = new Date()
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
     const sevenDaysAgo = startOfToday - 7 * 24 * 60 * 60 * 1000
@@ -854,7 +910,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       }
       return 0
     })
-  }, [documents, query, activeCategory, dateFilter, sortBy, documentCategories, isShipper, currentUser])
+  }, [documents, deferredQuery, activeCategory, dateFilter, sortBy, documentCategories, isShipper, currentUser])
 
   // Real-time Summary Analytics Ribbon
   const summaryStats = useMemo(() => {
@@ -1294,19 +1350,29 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
     try {
       const response = await fetch("/api/bol?action=next-number")
       const result = await response.json()
-      const newBolNumber = result.bolNumber || "BOL-2026-NSA471"
+      const newBolNumber = result.bolNumber || "BOL-NSA598"
 
       const clonedDoc = {
         ...doc,
-        id: "",
+        id: newBolNumber,
         bol_number: newBolNumber,
         issue_date: new Date().toISOString().split("T")[0],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
 
+      // Pre-seed local storage so loadDocument immediately finds the cloned data
+      try {
+        const storedLocal = window.localStorage.getItem("sky-bol-browser-documents")
+        const clientLocalDocs: any[] = storedLocal ? JSON.parse(storedLocal) : []
+        const nextList = [clonedDoc, ...clientLocalDocs.filter((d) => d.id !== newBolNumber && d.bol_number !== newBolNumber)]
+        window.localStorage.setItem("sky-bol-browser-documents", JSON.stringify(nextList))
+      } catch (err) {
+        console.error("Local storage error during duplication:", err)
+      }
+
       startTransition(() => {
-        onLoadDocument(clonedDoc.id, "form")
+        onLoadDocument(newBolNumber, "form")
       })
       toast.success(`Cloned as ${newBolNumber}!`, {
         id: toastId,
@@ -2031,6 +2097,17 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                       type="button"
                       size="sm"
                       variant="outline"
+                      onClick={() => onLoadDocument(doc.id || doc.bol_number, "attachments")}
+                      className="h-8 px-2 rounded-xl border-cyan-300 bg-cyan-50/80 text-cyan-900 font-extrabold text-xs cursor-pointer hover:bg-cyan-100 active:scale-95 transition-all"
+                      title="Digital Shipment Files & Attachments"
+                    >
+                      <FolderArchive className="w-3 h-3 mr-1 text-cyan-700" /> Files
+                    </Button>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
                       onClick={() => downloadBOLPDF(doc)}
                       className="flex-1 h-8 rounded-xl border-amber-300 bg-amber-50/80 text-amber-900 font-extrabold text-xs cursor-pointer hover:bg-amber-100 active:scale-95 transition-all"
                     >
@@ -2331,11 +2408,17 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                           <p className="text-xs font-semibold text-slate-700 truncate mt-0.5">
                             <span className="font-extrabold text-slate-900">{doc.shipper_name}</span> ➔ {doc.consignee_name}
                           </p>
-                          {(doc.number_of_packages || doc.net_weight || doc.goods_value) && (
+                          {(doc.number_of_packages || doc.net_weight || doc.goods_value || doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent) && (
                             <p className="text-[11px] font-bold text-blue-900 mt-1 flex items-center gap-2 flex-wrap">
                               {doc.number_of_packages && <span>📦 {doc.number_of_packages}</span>}
                               {doc.net_weight && <span>⚖️ {doc.net_weight}</span>}
                               {doc.goods_value && <span>💰 {doc.goods_value}</span>}
+                              {(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent) && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80 font-mono text-[10.5px]">
+                                  <Banknote className="w-3 h-3 text-amber-700 shrink-0" />
+                                  <span>Rent: {doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent}</span>
+                                </span>
+                              )}
                               {doc.truck_number && <span>🚚 {doc.truck_number}</span>}
                             </p>
                           )}
@@ -2350,6 +2433,17 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                           className="h-9 px-3 rounded-xl bg-blue-600 text-white font-extrabold text-xs cursor-pointer"
                         >
                           <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                        </Button>
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onLoadDocument(doc.id || doc.bol_number, "attachments")}
+                          className="h-9 px-3 rounded-xl border-cyan-300 bg-cyan-50 text-cyan-900 font-black text-xs cursor-pointer hover:bg-cyan-100"
+                          title="Digital Shipment Folder & Attachments"
+                        >
+                          <FolderArchive className="w-3.5 h-3.5 mr-1 text-cyan-600" /> Files
                         </Button>
 
                         <Button
@@ -2405,7 +2499,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                       <th className="p-3.5">Shipper</th>
                       <th className="p-3.5">Consignee</th>
                       <th className="p-3.5">Cargo / Weight</th>
-                      <th className="p-3.5">Truck #</th>
+                      <th className="p-3.5">Truck / Driver Rent</th>
                       <th className="p-3.5">PDF Status</th>
                       <th className="p-3.5 text-right">Actions</th>
                     </tr>
@@ -2447,7 +2541,16 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                               <span>{doc.number_of_packages} {doc.net_weight ? `(${doc.net_weight})` : ""}</span>
                             ) : "—"}
                           </td>
-                          <td className="p-3.5">{doc.truck_number || "N/A"}</td>
+                          <td className="p-3.5">
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-extrabold text-slate-800">{doc.truck_number || "N/A"}</span>
+                              {(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent) && (
+                                <span className="text-amber-800 font-bold font-mono text-[10px] truncate max-w-[140px]" title={`Driver Rent: ${doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent}`}>
+                                  Rent: {doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent}
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="p-3.5">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                               hasUploadedPdf ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
@@ -2464,6 +2567,16 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                                 className="h-8 px-2.5 rounded-lg bg-blue-600 text-white font-extrabold text-[11px] cursor-pointer"
                               >
                                 Edit
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => onLoadDocument(doc.id || doc.bol_number, "attachments")}
+                                className="h-8 px-2.5 rounded-lg border-cyan-300 bg-cyan-50 text-cyan-900 font-extrabold text-[11px] cursor-pointer hover:bg-cyan-100"
+                                title="Digital Shipment Folder & Attachments"
+                              >
+                                Files
                               </Button>
                               <Button
                                 type="button"
@@ -2511,7 +2624,49 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
         )}
           </>
         )}
-        {!isLoading && filteredDocuments.length > visibleCount && (
+        {isServerMode && totalPages > 1 && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+            <span className="text-xs font-bold text-slate-700">
+              Showing <span className="text-blue-900 font-extrabold">{((currentPage - 1) * pageSize) + 1}</span> to{" "}
+              <span className="text-blue-900 font-extrabold">{Math.min(currentPage * pageSize, serverTotal ?? 0)}</span> of{" "}
+              <span className="text-blue-900 font-extrabold">{serverTotal?.toLocaleString()}</span> BOLs
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1 || isLoading}
+                onClick={() => {
+                  const p = Math.max(1, currentPage - 1)
+                  setCurrentPage(p)
+                  void fetchDocuments(p, query)
+                }}
+                className="h-8 px-3 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Previous
+              </Button>
+              <span className="text-xs font-black text-slate-800 px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages || isLoading}
+                onClick={() => {
+                  const p = Math.min(totalPages, currentPage + 1)
+                  setCurrentPage(p)
+                  void fetchDocuments(p, query)
+                }}
+                className="h-8 px-3 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+        {!isServerMode && !isLoading && filteredDocuments.length > visibleCount && (
           <Button type="button" variant="outline" className="mt-4 w-full" onClick={() => setVisibleCount(count => count + 30)}>
             Show more BOLs ({Math.min(visibleCount, filteredDocuments.length)} of {filteredDocuments.length})
           </Button>

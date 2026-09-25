@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import * as localStorage from "@/lib/services/local-storage-service"
+import { advanceBolSequenceIfHigher } from "@/lib/services/bol-sequence"
 
 const isUUID = (str?: string | null): boolean => {
   if (!str) return false
@@ -30,6 +31,23 @@ export async function GET(
 
   const { id } = await params
   
+  // 1. Ultra-fast FastAPI SQLite backend details lookup (<10ms)
+  try {
+    const fastUrl = `http://127.0.0.1:8000/api/v1/bols/${encodeURIComponent(id)}/details`
+    const fastRes = await fetch(fastUrl, {
+      signal: AbortSignal.timeout(600),
+      headers: { Accept: "application/json" },
+    })
+    if (fastRes.ok) {
+      const fastResult = await fastRes.json()
+      if (fastResult && fastResult.data) {
+        return NextResponse.json({ data: fastResult.data, source: "fastapi-sqlite" })
+      }
+    }
+  } catch {
+    // Fallback to Supabase / local
+  }
+
   try {
     let resultDoc: any = null
     let data: any = null
@@ -125,12 +143,37 @@ export async function PUT(
 
     const body = await request.json()
     const targetBolNumber = body.bol_number || id
+
+    // Forward partial update with optimistic concurrency to FastAPI SQLite backend
+    try {
+      const fastUrl = `http://127.0.0.1:8000/api/v1/bols/${encodeURIComponent(id)}`
+      const fastRes = await fetch(fastUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          revision: body.revision || 1,
+          ...body,
+        }),
+        signal: AbortSignal.timeout(1200),
+      })
+
+      if (fastRes.status === 409) {
+        const errJson = await fastRes.json().catch(() => ({}))
+        return NextResponse.json(
+          { error: errJson.detail || "This BOL was updated elsewhere. Refresh before saving." },
+          { status: 409 }
+        )
+      }
+    } catch {
+      // Fallback
+    }
     
     // Always update local storage first
     await localStorage.updateLocalBOL(id, body)
     if (targetBolNumber !== id) {
       await localStorage.updateLocalBOL(targetBolNumber, body)
     }
+    await advanceBolSequenceIfHigher(targetBolNumber)
 
     let savedData = {
       id,
@@ -273,7 +316,15 @@ export async function DELETE(
         console.error("[v0] Supabase connection failed, deleting locally:", supabaseErr)
       }
     }
-    
+
+    // Forward delete to FastAPI SQLite backend
+    try {
+      await fetch(`http://127.0.0.1:8000/api/v1/bols/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        signal: AbortSignal.timeout(600),
+      })
+    } catch {}
+
     // Also delete from local storage
     await localStorage.deleteLocalBOL(id)
     

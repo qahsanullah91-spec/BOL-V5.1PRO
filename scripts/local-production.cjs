@@ -12,6 +12,10 @@ if (mode === 'build') {
   mkdirSync(temporaryDirectory, { recursive: true })
   env.TEMP = temporaryDirectory
   env.TMP = temporaryDirectory
+  env.SKY_NEXT_DIST_DIR = '.next-production'
+  env.SKY_STANDALONE = '1'
+} else if (mode === 'start') {
+  env.SKY_NEXT_DIST_DIR = '.next-production'
 }
 
 const host = process.env.SERVER_HOST || (process.env.LAN_MODE === 'true' ? '0.0.0.0' : '127.0.0.1')

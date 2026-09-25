@@ -126,6 +126,7 @@ export interface GenerateShippingDocumentsOptions {
   companyLicence?: string
   stickerQuantity?: number
   stickerLayout?: StickerLayout
+  onProgress?: (progress: number, message: string) => void
 }
 
 const PAGE_WIDTH = 210
@@ -1950,12 +1951,18 @@ async function imageUrlToDataUrl(url?: string): Promise<string | null> {
 
 export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<void> {
   if (typeof document !== "undefined" && document.fonts) {
-    await document.fonts.ready
+    try {
+      await document.fonts.ready
+    } catch {}
   }
+
+  // Cooperative yield so the browser can paint progress indicators
+  await new Promise((resolve) => setTimeout(resolve, 0))
+
   const { toCanvas } = await import("html-to-image")
   const canvas = await toCanvas(element, {
-    pixelRatio: 3,
-    quality: 1.0,
+    pixelRatio: 2.2, // ~210 DPI crisp sharpness without main-thread memory locks
+    quality: 0.98,
     cacheBust: false,
     backgroundColor: "#ffffff",
     style: { transform: "none", margin: "0", boxShadow: "none", opacity: "1", visibility: "visible" },
@@ -1965,11 +1972,15 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
     },
   })
 
-  const imageData = canvas.toDataURL("image/png", 1.0)
-  pdf.addImage(imageData, "PNG", 0, 0, PAGE_WIDTH, PAGE_HEIGHT, undefined, "SLOW")
+  // Cooperative yield between rasterization and PDF embedding
+  await new Promise((resolve) => setTimeout(resolve, 0))
+
+  const imageData = canvas.toDataURL("image/jpeg", 0.96)
+  pdf.addImage(imageData, "JPEG", 0, 0, PAGE_WIDTH, PAGE_HEIGHT, undefined, "FAST")
 }
 
 export async function generateShippingDocumentsPDF(options: GenerateShippingDocumentsOptions): Promise<Blob> {
+  options.onProgress?.(5, "Initializing PDF Document Engine...")
   const { jsPDF } = await import("jspdf")
   const pdf = new jsPDF({
     orientation: "portrait",
@@ -1979,6 +1990,7 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
     precision: 16,
   })
 
+  options.onProgress?.(15, "Loading typography and official fonts...")
   await registerPDFFonts(pdf)
 
   const companyName = clean(options.companyName || options.data.companyName) || "SKY ARIANA LTD"
@@ -2004,6 +2016,7 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
   // PAGE 1: BILL OF LADING
   // ----------------------------------------------------
   if (includesBol) {
+    options.onProgress?.(25, "Rendering Master Bill of Lading...")
     const bolElement =
       options.bolElement ||
       (typeof document !== "undefined"
@@ -2023,6 +2036,7 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
   // PAGE 2: PACKING LIST (Includes all cargo rows)
   // ----------------------------------------------------
   if (includesPacking) {
+    options.onProgress?.(55, "Compiling Official Packing List...")
     pageHasContent = addPageIfNeeded(pdf, pageHasContent)
     const packingElement =
       typeof document !== "undefined"
@@ -2056,6 +2070,14 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
         : null
 
     for (let firstCarton = 0; firstCarton < quantity; firstCarton += perPage) {
+      const pct = Math.min(92, 70 + Math.round((firstCarton / quantity) * 22))
+      options.onProgress?.(pct, `Generating Cargo Stickers (${firstCarton + 1} of ${quantity})...`)
+
+      // Cooperative yield every 2 batches to keep browser responsive
+      if (firstCarton > 0 && firstCarton % (perPage * 2) === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+
       pageHasContent = addPageIfNeeded(pdf, pageHasContent)
       if (stickerElement) {
         await drawBolPage(pdf, stickerElement)
@@ -2077,8 +2099,13 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
     }
   }
 
+  options.onProgress?.(95, "Serializing PDF Stream...")
+  // Final yield before serialization
+  await new Promise((resolve) => setTimeout(resolve, 0))
+
   const blob = pdf.output("blob") as Blob
   const header = await blob.slice(0, 5).text()
   if (header !== "%PDF-") throw new Error("Generated shipping document is not a valid PDF.")
+  options.onProgress?.(100, "Complete!")
   return blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" })
 }

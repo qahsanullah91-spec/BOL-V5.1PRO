@@ -6,7 +6,14 @@ export type MasterEntityType =
   | 'SHIPPING_LINE' 
   | 'DRIVER' 
   | 'SUPPLIER'
-  | 'CUSTOMER';
+  | 'CUSTOMER'
+  | 'AIRLINE'
+  | 'INSURANCE_COMPANY'
+  | 'SURVEYOR'
+  | 'LEAD'
+  | 'PROSPECT'
+  | 'FORMER_CUSTOMER'
+  | 'PARTNER';
 
 export interface MasterEntityBankDetail {
   bankName: string;

@@ -31,7 +31,7 @@ import { BillOfLadingFormData, initialFormData, RouteStop, AFGHANISTAN_DOCUMENT_
 import consigneeSeedData from "@/lib/data/consignees-from-pdf.json"
 import shipperSeedData from "@/lib/data/shippers-from-pdf.json"
 import notifyPartySeedData from "@/lib/data/notify-parties-from-pdf.json"
-import { Printer, Save, FileText, Eye, Plus, Loader2, Calendar, Truck, MapPin, Trash2, ArrowRight, Package, Edit3, ImageIcon, Upload, RotateCcw, ScrollText, Check, Download, Building2, Phone, Mail, Ship, Plane, Train, AlertCircle, User, Bell, Globe, Shield, Leaf, Heart, Scale, Bookmark, BookmarkPlus, X, IdCard, Car, Landmark, ShieldCheck, Receipt, List, ChevronDown, ChevronUp, Info, CheckCircle2, Circle, Sparkles, Copy, Box, ArrowLeftRight, Zap, Calculator, Sliders, SlidersHorizontal, Layers, Keyboard, Cloud, DownloadCloud, UploadCloud, RefreshCw, FileSpreadsheet, Coins, Hash, MoreHorizontal, Palette, ZoomIn, ZoomOut, Maximize2 } from "lucide-react"
+import { Printer, Save, FileText, Eye, Plus, Loader2, Calendar, Truck, MapPin, Trash2, ArrowRight, Package, Edit3, ImageIcon, Upload, RotateCcw, ScrollText, Check, Download, Building2, Phone, Mail, Ship, Plane, Train, AlertCircle, User, Bell, Globe, Shield, Leaf, Heart, Scale, Bookmark, BookmarkPlus, X, IdCard, Car, Landmark, ShieldCheck, Receipt, List, ChevronDown, ChevronUp, Info, CheckCircle2, Circle, Sparkles, Copy, Box, ArrowLeftRight, Zap, Calculator, Sliders, SlidersHorizontal, Layers, Keyboard, Cloud, DownloadCloud, UploadCloud, RefreshCw, FileSpreadsheet, Coins, Hash, MoreHorizontal, Palette, ZoomIn, ZoomOut, Maximize2, FolderArchive } from "lucide-react"
 import { formatPersianDate, getDualDates } from "@/lib/utils/persian-date"
 import {
   generateBOLPDFBlob,
@@ -53,6 +53,7 @@ import { PackingListPdfPage, StickerPdfPage } from "./shipping-documents"
 import { AfghanTruckPlate } from "@/components/ui/afghan-truck-plate"
 const SavedDocuments = dynamic(() => import("./saved-documents").then(m => m.SavedDocuments), { loading: () => <p role="status" className="p-6 text-sm text-slate-600">Loading saved BOLs…</p> })
 const LedgerView = dynamic(() => import("@/components/ledger-view").then(m => m.LedgerView), { loading: () => <p role="status" className="p-6 text-sm text-slate-600">Loading account ledger…</p> })
+const BolFilesAttachmentsTab = dynamic(() => import("./bol-files-attachments-tab").then(m => m.BolFilesAttachmentsTab), { loading: () => <p role="status" className="p-6 text-sm text-slate-600">Loading shipment attachments…</p> })
 import { getFinancialsMap, saveFinancialsForEntry } from "@/lib/services/ledger-sync-utils"
 import { findDuplicatePartyCandidates } from "@/lib/utils/duplicate-prevention"
 import { PrintOptionsDialog, type PrintOptions } from "@/components/print-options-dialog"
@@ -396,7 +397,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
   }, [hasUnsavedChanges])
 
-  const [bolNumber, setBolNumber] = useState<string>("BOL-2026-NSA470")
+  const [bolNumber, setBolNumber] = useState<string>("BOL-NSA598")
   const [isEditingBolNumber, setIsEditingBolNumber] = useState(false)
   const [issueDate, setIssueDate] = useState<string>("")
   const [persianDate, setPersianDate] = useState<string>("")
@@ -426,7 +427,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       setActiveTab(newTab)
     })
   }, [activeTab])
-  const [logoUrl, setLogoUrl] = useState<string>("/images/logo.png")
+  const [logoUrl, setLogoUrl] = useState<string>("/images/sky-ariana-logo.png")
   const logoInputRef = useRef<HTMLInputElement>(null)
   const isCompanySettingsLoadedRef = useRef(false)
   const [companyName, setCompanyName] = useState("SKY ARIANA LIMITED")
@@ -607,6 +608,9 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   const [selectedNotifyPartyId, setSelectedNotifyPartyId] = useState<string>("")
   const [showNotifyPartyDropdown, setShowNotifyPartyDropdown] = useState(false)
   const [notifyPartySearchQuery, setNotifyPartySearchQuery] = useState("")
+  const [apiShippers, setApiShippers] = useState<SavedParty[]>([])
+  const [apiConsignees, setApiConsignees] = useState<SavedParty[]>([])
+  const [apiNotifyParties, setApiNotifyParties] = useState<SavedParty[]>([])
   const [savedNotes1, setSavedNotes1] = useState<SavedNoteOption[]>([])
   const [selectedNote1Id, setSelectedNote1Id] = useState<string>("")
   const [savedNotes2, setSavedNotes2] = useState<SavedNoteOption[]>([])
@@ -810,7 +814,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         if (parsed.companyEmail) setCompanyEmail(parsed.companyEmail)
         if (parsed.companyAddress) setCompanyAddress(parsed.companyAddress)
         if (parsed.companyLicence) setCompanyLicence(parsed.companyLicence)
-        if (parsed.logoUrl) setLogoUrl(parsed.logoUrl)
+        if (parsed.logoUrl && !parsed.logoUrl.includes("aq-logo") && !parsed.logoUrl.includes("aq_logo") && !parsed.logoUrl.includes("aq-companies")) {
+          setLogoUrl(parsed.logoUrl)
+        } else {
+          setLogoUrl("/images/sky-ariana-logo.png")
+        }
         if (typeof parsed.bgImageUrl === "string") {
           const isLegacyGlobalFlight = parsed.bgImageUrl === "/images/document-backgrounds/global-flight.svg"
           setBgImageUrl(
@@ -933,11 +941,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       const storedNotes1 = JSON.parse(window.localStorage.getItem(SAVED_NOTES_1_STORAGE_KEY) || "[]")
       const storedNotes2 = JSON.parse(window.localStorage.getItem(SAVED_NOTES_2_STORAGE_KEY) || "[]")
 
-      const mergedShippers = mergeSavedParties(SHIPPER_SEED_LIST, storedShippers)
-      const mergedConsignees = mergeSavedParties(CONSIGNEE_SEED_LIST, storedConsignees)
-      const mergedNotifyParties = mergeSavedParties(NOTIFY_PARTY_SEED_LIST, storedNotifyParties)
-      const mergedNotes1 = mergeSavedNoteOptions(NOTE_1_SEED_LIST, storedNotes1)
-      const mergedNotes2 = mergeSavedNoteOptions(NOTE_2_SEED_LIST, storedNotes2)
+      const mergedShippers = storedShippers.length > 0 ? storedShippers : mergeSavedParties(SHIPPER_SEED_LIST, storedShippers)
+      const mergedConsignees = storedConsignees.length > 0 ? storedConsignees : mergeSavedParties(CONSIGNEE_SEED_LIST, storedConsignees)
+      const mergedNotifyParties = storedNotifyParties.length > 0 ? storedNotifyParties : mergeSavedParties(NOTIFY_PARTY_SEED_LIST, storedNotifyParties)
+      const mergedNotes1 = storedNotes1.length > 0 ? storedNotes1 : mergeSavedNoteOptions(NOTE_1_SEED_LIST, storedNotes1)
+      const mergedNotes2 = storedNotes2.length > 0 ? storedNotes2 : mergeSavedNoteOptions(NOTE_2_SEED_LIST, storedNotes2)
 
       setSavedShippers(mergedShippers)
       setSavedConsignees(mergedConsignees)
@@ -945,15 +953,109 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       setSavedNotes1(mergedNotes1)
       setSavedNotes2(mergedNotes2)
 
-      window.localStorage.setItem(SAVED_SHIPPERS_STORAGE_KEY, JSON.stringify(mergedShippers))
-      window.localStorage.setItem(SAVED_CONSIGNEES_STORAGE_KEY, JSON.stringify(mergedConsignees))
-      window.localStorage.setItem(SAVED_NOTIFY_PARTIES_STORAGE_KEY, JSON.stringify(mergedNotifyParties))
-      window.localStorage.setItem(SAVED_NOTES_1_STORAGE_KEY, JSON.stringify(mergedNotes1))
-      window.localStorage.setItem(SAVED_NOTES_2_STORAGE_KEY, JSON.stringify(mergedNotes2))
+      if (storedShippers.length === 0) window.localStorage.setItem(SAVED_SHIPPERS_STORAGE_KEY, JSON.stringify(mergedShippers))
+      if (storedConsignees.length === 0) window.localStorage.setItem(SAVED_CONSIGNEES_STORAGE_KEY, JSON.stringify(mergedConsignees))
+      if (storedNotifyParties.length === 0) window.localStorage.setItem(SAVED_NOTIFY_PARTIES_STORAGE_KEY, JSON.stringify(mergedNotifyParties))
+      if (storedNotes1.length === 0) window.localStorage.setItem(SAVED_NOTES_1_STORAGE_KEY, JSON.stringify(mergedNotes1))
+      if (storedNotes2.length === 0) window.localStorage.setItem(SAVED_NOTES_2_STORAGE_KEY, JSON.stringify(mergedNotes2))
     } catch (error) {
       console.error("[v0] Error loading saved parties:", error)
     }
   }, [])
+
+  // Async party search from FastAPI SQLite / seed proxy with 200ms debounce
+  useEffect(() => {
+    const q = (shipperSearchQuery || "").trim()
+    if (!q || q.length < 2) return
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/parties/search?role=SHIPPER&q=${encodeURIComponent(q)}&limit=20`, {
+          signal: controller.signal,
+        })
+        if (res.ok) {
+          const json = await res.json()
+          if (json.success && Array.isArray(json.data)) {
+            const mapped: SavedParty[] = json.data.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              address: p.address || "",
+              contact: p.phone || p.contact_person || "",
+              email: p.email || "",
+              savedAt: p.updated_at || new Date().toISOString(),
+            }))
+            setApiShippers(mapped)
+          }
+        }
+      } catch {}
+    }, 200)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [shipperSearchQuery])
+
+  useEffect(() => {
+    const q = (consigneeSearchQuery || "").trim()
+    if (!q || q.length < 2) return
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/parties/search?role=CONSIGNEE&q=${encodeURIComponent(q)}&limit=20`, {
+          signal: controller.signal,
+        })
+        if (res.ok) {
+          const json = await res.json()
+          if (json.success && Array.isArray(json.data)) {
+            const mapped: SavedParty[] = json.data.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              address: p.address || "",
+              contact: p.phone || p.contact_person || "",
+              email: p.email || "",
+              savedAt: p.updated_at || new Date().toISOString(),
+            }))
+            setApiConsignees(mapped)
+          }
+        }
+      } catch {}
+    }, 200)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [consigneeSearchQuery])
+
+  useEffect(() => {
+    const q = (notifyPartySearchQuery || "").trim()
+    if (!q || q.length < 2) return
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/parties/search?role=NOTIFY_PARTY&q=${encodeURIComponent(q)}&limit=20`, {
+          signal: controller.signal,
+        })
+        if (res.ok) {
+          const json = await res.json()
+          if (json.success && Array.isArray(json.data)) {
+            const mapped: SavedParty[] = json.data.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              address: p.address || "",
+              contact: p.phone || p.contact_person || "",
+              email: p.email || "",
+              savedAt: p.updated_at || new Date().toISOString(),
+            }))
+            setApiNotifyParties(mapped)
+          }
+        }
+      } catch {}
+    }, 200)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [notifyPartySearchQuery])
 
   // Load document when loadDocumentId changes
   useEffect(() => {
@@ -1070,39 +1172,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   const fetchNextBolNumber = async () => {
     setIsLoading(true)
     try {
-      let maxLocalSuffix = 0
-      try {
-        const storedLocal = window.localStorage.getItem("sky-bol-browser-documents")
-        const localDocs: any[] = storedLocal ? JSON.parse(storedLocal) : []
-        for (const doc of localDocs) {
-          const numStr = doc.bol_number || doc.id || ""
-          const match = numStr.match(/NSA(\d+)/i) || numStr.match(/(\d+)\s*$/)
-          if (match && match[1]) {
-            const val = parseInt(match[1], 10)
-            if (!isNaN(val) && val > maxLocalSuffix) maxLocalSuffix = val
-          }
-        }
-      } catch (e) {
-        console.error("Error reading browser docs for sequence:", e)
-      }
-
       const response = await fetch("/api/bol?action=next-number")
       const result = await response.json()
       
-      let serverSuffix = 0
-      if (result.bolNumber) {
-        const serverMatch = result.bolNumber.match(/NSA(\d+)/i) || result.bolNumber.match(/(\d+)\s*$/)
-        if (serverMatch && serverMatch[1]) {
-          serverSuffix = parseInt(serverMatch[1], 10) || 0
-        }
+      if (result?.bolNumber) {
+        setBolNumber(result.bolNumber)
+        return
       }
 
-      const currentYear = new Date().getFullYear()
-      const nextSeq = Math.max(470, maxLocalSuffix + 1, serverSuffix)
-      const formattedNextBol = `BOL-${currentYear}-NSA${String(nextSeq).padStart(3, "0")}`
-      setBolNumber(formattedNextBol)
+      setBolNumber("BOL-NSA598")
     } catch (error) {
       console.error("Error fetching BOL number:", error)
+      setBolNumber("BOL-NSA598")
     } finally {
       setIsLoading(false)
     }
@@ -1480,23 +1561,59 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     )
   )
 
-  const matchingShippers = savedShippers.filter((s) => {
+  const matchingShippers = useMemo(() => {
     const q = (shipperSearchQuery || formData.shipper_name || "").toLowerCase().trim()
-    if (!q) return true
-    return [s.name, s.address, s.contact, s.email].filter(Boolean).some((field) => field.toLowerCase().includes(q))
-  })
+    const pool = [...savedShippers, ...apiShippers]
+    const seen = new Set<string>()
+    const unique: SavedParty[] = []
+    for (const item of pool) {
+      const norm = (item.name || "").trim().toLowerCase()
+      if (norm && !seen.has(norm)) {
+        seen.add(norm)
+        unique.push(item)
+      }
+    }
+    if (!q) return unique.slice(0, 25)
+    return unique
+      .filter((s) => [s.name, s.address, s.contact, s.email].filter(Boolean).some((field) => field.toLowerCase().includes(q)))
+      .slice(0, 25)
+  }, [savedShippers, apiShippers, shipperSearchQuery, formData.shipper_name])
 
-  const matchingConsignees = savedConsignees.filter((c) => {
+  const matchingConsignees = useMemo(() => {
     const q = (consigneeSearchQuery || formData.consignee_name || "").toLowerCase().trim()
-    if (!q) return true
-    return [c.name, c.address, c.contact, c.email].filter(Boolean).some((field) => field.toLowerCase().includes(q))
-  })
+    const pool = [...savedConsignees, ...apiConsignees]
+    const seen = new Set<string>()
+    const unique: SavedParty[] = []
+    for (const item of pool) {
+      const norm = (item.name || "").trim().toLowerCase()
+      if (norm && !seen.has(norm)) {
+        seen.add(norm)
+        unique.push(item)
+      }
+    }
+    if (!q) return unique.slice(0, 25)
+    return unique
+      .filter((c) => [c.name, c.address, c.contact, c.email].filter(Boolean).some((field) => field.toLowerCase().includes(q)))
+      .slice(0, 25)
+  }, [savedConsignees, apiConsignees, consigneeSearchQuery, formData.consignee_name])
 
-  const matchingNotifyParties = savedNotifyParties.filter((n) => {
+  const matchingNotifyParties = useMemo(() => {
     const q = (notifyPartySearchQuery || formData.notify_party || "").toLowerCase().trim()
-    if (!q) return true
-    return [n.name, n.address, n.contact, n.email].filter(Boolean).some((field) => field.toLowerCase().includes(q))
-  })
+    const pool = [...savedNotifyParties, ...apiNotifyParties]
+    const seen = new Set<string>()
+    const unique: SavedParty[] = []
+    for (const item of pool) {
+      const norm = (item.name || "").trim().toLowerCase()
+      if (norm && !seen.has(norm)) {
+        seen.add(norm)
+        unique.push(item)
+      }
+    }
+    if (!q) return unique.slice(0, 25)
+    return unique
+      .filter((n) => [n.name, n.address, n.contact, n.email].filter(Boolean).some((field) => field.toLowerCase().includes(q)))
+      .slice(0, 25)
+  }, [savedNotifyParties, apiNotifyParties, notifyPartySearchQuery, formData.notify_party])
 
   const clearShipperFields = () => {
     setFormData((prev) => ({
@@ -1640,7 +1757,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }
 
   const applySavedShipper = (shipperId: string) => {
-    const shipper = savedShippers.find((item) => item.id === shipperId)
+    const shipper = savedShippers.find((item) => item.id === shipperId) || apiShippers.find((item) => item.id === shipperId)
     if (!shipper) return
 
     setSelectedShipperId(shipperId)
@@ -1713,7 +1830,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }
 
   const applySavedConsignee = (consigneeId: string) => {
-    const consignee = savedConsignees.find((item) => item.id === consigneeId)
+    const consignee = savedConsignees.find((item) => item.id === consigneeId) || apiConsignees.find((item) => item.id === consigneeId)
     if (!consignee) return
 
     setSelectedConsigneeId(consigneeId)
@@ -1792,7 +1909,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }
 
   const applySavedNotifyParty = (notifyPartyId: string) => {
-    const notifyParty = savedNotifyParties.find((item) => item.id === notifyPartyId)
+    const notifyParty = savedNotifyParties.find((item) => item.id === notifyPartyId) || apiNotifyParties.find((item) => item.id === notifyPartyId)
     if (!notifyParty) return
 
     setSelectedNotifyPartyId(notifyPartyId)
@@ -3686,7 +3803,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     setFormData(initialFormData)
     setActiveRouteIndex(null)
     setShowLocationDropdown(null)
-    setBolNumber("BOL-2026-NSA470")
+    setBolNumber("BOL-NSA598")
     fetchNextBolNumber()
     const today = new Date().toISOString().split("T")[0]
     setIssueDate(today)
@@ -3705,7 +3822,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     try {
       const response = await fetch("/api/bol?action=next-number")
       const result = await response.json()
-      const newBolNumber = result.bolNumber || "BOL-2026-NSA471"
+      const newBolNumber = result.bolNumber || "BOL-NSA598"
 
       setIsEditMode(false)
       setEditDocumentId(null)
@@ -3953,6 +4070,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     kind: ShippingDocumentKind = "all",
     stickerQuantity = 1,
     stickerLayout: StickerLayout = "single",
+    onProgress?: (progress: number, message: string) => void,
   ) => {
     const bolElement =
       (document.querySelector('[data-bol-a4="true"]') as HTMLElement | null) ||
@@ -3970,6 +4088,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       companyLicence,
       stickerQuantity,
       stickerLayout,
+      onProgress,
     })
   }
 
@@ -3984,7 +4103,14 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       description: kind === "all" ? "Combining BOL, packing list and sticker labels" : `Preparing ${fileName}`,
     })
     try {
-      const pdfBlob = await createShippingDocuments(kind, stickerQuantity, stickerLayout)
+      const pdfBlob = await createShippingDocuments(
+        kind,
+        stickerQuantity,
+        stickerLayout,
+        (progress, message) => {
+          toast.loading(message, { id: toastId, description: `${progress}% complete` })
+        }
+      )
       const saved = await savePDFToDevice(pdfBlob, fileName)
       if (!saved.success) throw new Error(saved.error || "The PDF could not be saved to this device.")
       toast.success("Shipping PDF saved", {
@@ -4012,7 +4138,14 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     setIsSaving(true)
     const toastId = toast.loading("Preparing print-ready PDF...", { description: fileName })
     try {
-      const pdfBlob = await createShippingDocuments(kind, stickerQuantity, stickerLayout)
+      const pdfBlob = await createShippingDocuments(
+        kind,
+        stickerQuantity,
+        stickerLayout,
+        (progress, message) => {
+          toast.loading(message, { id: toastId, description: `${progress}% complete` })
+        }
+      )
       const opened = await printPDFBlobInWindow(pdfBlob, fileName, printWindow)
       if (!opened) throw new Error("The print preview window could not be opened.")
       toast.success("Print preview ready", { id: toastId, description: fileName })
@@ -4060,6 +4193,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             break
           case "account":
             setActiveTab("account")
+            break
+          case "attachments":
+          case "files":
+            setActiveTab("attachments")
             break
           case "pdf-settings":
             setActiveTab("pdf-settings")
@@ -4386,7 +4523,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
       <div className="w-full max-w-[1780px] mx-auto px-2 sm:px-4 lg:px-6 py-1.5 md:py-2 print:max-w-none print:p-0 print:m-0">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="print:hidden w-full">
-          <TabsList className="bol-navigation mb-2.5 grid w-full grid-cols-5 rounded-2xl border border-slate-200/90 bg-slate-100/85 p-1 shadow-sm shadow-blue-500/5 backdrop-blur-xl h-9 sm:h-10">
+          <TabsList className="bol-navigation mb-2.5 grid w-full grid-cols-6 rounded-2xl border border-slate-200/90 bg-slate-100/85 p-1 shadow-sm shadow-blue-500/5 backdrop-blur-xl h-9 sm:h-10">
             <TabsTrigger
               value="form"
               onPointerDown={(e) => {
@@ -4409,6 +4546,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               <Layers className="h-3.5 w-3.5 shrink-0 text-amber-600" />
               <span className="hidden sm:inline">Saved BOLs</span>
               <span className="sm:hidden">Saved</span>
+            </TabsTrigger>
+            <TabsTrigger value="attachments" className="gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 data-[state=active]:shadow-sm transition-colors cursor-pointer">
+              <FolderArchive className="h-3.5 w-3.5 shrink-0 text-cyan-600" />
+              <span className="hidden sm:inline">Files</span>
+              <span className="sm:hidden">Files</span>
             </TabsTrigger>
             <TabsTrigger value="account" className="gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 data-[state=active]:shadow-sm transition-colors cursor-pointer">
               <Landmark className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
@@ -4617,7 +4759,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               if (e.key === "Enter") setIsEditingBolNumber(false)
                             }}
                             className="font-mono font-black text-xs sm:text-sm text-slate-950 bg-white border-blue-300 shadow-inner rounded-xl h-8.5 sm:h-9 focus:ring-2 focus:ring-blue-500/20 uppercase"
-                            placeholder="BOL-2026-NSA501"
+                            placeholder="BOL-NSA598"
                             autoFocus
                           />
                           <Button
@@ -9136,6 +9278,19 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     }}
                   />
                 )}
+              </section>
+            )}
+          </TabsContent>
+
+          {/* Shipment Attachments & Digital Folder Tab */}
+          <TabsContent value="attachments" className="focus-visible:outline-none">
+            {activeTab === "attachments" && (
+              <section className="min-h-0 w-full overflow-hidden rounded-[24px] border border-white/70 bg-white/60 p-2 sm:p-4 shadow-xl shadow-blue-200/30 backdrop-blur-2xl print:hidden [content-visibility:auto]">
+                <BolFilesAttachmentsTab
+                  bolNumber={bolNumber || formData.bol_number || "BOL-0000"}
+                  containerNumber={formData.container_numbers}
+                  consigneeName={formData.consignee_name}
+                />
               </section>
             )}
           </TabsContent>

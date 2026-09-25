@@ -140,7 +140,14 @@ export function saveSyncSettings(updates: Partial<SyncSettings>): SyncSettings {
     try {
       const dir = path.dirname(SETTINGS_FILE)
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-      fs.writeFileSync(SETTINGS_FILE, JSON.stringify(next, null, 2), "utf-8")
+      const tmpPath = `${SETTINGS_FILE}.tmp.${Date.now()}`
+      fs.writeFileSync(tmpPath, JSON.stringify(next, null, 2), "utf-8")
+      try {
+        fs.renameSync(tmpPath, SETTINGS_FILE)
+      } catch {
+        fs.copyFileSync(tmpPath, SETTINGS_FILE)
+        try { fs.unlinkSync(tmpPath) } catch {}
+      }
     } catch (e) {
       console.error("[sync-state] Failed to save settings to file:", e)
     }

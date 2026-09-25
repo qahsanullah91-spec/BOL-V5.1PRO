@@ -56,6 +56,7 @@ import {
   getAllRouteCostTemplates,
   saveRouteCostTemplate,
 } from "./finance-storage-service"
+import { assertAccountingPeriodOpen } from "@/lib/accounting/period-closing/period-service"
 
 export {
   getAllSuppliers,
@@ -344,6 +345,13 @@ export async function postInvoiceToLedger(invoiceId: string): Promise<FinanceInv
     db.accounts.push(account)
   }
 
+  // Assert financial period is open
+  const postingDate = invoice.issueDate || new Date().toISOString().split("T")[0]
+  await assertAccountingPeriodOpen(postingDate, {
+    entityType: "invoice_post",
+    entityId: invoiceId,
+  })
+
   // Create canonical ledger transaction
   const txId = `tx-inv-${invoice.invoiceNumber.replace(/[^A-Za-z0-9]/g, "-")}`
   const existingTxIndex = db.ledger_transactions.findIndex((t) => t.id === txId)
@@ -411,6 +419,7 @@ export interface RecordPaymentInput {
   referenceNumber?: string
   notes?: string
   authorizedBy?: string
+  receivedBy?: string
   allocations?: Array<{ invoiceId: string; amount: number }>
 }
 
@@ -546,6 +555,14 @@ export async function recordPaymentReceived(input: RecordPaymentInput): Promise<
     db.accounts.push(account)
   }
 
+  // Assert financial period is open
+  const postingDate = input.paymentDate || now.split("T")[0]
+  await assertAccountingPeriodOpen(postingDate, {
+    actor: input.receivedBy || input.authorizedBy || "Administrator",
+    entityType: "payment_received",
+    entityId: paymentId,
+  })
+
   const txId = `tx-pay-${paymentNumber.replace(/[^A-Za-z0-9]/g, "-")}`
   const newTx: LedgerTransactionRecord = {
     id: txId,
@@ -656,6 +673,12 @@ export async function createAndPostDebitNote(input: {
     db.accounts.push(account)
   }
 
+  // Assert financial period is open
+  await assertAccountingPeriodOpen(date, {
+    entityType: "debit_note",
+    entityId: id,
+  })
+
   const txId = `tx-dn-${noteNumber.replace(/[^A-Za-z0-9]/g, "-")}`
   const newTx: LedgerTransactionRecord = {
     id: txId,
@@ -751,6 +774,12 @@ export async function createAndPostCreditNote(input: {
     db.accounts.push(account)
   }
 
+  // Assert financial period is open
+  await assertAccountingPeriodOpen(date, {
+    entityType: "credit_note",
+    entityId: id,
+  })
+
   const txId = `tx-cn-${noteNumber.replace(/[^A-Za-z0-9]/g, "-")}`
   const newTx: LedgerTransactionRecord = {
     id: txId,
@@ -804,6 +833,14 @@ export async function reversePostedTransaction(
   if (!account) throw new Error("Linked account not found")
 
   const now = new Date().toISOString()
+  const revDate = now.split("T")[0]
+
+  await assertAccountingPeriodOpen(revDate, {
+    actor: authorizingUser,
+    entityType: "reversal",
+    entityId: transactionId,
+  })
+
   const revId = `tx-rev-${crypto.randomBytes(6).toString("hex")}`
 
   // Reversal swaps debit and credit to restore balance cleanly

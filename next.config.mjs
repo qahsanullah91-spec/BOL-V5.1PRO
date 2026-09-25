@@ -17,7 +17,11 @@ try {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config, { dev, isServer }) => {
-    if (!dev) {
+    if (dev) {
+      config.cache = {
+        type: 'filesystem',
+      };
+    } else {
       config.cache = false;
     }
     if (!isServer) {
@@ -52,6 +56,7 @@ const nextConfig = {
     '*.local',
   ])),
   distDir: process.env.SKY_NEXT_DIST_DIR || '.next',
+  output: process.env.SKY_STANDALONE === '1' || Boolean(process.env.SKY_NEXT_DIST_DIR) ? 'standalone' : undefined,
   outputFileTracingRoot: fileURLToPath(new URL('.', import.meta.url)),
   reactStrictMode: true,
   poweredByHeader: false,
@@ -104,6 +109,14 @@ const nextConfig = {
             value: 'public, max-age=31536000, immutable',
           },
         ],
+      },
+    ]
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: 'http://127.0.0.1:8000/api/v1/:path*',
       },
     ]
   },

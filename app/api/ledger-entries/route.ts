@@ -3,6 +3,7 @@ import { getAccountLedgerDatabase, saveAccountLedgerDatabase } from "@/lib/servi
 import { getBolAccountLedgerDatabase, saveBolAccountLedgerDatabase } from "@/lib/services/bol-account-ledger-storage-service"
 import * as localStorage from "@/lib/services/local-storage-service"
 import { createClient } from "@/lib/supabase/server"
+import { assertAccountingPeriodOpen } from "@/lib/accounting/period-closing/period-service"
 
 function normalizeKey(str: string): string {
   return str.trim().toLowerCase().replace(/[^a-z0-9]/g, "-")
@@ -94,6 +95,24 @@ export async function POST(request: NextRequest) {
 
     // Handle batch import
     if (body.entries && Array.isArray(body.entries)) {
+      for (const e of body.entries) {
+        const postingDate = e.date || e.date_of_ship || e.shipDate
+        try {
+          await assertAccountingPeriodOpen(postingDate, {
+            role,
+            actor: role || "user",
+            entityType: "ledger_entry",
+            entityId: e.barnamehNo || e.bolNo || e.id,
+          })
+        } catch (err: any) {
+          return NextResponse.json({
+            success: false,
+            error: err.message,
+            period_locked: true,
+          }, { status: 403 })
+        }
+      }
+
       const companyId = body.companyId || body.company_id || (body.entries[0]?.company_id) || "default"
       const cleanKey = normalizeKey(companyId)
 
@@ -148,6 +167,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle single entry creation
+    const postingDate = body.date || body.dateOfShip || body.shipDate
+    try {
+      await assertAccountingPeriodOpen(postingDate, {
+        role,
+        actor: role || "user",
+        entityType: "ledger_entry",
+        entityId: body.barnamehNo || body.bolNo || body.id,
+      })
+    } catch (err: any) {
+      return NextResponse.json({
+        success: false,
+        error: err.message,
+        period_locked: true,
+      }, { status: 403 })
+    }
+
     const companyId = body.companyId || body.company_id || "default"
     const cleanKey = normalizeKey(companyId)
 
@@ -230,6 +265,70 @@ export async function PATCH(request: NextRequest) {
 
     const db = await getAccountLedgerDatabase()
     const bolDb = await getBolAccountLedgerDatabase()
+
+    // Check period lock on target record
+    let targetRow: any = null
+    for (const rows of Object.values(db.ledgerEntries)) {
+      if (Array.isArray(rows)) {
+        const match = rows.find((r) => (entryId && r.id === entryId) || (barnamehNo && ((r.barnamehNo || r.bolNo || "").trim().toLowerCase() === barnamehNo.toLowerCase())))
+        if (match) {
+          targetRow = match
+          break
+        }
+      }
+    }
+    if (!targetRow) {
+      for (const rows of Object.values(bolDb.ledgerRecords)) {
+        if (Array.isArray(rows)) {
+          const match = rows.find((r) => (entryId && r.id === entryId) || (barnamehNo && ((r.barnamehNo || r.bolNo || "").trim().toLowerCase() === barnamehNo.toLowerCase())))
+          if (match) {
+            targetRow = match
+            break
+          }
+        }
+      }
+    }
+
+    if (targetRow) {
+      const existingDate = targetRow.date || targetRow.dateOfShip || targetRow.shipDate
+      try {
+        await assertAccountingPeriodOpen(existingDate, {
+          role,
+          actor: role || "user",
+          entityType: "ledger_entry",
+          entityId: entryId || barnamehNo,
+        })
+        if (body.date && body.date !== existingDate) {
+          await assertAccountingPeriodOpen(body.date, {
+            role,
+            actor: role || "user",
+            entityType: "ledger_entry",
+            entityId: entryId || barnamehNo,
+          })
+        }
+      } catch (err: any) {
+        return NextResponse.json({
+          success: false,
+          error: err.message,
+          period_locked: true,
+        }, { status: 403 })
+      }
+    } else if (body.date) {
+      try {
+        await assertAccountingPeriodOpen(body.date, {
+          role,
+          actor: role || "user",
+          entityType: "ledger_entry",
+          entityId: entryId || barnamehNo,
+        })
+      } catch (err: any) {
+        return NextResponse.json({
+          success: false,
+          error: err.message,
+          period_locked: true,
+        }, { status: 403 })
+      }
+    }
 
     let updated = false
     let updatedRecord: any = null
@@ -391,6 +490,45 @@ export async function DELETE(request: NextRequest) {
 
     const db = await getAccountLedgerDatabase()
     const bolDb = await getBolAccountLedgerDatabase()
+
+    // Verify target entry is not in a closed accounting period
+    let targetDate: string | undefined = undefined
+    for (const rows of Object.values(db.ledgerEntries)) {
+      if (Array.isArray(rows)) {
+        const match = rows.find((r) => (id && r.id === id) || (barnamehNo && (r.barnamehNo === barnamehNo || r.bolNo === barnamehNo)))
+        if (match) {
+          targetDate = match.date || match.dateOfShip || match.shipDate
+          break
+        }
+      }
+    }
+    if (!targetDate) {
+      for (const rows of Object.values(bolDb.ledgerRecords)) {
+        if (Array.isArray(rows)) {
+          const match = rows.find((r) => (id && r.id === id) || (barnamehNo && (r.barnamehNo === barnamehNo || r.bolNo === barnamehNo)))
+          if (match) {
+            targetDate = match.date || match.dateOfShip || match.shipDate
+            break
+          }
+        }
+      }
+    }
+    if (targetDate) {
+      try {
+        await assertAccountingPeriodOpen(targetDate, {
+          role,
+          actor: role || "user",
+          entityType: "ledger_entry",
+          entityId: id || barnamehNo || undefined,
+        })
+      } catch (err: any) {
+        return NextResponse.json({
+          success: false,
+          error: err.message,
+          period_locked: true,
+        }, { status: 403 })
+      }
+    }
 
     const newDbEntries: Record<string, any[]> = {}
     for (const [k, rows] of Object.entries(db.ledgerEntries)) {

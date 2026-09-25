@@ -7,6 +7,7 @@ import {
 } from "@/lib/services/ledger-db-service"
 import { LedgerTransactionRecord, AuditLogRecord } from "@/lib/types/ledger-system"
 import crypto from "crypto"
+import { assertAccountingPeriodOpen } from "@/lib/accounting/period-closing/period-service"
 
 export async function GET(request: Request) {
   try {
@@ -95,6 +96,14 @@ export async function POST(request: Request) {
       remarks,
       user_name,
     } = body
+
+    const postingDate = body.posting_date || transaction_date || new Date().toISOString().split("T")[0]
+    await assertAccountingPeriodOpen(postingDate, {
+      actor: user_name,
+      allowOverride: body.allow_override,
+      role: body.user_role,
+      entityType: "transaction",
+    })
 
     if (!account_id) {
       return NextResponse.json({ success: false, error: "Account ID is required" }, { status: 400 })
@@ -203,6 +212,23 @@ export async function PUT(request: Request) {
     }
 
     const prevTx = db.ledger_transactions[txIdx]
+    await assertAccountingPeriodOpen(prevTx.transaction_date, {
+      actor: user_name,
+      allowOverride: body.allow_override,
+      role: body.user_role,
+      entityType: "transaction",
+      entityId: id,
+    })
+    if (transaction_date && transaction_date !== prevTx.transaction_date) {
+      await assertAccountingPeriodOpen(transaction_date, {
+        actor: user_name,
+        allowOverride: body.allow_override,
+        role: body.user_role,
+        entityType: "transaction",
+        entityId: id,
+      })
+    }
+
     const account = db.accounts.find((a) => a.id === prevTx.account_id)
     if (!account) {
       return NextResponse.json({ success: false, error: "Account not found" }, { status: 404 })
@@ -279,6 +305,12 @@ export async function DELETE(request: Request) {
     }
 
     const targetTx = db.ledger_transactions[txIdx]
+    await assertAccountingPeriodOpen(targetTx.transaction_date, {
+      actor: user_name,
+      entityType: "transaction",
+      entityId: id,
+    })
+
     const account = db.accounts.find((a) => a.id === targetTx.account_id)
     if (!account) {
       return NextResponse.json({ success: false, error: "Account not found" }, { status: 404 })

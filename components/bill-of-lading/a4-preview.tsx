@@ -1826,6 +1826,9 @@ function A4PreviewComponent({
   }
 
   const pdfMode = exportTarget || pdfExport
+  const bolLogoSrc = (logoUrl && !logoUrl.includes("aq-logo") && !logoUrl.includes("aq_logo") && !logoUrl.includes("aq-companies"))
+    ? logoUrl
+    : "/images/sky-ariana-logo.png"
   const companyTitle = cleanText(companyName) || "SKY ARIANA LIMITED"
   const companyTagline = cleanText(companySubtitle) || "Import & Export - International Transportation"
   const companyPersian = cleanText(companyNamePersian) || labels.persianCompanyFallback
@@ -1958,7 +1961,7 @@ function A4PreviewComponent({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={logoUrl || "/logo.png"}
+                src={bolLogoSrc || "/images/sky-ariana-logo.png"}
                 alt="Company logo"
                 className="logo object-contain"
                 style={logoImageStyle}

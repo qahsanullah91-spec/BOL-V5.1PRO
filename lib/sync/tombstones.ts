@@ -43,7 +43,14 @@ function writeTombstonesToDisk(list: Tombstone[]): void {
     try {
       const dir = path.dirname(TOMBSTONES_FILE)
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-      fs.writeFileSync(TOMBSTONES_FILE, JSON.stringify(list, null, 2), "utf-8")
+      const tmpPath = `${TOMBSTONES_FILE}.tmp.${Date.now()}`
+      fs.writeFileSync(tmpPath, JSON.stringify(list, null, 2), "utf-8")
+      try {
+        fs.renameSync(tmpPath, TOMBSTONES_FILE)
+      } catch {
+        fs.copyFileSync(tmpPath, TOMBSTONES_FILE)
+        try { fs.unlinkSync(tmpPath) } catch {}
+      }
     } catch (e) {
       console.error("[tombstones] Failed to write tombstones file:", e)
     }

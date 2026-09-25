@@ -227,13 +227,13 @@ test("Operations Export - Windows-safe filename sanitization", () => {
 // =========================================================================
 // TEST 6: MULTI-SHEET EXCEL AND UTF-8 CSV EXPORT
 // =========================================================================
-test("Operations Export - Multi-sheet Excel and CSV creation", () => {
+test("Operations Export - Multi-sheet Excel and CSV creation", async () => {
   const period = resolveOperationsPeriod("custom", "2026-09-01", "2026-09-25", "Asia/Kabul", 1)
   const report = buildOperationsReport(MOCK_OPERATIONS_DOCS, period)
 
   // Verify Excel export runs cleanly in Node environment
   const excelOutFile = path.resolve(__dirname, "temp-test-ops-report.xlsx")
-  exportOperationsReportToExcel(report, excelOutFile)
+  await exportOperationsReportToExcel(report, excelOutFile)
   assert.ok(fs.existsSync(excelOutFile), "Excel file must be created on disk")
   fs.unlinkSync(excelOutFile) // Clean up
 

@@ -7,6 +7,7 @@ import {
 } from "@/lib/services/ledger-db-service"
 import { PaymentRecord, LedgerTransactionRecord, AuditLogRecord } from "@/lib/types/ledger-system"
 import crypto from "crypto"
+import { assertAccountingPeriodOpen } from "@/lib/accounting/period-closing/period-service"
 
 export async function GET(request: Request) {
   try {
@@ -44,6 +45,14 @@ export async function POST(request: Request) {
       notes,
       user_name,
     } = body
+
+    const postingDate = body.posting_date || payment_date || new Date().toISOString().split("T")[0]
+    await assertAccountingPeriodOpen(postingDate, {
+      actor: user_name,
+      allowOverride: body.allow_override,
+      role: body.user_role,
+      entityType: "payment",
+    })
 
     if (!account_id) {
       return NextResponse.json({ success: false, error: "Account ID is required" }, { status: 400 })

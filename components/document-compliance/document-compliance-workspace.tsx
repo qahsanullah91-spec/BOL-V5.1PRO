@@ -109,29 +109,36 @@ export function DocumentComplianceWorkspace() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {filteredBols.map(bol => (
-              <div key={bol.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all bg-white group cursor-pointer" onClick={() => setSelectedBol(bol)}>
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                    <FileCheck2 className="h-5 w-5" />
+            {filteredBols.map((bol, idx) => {
+              const uniqueKey = bol.id || bol.bol_number || bol.document_id || `bol-item-${idx}`
+              return (
+                <div
+                  key={`${uniqueKey}-${idx}`}
+                  className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all bg-white group cursor-pointer"
+                  onClick={() => setSelectedBol(bol)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                      <FileCheck2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900">{bol.bol_number || 'DRAFT'}</div>
+                      <div className="text-sm text-slate-500">{bol.shipper_name || 'N/A'} → {bol.consignee_name || 'N/A'}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold text-slate-900">{bol.bol_number || 'DRAFT'}</div>
-                    <div className="text-sm text-slate-500">{bol.shipper_name} → {bol.consignee_name}</div>
+                  <div className="flex items-center gap-6">
+                    <div className="flex -space-x-2">
+                      {/* Mock document badges */}
+                      <div className="h-8 w-8 rounded-full border-2 border-white bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-700" title="Bill of Lading">BL</div>
+                      <div className="h-8 w-8 rounded-full border-2 border-white bg-amber-100 flex items-center justify-center text-[10px] font-bold text-amber-700" title="Commercial Invoice">INV</div>
+                      <div className="h-8 w-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400" title="Packing List">PL</div>
+                    </div>
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending</Badge>
+                    <ArrowRight className="h-5 w-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="flex -space-x-2">
-                    {/* Mock document badges */}
-                    <div className="h-8 w-8 rounded-full border-2 border-white bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-700" title="Bill of Lading">BL</div>
-                    <div className="h-8 w-8 rounded-full border-2 border-white bg-amber-100 flex items-center justify-center text-[10px] font-bold text-amber-700" title="Commercial Invoice">INV</div>
-                    <div className="h-8 w-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400" title="Packing List">PL</div>
-                  </div>
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending</Badge>
-                  <ArrowRight className="h-5 w-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
-                </div>
-              </div>
-            ))}
+              )
+            })}
             {filteredBols.length === 0 && (
               <div className="py-12 text-center text-slate-500">No shipments found matching your search.</div>
             )}

@@ -54,9 +54,13 @@ export function OmniSearchDialog({
       setResults([])
       return
     }
-    const res = executeOmniSearch(query, shipments)
-    setResults(res)
-    setSelectedIndex(0)
+    const timer = setTimeout(() => {
+      const res = executeOmniSearch(query, shipments)
+      setResults(res)
+      setSelectedIndex(0)
+    }, 150)
+
+    return () => clearTimeout(timer)
   }, [query, shipments])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

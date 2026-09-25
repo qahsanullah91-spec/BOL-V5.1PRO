@@ -5,7 +5,6 @@
  * preserving Pashto/Dari text, Afghan truck plates, and multi-currency segregation.
  */
 
-import * as XLSX from "xlsx"
 import { OperationsReportModel } from "./types"
 
 /**
@@ -57,11 +56,16 @@ function triggerDownload(blob: Blob, filename: string): void {
 
 /**
  * Exports the Operations Report Model to a structured multi-sheet Excel (.xlsx) workbook.
+ * Dynamically imports SheetJS and yields to the event loop to eliminate main-thread UI freezing.
  */
-export function exportOperationsReportToExcel(
+export async function exportOperationsReportToExcel(
   report: OperationsReportModel,
   customFileName?: string
-): void {
+): Promise<void> {
+  // Yield to browser event loop before heavy spreadsheet compilation
+  await new Promise((resolve) => setTimeout(resolve, 0))
+
+  const XLSX = await import("xlsx")
   const wb = XLSX.utils.book_new()
   const { metadata, summary, shipments, routeActivity, containerActivity, truckActivity, borderActivity, portActivity, documentStatusSummary, needsAttention, topShippers, topConsignees, topCommodities } = report
 

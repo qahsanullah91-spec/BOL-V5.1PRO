@@ -49,7 +49,7 @@ export function Header({ showBack = false, title, subtitle }: HeaderProps) {
             <div className="relative h-10 w-28 shrink-0">
               <Image
                 src="/logo.png"
-                alt="SKY ARIANA LIMITED Logo"
+                alt="AQ COMPANIES Logo"
                 fill
                 className="object-contain"
                 priority

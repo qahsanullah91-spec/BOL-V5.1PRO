@@ -63,16 +63,22 @@ export function HeaderCloudSyncButton({ onOpenSettings }: HeaderCloudSyncButtonP
 
   useEffect(() => {
     fetchSyncStatus()
-    const interval = setInterval(fetchSyncStatus, 10000) // Poll every 10 seconds
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchSyncStatus()
+      }
+    }, 30000)
 
     const handleCustomEvent = () => fetchSyncStatus()
     window.addEventListener("skybol:sync-progress", handleCustomEvent)
     window.addEventListener("skybol:sync-settings-updated", handleCustomEvent)
+    window.addEventListener("focus", handleCustomEvent)
 
     return () => {
       clearInterval(interval)
       window.removeEventListener("skybol:sync-progress", handleCustomEvent)
       window.removeEventListener("skybol:sync-settings-updated", handleCustomEvent)
+      window.removeEventListener("focus", handleCustomEvent)
     }
   }, [])
 

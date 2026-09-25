@@ -15,6 +15,7 @@ node_modules
 .next-production/
 .next-candidate/
 .build-temp/
+.build-pyinstaller/
 .DS_Store
 .vercel
 .env*

@@ -190,9 +190,9 @@ export function FinanceReceiptsTab({
             <div className="rounded border border-slate-300 bg-white p-6 font-sans text-xs text-slate-900 shadow-sm">
               {/* Receipt Header */}
               <div className="border-b-2 border-slate-800 pb-3 text-center">
-                <h1 className="text-base font-black tracking-wider text-slate-900">
+                <DialogTitle className="text-base font-black tracking-wider text-slate-900">
                   SKY ARIANA LIMITED
-                </h1>
+                </DialogTitle>
                 <p className="text-[10px] uppercase tracking-widest text-slate-500">
                   Official Payment Receipt
                 </p>

@@ -1,10 +1,10 @@
 {
-  "name": "sky-ariana-bol",
-  "productName": "Sky Ariana BOL",
+  "name": "aq-companies",
+  "productName": "AQ COMPANIES",
   "version": "5.1.0",
-  "description": "Sky Ariana logistics, Bill of Lading, documents, invoicing, and ledger desktop workspace",
-  "author": "AHSANULLAH QURESHI",
-  "copyright": "Copyright © AHSANULLAH QURESHI",
+  "description": "AQ COMPANIES – Logistics & BOL Management Desktop Workspace",
+  "author": "Ahsanullah Qureshi",
+  "copyright": "Copyright © Ahsanullah Qureshi",
   "main": "dist-electron/main.js",
   "private": true,
   "packageManager": "pnpm@9.15.4",
@@ -28,13 +28,17 @@
     "electron:dev:launch": "wait-on http://127.0.0.1:3001 && cross-env ELECTRON_START_URL=http://127.0.0.1:3001 npm run build:electron && electron .",
     "build": "next build --webpack",
     "build:electron": "tsc -p tsconfig.electron.json",
+    "build:backend": "node scripts/build-backend.cjs",
+    "build:frontend": "node scripts/local-production.cjs build",
+    "package:win": "npm run build:electron && electron-builder --win nsis --x64",
+    "release:win": "node scripts/release-pipeline.cjs",
     "start": "next start -p 3001",
     "build:local": "node scripts/local-production.cjs build",
     "start:local": "node scripts/local-production.cjs start",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "lint": "eslint app components hooks lib electron --max-warnings=0",
-    "test": "node --test tests/*.test.cjs && npm run typecheck",
-    "electron:build": "npm run build:local && npm run build:electron",
+    "test": "node --test --test-concurrency=1 tests/*.test.cjs && npm run typecheck",
+    "electron:build": "npm run build:frontend && npm run build:backend && npm run build:electron",
     "dist": "npm run electron:build && electron-builder --win nsis --x64",
     "dist:dir": "npm run electron:build && electron-builder --dir --win --x64",
     "dist:local-installer": "npm run electron:build && node scripts/prepare-desktop-package.cjs && electron-builder --project .desktop-package --dir --win --x64 && node scripts/stamp-windows-exe.cjs && node scripts/build-squirrel.cjs"
@@ -133,8 +137,8 @@
     "wait-on": "^8.0.4"
   },
   "build": {
-    "appId": "com.skyariana.bol",
-    "productName": "Sky Ariana BOL",
+    "appId": "com.aqcompanies.bol",
+    "productName": "AQ COMPANIES",
     "electronDist": "node_modules/electron/dist",
     "asar": true,
     "directories": {
@@ -145,6 +149,10 @@
       "package.json"
     ],
     "extraResources": [
+      {
+        "from": "resources/backend",
+        "to": "backend"
+      },
       {
         "from": ".next-production/standalone",
         "to": "app-server"
@@ -161,6 +169,10 @@
           "!uploads/**/*",
           "!test-ledger.pdf"
         ]
+      },
+      {
+        "from": "public/app-icon.ico",
+        "to": "app-icon.ico"
       },
       {
         "from": "public/icon-512x512.png",
@@ -180,16 +192,17 @@
       "target": [
         "nsis"
       ],
-      "icon": "public/icon-512x512.png",
-      "artifactName": "Sky-Ariana-BOL-v5.1pro-Setup.${ext}"
+      "icon": "public/app-icon.ico",
+      "artifactName": "AQ-COMPANIES-Setup.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Sky Ariana BOL",
-      "uninstallDisplayName": "Sky Ariana BOL"
+      "shortcutName": "AQ COMPANIES",
+      "uninstallDisplayName": "AQ COMPANIES",
+      "deleteAppDataOnUninstall": false
     }
   }
 }

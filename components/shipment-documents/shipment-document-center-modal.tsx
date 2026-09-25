@@ -53,7 +53,6 @@ import {
   addPhytoDraftPage,
   addStickersSummaryPage,
 } from "@/lib/utils/shipment-package-pdf"
-import { jsPDF } from "jspdf"
 import { registerPDFFonts } from "@/lib/utils/pdf-fonts"
 import { toast } from "sonner"
 
@@ -214,6 +213,142 @@ export function ShipmentDocumentCenterModal({
   const handleDownloadSingleDoc = async (docRecord: ShipmentDocumentRecord) => {
     try {
       toast.info(`Preparing ${docRecord.documentNumber} PDF...`)
+
+      // 1. High-Speed Python Document Service Fast-Path (<20ms)
+      try {
+        let endpoint = ""
+        let payload: any = null
+
+        if (docRecord.documentType === "commercial_invoice") {
+          endpoint = "/api/v1/documents/invoice"
+          const d = (docRecord.documentData || {}) as any
+          payload = {
+            invoice_number: d.invoiceNumber || docRecord.documentNumber,
+            invoice_date: d.invoiceDate || "",
+            bol_number: d.bolNumber || docRecord.bolNumber,
+            currency: d.currency || "USD",
+            exporter_name: d.exporterName || "",
+            exporter_address: d.exporterAddress || "",
+            consignee_name: d.buyerName || d.consigneeName || "",
+            consignee_address: d.buyerAddress || d.consigneeAddress || "",
+            notify_party: d.notifyParty || "SAME AS CONSIGNEE",
+            country_of_origin: d.originCountry || "AFGHANISTAN",
+            country_of_destination: d.destinationCountry || "INDIA / UAE",
+            port_of_loading: d.portOfLoading || "",
+            port_of_discharge: d.portOfDischarge || "",
+            payment_terms: d.paymentTerms || "T/T",
+            items: (d.items || []).map((it: any) => ({
+              description: it.commodityName || it.description || "Cargo",
+              quantity: Number(it.quantity || it.packageCount || 1),
+              unit: it.quantityUnit || it.packageType || "CTNS",
+              unit_price: Number(it.invoiceRate || 0),
+              amount: Number(it.invoiceValue || 0),
+            })),
+            discount: 0,
+            tax: 0,
+            bank_details: d.bankDetails || "",
+            remarks: d.remarks || "",
+          }
+        } else if (docRecord.documentType === "packing_list") {
+          endpoint = "/api/v1/documents/packing-list"
+          const d = (docRecord.documentData || {}) as any
+          payload = {
+            packing_list_number: d.packingListNumber || docRecord.documentNumber,
+            packing_list_date: d.packingListDate || "",
+            bol_number: d.bolNumber || docRecord.bolNumber,
+            invoice_number: d.invoiceNumber || "",
+            exporter_name: d.exporterName || "",
+            exporter_address: d.exporterAddress || "",
+            consignee_name: d.consigneeName || "",
+            consignee_address: d.consigneeAddress || "",
+            items: (d.items || []).map((it: any) => ({
+              package_no: it.marks || "1",
+              description: it.commodityName || "Cargo",
+              cartons: Number(it.packageCount || 1),
+              net_weight_kg: Number(it.netWeight || 0),
+              gross_weight_kg: Number(it.grossWeight || 0),
+              measurement_cbm: 0,
+            })),
+            container_numbers: Array.isArray(d.containerNumbers) ? d.containerNumbers : (d.containerNumbers ? [d.containerNumbers] : []),
+            seal_numbers: Array.isArray(d.sealNumbers) ? d.sealNumbers : (d.sealNumbers ? [d.sealNumbers] : []),
+          }
+        } else if (docRecord.documentType === "transit_paper") {
+          endpoint = "/api/v1/documents/transit"
+          const d = (docRecord.documentData || {}) as any
+          payload = {
+            transit_number: d.transitNumber || docRecord.documentNumber,
+            transit_date: d.issueDate || "",
+            bol_number: d.bolNumber || docRecord.bolNumber,
+            border_station: d.borderCustoms || "Islam Qala / Torghundi",
+            carrier_name: d.carrierName || "SKY ARIANA LOGISTICS",
+            truck_number: d.truckPlate || "",
+            driver_name: d.driverName || "",
+            driver_father_name: d.driverFatherName || "",
+            driver_license_id: d.driverLicense || "",
+            driver_phone: d.driverPhone || "",
+            shipper_name: d.shipperName || "",
+            consignee_name: d.consigneeName || "",
+            customs_declaration_no: d.customsDeclNumber || "",
+            cargo_description: d.commodity || "",
+            package_count: String(d.totalPackages || ""),
+            gross_weight: String(d.grossWeight || ""),
+            net_weight: String(d.netWeight || ""),
+          }
+        } else if (docRecord.documentType === "phytosanitary") {
+          endpoint = "/api/v1/documents/phytosanitary"
+          const d = (docRecord.documentData || {}) as any
+          payload = {
+            certificate_number: d.certNumber || docRecord.documentNumber,
+            issue_date: d.issueDate || "",
+            bol_number: d.bolNumber || docRecord.bolNumber,
+            exporter_name: d.exporterName || "",
+            consignee_name: d.consigneeName || "",
+            botanical_name: d.botanicalName || "Ficus carica / Ferula foetida",
+            commodity_description: d.commodity || "",
+            number_of_packages: String(d.packageCount || ""),
+            declared_weight: String(d.weight || ""),
+            treatment_type: d.treatment || "METHYL BROMIDE FUMIGATION",
+          }
+        } else if (docRecord.documentType === "stickers") {
+          endpoint = "/api/v1/documents/stickers"
+          const d = (docRecord.documentData || {}) as any
+          payload = {
+            bol_number: d.bolNumber || docRecord.bolNumber,
+            consignee_name: d.consigneeName || "",
+            destination: d.destination || "",
+            commodity: d.commodity || "",
+            total_packages: Number(d.totalPackages || 10),
+            container_number: d.containerNumber || "",
+          }
+        }
+
+        if (endpoint && payload) {
+          const resp = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(3500),
+          })
+          if (resp.ok) {
+            const json = await resp.json()
+            if (json.success && json.data?.download_url) {
+              const a = document.createElement("a")
+              a.href = json.data.download_url
+              a.download = json.data.filename || `${docRecord.bolNumber}-${docRecord.documentType.toUpperCase()}.pdf`
+              document.body.appendChild(a)
+              a.click()
+              document.body.removeChild(a)
+              toast.success(`${docRecord.documentNumber} downloaded via high-speed PDF engine!`)
+              return
+            }
+          }
+        }
+      } catch (backendError) {
+        // Fallback transparently to browser-side jsPDF
+      }
+
+      // 2. Client-Side jsPDF Fallback (Offline-First Guarantee)
+      const { jsPDF } = await import("jspdf")
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
       await registerPDFFonts(pdf)
 
@@ -292,12 +427,12 @@ export function ShipmentDocumentCenterModal({
         >
           <div className="flex flex-col items-center justify-center space-y-3 py-4">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-            <h4 className="text-sm font-black text-slate-900">
+            <DialogTitle className="text-sm font-black text-slate-900">
               Loading Shipment Documents...
-            </h4>
-            <p className="text-xs text-slate-500 font-medium">
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 font-medium">
               Synchronizing master BOL data for <span className="font-mono font-bold text-blue-700">{bolNumber}</span>
-            </p>
+            </DialogDescription>
           </div>
         </DialogContent>
       </Dialog>
@@ -310,7 +445,7 @@ export function ShipmentDocumentCenterModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-6xl w-[96vw] h-[90vh] max-h-[920px] p-0 flex flex-col overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-2xl dark:bg-slate-950 dark:border-slate-800"
+        className="max-w-6xl w-full h-[90vh] max-h-[920px] p-0 flex flex-col overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-2xl dark:bg-slate-950 dark:border-slate-800 my-auto"
         showCloseButton={false}
       >
         {/* ================================================================= */}
@@ -323,9 +458,9 @@ export function ShipmentDocumentCenterModal({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-950 dark:text-slate-100 uppercase">
+                <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-slate-950 dark:text-slate-100 uppercase">
                   Shipment Document Package
-                </h2>
+                </DialogTitle>
                 <span className="rounded-lg bg-blue-100/90 text-blue-900 border border-blue-200 px-2.5 py-0.5 text-xs font-black font-mono tracking-tight dark:bg-blue-950 dark:text-blue-200 dark:border-blue-900">
                   {bolNumber}
                 </span>
@@ -334,9 +469,9 @@ export function ShipmentDocumentCenterModal({
                   AQ Companies
                 </span>
               </div>
-              <p className="text-xs text-slate-500 truncate mt-0.5">
+              <DialogDescription className="text-xs text-slate-500 truncate mt-0.5">
                 Master Bill of Lading documentation suite • Cargo manifests, transit papers, packing lists & customs declarations
-              </p>
+              </DialogDescription>
             </div>
           </div>
 

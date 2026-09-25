@@ -4,6 +4,7 @@ import {
   saveBolAccountLedgerDatabase,
 } from "@/lib/services/bol-account-ledger-storage-service"
 import { createClient } from "@/lib/supabase/server"
+import { assertLedgerMapNotViolatingClosedPeriods } from "@/lib/accounting/period-closing/period-service"
 
 export async function GET(request: Request) {
   let user: any = null
@@ -78,6 +79,26 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
+
+    // Validate that incoming ledgerRecords and deletedLedgerEntries do not violate closed periods
+    if (body.ledgerRecords && typeof body.ledgerRecords === "object") {
+      const existingDb = await getBolAccountLedgerDatabase()
+      try {
+        await assertLedgerMapNotViolatingClosedPeriods(
+          body.ledgerRecords,
+          existingDb.ledgerRecords || {},
+          body.deletedLedgerEntries,
+          { role, actor: user?.email || role || "user" }
+        )
+      } catch (err: any) {
+        return NextResponse.json({
+          success: false,
+          error: err.message,
+          period_locked: true,
+        }, { status: 403 })
+      }
+    }
+
     const data = await saveBolAccountLedgerDatabase({
       customCompanies: Array.isArray(body.customCompanies) ? body.customCompanies : [],
       ledgerRecords: body.ledgerRecords && typeof body.ledgerRecords === "object" ? body.ledgerRecords : {},

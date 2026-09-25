@@ -89,7 +89,7 @@ interface AppState {
   invoices: Invoice[]
   currentAccount: Account | null
   currentCompany: Company | null
-  view: 'accounts' | 'companies' | 'ledger' | 'accounting' | 'invoice' | 'bol' | 'settings' | 'bank' | 'invoice-pad' | 'sky-cmr' | 'sky-doc' | 'reports' | 'shipper-portal' | 'analytics' | 'export-calculator' | 'acci-portal' | 'shipments' | 'whatsapp' | 'customer-portal' | 'customer-portal-admin' | 'accounting-finance' | 'document-compliance' | 'booking-containers' | 'bulk-entry' | 'master-data' | 'workflow' | 'notifications' | 'data-protection' | 'daily-operations' | 'audit-history'
+  view: 'accounts' | 'companies' | 'ledger' | 'accounting' | 'invoice' | 'bol' | 'settings' | 'bank' | 'invoice-pad' | 'sky-cmr' | 'sky-doc' | 'reports' | 'shipper-portal' | 'analytics' | 'export-calculator' | 'acci-portal' | 'shipments' | 'whatsapp' | 'customer-portal' | 'customer-portal-admin' | 'accounting-finance' | 'document-compliance' | 'booking-containers' | 'bulk-entry' | 'master-data' | 'workflow' | 'notifications' | 'data-protection' | 'daily-operations' | 'audit-history' | 'search' | 'ai-assistant' | 'routes-locations' | 'rates-quotations' | 'procurement' | 'fleet-operations' | 'warehouse-cargo' | 'customs-transit' | 'ocean-operations' | 'air-freight' | 'claims-incidents' | 'crm-sales' | 'period-closing' | 'treasury' | 'management-reports' | 'file-center' | 'communications'
 
   isAuthenticated: boolean
   currentUser: User | null
@@ -1083,14 +1083,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     void syncShippersAndBols()
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
     const handleUpdate = () => {
-      void syncShippersAndBols()
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        void syncShippersAndBols()
+      }, 120)
     }
 
     window.addEventListener("skybol:account-ledger-updated", handleUpdate)
     window.addEventListener("skybol:documents-updated", handleUpdate)
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
       window.removeEventListener("skybol:account-ledger-updated", handleUpdate)
       window.removeEventListener("skybol:documents-updated", handleUpdate)
     }
@@ -1241,11 +1246,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }))
 
             records[canonKey] = rows
-            records[`company-${canonKey}`] = rows
-            records[companyKey] = rows
-            records[cleanNameKey] = rows
-            records[company.name.toLowerCase()] = rows
-            records[company.name] = rows
+            if (company.name && company.name !== canonKey) {
+              records[company.name] = rows
+            }
           }
         })
       })
@@ -1521,11 +1524,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }, [persistLedgersDirectly])
 
-  // Background auto-sync safeguard for ledgers
+  // Background auto-sync safeguard for ledgers (debounced 1000ms to eliminate UI freezing)
   useEffect(() => {
     if (!state.accounts || state.accounts === SAMPLE_ACCOUNTS) return;
     
-    persistLedgersDirectly(state.accounts, state.deletedLedgerEntries || [])
+    const timer = setTimeout(() => {
+      persistLedgersDirectly(state.accounts, state.deletedLedgerEntries || [])
+    }, 1000)
+
+    return () => clearTimeout(timer)
   }, [state.accounts, state.deletedLedgerEntries, persistLedgersDirectly])
 
   const updateLedgerEntry = useCallback((accountId: string, companyId: string, entryId: string, entry: Partial<LedgerEntry>) => {

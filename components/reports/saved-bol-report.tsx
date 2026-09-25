@@ -309,12 +309,14 @@ export function SavedBolReport({
   }
 
   // Export handlers
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const toastId = toast.loading("Generating Excel (.xlsx) Report...")
     try {
-      exportReportToExcel(
+      await exportReportToExcel(
         activeReportData,
         `Sky-Ariana-${activeTab.toUpperCase()}-Report`
       )
+      toast.dismiss(toastId)
       toast.success("Excel (.xlsx) report generated successfully")
 
       // Record in history
@@ -384,6 +386,7 @@ export function SavedBolReport({
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      setTimeout(() => URL.revokeObjectURL(url), 150)
       toast.success("CSV file downloaded")
     } catch {
       toast.error("Failed to export CSV")
@@ -762,6 +765,9 @@ export function SavedBolReport({
 
         cleanup = preparePrintRoot()
 
+        // Cooperative yield so React finishes updating DOM for pageSize='all'
+        await new Promise((resolve) => setTimeout(resolve, 50))
+
         const { toCanvas } = await import("html-to-image")
         const { jsPDF } = await import("jspdf")
 
@@ -770,6 +776,9 @@ export function SavedBolReport({
           document.getElementById("sky-reports-cloned-print-canvas") ||
           document.getElementById("sky-reports-print-root") ||
           reportRef.current!
+
+        // Cooperative yield before heavy canvas capture
+        await new Promise((resolve) => setTimeout(resolve, 0))
 
         const canvas = await toCanvas(element as HTMLElement, {
           pixelRatio: 2,
@@ -1871,8 +1880,15 @@ export function SavedBolReport({
                           <td className={`${cellPad} font-bold font-mono text-slate-600 dark:text-slate-400 truncate`} title={formatDisplayDate(doc.issue_date || doc.created_at)}>
                             <span className="truncate">{compactDate}</span>
                           </td>
-                          <td className={`${cellPad} font-bold font-mono text-amber-900 dark:text-amber-300 truncate`} title={truckText}>
-                            <span className="truncate">{truckText}</span>
+                          <td className={`${cellPad} font-bold font-mono text-amber-900 dark:text-amber-300 truncate`} title={`${truckText}${doc.driver_rent ? ` • Driver Rent: ${doc.driver_rent}` : ""}`}>
+                            <div className="flex flex-col min-w-0">
+                              <span className="truncate">{truckText}</span>
+                              {doc.driver_rent && (
+                                <span className="text-[9.5px] font-black text-amber-700 dark:text-amber-400 truncate" title={`Driver Rent: ${doc.driver_rent}`}>
+                                  {doc.driver_rent}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className={`${cellPad} font-bold font-mono text-slate-700 dark:text-slate-300 truncate`} title={invText}>
                             {invText !== "-" && invText !== "NO" ? (

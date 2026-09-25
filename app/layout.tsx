@@ -24,13 +24,13 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'SKY ARIANA LIMITED',
-  description: 'SKY ARIANA LIMITED — International Transport & Logistics Management System',
+  title: 'AQ COMPANIES - Logistics & BOL Management',
+  description: 'AQ COMPANIES — International Transport & Logistics Management System',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Sky Ariana',
+    title: 'AQ Companies',
   },
   formatDetection: {
     telephone: false,
@@ -73,9 +73,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${vazirmatn.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${vazirmatn.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning dir="ltr">
       <body className="font-sans antialiased min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
             <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-sky-200/50 dark:bg-blue-900/10 blur-3xl" />
             <div className="absolute top-1/2 -left-40 h-96 w-96 rounded-full bg-blue-200/40 dark:bg-indigo-900/10 blur-3xl" />

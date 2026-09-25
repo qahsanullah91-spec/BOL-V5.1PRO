@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { atomicWriteFile } from "../services/atomic-file"
 import { createDataBackup, restoreDataBackup } from "../services/data"
+import { backendManager, type ConnectionMode, type NetworkConfig } from "../backend-manager"
 
 type SavePayload = { defaultName?: string; bytes: number[] }
 
@@ -107,5 +108,26 @@ export function registerIpcHandlers(options: {
     else if (action === "maximize") window.isMaximized() ? window.unmaximize() : window.maximize()
     else if (action === "close") window.close()
     else if (action === "fullscreen") window.setFullScreen(!window.isFullScreen())
+  })
+
+  // Phase 7: Multi-PC Office Network & Central Server IPC Handlers
+  ipcMain.handle("network:get-status", async () => {
+    return backendManager.getNetworkStatus()
+  })
+
+  ipcMain.handle("network:get-config", async () => {
+    return backendManager.getNetworkConfig()
+  })
+
+  ipcMain.handle("network:save-config", async (_event, config: Partial<NetworkConfig>) => {
+    return backendManager.saveNetworkConfig(config)
+  })
+
+  ipcMain.handle("network:test-connection", async (_event, url: string) => {
+    return backendManager.testServerConnection(url)
+  })
+
+  ipcMain.handle("network:switch-mode", async (_event, payload: { mode: ConnectionMode; serverConfig?: Partial<NetworkConfig> }) => {
+    return backendManager.switchMode(payload.mode, payload.serverConfig)
   })
 }

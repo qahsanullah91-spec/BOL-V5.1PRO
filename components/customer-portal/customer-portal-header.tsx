@@ -113,12 +113,12 @@ export function CustomerPortalHeader({
           {/* Brand & Customer Name */}
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-blue-950/70 border border-blue-500/30 flex items-center justify-center p-1.5 shrink-0">
-              <Image src="/logo.png" alt="Logo" width={32} height={32} className="object-contain" priority />
+              <Image src="/logo.png" alt="AQ Companies Logo" width={32} height={32} className="object-contain" priority />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-extrabold tracking-tight text-white truncate">
-                  SKY ARIANA
+                  AQ COMPANIES
                 </h1>
                 <span className="text-[10px] uppercase font-bold tracking-widest bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full">
                   Portal
