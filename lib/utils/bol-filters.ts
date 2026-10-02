@@ -14,6 +14,13 @@ export function cleanBolNumber(bolNum?: any, fallback = ""): string {
   return trimmed || fallback
 }
 
+export function getCleanBolNumber(docOrNum?: any, fallback = ""): string {
+  if (!docOrNum) return fallback
+  if (typeof docOrNum === "string") return cleanBolNumber(docOrNum, fallback)
+  const candidate = docOrNum.bol_number || docOrNum.billOfLadingNumber || docOrNum.bolNo || ""
+  return cleanBolNumber(candidate, fallback)
+}
+
 export function parseBolSeq(bolNum: any): number {
   if (!bolNum) return 0
   const str = String(bolNum).trim()

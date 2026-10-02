@@ -374,11 +374,11 @@ export function SavedBolReport({
     if (drillDownEntity) {
       if (drillDownEntity.type === "shipper") {
         result = result.filter(
-          (d) => (d.shipper_name || "").toLowerCase() === drillDownEntity.name.toLowerCase()
+          (d) => ((d.shipper_name || "").trim() || "Unspecified Shipper").toLowerCase() === drillDownEntity.name.trim().toLowerCase()
         )
       } else if (drillDownEntity.type === "consignee") {
         result = result.filter(
-          (d) => (d.consignee_name || "").toLowerCase() === drillDownEntity.name.toLowerCase()
+          (d) => ((d.consignee_name || "").trim() || "Unspecified Consignee").toLowerCase() === drillDownEntity.name.trim().toLowerCase()
         )
       } else if (drillDownEntity.type === "commodity") {
         result = result.filter((d) => {
@@ -2695,7 +2695,7 @@ export function SavedBolReport({
       </div>
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 4px; padding: 5px 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
         <div><span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total BOLs</span><p style="font-size: 12px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${activeReportData.length}</p></div>
-        <div><span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total Packages</span><p style="font-size: 12px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${overviewKpis.totalPackages.toLocaleString()} CTNS</p></div>
+        <div><span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total Packages</span><p style="font-size: 11px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${Object.keys(overviewKpis.packageUnitsBreakdown || {}).length > 0 ? Object.entries(overviewKpis.packageUnitsBreakdown || {}).map(([unit, cnt]) => `${cnt.toLocaleString()} ${unit}`).join(" / ") : `${overviewKpis.totalPackages.toLocaleString()} PKGS`}</p></div>
         <div><span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">Gross / Net Weight</span><p style="font-size: 12px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${overviewKpis.totalGrossWeightKg.toLocaleString()} / ${overviewKpis.totalNetWeightKg.toLocaleString()} KG</p></div>
         <div><span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total Goods Value</span><p style="font-size: 12px; font-weight: 900; color: #059669; margin: 0; font-family: monospace;">$${(overviewKpis.currencyTotals.find(c => c.currency === "USD")?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
       </div>
@@ -3663,8 +3663,8 @@ export function SavedBolReport({
               <p className="text-lg sm:text-xl font-black font-mono text-indigo-700 dark:text-indigo-400 mt-1 truncate" title={`${overviewKpis.totalPackages.toLocaleString()} Packages`}>
                 {overviewKpis.totalPackages.toLocaleString()}
               </p>
-              <p className="text-[10px] font-bold text-slate-500 truncate mt-0.5">
-                {Object.keys(overviewKpis.packageUnitsBreakdown || {}).length > 1
+              <p className="text-[10px] font-bold text-slate-500 truncate mt-0.5" title={Object.entries(overviewKpis.packageUnitsBreakdown || {}).map(([unit, cnt]) => `${cnt.toLocaleString()} ${unit}`).join(" • ") || "Total Packages"}>
+                {Object.keys(overviewKpis.packageUnitsBreakdown || {}).length > 0
                   ? Object.entries(overviewKpis.packageUnitsBreakdown || {})
                       .map(([unit, cnt]) => `${cnt.toLocaleString()} ${unit}`)
                       .join(" • ")
@@ -4084,7 +4084,14 @@ export function SavedBolReport({
                 >
                   <p className="text-[10px] print:text-[8.5px] font-black text-slate-400 uppercase tracking-wider">Total Packages</p>
                   <p className="text-2xl print:text-lg font-black text-blue-700 font-mono mt-1 print:mt-0.5">
-                    {overviewKpis.totalPackages.toLocaleString()} <span className="text-xs print:text-[9px]">CTNS</span>
+                    {overviewKpis.totalPackages.toLocaleString()}
+                  </p>
+                  <p className="text-[10px] print:text-[8px] font-bold text-slate-500 truncate mt-0.5">
+                    {Object.keys(overviewKpis.packageUnitsBreakdown || {}).length > 0
+                      ? Object.entries(overviewKpis.packageUnitsBreakdown || {})
+                          .map(([unit, cnt]) => `${cnt.toLocaleString()} ${unit}`)
+                          .join(" • ")
+                      : "Packages"}
                   </p>
                 </div>
                 <div

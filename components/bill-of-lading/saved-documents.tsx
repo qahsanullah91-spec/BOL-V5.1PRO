@@ -59,6 +59,7 @@ import { extractBolRoute, parsePackages, parseWeight, parseMoney, parsePackageUn
 import type { ReportTab } from "@/lib/reports/types"
 import { isMeaningfulBOL, parseBolSeq, isUUID, cleanBolNumber } from "@/lib/utils/bol-filters"
 import { RecentBolCard } from "./recent-bol-card"
+import { SavedBolCard } from "./saved-bol-card"
 
 export { isMeaningfulBOL, parseBolSeq, isUUID, cleanBolNumber }
 
@@ -243,323 +244,30 @@ interface DocumentGridCardProps {
   onSendToCMR?: (doc: SavedDocument) => void
 }
 
-const DocumentGridCard = memo(function DocumentGridCard({
-  doc,
-  isLatest,
-  hasUploadedPdf,
-  invoiceNo,
-  assignedCategory,
-  uploadingId,
-  deletingId,
-  openingPdfId,
-  downloadingPdfId,
-  onEdit,
-  onDownload,
-  onPreview,
-  onDuplicate,
-  onOpenPdf,
-  onDelete,
-  onCategoryAssign,
-  onFileInput,
-  isSelected = false,
-  onToggleSelect,
-  onSendToCMR,
-}: DocumentGridCardProps) {
-  const docKey = doc.id || doc.bol_number
-
+const DocumentGridCard = memo(function DocumentGridCard(props: DocumentGridCardProps) {
   return (
-    <article
-      style={{ contentVisibility: "auto", containIntrinsicSize: "380px" }}
-      className={`group relative flex min-h-[360px] flex-col rounded-[22px] sm:rounded-[26px] border ${
-        isSelected ? "border-blue-500 ring-2 ring-blue-500/30 bg-blue-50/20" : "border-slate-200/90 bg-white/95"
-      } p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:bg-white hover:shadow-md overflow-hidden`}
-    >
-      {/* Top Accent Gradient Line */}
-      <div className={`absolute top-0 left-0 right-0 h-1.5 ${isLatest ? "bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 shadow-sm shadow-amber-500/50" : "bg-gradient-to-r from-[#0a2540] via-blue-600 to-indigo-500"}`} />
-
-      {/* Top Header Row */}
-      <div className="flex items-center justify-between gap-1.5 pt-1 relative z-10 flex-wrap">
-        <div className="flex items-center gap-1.5 min-w-0 max-w-[72%] flex-wrap">
-          {onToggleSelect && (
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => onToggleSelect(docKey)}
-              className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
-              title="Select document for batch actions"
-            />
-          )}
-          <div className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#0a2540] via-blue-900 to-[#1d4ed8] px-2.5 py-1 text-[11px] font-black font-mono tracking-tight text-white shadow-sm shadow-blue-950/20 truncate">
-            <FileText className="h-3.5 w-3.5 shrink-0 text-blue-200" />
-            <span className="truncate" title={getCleanBolNumber(doc)}>{getCleanBolNumber(doc)}</span>
-          </div>
-          {invoiceNo && (
-            <div className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 text-[9.5px] font-black font-mono text-emerald-900 shadow-2xs shrink-0" title={`Invoice No: ${invoiceNo}`}>
-              <Receipt className="h-3 w-3 text-emerald-700 shrink-0" />
-              <span className="truncate">INV: {invoiceNo}</span>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-1 shrink-0 ml-auto">
-          {isLatest && (
-            <span className="rounded-full px-2 py-0.5 text-[8.5px] font-black bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-xs uppercase tracking-wider">
-              LATEST
-            </span>
-          )}
-          {downloadingPdfId === doc.id ? (
-            <span className="rounded-full px-2 py-0.5 text-[9px] font-black bg-blue-100 text-blue-800 border border-blue-300 animate-pulse flex items-center gap-1 shadow-2xs">
-              <Loader2 className="w-2.5 h-2.5 animate-spin text-blue-600" />
-              <span>Generating</span>
-            </span>
-          ) : hasUploadedPdf ? (
-            <span className="rounded-full px-2 py-0.5 text-[9px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs flex items-center gap-1">
-              <FileCheck className="w-2.5 h-2.5 text-emerald-600" />
-              <span>PDF Ready</span>
-            </span>
-          ) : (
-            <span className="rounded-full px-2 py-0.5 text-[9px] font-extrabold bg-slate-100 text-slate-500 border border-slate-200">
-              No PDF
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Shipper & Consignee */}
-      <div className="mt-2.5 space-y-1 relative z-10">
-        <p className="text-xs font-black text-slate-950 leading-snug break-words line-clamp-1" title={doc.shipper_name}>
-          {doc.shipper_name || "No shipper"}
-        </p>
-        <div className="flex items-center gap-1.5 rounded-xl bg-slate-50 px-2.5 py-1 border border-slate-200/80 text-[11px] font-bold text-slate-700 leading-tight" title={doc.consignee_name}>
-          <ArrowRight className="h-3 w-3 text-blue-600 shrink-0" />
-          <span className="truncate">{doc.consignee_name || "No consignee"}</span>
-        </div>
-      </div>
-
-      {/* Route / Corridor Badge */}
-      {(() => {
-        const routeInfo = extractBolRoute(doc)
-        if (routeInfo.display === "—") return null
-        return (
-          <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-bold text-indigo-950 dark:text-indigo-200 bg-indigo-50/90 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800/60 rounded-xl px-2.5 py-1 relative z-10 truncate" title={`Transit Route: ${routeInfo.display}`}>
-            <Compass className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <span className="truncate" dir={routeInfo.isPersian ? "rtl" : "ltr"}>
-              {routeInfo.shortDisplay || routeInfo.display}
-            </span>
-            <div className="ml-auto flex items-center gap-1 shrink-0">
-              {routeInfo.isFullReefer ? (
-                <span className="text-[8.5px] font-black text-cyan-800 dark:text-cyan-200 bg-cyan-100 dark:bg-cyan-950/80 border border-cyan-300 dark:border-cyan-800 rounded px-1">❄️ Full Reefer</span>
-              ) : routeInfo.hasReefer ? (
-                <span className="text-[8.5px] font-black text-cyan-700 dark:text-cyan-300">❄️ Reefer</span>
-              ) : null}
-              {routeInfo.hasSwitchBl && (
-                <span className="text-[8.5px] font-black text-purple-800 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/80 border border-purple-300 dark:border-purple-800 rounded px-1">🔄 Switch BL</span>
-              )}
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* Cargo & Weight Details Box */}
-      <div className="mt-2 rounded-2xl bg-gradient-to-br from-blue-50/60 via-indigo-50/40 to-slate-50 border border-blue-100/80 p-2.5 text-xs text-slate-700 space-y-1.5 relative z-10">
-        <div className="flex items-center justify-between gap-1 text-[11px] font-extrabold text-blue-950">
-          <span className="flex items-center gap-1 truncate" title="Quantity / Packages">
-            <Package className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-            <span className="truncate">{doc.number_of_packages || "0 CTNS"}</span>
-          </span>
-          <span className="flex items-center gap-1 text-slate-900 font-black shrink-0 font-mono text-[10.5px]">
-            <Scale className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-            <span>{doc.net_weight ? `Net: ${formatDisplayWeight(doc.net_weight)}` : (formatDisplayWeight(doc.gross_weight) || "—")}</span>
-          </span>
-        </div>
-
-        {/* Goods Value (if present) */}
-        {doc.goods_value && (
-          <div className="flex items-center justify-between text-[11px] font-black text-emerald-800 bg-emerald-50/80 px-2 py-0.5 rounded-lg border border-emerald-200/70">
-            <span className="text-emerald-700 font-bold text-[10px] flex items-center gap-1">
-              <Coins className="h-3 w-3" />
-              <span>Goods Value</span>
-            </span>
-            <span className="font-mono">{doc.goods_value}</span>
-          </div>
-        )}
-
-        {/* Driver Rent (if present and non-zero) */}
-        {isNonZeroRent(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent) && (
-          <div
-            className="flex items-center justify-between text-[11px] font-black text-amber-950 bg-gradient-to-r from-amber-50/90 via-amber-100/40 to-orange-50/70 px-2 py-0.5 rounded-lg border border-amber-200/80 shadow-2xs"
-            title={`Driver Rent: ${formatDriverRent(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent)}${doc.driver_name ? ` • Driver: ${doc.driver_name}` : ""}`}
-          >
-            <span className="text-amber-800 font-bold text-[10px] flex items-center gap-1">
-              <Banknote className="h-3 w-3 text-amber-700 shrink-0" />
-              <span>Driver Rent</span>
-            </span>
-            <span className="font-mono font-bold truncate max-w-[170px]" dir="ltr">
-              {formatDriverRent(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent)}
-            </span>
-          </div>
-        )}
-
-        {/* Date & Truck Number */}
-        <div className="flex items-center justify-between text-[10.5px] font-bold text-slate-700 pt-0.5 border-t border-blue-100/60">
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3 text-slate-600 shrink-0" />
-            <span>{formatDocDate(doc)}</span>
-          </span>
-          <span
-            className="flex items-center gap-1 text-slate-800 font-extrabold"
-            title={doc.driver_name ? `Truck: ${doc.truck_number || "—"}${doc.driver_name ? ` • Driver: ${doc.driver_name}` : ""}` : undefined}
-          >
-            <Truck className="h-3 w-3 text-slate-600 shrink-0" />
-            <span className="truncate max-w-[125px] inline-flex items-center gap-1" dir="auto">
-              <bdi>{doc.truck_number || (doc.driver_name ? doc.driver_name : "No truck #")}</bdi>
-            </span>
-          </span>
-        </div>
-      </div>
-
-      {/* Category Pills & Assignment */}
-      <div className="mt-2 flex items-center justify-between gap-1 relative z-10">
-        <div className="flex items-center gap-1">
-          {(["account", "export", "import"] as const).map((cat) => {
-            const isAssigned = assignedCategory === cat
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => onCategoryAssign(doc, cat)}
-                className={`rounded-lg px-2 py-0.5 text-[9.5px] font-black uppercase transition-all cursor-pointer ${
-                  isAssigned
-                    ? cat === "account"
-                      ? "bg-amber-500 text-slate-950 shadow-xs"
-                      : cat === "export"
-                        ? "bg-blue-600 text-white shadow-xs"
-                        : "bg-purple-600 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-                title={`Mark as ${cat}`}
-              >
-                {cat}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Action Buttons Matrix */}
-      <div className="mt-auto pt-3 space-y-1.5 relative z-10 border-t border-slate-100">
-        {/* Primary Row: Edit & Download */}
-        <div className="grid grid-cols-2 gap-1.5">
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => onEdit(doc)}
-            className="h-8.5 rounded-xl bg-gradient-to-r from-[#0a2540] via-blue-900 to-[#1d4ed8] hover:from-blue-900 hover:to-blue-700 text-white font-black text-xs cursor-pointer shadow-md shadow-blue-950/20 transition-all flex items-center justify-center gap-1"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            <span>Edit BOL</span>
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => onDownload(doc)}
-            className="h-8.5 rounded-xl border-amber-300 bg-amber-50/90 hover:bg-amber-100/90 text-amber-950 font-black text-xs cursor-pointer shadow-2xs transition-all flex items-center justify-center gap-1"
-          >
-            <FileDown className="h-3.5 w-3.5 text-amber-700" />
-            <span>Download</span>
-          </Button>
-        </div>
-
-        {/* Secondary Quick Actions Row: Preview, Duplicate, File PDF, Send to CMR */}
-        <div className="grid grid-cols-4 gap-1">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onPreview(doc)}
-            className="h-7.5 rounded-lg border border-blue-200/80 bg-blue-50/70 hover:bg-blue-100/80 text-blue-700 font-bold text-[9.5px] cursor-pointer transition-all flex items-center justify-center px-0.5"
-            title="Preview A4 Document"
-          >
-            <Eye className="h-3 w-3 mr-0.5 shrink-0 text-blue-600" />
-            <span>Preview</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onDuplicate(doc)}
-            className="h-7.5 rounded-lg border border-purple-200/80 bg-purple-50/70 hover:bg-purple-100/80 text-purple-700 font-bold text-[9.5px] cursor-pointer transition-all flex items-center justify-center px-0.5"
-            title="Clone document with new BOL number"
-          >
-            <Copy className="h-3 w-3 mr-0.5 text-purple-600 shrink-0" />
-            <span>Duplicate</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenPdf(doc)}
-            disabled={!hasUploadedPdf || openingPdfId === doc.id}
-            className="h-7.5 rounded-lg border border-emerald-200/80 bg-emerald-50/70 hover:bg-emerald-100/80 text-emerald-700 font-bold text-[9.5px] disabled:border-slate-100 disabled:bg-slate-50/60 disabled:text-slate-300 cursor-pointer transition-all flex items-center justify-center px-0.5"
-            title={hasUploadedPdf ? "Open uploaded PDF file" : "No uploaded PDF available"}
-          >
-            <ExternalLink className="h-3 w-3 mr-0.5 shrink-0" />
-            <span>PDF</span>
-          </Button>
-
-          {onSendToCMR && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onSendToCMR(doc)}
-              className="h-7.5 rounded-lg border border-indigo-200/80 bg-indigo-50/70 hover:bg-indigo-100/80 text-indigo-700 font-bold text-[9.5px] cursor-pointer transition-all flex items-center justify-center px-0.5"
-              title="Bridge to International CMR Waybill"
-            >
-              <Truck className="h-3 w-3 mr-0.5 text-indigo-600 shrink-0" />
-              <span>CMR</span>
-            </Button>
-          )}
-        </div>
-
-        {/* Attach PDF & Delete Row */}
-        <div className="grid grid-cols-[1fr_auto] gap-1.5 pt-0.5">
-          <label
-            className={`inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 px-2.5 text-[11px] font-bold text-slate-700 transition-all shadow-2xs ${
-              uploadingId === doc.id ? "pointer-events-none opacity-70" : ""
-            }`}
-          >
-            {uploadingId === doc.id ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Upload className="h-3.5 w-3.5 text-blue-600" />
-            )}
-            <span>{hasUploadedPdf ? "Replace PDF" : "Attach PDF"}</span>
-            <input
-              type="file"
-              accept="application/pdf,.pdf"
-              className="hidden"
-              disabled={uploadingId === doc.id}
-              onChange={onFileInput(doc)}
-            />
-          </label>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={(event) => onDelete(doc, event)}
-            disabled={deletingId === (doc.id || doc.bol_number) || deletingId === doc.bol_number}
-            className="h-8 w-8 rounded-xl border border-red-200/80 bg-red-50/50 hover:bg-red-100/80 p-0 text-red-600 hover:text-red-700 cursor-pointer transition-all flex items-center justify-center"
-            title="Delete Bill of Lading"
-          >
-            {deletingId === (doc.id || doc.bol_number) || deletingId === doc.bol_number ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="h-3.5 w-3.5" />
-            )}
-          </Button>
-        </div>
-      </div>
-    </article>
+    <SavedBolCard
+      doc={props.doc}
+      isLatest={props.isLatest}
+      hasUploadedPdf={props.hasUploadedPdf}
+      invoiceNo={props.invoiceNo}
+      assignedCategory={props.assignedCategory}
+      uploadingId={props.uploadingId}
+      deletingId={props.deletingId}
+      openingPdfId={props.openingPdfId}
+      downloadingPdfId={props.downloadingPdfId}
+      onEdit={props.onEdit}
+      onDownload={props.onDownload}
+      onPreview={props.onPreview}
+      onDuplicate={props.onDuplicate}
+      onOpenPdf={props.onOpenPdf}
+      onDelete={props.onDelete}
+      onCategoryAssign={props.onCategoryAssign}
+      onFileInput={props.onFileInput}
+      isSelected={props.isSelected}
+      onToggleSelect={props.onToggleSelect}
+      onSendToCMR={props.onSendToCMR}
+    />
   )
 })
 
@@ -2566,7 +2274,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               <div className="space-y-4">
                 {/* 1. GRID VIEW MODE - BALANCED RESPONSIVE GRID WITH PREMIUM CARDS */}
                 {viewMode === "grid" && (
-                  <div className="grid gap-3 sm:gap-3.5 lg:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[1920px]:grid-cols-6">
+                  <div className="grid gap-3 sm:gap-3.5 lg:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-[1680px]:grid-cols-5 min-[2100px]:grid-cols-6">
                     {filteredDocuments.slice(0, visibleCount).map((doc, idx) => (
                       <DocumentGridCard
                         key={doc.id || doc.bol_number}
