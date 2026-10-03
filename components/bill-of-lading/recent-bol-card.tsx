@@ -1,7 +1,7 @@
 "use client"
 
 import React, { memo } from "react"
-import { Clock, ArrowRight, Boxes, Truck, Pencil, FolderArchive, FileDown, Loader2 } from "lucide-react"
+import { Clock, ArrowRight, Boxes, Truck, Pencil, FolderArchive, FileDown, Loader2, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { cleanBolNumber, isUUID } from "@/lib/utils/bol-filters"
@@ -42,6 +42,7 @@ export interface RecentBolCardProps {
   onEdit: () => void
   onFiles: () => void
   onPdf: () => void
+  onPreview?: () => void
   onCardClick?: () => void
   isDownloadingPdf?: boolean
   isSelected?: boolean
@@ -286,6 +287,7 @@ export const RecentBolCard = memo(function RecentBolCard({
   onEdit,
   onFiles,
   onPdf,
+  onPreview,
   onCardClick,
   isDownloadingPdf = false,
   isSelected = false,
@@ -434,7 +436,7 @@ export const RecentBolCard = memo(function RecentBolCard({
       </div>
 
       {/* Action Buttons (Strictly aligned bottom row) */}
-      <div className="mt-auto pt-2.5 border-t border-slate-100 dark:border-slate-800/70 grid grid-cols-3 gap-1.5 sm:gap-2">
+      <div className="mt-auto pt-2.5 border-t border-slate-100 dark:border-slate-800/70 grid grid-cols-4 gap-1 sm:gap-1.5">
         <Button
           type="button"
           size="sm"
@@ -442,11 +444,30 @@ export const RecentBolCard = memo(function RecentBolCard({
             e.stopPropagation()
             onEdit()
           }}
-          className="h-8.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs cursor-pointer shadow-xs transition-all flex items-center justify-center px-1"
+          className="h-8.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-[11px] sm:text-xs cursor-pointer shadow-xs transition-all flex items-center justify-center px-1"
           title="Edit Bill of Lading"
         >
-          <Pencil className="w-3 h-3 mr-1 shrink-0" />
-          <span>Edit</span>
+          <Pencil className="w-3 h-3 mr-0.5 sm:mr-1 shrink-0" />
+          <span className="truncate">Edit</span>
+        </Button>
+
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={(e) => {
+            e.stopPropagation()
+            if (onPreview) {
+              onPreview()
+            } else if (onCardClick) {
+              onCardClick()
+            }
+          }}
+          className="h-8.5 rounded-xl border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-900 dark:text-blue-300 font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
+          title="Preview A4 Document"
+        >
+          <Eye className="w-3 h-3 mr-0.5 sm:mr-1 text-blue-700 dark:text-blue-400 shrink-0" />
+          <span className="truncate">Preview</span>
         </Button>
 
         <Button
@@ -457,11 +478,11 @@ export const RecentBolCard = memo(function RecentBolCard({
             e.stopPropagation()
             onFiles()
           }}
-          className="h-8.5 rounded-xl border-cyan-300 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/40 hover:bg-cyan-100 text-cyan-900 dark:text-cyan-300 font-bold text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
+          className="h-8.5 rounded-xl border-cyan-300 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/40 hover:bg-cyan-100 text-cyan-900 dark:text-cyan-300 font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
           title="Digital Shipment Files & Attachments"
         >
-          <FolderArchive className="w-3 h-3 mr-1 text-cyan-700 dark:text-cyan-400 shrink-0" />
-          <span>Files</span>
+          <FolderArchive className="w-3 h-3 mr-0.5 sm:mr-1 text-cyan-700 dark:text-cyan-400 shrink-0" />
+          <span className="truncate">Files</span>
         </Button>
 
         <Button
@@ -473,15 +494,15 @@ export const RecentBolCard = memo(function RecentBolCard({
             e.stopPropagation()
             onPdf()
           }}
-          className="h-8.5 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
+          className="h-8.5 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
           title="Download or Print BOL PDF"
         >
           {isDownloadingPdf ? (
-            <Loader2 className="w-3 h-3 mr-1 animate-spin text-slate-600" />
+            <Loader2 className="w-3 h-3 mr-0.5 sm:mr-1 animate-spin text-slate-600" />
           ) : (
-            <FileDown className="w-3 h-3 mr-1 text-slate-700 dark:text-slate-300 shrink-0" />
+            <FileDown className="w-3 h-3 mr-0.5 sm:mr-1 text-slate-700 dark:text-slate-300 shrink-0" />
           )}
-          <span>PDF</span>
+          <span className="truncate">PDF</span>
         </Button>
       </div>
     </div>

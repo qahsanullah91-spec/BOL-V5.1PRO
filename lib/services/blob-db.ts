@@ -255,5 +255,9 @@ export async function mutateJsonFile<T>(
   })
 }
 
-
-
+/**
+ * Purges all in-memory file caches. Essential after restore operations or disaster recovery.
+ */
+export function clearBlobDbCache(): void {
+  fileCache.clear()
+}

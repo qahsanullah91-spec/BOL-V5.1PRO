@@ -2000,6 +2000,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                   key={`latest-${doc.id || doc.bol_number}`}
                   doc={doc}
                   onEdit={() => editBOL(doc)}
+                  onPreview={() => viewBOLPreview(doc)}
                   onFiles={() => onLoadDocument(doc.id || doc.bol_number, "attachments")}
                   onPdf={() => downloadBOLPDF(doc)}
                   onCardClick={() => viewBOLPreview(doc)}
