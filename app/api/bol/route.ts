@@ -6,6 +6,9 @@ import { getFastApiBaseUrl, isFastApiHealthy } from "@/lib/api/backend-url"
 import seedBolsData from "@/lib/data/seed-bols.json"
 import { computeBolSummary, isMeaningfulBOL, parseBolSeq, toLightweightBol, enrichBolListWithLocal, isUUID, cleanBolNumber } from "@/lib/utils/bol-filters"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 function extractBolNumberSuffix(bolNum: any): number {
   if (!bolNum) return 0
   const str = String(bolNum).trim()
@@ -76,7 +79,8 @@ export async function GET(request: Request) {
           const json = await fastRes.json()
           if (json && Array.isArray(json.data) && json.data.length > 0) {
             const enriched = enrichBolListWithLocal(json.data, localBols)
-            return NextResponse.json({ success: true, data: enriched.map(toLightweightBol), source: "fastapi-sqlite" })
+            const activeOnly = enriched.filter((b: any) => !b.isArchived && b.status !== "archived")
+            return NextResponse.json({ success: true, data: activeOnly.map(toLightweightBol), source: "fastapi-sqlite" })
           }
         }
       }
@@ -85,7 +89,7 @@ export async function GET(request: Request) {
     try {
       const localBols = await localStorage.getAllLocalBOLs()
       const valid = localBols
-        .filter(isMeaningfulBOL)
+        .filter((b: any) => isMeaningfulBOL(b) && !b.isArchived && b.status !== "archived")
         .sort((a, b) => {
           const dateA = new Date(a.created_at || a.updated_at || a.issue_date || 0).getTime()
           const dateB = new Date(b.created_at || b.updated_at || b.issue_date || 0).getTime()
@@ -128,10 +132,14 @@ export async function GET(request: Request) {
       const pageSizeParam = searchParams.get("page_size") || searchParams.get("limit")
       if (pageSizeParam) fastApiUrl.searchParams.set("page_size", pageSizeParam)
 
-      const filterKeys = ["status", "date_from", "date_to", "shipper", "consignee", "notify_party", "company_id"]
+      const filterKeys = ["date_from", "date_to", "shipper", "consignee", "notify_party", "company_id"]
       for (const key of filterKeys) {
         const val = searchParams.get(key)
         if (val) fastApiUrl.searchParams.set(key, val)
+      }
+      const statusVal = searchParams.get("status")
+      if (statusVal && statusVal !== "all") {
+        fastApiUrl.searchParams.set("status", statusVal)
       }
 
       const fastRes = await fetch(fastApiUrl.toString(), {
@@ -141,19 +149,60 @@ export async function GET(request: Request) {
       if (fastRes.ok) {
         const fastResult = await fastRes.json()
         if (fastResult && Array.isArray(fastResult.items)) {
-          const hasFilter = Boolean(searchParam || filterKeys.some((k) => Boolean(searchParams.get(k))))
-          if (fastResult.total > 0 || hasFilter) {
-            const localBols = await localStorage.getAllLocalBOLs().catch(() => [])
-            const enriched = enrichBolListWithLocal(fastResult.items, localBols)
+          const localBols = await localStorage.getAllLocalBOLs().catch(() => [])
+
+          let filteredLocalOnly: any[] = []
+          // Only evaluate local-only BOLs if local storage actually has more records than the DB total
+          if (localBols.length > fastResult.total && !searchParam) {
+            const fastKeys = new Set(
+              fastResult.items.map((i: any) => (cleanBolNumber(i.bol_number) || i.id || "").toUpperCase())
+            )
+            const localOnly = localBols.filter((lb: any) => {
+              const k = (cleanBolNumber(lb.bol_number) || lb.id || "").toUpperCase()
+              return k && !fastKeys.has(k) && isMeaningfulBOL(lb)
+            })
+
+            const statusParam = (searchParams.get("status") || "all").toLowerCase().trim()
+            if (statusParam === "active") {
+              filteredLocalOnly = localOnly.filter((b: any) => !b.isArchived && b.status !== "archived")
+            } else if (statusParam === "archived") {
+              filteredLocalOnly = localOnly.filter((b: any) => Boolean(b.isArchived || b.status === "archived"))
+            } else {
+              filteredLocalOnly = localOnly
+            }
+          }
+
+          const combined = [...filteredLocalOnly, ...fastResult.items]
+          const enriched = enrichBolListWithLocal(combined, localBols)
+          const totalCount = fastResult.total + filteredLocalOnly.length
+          const pageParam = searchParams.get("page")
+          const pageSizeParam = searchParams.get("page_size") || searchParams.get("limit")
+
+          if (pageParam || pageSizeParam) {
+            const page = Math.max(1, parseInt(pageParam || String(fastResult.page || 1), 10) || 1)
+            const pageSize = Math.max(1, Math.min(100, parseInt(pageSizeParam || String(fastResult.page_size || 50), 10) || 50))
+            const paged = filteredLocalOnly.length > 0 
+              ? enriched.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+              : enriched
+
             return NextResponse.json({
-              data: enriched.map(toLightweightBol),
-              total: fastResult.total,
-              page: fastResult.page,
-              page_size: fastResult.page_size,
-              total_pages: Math.ceil(fastResult.total / (fastResult.page_size || 50)),
+              data: paged.map(toLightweightBol),
+              total: totalCount,
+              page,
+              page_size: pageSize,
+              total_pages: Math.ceil(totalCount / pageSize),
               source: "fastapi-sqlite",
             })
           }
+
+            return NextResponse.json({
+              data: enriched.map(toLightweightBol),
+              total: totalCount,
+              page: fastResult.page,
+              page_size: fastResult.page_size,
+              total_pages: Math.ceil(totalCount / (fastResult.page_size || 50)),
+              source: "fastapi-sqlite",
+            })
         }
       }
     }
@@ -256,7 +305,7 @@ export async function GET(request: Request) {
 
     const pageParam = searchParams.get("page")
     const pageSizeParam = searchParams.get("page_size") || searchParams.get("limit")
-    const searchFilter = (searchParams.get("search") || "").trim().toLowerCase()
+    const searchFilter = (searchParams.get("search") || searchParams.get("q") || "").trim().toLowerCase()
 
     if (searchFilter) {
       allBols = allBols.filter((bol) => {
@@ -268,8 +317,15 @@ export async function GET(request: Request) {
       })
     }
 
-    if (pageParam) {
-      const page = Math.max(1, parseInt(pageParam, 10) || 1)
+    const statusParam = (searchParams.get("status") || "all").toLowerCase().trim()
+    if (statusParam === "active") {
+      allBols = allBols.filter((bol) => !bol.isArchived && bol.status !== "archived")
+    } else if (statusParam === "archived") {
+      allBols = allBols.filter((bol) => Boolean(bol.isArchived || bol.status === "archived"))
+    }
+
+    if (pageParam || pageSizeParam) {
+      const page = Math.max(1, parseInt(pageParam || "1", 10) || 1)
       const pageSize = Math.max(1, Math.min(100, parseInt(pageSizeParam || "50", 10) || 50))
       const total = allBols.length
       const start = (page - 1) * pageSize
@@ -322,8 +378,15 @@ export async function GET(request: Request) {
       })
     }
 
-    if (pageParam) {
-      const page = Math.max(1, parseInt(pageParam, 10) || 1)
+    const statusParam = (searchParams.get("status") || "all").toLowerCase().trim()
+    if (statusParam === "active") {
+      sortedLocal = sortedLocal.filter((bol) => !bol.isArchived && bol.status !== "archived")
+    } else if (statusParam === "archived") {
+      sortedLocal = sortedLocal.filter((bol) => Boolean(bol.isArchived || bol.status === "archived"))
+    }
+
+    if (pageParam || pageSizeParam) {
+      const page = Math.max(1, parseInt(pageParam || "1", 10) || 1)
       const pageSize = Math.max(1, Math.min(100, parseInt(pageSizeParam || "50", 10) || 50))
       const total = sortedLocal.length
       const start = (page - 1) * pageSize

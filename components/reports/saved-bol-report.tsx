@@ -39,7 +39,7 @@ import {
   auditDataQuality,
   detectPossibleDuplicates,
 } from "@/lib/reports/data-quality"
-import { exportReportToExcel } from "@/lib/reports/export-excel"
+import { exportReportToExcel, extractTransitBorderStation, extractDriverFatherName } from "@/lib/reports/export-excel"
 import {
   getSavedFilterPresets,
   saveFilterPreset,
@@ -560,7 +560,7 @@ export function SavedBolReport({
   }
 
   const shippersList = useMemo(() => {
-    if (activeTab !== "shippers" && activeTab !== "operations") {
+    if (activeTab !== "shippers" && activeTab !== "operations" && activeTab !== "overview") {
       return (reportDataCacheRef.current.get("shippers") as ShipperSummary[]) || []
     }
     if (reportDataCacheRef.current.has("shippers")) {
@@ -572,7 +572,7 @@ export function SavedBolReport({
   }, [filteredData, activeTab])
 
   const consigneesList = useMemo(() => {
-    if (activeTab !== "consignees") {
+    if (activeTab !== "consignees" && activeTab !== "operations" && activeTab !== "overview") {
       return (reportDataCacheRef.current.get("consignees") as ConsigneeSummary[]) || []
     }
     if (reportDataCacheRef.current.has("consignees")) {
@@ -584,7 +584,7 @@ export function SavedBolReport({
   }, [filteredData, activeTab])
 
   const commoditiesList = useMemo(() => {
-    if (activeTab !== "commodities" && activeTab !== "operations") {
+    if (activeTab !== "commodities" && activeTab !== "operations" && activeTab !== "overview") {
       return (reportDataCacheRef.current.get("commodities") as CommoditySummary[]) || []
     }
     if (reportDataCacheRef.current.has("commodities")) {
@@ -596,7 +596,7 @@ export function SavedBolReport({
   }, [filteredData, activeTab])
 
   const destinationsList = useMemo(() => {
-    if (activeTab !== "destinations" && activeTab !== "operations") {
+    if (activeTab !== "destinations" && activeTab !== "operations" && activeTab !== "overview") {
       return (reportDataCacheRef.current.get("destinations") as DestinationSummary[]) || []
     }
     if (reportDataCacheRef.current.has("destinations")) {
@@ -608,7 +608,7 @@ export function SavedBolReport({
   }, [filteredData, activeTab])
 
   const routesList = useMemo(() => {
-    if (activeTab !== "routes" && activeTab !== "operations") {
+    if (activeTab !== "routes" && activeTab !== "operations" && activeTab !== "overview") {
       return (reportDataCacheRef.current.get("routes") as RouteSummary[]) || []
     }
     if (reportDataCacheRef.current.has("routes")) {
@@ -620,7 +620,7 @@ export function SavedBolReport({
   }, [filteredData, activeTab])
 
   const trucksList = useMemo(() => {
-    if (activeTab !== "trucks" && activeTab !== "operations") {
+    if (activeTab !== "trucks" && activeTab !== "operations" && activeTab !== "overview") {
       return (reportDataCacheRef.current.get("trucks") as TruckSummary[]) || []
     }
     if (reportDataCacheRef.current.has("trucks")) {
@@ -630,6 +630,38 @@ export function SavedBolReport({
     reportDataCacheRef.current.set("trucks", result)
     return result
   }, [filteredData, activeTab])
+
+  // Driver Freight / Rent Disbursement Summary
+  const driverRentSummary = useMemo(() => {
+    const totals: Record<string, { amount: number; count: number }> = {}
+    for (const doc of filteredData) {
+      const raw = doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent || ""
+      if (raw) {
+        const { amount, currency } = parseMoney(raw)
+        if (amount > 0) {
+          if (!totals[currency]) totals[currency] = { amount: 0, count: 0 }
+          totals[currency].amount += amount
+          totals[currency].count += 1
+        }
+      }
+    }
+    return totals
+  }, [filteredData])
+
+  // Border Crossings & Transit Station Summary
+  const borderStationsSummary = useMemo(() => {
+    const counts: Record<string, { bols: number; packages: number; netWeight: number }> = {}
+    for (const doc of filteredData) {
+      const station = extractTransitBorderStation(doc)
+      if (!counts[station]) counts[station] = { bols: 0, packages: 0, netWeight: 0 }
+      counts[station].bols += 1
+      counts[station].packages += parsePackages(doc.number_of_packages)
+      counts[station].netWeight += parseWeight(doc.net_weight)
+    }
+    return Object.entries(counts)
+      .filter(([st]) => st !== "-")
+      .sort((a, b) => b[1].bols - a[1].bols)
+  }, [filteredData])
 
   const { containers: containerList, stats: containerStats } = useMemo(() => {
     if (activeTab !== "containers") {
@@ -2489,27 +2521,43 @@ export function SavedBolReport({
   }
 
   // Export handlers
-  const handleExportExcel = async () => {
-    const toastId = toast.loading("Generating Excel (.xlsx) Report...")
+  const handleExportExcel = async (exportMode: "all" | "current" = "all") => {
+    const isCurrentOnly = exportMode === "current"
+    const toastId = toast.loading(
+      isCurrentOnly
+        ? `Generating Excel (.xlsx) for ${activeTab.toUpperCase()}...`
+        : "Generating Complete Multi-Sheet Excel Workbook..."
+    )
     try {
+      const fileName = isCurrentOnly
+        ? `Sky-Ariana-${activeTab.toUpperCase()}-View`
+        : `Sky-Ariana-Operations-Full-Report`
+
       await exportReportToExcel(
         activeReportData,
-        `Sky-Ariana-${activeTab.toUpperCase()}-Report`,
-        activeTab
+        fileName,
+        activeTab,
+        exportMode
       )
       toast.dismiss(toastId)
-      toast.success("Excel (.xlsx) report generated successfully")
+      toast.success(
+        isCurrentOnly
+          ? `Excel report for ${activeTab.toUpperCase()} generated`
+          : "Complete 12-sheet Excel report generated successfully"
+      )
 
       // Record in history
       const entry: ReportHistoryEntry = {
         id: `hist-${Date.now()}`,
-        reportName: `${activeTab.toUpperCase()} Operations Report`,
+        reportName: isCurrentOnly
+          ? `${activeTab.toUpperCase()} Operations Report`
+          : "Complete Operations Workbook (12 Sheets)",
         reportType: activeTab,
         createdDate: new Date().toISOString(),
         createdBy: "System Administrator",
         filterRange: `${filteredData.length} records`,
         recordCount: activeReportData.length,
-        fileName: `Sky-Ariana-${activeTab.toUpperCase()}-Report.xlsx`,
+        fileName: `${fileName}.xlsx`,
       }
       addReportHistoryEntry(entry)
       setReportHistory(getReportHistory())
@@ -3250,9 +3298,13 @@ export function SavedBolReport({
                 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-bold text-slate-500">Data Exports</DropdownMenuLabel>
-                <DropdownMenuItem onClick={handleExportExcel} className="text-xs font-bold text-emerald-700 cursor-pointer">
+                <DropdownMenuItem onClick={() => handleExportExcel("all")} className="text-xs font-bold text-emerald-700 cursor-pointer">
                   <FileSpreadsheet className="w-4 h-4 mr-2" />
-                  Excel (.xlsx)
+                  Excel (.xlsx) — Complete (12 Sheets)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportExcel("current")} className="text-xs font-bold text-emerald-800 cursor-pointer">
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Excel (.xlsx) — Active View ({activeTab})
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportCSV} className="text-xs font-bold cursor-pointer">
                   <FileText className="w-4 h-4 mr-2 text-slate-500" />
@@ -3355,15 +3407,72 @@ export function SavedBolReport({
               )}
             </Button>
 
-            <Button
-              variant="outline"
-              onClick={handleExportExcel}
-              className="h-9 px-3 rounded-xl border-emerald-300 dark:border-emerald-800 bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200 font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer shrink-0"
-              title="Export report dataset to Microsoft Excel (.xlsx)"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Excel</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="h-9 px-3 rounded-xl border-emerald-300 dark:border-emerald-800 bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200 font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-all hover:shadow-xs active:scale-95"
+                  title="Export report dataset to Microsoft Excel (.xlsx)"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Excel</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-emerald-600/70 ml-0.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 font-sans shadow-xl border-emerald-200 dark:border-emerald-800">
+                <DropdownMenuLabel className="text-xs font-black text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  Excel (.xlsx) Export Options
+                </DropdownMenuLabel>
+
+                <DropdownMenuItem
+                  onClick={() => handleExportExcel("all")}
+                  className="text-xs font-bold text-emerald-800 dark:text-emerald-300 cursor-pointer py-2 focus:bg-emerald-50 dark:focus:bg-emerald-950/50"
+                >
+                  <div className="flex flex-col">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      Complete Audit Workbook (12 Sheets)
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-normal pl-5">
+                      Full multi-sheet workbook with KPI summary, fleet, and financials
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => handleExportExcel("current")}
+                  className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer py-2 focus:bg-slate-100 dark:focus:bg-slate-800"
+                >
+                  <div className="flex flex-col">
+                    <span className="flex items-center gap-1.5">
+                      <FileDown className="w-3.5 h-3.5 text-blue-600" />
+                      Active View Only ({activeTab.toUpperCase()})
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-normal pl-5">
+                      Lightweight export of current {activeTab} tab + Summary
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+
+                {selectedIds.length > 0 && (
+                  <DropdownMenuItem
+                    onClick={() => handleExportExcel("all")}
+                    className="text-xs font-bold text-amber-700 dark:text-amber-300 cursor-pointer py-2 focus:bg-amber-50 dark:focus:bg-amber-950/50"
+                  >
+                    <div className="flex flex-col">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
+                        Selected Rows Only ({selectedIds.length} BOLs)
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-normal pl-5">
+                        Exports complete workbook filtered to selected items
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -4320,49 +4429,124 @@ export function SavedBolReport({
                   <span className="text-xs text-slate-400">Compact Operational Overview</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 text-xs">
                   {/* Top Shippers Summary */}
-                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-                    <p className="font-black text-slate-600 mb-2 uppercase text-[10px]">Top Shippers by Volume</p>
-                    <div className="space-y-1.5">
-                      {shippersList.slice(0, 4).map((s, idx) => (
-                        <div key={s.shipperName} className="flex justify-between items-center">
-                          <span className="font-semibold truncate max-w-[160px] text-slate-800">
-                            {idx + 1}. {s.shipperName}
-                          </span>
-                          <span className="font-mono font-bold text-slate-900">{s.bolCount} BOLs</span>
-                        </div>
-                      ))}
+                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 flex flex-col justify-between">
+                    <div>
+                      <p className="font-black text-slate-600 mb-2 uppercase text-[10px] flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-blue-600" />
+                        Top Shippers
+                      </p>
+                      <div className="space-y-1.5">
+                        {shippersList.slice(0, 4).map((s, idx) => (
+                          <div key={s.shipperName} className="flex justify-between items-center text-[11px]">
+                            <span className="font-semibold truncate max-w-[130px] text-slate-800" title={s.shipperName}>
+                              {idx + 1}. {s.shipperName}
+                            </span>
+                            <span className="font-mono font-bold text-slate-900 shrink-0">{s.bolCount} BOLs</span>
+                          </div>
+                        ))}
+                        {shippersList.length === 0 && (
+                          <span className="text-[11px] text-slate-400 italic">No shippers recorded</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Top Commodities Summary */}
-                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-                    <p className="font-black text-slate-600 mb-2 uppercase text-[10px]">Top Commodities</p>
-                    <div className="space-y-1.5">
-                      {commoditiesList.slice(0, 4).map((c, idx) => (
-                        <div key={c.commodityName} className="flex justify-between items-center">
-                          <span className="font-semibold truncate max-w-[160px] text-slate-800">
-                            {idx + 1}. {c.commodityName}
-                          </span>
-                          <span className="font-mono font-bold text-blue-700">{c.bolCount} BOLs</span>
-                        </div>
-                      ))}
+                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 flex flex-col justify-between">
+                    <div>
+                      <p className="font-black text-slate-600 mb-2 uppercase text-[10px] flex items-center gap-1.5">
+                        <Boxes className="w-3.5 h-3.5 text-blue-600" />
+                        Top Commodities
+                      </p>
+                      <div className="space-y-1.5">
+                        {commoditiesList.slice(0, 4).map((c, idx) => (
+                          <div key={c.commodityName} className="flex justify-between items-center text-[11px]">
+                            <span className="font-semibold truncate max-w-[130px] text-slate-800" title={c.commodityName}>
+                              {idx + 1}. {c.commodityName}
+                            </span>
+                            <span className="font-mono font-bold text-blue-700 shrink-0">{c.bolCount} BOLs</span>
+                          </div>
+                        ))}
+                        {commoditiesList.length === 0 && (
+                          <span className="text-[11px] text-slate-400 italic">No commodities recorded</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Top Destinations Summary */}
-                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-                    <p className="font-black text-slate-600 mb-2 uppercase text-[10px]">Top Transit Hubs & Ports</p>
-                    <div className="space-y-1.5">
-                      {destinationsList.slice(0, 4).map((d, idx) => (
-                        <div key={d.locationName} className="flex justify-between items-center">
-                          <span className="font-semibold truncate max-w-[160px] text-slate-800">
-                            {idx + 1}. {d.locationName}
-                          </span>
-                          <span className="font-mono font-bold text-purple-700">{d.bolCount} BOLs</span>
-                        </div>
-                      ))}
+                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 flex flex-col justify-between">
+                    <div>
+                      <p className="font-black text-slate-600 mb-2 uppercase text-[10px] flex items-center gap-1.5">
+                        <Compass className="w-3.5 h-3.5 text-purple-600" />
+                        Transit Hubs & Ports
+                      </p>
+                      <div className="space-y-1.5">
+                        {destinationsList.slice(0, 4).map((d, idx) => (
+                          <div key={d.locationName} className="flex justify-between items-center text-[11px]">
+                            <span className="font-semibold truncate max-w-[130px] text-slate-800" title={d.locationName}>
+                              {idx + 1}. {d.locationName}
+                            </span>
+                            <span className="font-mono font-bold text-purple-700 shrink-0">{d.bolCount} BOLs</span>
+                          </div>
+                        ))}
+                        {destinationsList.length === 0 && (
+                          <span className="text-[11px] text-slate-400 italic">No destinations recorded</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top Afghan Border Stations */}
+                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 flex flex-col justify-between">
+                    <div>
+                      <p className="font-black text-slate-600 mb-2 uppercase text-[10px] flex items-center gap-1.5">
+                        <Navigation className="w-3.5 h-3.5 text-emerald-600" />
+                        Border Crossings
+                      </p>
+                      <div className="space-y-1.5">
+                        {borderStationsSummary.slice(0, 4).map(([station, stats], idx) => (
+                          <div key={station} className="flex justify-between items-center text-[11px]">
+                            <span className="font-semibold truncate max-w-[130px] text-slate-800" title={station}>
+                              {idx + 1}. {station.split(" ")[0]}
+                            </span>
+                            <span className="font-mono font-bold text-emerald-700 shrink-0">{stats.bols} BOLs</span>
+                          </div>
+                        ))}
+                        {borderStationsSummary.length === 0 && (
+                          <span className="text-[11px] text-slate-400 italic">No border crossings</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Driver Freight Rent Summary */}
+                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 flex flex-col justify-between">
+                    <div>
+                      <p className="font-black text-slate-600 mb-2 uppercase text-[10px] flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5 text-amber-600" />
+                        Driver Freight Rent
+                      </p>
+                      <div className="space-y-1.5">
+                        {Object.entries(driverRentSummary).map(([curr, data]) => (
+                          <div key={curr} className="flex justify-between items-center text-[11px]">
+                            <span className="font-semibold text-slate-800 flex items-center gap-1">
+                              <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-900 font-mono text-[9.5px] font-bold">
+                                {curr}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-sans">({data.count} trucks)</span>
+                            </span>
+                            <span className="font-mono font-bold text-amber-800 shrink-0">
+                              {data.amount.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                        {Object.keys(driverRentSummary).length === 0 && (
+                          <span className="text-[11px] text-slate-400 italic">No driver rent recorded</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

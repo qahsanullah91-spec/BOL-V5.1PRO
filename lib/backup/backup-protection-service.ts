@@ -139,12 +139,22 @@ export async function saveBackupAgePolicy(updates: Partial<BackupAgePolicy>): Pr
   return merged
 }
 
+let cachedStorageHealth: {
+  info: StorageHealthInfo
+  timestamp: number
+} | null = null
+
 /**
  * Checks storage metrics for the configured backup location.
  * Uses cross-platform fs.statfs where available.
  */
 export async function getStorageHealthInfo(customFolderPath?: string): Promise<StorageHealthInfo> {
   const folderPath = customFolderPath || getBackupRoot()
+  
+  if (!customFolderPath && cachedStorageHealth && Date.now() - cachedStorageHealth.timestamp < 15_000) {
+    return cachedStorageHealth.info
+  }
+
   let folderAvailable = false
   let totalSpaceBytes = 100 * 1024 * 1024 * 1024 // 100 GB default fallback
   let freeSpaceBytes = 50 * 1024 * 1024 * 1024 // 50 GB default fallback
@@ -156,13 +166,13 @@ export async function getStorageHealthInfo(customFolderPath?: string): Promise<S
     if (fsSync.existsSync(folderPath)) {
       folderAvailable = true
       const files = await fs.readdir(folderPath).catch(() => [])
-      for (const file of files) {
-        try {
-          const stat = await fs.stat(path.join(folderPath, file))
-          if (stat.isFile()) {
-            backupFolderSizeBytes += stat.size
-          }
-        } catch {}
+      const stats = await Promise.all(
+        files.map(file => fs.stat(path.join(folderPath, file)).catch(() => null))
+      )
+      for (const stat of stats) {
+        if (stat?.isFile()) {
+          backupFolderSizeBytes += stat.size
+        }
       }
 
       // Query filesystem statfs
@@ -187,12 +197,13 @@ export async function getStorageHealthInfo(customFolderPath?: string): Promise<S
   try {
     const dataDir = getDataRoot()
     const files = await fs.readdir(dataDir).catch(() => [])
+    const localDbFiles = files.filter(f => f.startsWith(".local-") && f.endsWith(".json"))
+    const dbStats = await Promise.all(
+      localDbFiles.map(f => fs.stat(path.join(dataDir, f)).catch(() => null))
+    )
     let dbSize = 0
-    for (const f of files) {
-      if (f.startsWith(".local-") && f.endsWith(".json")) {
-        const stat = await fs.stat(path.join(dataDir, f)).catch(() => null)
-        if (stat) dbSize += stat.size
-      }
+    for (const stat of dbStats) {
+      if (stat) dbSize += stat.size
     }
     if (dbSize > 0) {
       estimatedNextBackupSizeBytes = Math.round(dbSize * 1.1) // 10% safety envelope
@@ -209,7 +220,7 @@ export async function getStorageHealthInfo(customFolderPath?: string): Promise<S
     status = "WARNING"
   }
 
-  return {
+  const result: StorageHealthInfo = {
     totalSpaceBytes,
     freeSpaceBytes,
     usedSpaceBytes,
@@ -221,6 +232,12 @@ export async function getStorageHealthInfo(customFolderPath?: string): Promise<S
     folderPath,
     warning,
   }
+
+  if (!customFolderPath) {
+    cachedStorageHealth = { info: result, timestamp: Date.now() }
+  }
+
+  return result
 }
 
 /**
@@ -262,11 +279,29 @@ export async function verifyBackupStorageCapacity(customFolderPath?: string): Pr
   }
 }
 
+let cachedProtectionDashboard: {
+  data: ProtectionDashboardData
+  timestamp: number
+} | null = null
+
+const DASHBOARD_CACHE_TTL_MS = 30_000 // 30 seconds TTL
+
+export function invalidateProtectionDashboardCache(): void {
+  cachedProtectionDashboard = null
+  cachedStorageHealth = null
+}
+
 /**
  * Evaluates the full deterministic Data Protection status across all components.
  */
 export async function getProtectionDashboardData(overrideTime?: Date): Promise<ProtectionDashboardData> {
   const now = overrideTime || new Date()
+
+  // Return cached snapshot if not overriding time and within TTL
+  if (!overrideTime && cachedProtectionDashboard && (Date.now() - cachedProtectionDashboard.timestamp < DASHBOARD_CACHE_TTL_MS)) {
+    return cachedProtectionDashboard.data
+  }
+
   const agePolicy = await getBackupAgePolicy()
   const storage = await getStorageHealthInfo()
   const catalog = await readJsonFile<BackupItem[]>(BACKUPS_CATALOG_FILE, [])
@@ -486,9 +521,7 @@ export async function getProtectionDashboardData(overrideTime?: Date): Promise<P
 
   try {
     const dataDir = getDataRoot()
-    const testProbe = path.join(dataDir, `.db-probe-${Date.now()}.tmp`)
-    await fs.writeFile(testProbe, "probe", "utf8")
-    await fs.unlink(testProbe).catch(() => {})
+    await fs.access(dataDir, fsSync.constants.W_OK)
   } catch {
     dbIntegrityStatus.status = "CRITICAL"
     dbIntegrityStatus.criticalIssuesCount++
@@ -555,7 +588,7 @@ export async function getProtectionDashboardData(overrideTime?: Date): Promise<P
       ? "warning"
       : "destructive"
 
-  return {
+  const result: ProtectionDashboardData = {
     protectionStatus,
     statusReasons,
     latestBackup,
@@ -580,6 +613,15 @@ export async function getProtectionDashboardData(overrideTime?: Date): Promise<P
       database: dbIntegrityStatus.status === "HEALTHY" ? "Healthy" : "Attention",
     },
   }
+
+  if (!overrideTime) {
+    cachedProtectionDashboard = {
+      data: result,
+      timestamp: Date.now(),
+    }
+  }
+
+  return result
 }
 
 /**

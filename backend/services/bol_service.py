@@ -271,11 +271,11 @@ async def get_bol_detail(db: AsyncSession, bol_id_or_number: str) -> BOLDetail:
                b.consignee_id, b.notify_party_id, b.driver_id, b.truck_id, b.revision,
                b.created_at, b.updated_at,
                c.company_name,
-               s.name as shipper_name,
-               cn.name as consignee_name,
-               np.name as notify_party_name,
+               COALESCE(b.shipper_name, s.name) as shipper_name,
+               COALESCE(b.consignee_name, cn.name) as consignee_name,
+               COALESCE(b.notify_party_name, np.name) as notify_party_name,
                d.phone as driver_phone,
-               tr.truck_number
+               COALESCE(tr.truck_number, '') as truck_number
         FROM bol_records b
         LEFT JOIN companies c ON b.company_id = c.id
         LEFT JOIN shippers s ON b.shipper_id = s.id

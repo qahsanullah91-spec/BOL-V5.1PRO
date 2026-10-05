@@ -75,6 +75,7 @@ export function registerIpcHandlers(options: {
     if (result.canceled || !result.filePath) return null
     const pdf = await window.webContents.printToPDF({
       pageSize: "A4",
+      landscape: true,
       printBackground: true,
       preferCSSPageSize: true,
     })

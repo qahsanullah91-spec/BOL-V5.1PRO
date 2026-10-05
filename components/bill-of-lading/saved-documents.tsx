@@ -49,6 +49,10 @@ import {
   FolderArchive,
   Compass,
   FileCheck,
+  Archive,
+  AlertTriangle,
+  ShieldAlert,
+  Info,
 } from "lucide-react"
 import { generateBOLPDFBlob, savePDFToDevice, buildBolSmartFileName } from "@/lib/utils/pdf-upload"
 import { generateShippingDocumentsPDF, deriveShippingDocumentData, buildShippingDocumentFileName, extractInvoiceNumber } from "@/lib/utils/shipping-documents"
@@ -57,11 +61,12 @@ import { useApp } from "@/lib/app-context"
 import { SavedBolReport } from "@/components/reports/saved-bol-report"
 import { extractBolRoute, parsePackages, parseWeight, parseMoney, parsePackageUnit, formatPackageBreakdown } from "@/lib/reports/parsers"
 import type { ReportTab } from "@/lib/reports/types"
-import { isMeaningfulBOL, parseBolSeq, isUUID, cleanBolNumber } from "@/lib/utils/bol-filters"
+import { isMeaningfulBOL, parseBolSeq, isUUID, cleanBolNumber, normalizeBolRecord } from "@/lib/utils/bol-filters"
 import { RecentBolCard } from "./recent-bol-card"
 import { SavedBolCard } from "./saved-bol-card"
+import { duplicateBol, archiveBol, restoreBol } from "@/lib/services/bol-lifecycle-service"
 
-export { isMeaningfulBOL, parseBolSeq, isUUID, cleanBolNumber }
+export { isMeaningfulBOL, parseBolSeq, isUUID, cleanBolNumber, normalizeBolRecord }
 
 export function getCleanBolNumber(doc: any): string {
   const raw = String(doc?.bol_number || doc?.billOfLadingNumber || doc?.bolNo || doc?.id || "").trim()
@@ -141,6 +146,11 @@ interface SavedDocument {
   created_at: string
   pdf_url?: string | null
   pdf_uploaded_at?: string | null
+  status?: string
+  isArchived?: boolean
+  archived_at?: string | null
+  archived_by?: string | null
+  pdf_status?: "none" | "ready" | "outdated" | "missing" | "error"
 }
 
 interface AccountCompanyPdfFile {
@@ -237,6 +247,10 @@ interface DocumentGridCardProps {
   onDuplicate: (doc: SavedDocument) => void
   onOpenPdf: (doc: SavedDocument) => void
   onDelete: (doc: SavedDocument, e: React.MouseEvent) => void
+  onArchive?: (doc: SavedDocument, e?: React.MouseEvent) => void
+  onRestore?: (doc: SavedDocument) => void
+  onHardDelete?: (doc: SavedDocument, e?: React.MouseEvent) => void
+  onFiles?: (doc: SavedDocument) => void
   onCategoryAssign: (doc: SavedDocument, cat: Exclude<DocumentCategoryKey, "all" | "latest" | "with-pdf">) => void
   onFileInput: (doc: SavedDocument) => (e: ChangeEvent<HTMLInputElement>) => void
   isSelected?: boolean
@@ -262,6 +276,10 @@ const DocumentGridCard = memo(function DocumentGridCard(props: DocumentGridCardP
       onDuplicate={props.onDuplicate}
       onOpenPdf={props.onOpenPdf}
       onDelete={props.onDelete}
+      onArchive={props.onArchive}
+      onRestore={props.onRestore}
+      onHardDelete={props.onHardDelete}
+      onFiles={props.onFiles}
       onCategoryAssign={props.onCategoryAssign}
       onFileInput={props.onFileInput}
       isSelected={props.isSelected}
@@ -317,6 +335,13 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   const [customAccountCompanies, setCustomAccountCompanies] = useState<string[]>([])
   const [isCloudSyncModalOpen, setIsCloudSyncModalOpen] = useState(false)
   const [docToDelete, setDocToDelete] = useState<SavedDocument | null>(null)
+  const [statusFilter, setStatusFilter] = useState<"active" | "archived" | "all">("active")
+  const [docToArchive, setDocToArchive] = useState<SavedDocument | null>(null)
+  const [isArchiving, setIsArchiving] = useState(false)
+  const [docToHardDelete, setDocToHardDelete] = useState<SavedDocument | null>(null)
+  const [isHardDeleting, setIsHardDeleting] = useState(false)
+  const [hardDeleteBlocker, setHardDeleteBlocker] = useState<{ blocked: boolean; count: number; details: string[]; message?: string } | null>(null)
+  const [isDuplicating, setIsDuplicating] = useState(false)
   const [showSavedBolReport, setShowSavedBolReport] = useState(false)
   const [reportInitialTab, setReportInitialTab] = useState<ReportTab>("detailed")
 
@@ -654,7 +679,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
           console.error("Error storing local doc update:", e)
         }
 
-        // Instantly update React state so user doesn't even have to wait for network fetch
+        // Instantly update both main documents list and top latest creations so zero stale cards exist
         startTransition(() => {
           setDocuments((prev) => {
             const filtered = prev.filter((d: any) => {
@@ -669,9 +694,20 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               return parseBolSeq(b.bol_number || "") - parseBolSeq(a.bol_number || "")
             })
           })
+
+          setApiLatestTopBOLs((prev) => {
+            const filtered = prev.filter((d: any) => {
+              const dId = d.id || d.bol_number
+              const dNum = d.bol_number
+              return dId !== targetId && dNum !== targetId && dId !== targetNum && dNum !== targetNum
+            })
+            return [updatedDoc, ...filtered]
+          })
         })
       }
       void fetchDocuments()
+      void fetchRecentBols()
+      void fetchSummary()
     }
 
     window.addEventListener("skybol:documents-updated", handleRefresh as EventListener)
@@ -793,6 +829,9 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
     return keywords[category].some((keyword) => searchText.includes(keyword))
   }
 
+  const activeCount = useMemo(() => documents.filter((d) => !d.isArchived && d.status !== "archived").length, [documents])
+  const archivedCount = useMemo(() => documents.filter((d) => d.isArchived || d.status === "archived").length, [documents])
+
   // Sorted and Filtered Documents (Bringing Latest First by Default)
   const filteredDocuments = useMemo(() => {
     const cleanQuery = deferredQuery.trim().toLowerCase()
@@ -802,6 +841,13 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
 
     const filtered = documents.filter((doc) => {
+      // Quick Status Filter: active (default), archived, or all
+      if (statusFilter === "active") {
+        if (doc.isArchived || doc.status === "archived") return false
+      } else if (statusFilter === "archived") {
+        if (!doc.isArchived && doc.status !== "archived") return false
+      }
+
       if (isShipper) {
         const u = (currentUser?.username || "").toLowerCase()
         const n = (currentUser?.name || "").toLowerCase()
@@ -847,12 +893,25 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       }
       return 0
     })
-  }, [documents, deferredQuery, activeCategory, dateFilter, sortBy, documentCategories, isShipper, currentUser])
+  }, [documents, deferredQuery, activeCategory, dateFilter, sortBy, documentCategories, isShipper, currentUser, statusFilter])
 
-  // Real-time Summary Analytics Ribbon - uses instant precomputed API when viewing all documents
+  // Real-time Summary Analytics Ribbon - uses instant precomputed API when viewing all documents with strict sanity checks
   const summaryStats = useMemo(() => {
-    if (apiSummaryStats && !deferredQuery && activeCategory === "all" && dateFilter === "all") {
-      return apiSummaryStats
+    const isApiSane =
+      apiSummaryStats &&
+      apiSummaryStats.totalPkgs > 0 &&
+      apiSummaryStats.totalPkgs < 10_000_000 &&
+      apiSummaryStats.totalWeightKg > 0 &&
+      apiSummaryStats.totalWeightKg < 50_000_000 &&
+      apiSummaryStats.totalValueUsd > 0 &&
+      apiSummaryStats.totalValueUsd < 100_000_000 &&
+      Math.abs(apiSummaryStats.count - documents.length) <= 10
+
+    if (isApiSane && !deferredQuery && activeCategory === "all" && dateFilter === "all" && statusFilter === "active") {
+      return {
+        ...apiSummaryStats,
+        count: documents.length > 0 ? documents.length : apiSummaryStats.count,
+      }
     }
     let totalPkgs = 0
     let totalWeightKg = 0
@@ -883,13 +942,30 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       totalWeightKg: Math.round(totalWeightKg),
       totalValueUsd: Math.round(totalValueUsd * 100) / 100,
     }
-  }, [filteredDocuments, apiSummaryStats, deferredQuery, activeCategory, dateFilter])
+  }, [filteredDocuments, documents.length, apiSummaryStats, deferredQuery, activeCategory, dateFilter, statusFilter])
 
   // Get Top 6 Latest BOLs for the Top Feature Banner (from dedicated recent API with canonical deduplication)
   const latestTopBOLs = useMemo(() => {
+    // Map existing documents by clean BOL number and ID to always use the fresher in-memory record
+    const docMap = new Map<string, SavedDocument>()
+    for (const d of documents) {
+      if (d.isArchived || d.status === "archived") continue
+      const num = getCleanBolNumber(d)?.toUpperCase().trim()
+      const idKey = (d.id || "").toUpperCase().trim()
+      if (num && num !== "BOL") docMap.set(num, d)
+      if (idKey) docMap.set(idKey, d)
+    }
+
     const rawList = (apiLatestTopBOLs && apiLatestTopBOLs.length > 0 && !deferredQuery && activeCategory === "all")
       ? apiLatestTopBOLs
+          .filter((d) => !d.isArchived && d.status !== "archived")
+          .map((d) => {
+            const num = getCleanBolNumber(d)?.toUpperCase().trim()
+            const idKey = (d.id || "").toUpperCase().trim()
+            return (num && docMap.get(num)) || (idKey && docMap.get(idKey)) || d
+          })
       : [...documents]
+          .filter((d) => !d.isArchived && d.status !== "archived")
           .sort((a, b) => {
             const dateA = new Date((a as any).updated_at || a.created_at || a.issue_date || 0).getTime()
             const dateB = new Date((b as any).updated_at || b.created_at || b.issue_date || 0).getTime()
@@ -900,6 +976,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
     const seen = new Set<string>()
     const deduplicated: SavedDocument[] = []
     for (const d of rawList) {
+      if ((d as any).isArchived || (d as any).status === "archived") continue
       const num = getCleanBolNumber(d)
       const key = (num && num !== "BOL" ? num : (d.id || "")).toUpperCase().trim()
       if (key && !seen.has(key)) {
@@ -1114,27 +1191,159 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
     event.target.value = ""
   }
 
-  const handleDelete = useCallback((doc: SavedDocument, event: React.MouseEvent) => {
-    event.stopPropagation()
-    setDocToDelete(doc)
+  const handleArchive = useCallback((doc: SavedDocument, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation()
+    setDocToArchive(doc)
   }, [])
 
-  const confirmDeleteDocument = useCallback(async () => {
-    if (!docToDelete) return
-    const targetDoc = docToDelete
+  const confirmArchiveDocument = useCallback(async () => {
+    if (!docToArchive) return
+    const targetDoc = docToArchive
+    const id = targetDoc.id || targetDoc.bol_number
+    const bolNum = targetDoc.bol_number || targetDoc.id
+    setIsArchiving(true)
+    const toastId = toast.loading(`Archiving ${bolNum}...`)
+    try {
+      const result = await archiveBol(id)
+      if (!result.success) {
+        throw new Error(result.error || "Failed to archive BOL")
+      }
+
+      // Update in local state
+      startTransition(() => {
+        setDocuments((prev) =>
+          prev.map((d) => {
+            const matches = (d.id && (d.id === id || d.id === bolNum)) || (d.bol_number && (d.bol_number === id || d.bol_number === bolNum))
+            if (matches) {
+              return { ...d, isArchived: true, status: "archived", archived_at: result.archivedAt }
+            }
+            return d
+          })
+        )
+        // Also remove from latest top BOLs
+        setApiLatestTopBOLs((prev) =>
+          prev.filter((d) => {
+            const matches = (d.id && (d.id === id || d.id === bolNum)) || (d.bol_number && (d.bol_number === id || d.bol_number === bolNum))
+            return !matches
+          })
+        )
+      })
+
+      toast.success(`Bill of Lading ${bolNum} moved to Archive`, {
+        id: toastId,
+        description: "Document preserved safely. It can be restored anytime from Archived filter.",
+      })
+      setDocToArchive(null)
+    } catch (err: any) {
+      console.error("Archive error:", err)
+      toast.error(err?.message || "Could not archive document", { id: toastId })
+    } finally {
+      setIsArchiving(false)
+    }
+  }, [docToArchive])
+
+  const handleRestore = useCallback(async (doc: SavedDocument) => {
+    const id = doc.id || doc.bol_number
+    const bolNum = doc.bol_number || doc.id
+    const toastId = toast.loading(`Restoring ${bolNum}...`)
+    try {
+      const result = await restoreBol(id)
+      if (!result.success) {
+        throw new Error(result.error || "Failed to restore BOL")
+      }
+
+      startTransition(() => {
+        setDocuments((prev) =>
+          prev.map((d) => {
+            const matches = (d.id && (d.id === id || d.id === bolNum)) || (d.bol_number && (d.bol_number === id || d.bol_number === bolNum))
+            if (matches) {
+              return { ...d, isArchived: false, status: "active", archived_at: null }
+            }
+            return d
+          })
+        )
+      })
+
+      toast.success(`Bill of Lading ${bolNum} Restored to Active!`, {
+        id: toastId,
+        description: "Record is now active and accessible in all active lists.",
+      })
+    } catch (err: any) {
+      console.error("Restore error:", err)
+      toast.error(err?.message || "Could not restore document", { id: toastId })
+    }
+  }, [])
+
+  const handleHardDelete = useCallback(async (doc: SavedDocument, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation()
+    setHardDeleteBlocker(null)
+    setDocToHardDelete(doc)
+
+    // Check financial ledgers proactively
+    try {
+      const rawRecords = window.localStorage.getItem("skybol:account-ledgers") || window.localStorage.getItem("skybol_account_ledger_records")
+      if (rawRecords) {
+        const records = JSON.parse(rawRecords)
+        const targetNum = (doc.bol_number || doc.id || "").trim()
+        const targetId = (doc.id || "").trim()
+        let count = 0
+        const details: string[] = []
+        for (const company in records) {
+          if (Array.isArray(records[company])) {
+            for (const row of records[company]) {
+              const rowBol = (row.barnamehNo || row.bolNo || row.bol_number || "").trim()
+              if (rowBol && (rowBol === targetNum || rowBol === targetId)) {
+                count++
+                details.push(`[${company}] Date: ${row.date || "N/A"}, Cargo: ${row.goodsDescription || row.cargo || "N/A"}`)
+              }
+            }
+          }
+        }
+        if (count > 0) {
+          setHardDeleteBlocker({
+            blocked: true,
+            count,
+            details: details.slice(0, 5),
+            message: `Found ${count} financial ledger entries linked to ${targetNum}. Hard delete is blocked to protect accounting invariance.`,
+          })
+        }
+      }
+    } catch (_) {}
+  }, [])
+
+  const confirmHardDeleteDocument = useCallback(async () => {
+    if (!docToHardDelete) return
+    const targetDoc = docToHardDelete
     const id = targetDoc.id || targetDoc.bol_number
     const bolNum = targetDoc.bol_number || targetDoc.id
 
-    setDeletingId(id)
+    setIsHardDeleting(true)
+    const toastId = toast.loading(`Permanently deleting ${bolNum}...`)
     try {
       // 1. Call backend API with both id and bol_number
-      try {
-        if (id) await fetch(`/api/bol/${encodeURIComponent(id)}`, { method: "DELETE" })
-      } catch (e) {}
+      const res = await fetch(`/api/bol/${encodeURIComponent(id)}`, { method: "DELETE" })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        if (json.blocked) {
+          setHardDeleteBlocker({
+            blocked: true,
+            count: json.ledgerCount || 1,
+            details: json.details || [],
+            message: json.message || "Financial ledger records detected.",
+          })
+          toast.error("Deletion Blocked by Financial Ledgers", {
+            id: toastId,
+            description: json.message || "BOL is linked to active accounting ledger transactions.",
+          })
+          return
+        }
+        throw new Error(json.error || `HTTP ${res.status}`)
+      }
+
       if (bolNum && bolNum !== id) {
         try {
           await fetch(`/api/bol/${encodeURIComponent(bolNum)}`, { method: "DELETE" })
-        } catch (e) {}
+        } catch (_) {}
       }
 
       // 2. Immediately purge from all browser localStorage stores
@@ -1153,41 +1362,23 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               window.localStorage.setItem(k, JSON.stringify(updated))
             }
           }
-        } catch (e) {}
+        } catch (_) {}
       }
 
-      // Also remove associated record from Account Ledger
+      // 3. Remove draft key if present
       try {
-        const rawRecords = window.localStorage.getItem("skybol:account-ledgers") || window.localStorage.getItem("skybol_account_ledger_records")
-        if (rawRecords) {
-          const records = JSON.parse(rawRecords)
-          const updatedRecords: Record<string, any[]> = {}
-          for (const key in records) {
-            if (Array.isArray(records[key])) {
-              updatedRecords[key] = records[key].filter(
-                (row: any) => (row.barnamehNo || row.bolNo || "").trim() !== bolNum && (row.barnamehNo || row.bolNo || "").trim() !== id
-              )
-            }
-          }
-          window.localStorage.setItem("skybol:account-ledgers", JSON.stringify(updatedRecords))
-          window.localStorage.setItem("skybol_account_ledger_records", JSON.stringify(updatedRecords))
-        }
-      } catch (e) {}
+        window.localStorage.removeItem(`skybol:draft:${bolNum}`)
+        window.localStorage.removeItem(`skybol:draft:${id}`)
+      } catch (_) {}
 
-      // Also remove from document categories
-      try {
-        const catRaw = window.localStorage.getItem(DOCUMENT_CATEGORY_STORAGE_KEY)
-        if (catRaw) {
-          const cats = JSON.parse(catRaw)
-          delete cats[id]
-          if (bolNum) delete cats[bolNum]
-          window.localStorage.setItem(DOCUMENT_CATEGORY_STORAGE_KEY, JSON.stringify(cats))
-        }
-      } catch (e) {}
-
-      // 3. Update React state immediately
+      // 4. Update React state immediately
       startTransition(() => {
         setDocuments((prev) => prev.filter((doc) => {
+          const dId = doc.id || doc.bol_number
+          const dNum = doc.bol_number
+          return dId !== id && dNum !== id && dId !== bolNum && dNum !== bolNum
+        }))
+        setApiLatestTopBOLs((prev) => prev.filter((doc) => {
           const dId = doc.id || doc.bol_number
           const dNum = doc.bol_number
           return dId !== id && dNum !== id && dId !== bolNum && dNum !== bolNum
@@ -1195,15 +1386,22 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       })
 
       window.dispatchEvent(new CustomEvent("skybol:documents-updated", { detail: { deletedId: id, deletedBol: bolNum } }))
-      toast.success(`Bill of Lading ${bolNum} deleted successfully`)
-      setDocToDelete(null)
-    } catch (error) {
+      toast.success(`Bill of Lading ${bolNum} permanently deleted`, { id: toastId })
+      setDocToHardDelete(null)
+      setHardDeleteBlocker(null)
+    } catch (error: any) {
       console.error("Error deleting document:", error)
-      toast.error("Could not delete document")
+      toast.error(error?.message || "Could not delete document", { id: toastId })
     } finally {
-      setDeletingId(null)
+      setIsHardDeleting(false)
     }
-  }, [docToDelete])
+  }, [docToHardDelete])
+
+  // Default delete behavior on cards/tables triggers safe Archive
+  const handleDelete = useCallback((doc: SavedDocument, event: React.MouseEvent) => {
+    event.stopPropagation()
+    handleArchive(doc, event)
+  }, [handleArchive])
 
   const handleDeleteEmptyBOLs = useCallback(async () => {
     const emptyDocs = documents.filter((doc) => !isMeaningfulBOL(doc))
@@ -1299,44 +1497,40 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   }, [fetchDocuments])
 
   const handleDuplicate = useCallback(async (doc: SavedDocument) => {
+    if (isDuplicating) return
+    setIsDuplicating(true)
     const toastId = toast.loading("Duplicating BOL...", {
-      description: "Fetching next auto BOL number...",
+      description: "Allocating official sequence & isolating draft...",
     })
     try {
-      const response = await fetch("/api/bol?action=next-number")
-      const result = await response.json()
-      const newBolNumber = result.bolNumber || "BOL-2026-NSA626"
+      const res = await duplicateBol(doc, {
+        actor: currentUser?.username || "admin",
+        navigateOnComplete: false,
+      })
 
-      const clonedDoc = {
-        ...doc,
-        id: newBolNumber,
-        bol_number: newBolNumber,
-        issue_date: new Date().toISOString().split("T")[0],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+      if (!res.success || !res.newDoc) {
+        throw new Error(res.error || "Duplication failed")
       }
 
-      // Pre-seed local storage so loadDocument immediately finds the cloned data
-      try {
-        const storedLocal = window.localStorage.getItem("sky-bol-browser-documents")
-        const clientLocalDocs: any[] = storedLocal ? JSON.parse(storedLocal) : []
-        const nextList = [clonedDoc, ...clientLocalDocs.filter((d) => d.id !== newBolNumber && d.bol_number !== newBolNumber)]
-        window.localStorage.setItem("sky-bol-browser-documents", JSON.stringify(nextList))
-      } catch (err) {
-        console.error("Local storage error during duplication:", err)
-      }
-
+      const newDoc = res.newDoc
       startTransition(() => {
-        onLoadDocument(newBolNumber, "form")
+        setDocuments((prev) => [newDoc, ...prev])
+        setApiLatestTopBOLs((prev) => [newDoc, ...prev])
       })
-      toast.success(`Cloned as ${newBolNumber}!`, {
+
+      toast.success(`Duplicated as ${res.newBolNumber}!`, {
         id: toastId,
-        description: "Document pre-filled with party and route info. Review and click Save.",
+        description: "Official sequence allocated. Document isolated in draft storage. Opening in editor...",
       })
-    } catch (e) {
-      toast.error("Failed to duplicate document", { id: toastId })
+
+      onLoadDocument(res.newBolNumber, "form")
+    } catch (e: any) {
+      console.error("Duplicate failed:", e)
+      toast.error(e?.message || "Failed to duplicate document", { id: toastId })
+    } finally {
+      setIsDuplicating(false)
     }
-  }, [onLoadDocument])
+  }, [currentUser, isDuplicating, onLoadDocument])
 
   const openUploadedPDF = useCallback(async (doc: SavedDocument) => {
     if (!doc.pdf_url) {
@@ -1364,24 +1558,36 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   }, [])
 
   // Direct Download of BOL PDF File
+  // Direct Download of BOL PDF File
   const downloadBOLPDF = useCallback(async (doc: SavedDocument) => {
-    setDownloadingPdfId(doc.id)
+    const canonicalId = cleanBolNumber(doc.bol_number) || cleanBolNumber(doc.id) || doc.id || doc.bol_number
+    setDownloadingPdfId(doc.id || canonicalId)
     startTransition(() => {
-      onLoadDocument(doc.id, "preview")
-      window.dispatchEvent(new CustomEvent("skybol:editor-action", { detail: { action: "preview", tab: "preview" } }))
+      onLoadDocument(canonicalId, "preview")
     })
     
     toast.loading("Generating BOL PDF file...", { id: "doc-pdf-download" })
 
     setTimeout(async () => {
       try {
+        let fullRecord: any = doc
+        try {
+          const res = await fetch(`/api/bol/${encodeURIComponent(canonicalId)}`)
+          if (res.ok) {
+            const json = await res.json()
+            if (json?.data) {
+              fullRecord = normalizeBolRecord({ ...doc, ...json.data }, canonicalId)
+            }
+          }
+        } catch (_) {}
+
         const previewElement = document.querySelector('[data-pdf-export="true"]') as HTMLElement | null
         const shippingDocData = deriveShippingDocumentData(
-          doc as unknown as import("@/lib/types/bill-of-lading").BillOfLadingFormData,
-          doc.bol_number || doc.id,
-          doc.issue_date || "",
+          fullRecord as unknown as import("@/lib/types/bill-of-lading").BillOfLadingFormData,
+          fullRecord.bol_number || canonicalId,
+          fullRecord.issue_date || "",
         )
-        const fileName = buildBolSmartFileName(doc, doc.bol_number || doc.id, ".pdf")
+        const fileName = buildBolSmartFileName(fullRecord, fullRecord.bol_number || canonicalId, ".pdf")
         let pdfBlob: Blob
         try {
           pdfBlob = await generateShippingDocumentsPDF({
@@ -1398,10 +1604,10 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
             fileName,
             previewElement,
             modern: {
-              bolNumber: doc.bol_number || doc.id,
-              issueDate: doc.issue_date || "",
+              bolNumber: fullRecord.bol_number || canonicalId,
+              issueDate: fullRecord.issue_date || "",
               persianDateNumeric: "",
-              formData: doc as unknown as import("@/lib/types/bill-of-lading").BillOfLadingFormData,
+              formData: fullRecord as unknown as import("@/lib/types/bill-of-lading").BillOfLadingFormData,
               logoUrl: "/images/logo.png",
               companyName: "SKY ARIANA LIMITED",
               companyNamePersian: "شرکت حمل و نقل بین المللی سکای آریانا لمیتد",
@@ -1422,7 +1628,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       } catch (err) {
         console.error("Failed to download PDF:", err)
         if (typeof document !== "undefined") {
-          document.title = buildBolSmartFileName(doc, doc.bol_number || doc.id, "")
+          document.title = buildBolSmartFileName(doc, canonicalId, "")
           document.body.classList.remove("ledger-landscape-active")
           document.body.removeAttribute("data-print-mode")
           document.documentElement.removeAttribute("data-print-mode")
@@ -1448,26 +1654,31 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   }, [onLoadDocument])
 
   const viewBOLPreview = useCallback((doc: SavedDocument) => {
+    const canonicalId = cleanBolNumber(doc.bol_number) || cleanBolNumber(doc.id) || doc.id || doc.bol_number
     if (typeof document !== "undefined") {
-      document.title = buildBolSmartFileName(doc, doc.bol_number || doc.id, "")
+      document.title = buildBolSmartFileName(doc, canonicalId, "")
     }
     startTransition(() => {
-      onLoadDocument(doc.id || doc.bol_number, "preview")
-      window.dispatchEvent(new CustomEvent("skybol:editor-action", { detail: { action: "preview", tab: "preview" } }))
+      onLoadDocument(canonicalId, "preview")
     })
     toast.success("BOL preview opened", {
-      description: `${doc.bol_number || "Document"} loaded in A4 Preview.`,
+      description: `${doc.bol_number || canonicalId || "Document"} loaded in A4 Preview.`,
     })
   }, [onLoadDocument])
 
   const editBOL = useCallback((doc: SavedDocument) => {
+    const canonicalId = cleanBolNumber(doc.bol_number) || cleanBolNumber(doc.id) || doc.id || doc.bol_number
     if (typeof document !== "undefined") {
-      document.title = buildBolSmartFileName(doc, doc.bol_number || doc.id, "")
+      document.title = buildBolSmartFileName(doc, canonicalId, "")
     }
     startTransition(() => {
-      onLoadDocument(doc.id || doc.bol_number, "form")
-      window.dispatchEvent(new CustomEvent("skybol:editor-action", { detail: { action: "form", tab: "form" } }))
+      onLoadDocument(canonicalId, "form")
     })
+  }, [onLoadDocument])
+
+  const handleFiles = useCallback((doc: SavedDocument) => {
+    const canonicalId = cleanBolNumber(doc.bol_number) || cleanBolNumber(doc.id) || doc.id || doc.bol_number
+    onLoadDocument(canonicalId, "attachments")
   }, [onLoadDocument])
 
   const downloadDocumentJSON = useCallback(async (doc: SavedDocument) => {
@@ -1713,51 +1924,109 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
         </div>
 
         {/* Live Summary Analytics Metrics Ribbon */}
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <div className="rounded-2xl bg-gradient-to-br from-blue-500/10 via-white to-blue-500/5 border border-blue-200/90 p-3 shadow-2xs hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1">
-                <FileText className="h-3.5 w-3.5 text-blue-600" /> Total BOLs
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Card 1: Total BOLs */}
+          <div className="relative overflow-hidden rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/90 via-white to-blue-50/30 p-3.5 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all duration-200 group">
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+            <div className="flex items-center justify-between relative">
+              <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+                <span className="p-1 rounded-lg bg-blue-100/90 text-blue-700 shadow-2xs">
+                  <FileText className="h-3.5 w-3.5" />
+                </span>
+                Total BOLs
               </span>
-              <span className="text-[10px] font-bold text-blue-600/80 font-[vazirmatn]">مجموع بارنامه‌ها</span>
+              <span className="text-[10px] font-bold text-blue-700/90 bg-blue-100/70 px-2 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
+                مجموع بارنامه‌ها
+              </span>
             </div>
-            <p className="text-xl font-black text-slate-950 mt-1 font-mono">{summaryStats.count}</p>
+            <div className="mt-2 flex items-baseline justify-between relative">
+              <p className="text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans">
+                {summaryStats.count.toLocaleString()}
+              </p>
+              <span className="text-[10px] font-bold text-blue-700 bg-blue-100/90 px-2 py-0.5 rounded-md border border-blue-200/80">
+                100% Verified
+              </span>
+            </div>
           </div>
 
-          <div className="rounded-2xl bg-gradient-to-br from-indigo-500/10 via-white to-indigo-500/5 border border-indigo-200/90 p-3 shadow-2xs hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1">
-                <Boxes className="h-3.5 w-3.5 text-indigo-600" /> Packages
+          {/* Card 2: Packages */}
+          <div className="relative overflow-hidden rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/90 via-white to-indigo-50/30 p-3.5 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 group">
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+            <div className="flex items-center justify-between relative">
+              <span className="text-[11px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                <span className="p-1 rounded-lg bg-indigo-100/90 text-indigo-700 shadow-2xs">
+                  <Boxes className="h-3.5 w-3.5" />
+                </span>
+                Packages
               </span>
-              <span className="text-[10px] font-bold text-indigo-600/80 font-[vazirmatn]">مجموع بسته‌ها</span>
+              <span className="text-[10px] font-bold text-indigo-700/90 bg-indigo-100/70 px-2 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
+                مجموع بسته‌ها
+              </span>
             </div>
-            <p className="text-xl font-black text-slate-950 mt-1 font-mono truncate" title={summaryStats.packagesDisplay || `${summaryStats.totalPkgs.toLocaleString()} PKGS`}>
-              {summaryStats.packagesDisplay || (summaryStats.totalPkgs ? `${summaryStats.totalPkgs.toLocaleString()} PKGS` : "0 PKGS")}
-            </p>
+            <div className="mt-2 relative">
+              <div className="flex items-baseline justify-between">
+                <p className="text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans">
+                  {summaryStats.totalPkgs.toLocaleString()}
+                  <span className="text-xs font-black text-indigo-700 uppercase tracking-normal ml-1.5">PKGS</span>
+                </p>
+              </div>
+              <p className="text-[11px] font-bold text-indigo-700/90 mt-0.5 truncate" title={summaryStats.packagesDisplay}>
+                {summaryStats.packagesDisplay || "Cartons & Bags breakdown"}
+              </p>
+            </div>
           </div>
 
-          <div className="rounded-2xl bg-gradient-to-br from-amber-500/10 via-white to-orange-500/5 border border-amber-200/90 p-3 shadow-2xs hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1">
-                <Scale className="h-3.5 w-3.5 text-amber-700" /> Total Weight
+          {/* Card 3: Total Weight */}
+          <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/90 via-white to-orange-50/30 p-3.5 shadow-2xs hover:shadow-md hover:border-amber-300 transition-all duration-200 group">
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+            <div className="flex items-center justify-between relative">
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                <span className="p-1 rounded-lg bg-amber-100/90 text-amber-800 shadow-2xs">
+                  <Scale className="h-3.5 w-3.5" />
+                </span>
+                Total Weight
               </span>
-              <span className="text-[10px] font-bold text-amber-700/80 font-[vazirmatn]">مجموع وزن</span>
+              <span className="text-[10px] font-bold text-amber-800/90 bg-amber-100/70 px-2 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
+                مجموع وزن
+              </span>
             </div>
-            <p className="text-xl font-black text-slate-950 mt-1 font-mono">
-              {summaryStats.totalWeightKg ? `${summaryStats.totalWeightKg.toLocaleString()} KG` : "0 KG"}
-            </p>
+            <div className="mt-2 flex items-baseline justify-between relative">
+              <p className="text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans">
+                {summaryStats.totalWeightKg.toLocaleString()}
+                <span className="text-xs font-black text-amber-800 uppercase tracking-normal ml-1.5">KG</span>
+              </p>
+              {summaryStats.totalWeightKg > 0 && (
+                <span className="text-[10px] font-bold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-200/80">
+                  {(summaryStats.totalWeightKg / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} MT
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 via-white to-teal-500/5 border border-emerald-200/90 p-3 shadow-2xs hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5 text-emerald-700" /> Goods Value
+          {/* Card 4: Goods Value */}
+          <div className="relative overflow-hidden rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/30 p-3.5 shadow-2xs hover:shadow-md hover:border-emerald-300 transition-all duration-200 group">
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+            <div className="flex items-center justify-between relative">
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                <span className="p-1 rounded-lg bg-emerald-100/90 text-emerald-800 shadow-2xs">
+                  <DollarSign className="h-3.5 w-3.5" />
+                </span>
+                Goods Value
               </span>
-              <span className="text-[10px] font-bold text-emerald-700/80 font-[vazirmatn]">ارزش کالا</span>
+              <span className="text-[10px] font-bold text-emerald-800/90 bg-emerald-100/70 px-2 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
+                ارزش کالا
+              </span>
             </div>
-            <p className="text-xl font-black text-slate-950 mt-1 font-mono">
-              {summaryStats.totalValueUsd ? `$${summaryStats.totalValueUsd.toLocaleString()}` : "$0.00"}
-            </p>
+            <div className="mt-2 flex items-baseline justify-between relative">
+              <p className="text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans">
+                {Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(summaryStats.totalValueUsd)}
+              </p>
+              {summaryStats.count > 0 && summaryStats.totalValueUsd > 0 && (
+                <span className="text-[10px] font-bold text-emerald-900 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-200/80 hidden xl:inline-block">
+                  Avg ${(Math.round(summaryStats.totalValueUsd / summaryStats.count)).toLocaleString()}/BOL
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1781,6 +2050,60 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                 <X className="h-4 w-4" />
               </button>
             )}
+          </div>
+
+          {/* Status Filter Quick Pills (Active / Archived / All Records) */}
+          <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("active")}
+              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                statusFilter === "active"
+                  ? "bg-blue-600 text-white font-black shadow-xs"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
+              }`}
+            >
+              <span>Active</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                statusFilter === "active" ? "bg-white/20 text-white" : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+              }`}>
+                {activeCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("archived")}
+              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                statusFilter === "archived"
+                  ? "bg-amber-600 text-white font-black shadow-xs"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
+              }`}
+            >
+              <span>Archived</span>
+              {archivedCount > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  statusFilter === "archived" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                }`}>
+                  {archivedCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                statusFilter === "all"
+                  ? "bg-slate-700 text-white font-black shadow-xs"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
+              }`}
+            >
+              <span>All</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                statusFilter === "all" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200"
+              }`}>
+                {documents.length}
+              </span>
+            </button>
           </div>
 
           {/* Date Filter Quick Pills */}
@@ -1824,8 +2147,8 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               type="button"
               variant="outline"
               onClick={() => setIsCloudSyncModalOpen(true)}
-              className="h-8.5 rounded-xl border-blue-300 bg-blue-50/90 px-2.5 text-xs font-black text-blue-900 hover:bg-blue-100 shadow-2xs cursor-pointer flex items-center gap-1"
-              title="Cloud Sync: Upload/Download all 58 BOLs and ledgers across all devices & browsers"
+              className="h-8.5 rounded-xl border-blue-300 bg-blue-50/90 px-2.5 text-xs font-black text-blue-900 hover:bg-blue-100 shadow-2xs cursor-pointer flex items-center gap-1 active:scale-98 transition-all"
+              title="Cloud Sync: Upload & download verified BOL documents and ledgers across all devices & browsers"
             >
               <Cloud className="h-3.5 w-3.5 text-blue-600 shrink-0" />
               <span>Cloud Sync</span>
@@ -2280,7 +2603,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                       <DocumentGridCard
                         key={doc.id || doc.bol_number}
                         doc={doc}
-                        isLatest={idx < 2 && sortBy === "latest"}
+                        isLatest={idx < 2 && sortBy === "latest" && !doc.isArchived && doc.status !== "archived"}
                         hasUploadedPdf={Boolean(doc.pdf_url)}
                         invoiceNo={extractInvoiceNo(doc)}
                         assignedCategory={getAssignedCategory(doc)}
@@ -2293,7 +2616,11 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                         onPreview={viewBOLPreview}
                         onDuplicate={handleDuplicate}
                         onOpenPdf={openUploadedPDF}
-                        onDelete={handleDelete}
+                        onDelete={handleArchive}
+                        onArchive={handleArchive}
+                        onRestore={handleRestore}
+                        onHardDelete={handleHardDelete}
+                        onFiles={handleFiles}
                         onCategoryAssign={assignDocumentCategory}
                         onFileInput={handleFileInput}
                         isSelected={selectedDocIds.includes(doc.id || doc.bol_number)}
@@ -2325,12 +2652,17 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-black text-slate-900 dark:text-white text-sm">{getCleanBolNumber(doc)}</span>
+                            {(doc.isArchived || doc.status === "archived") && (
+                              <span className="px-2 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500/50 text-[10px] font-black uppercase tracking-wider">
+                                ARCHIVED
+                              </span>
+                            )}
                             {invoiceNo && (
                               <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-[10px] font-black font-mono">
                                 INV: {invoiceNo}
                               </span>
                             )}
-                            {isLatest && (
+                            {isLatest && !doc.isArchived && doc.status !== "archived" && (
                               <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black">
                                 LATEST
                               </span>
@@ -2388,61 +2720,102 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                       </div>
 
                       <div className="flex items-center gap-2 flex-wrap shrink-0">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => editBOL(doc)}
-                          className="h-9 px-3 rounded-xl bg-blue-600 text-white font-extrabold text-xs cursor-pointer shadow-xs hover:bg-blue-700 active:scale-95"
-                        >
-                          <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
-                        </Button>
+                        {(doc.isArchived || doc.status === "archived") ? (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => viewBOLPreview(doc)}
+                              className="h-9 px-3 rounded-xl bg-slate-800 text-white font-extrabold text-xs cursor-pointer shadow-xs hover:bg-slate-700 active:scale-95"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1" /> View BOL
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => handleRestore(doc)}
+                              className="h-9 px-3 rounded-xl bg-emerald-600 text-white font-extrabold text-xs cursor-pointer shadow-xs hover:bg-emerald-700 active:scale-95"
+                              title="Restore to Active list"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Restore
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleFiles(doc)}
+                              className="h-9 px-3 rounded-xl border-cyan-300 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/60 text-cyan-900 dark:text-cyan-200 font-black text-xs cursor-pointer hover:bg-cyan-100 dark:hover:bg-cyan-900/60"
+                              title="Shipment Folder & Files"
+                            >
+                              <FolderArchive className="w-3.5 h-3.5 mr-1 text-cyan-600 dark:text-cyan-400" /> Files
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => handleHardDelete(doc, e)}
+                              disabled={isHardDeleting && docToHardDelete?.id === (doc.id || doc.bol_number)}
+                              className="h-9 w-9 p-0 rounded-xl border-red-200/80 dark:border-red-800/70 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 font-black text-xs cursor-pointer flex items-center justify-center"
+                              title="Permanent Delete (Danger Zone)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => editBOL(doc)}
+                              className="h-9 px-3 rounded-xl bg-blue-600 text-white font-extrabold text-xs cursor-pointer shadow-xs hover:bg-blue-700 active:scale-95"
+                            >
+                              <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                            </Button>
 
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onLoadDocument(doc.id || doc.bol_number, "attachments")}
-                          className="h-9 px-3 rounded-xl border-cyan-300 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/60 text-cyan-900 dark:text-cyan-200 font-black text-xs cursor-pointer hover:bg-cyan-100 dark:hover:bg-cyan-900/60"
-                          title="Digital Shipment Folder & Attachments"
-                        >
-                          <FolderArchive className="w-3.5 h-3.5 mr-1 text-cyan-600 dark:text-cyan-400" /> Files
-                        </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleFiles(doc)}
+                              className="h-9 px-3 rounded-xl border-cyan-300 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/60 text-cyan-900 dark:text-cyan-200 font-black text-xs cursor-pointer hover:bg-cyan-100 dark:hover:bg-cyan-900/60"
+                              title="Digital Shipment Folder & Attachments"
+                            >
+                              <FolderArchive className="w-3.5 h-3.5 mr-1 text-cyan-600 dark:text-cyan-400" /> Files
+                            </Button>
 
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => downloadBOLPDF(doc)}
-                          className="h-9 px-3 rounded-xl border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 font-black text-xs cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/60"
-                        >
-                          <FileDown className="w-3.5 h-3.5 mr-1 text-amber-600 dark:text-amber-400" /> Download PDF
-                        </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => downloadBOLPDF(doc)}
+                              className="h-9 px-3 rounded-xl border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 font-black text-xs cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/60"
+                            >
+                              <FileDown className="w-3.5 h-3.5 mr-1 text-amber-600 dark:text-amber-400" /> Download PDF
+                            </Button>
 
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => viewBOLPreview(doc)}
-                          className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1" /> Preview
-                        </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => viewBOLPreview(doc)}
+                              className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1" /> Preview
+                            </Button>
 
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => handleDelete(doc, e)}
-                          disabled={deletingId === (doc.id || doc.bol_number)}
-                          className="h-9 w-9 p-0 rounded-xl border-red-200/80 dark:border-red-800/70 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 font-black text-xs cursor-pointer flex items-center justify-center"
-                          title="Delete Bill of Lading"
-                        >
-                          {deletingId === (doc.id || doc.bol_number) ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
-                          )}
-                        </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => handleArchive(doc, e)}
+                              disabled={isArchiving && docToArchive?.id === (doc.id || doc.bol_number)}
+                              className="h-9 w-9 p-0 rounded-xl border-amber-200/80 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 font-black text-xs cursor-pointer flex items-center justify-center"
+                              title="Archive Bill of Lading"
+                            >
+                              <Archive className="w-3.5 h-3.5" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   )
@@ -2479,12 +2852,17 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                           <td className="p-3.5 font-black text-blue-900 dark:text-blue-300">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span>{getCleanBolNumber(doc)}</span>
+                              {(doc.isArchived || doc.status === "archived") && (
+                                <span className="px-1.5 py-0.5 rounded bg-slate-900 text-amber-300 border border-amber-500/50 text-[9px] font-black uppercase tracking-wider">
+                                  ARCHIVED
+                                </span>
+                              )}
                               {invoiceNo && (
                                 <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[9.5px] font-mono font-bold">
                                   {invoiceNo}
                                 </span>
                               )}
-                              {isLatest && (
+                              {isLatest && !doc.isArchived && doc.status !== "archived" && (
                                 <span className="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 text-[9px] font-black">
                                   LATEST
                                 </span>
@@ -2558,63 +2936,105 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                           </td>
                           <td className="p-3.5 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => editBOL(doc)}
-                                className="h-8 px-2.5 rounded-lg bg-blue-600 text-white font-extrabold text-xs cursor-pointer shadow-xs hover:bg-blue-700"
-                              >
-                                <Pencil className="w-3 h-3 mr-1" /> Edit
-                              </Button>
+                              {(doc.isArchived || doc.status === "archived") ? (
+                                <>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => viewBOLPreview(doc)}
+                                    className="h-8 px-2.5 rounded-lg bg-slate-800 text-white font-extrabold text-xs cursor-pointer shadow-xs hover:bg-slate-700"
+                                    title="View BOL Preview"
+                                  >
+                                    <Eye className="w-3 h-3 mr-1" /> View
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => handleRestore(doc)}
+                                    className="h-8 px-2.5 rounded-lg bg-emerald-600 text-white font-extrabold text-xs cursor-pointer shadow-xs hover:bg-emerald-700"
+                                    title="Restore to Active"
+                                  >
+                                    <RotateCcw className="w-3 h-3 mr-1" /> Restore
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onLoadDocument(doc.id || doc.bol_number, "attachments")}
+                                    className="h-8 px-2 rounded-lg border-cyan-300 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/60 text-cyan-900 dark:text-cyan-200 font-black text-xs cursor-pointer"
+                                    title="Digital Shipment Folder"
+                                  >
+                                    <FolderArchive className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => handleHardDelete(doc, e)}
+                                    disabled={isHardDeleting && docToHardDelete?.id === (doc.id || doc.bol_number)}
+                                    className="h-8 w-8 p-0 rounded-lg border-red-200/80 dark:border-red-800/70 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 hover:bg-red-100 font-black text-xs cursor-pointer flex items-center justify-center"
+                                    title="Permanent Delete (Danger Zone)"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => editBOL(doc)}
+                                    className="h-8 px-2.5 rounded-lg bg-blue-600 text-white font-extrabold text-xs cursor-pointer shadow-xs hover:bg-blue-700"
+                                  >
+                                    <Pencil className="w-3 h-3 mr-1" /> Edit
+                                  </Button>
 
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => onLoadDocument(doc.id || doc.bol_number, "attachments")}
-                                className="h-8 px-2 rounded-lg border-cyan-300 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/60 text-cyan-900 dark:text-cyan-200 font-black text-xs cursor-pointer"
-                                title="Digital Shipment Folder"
-                              >
-                                <FolderArchive className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
-                              </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onLoadDocument(doc.id || doc.bol_number, "attachments")}
+                                    className="h-8 px-2 rounded-lg border-cyan-300 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/60 text-cyan-900 dark:text-cyan-200 font-black text-xs cursor-pointer"
+                                    title="Digital Shipment Folder"
+                                  >
+                                    <FolderArchive className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                                  </Button>
 
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => downloadBOLPDF(doc)}
-                                className="h-8 px-2 rounded-lg border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 font-black text-xs cursor-pointer"
-                                title="Download PDF"
-                              >
-                                <FileDown className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                              </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => downloadBOLPDF(doc)}
+                                    className="h-8 px-2 rounded-lg border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 font-black text-xs cursor-pointer"
+                                    title="Download PDF"
+                                  >
+                                    <FileDown className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                  </Button>
 
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => viewBOLPreview(doc)}
-                                className="h-8 px-2 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs cursor-pointer"
-                                title="Preview"
-                              >
-                                <Eye className="w-3 h-3" />
-                              </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => viewBOLPreview(doc)}
+                                    className="h-8 px-2 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs cursor-pointer"
+                                    title="Preview"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                  </Button>
 
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => handleDelete(doc, e)}
-                                disabled={deletingId === (doc.id || doc.bol_number)}
-                                className="h-8 w-8 p-0 rounded-lg border-red-200/80 dark:border-red-800/70 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 hover:bg-red-100 font-black text-xs cursor-pointer flex items-center justify-center"
-                                title="Delete Bill of Lading"
-                              >
-                                {deletingId === (doc.id || doc.bol_number) ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-3 h-3" />
-                                )}
-                              </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => handleArchive(doc, e)}
+                                    disabled={isArchiving && docToArchive?.id === (doc.id || doc.bol_number)}
+                                    className="h-8 w-8 p-0 rounded-lg border-amber-200/80 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 hover:bg-amber-100 font-black text-xs cursor-pointer flex items-center justify-center"
+                                    title="Archive Bill of Lading"
+                                  >
+                                    <Archive className="w-3 h-3" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -2705,24 +3125,24 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
         onSyncComplete={fetchDocuments}
       />
 
-      {/* Delete Confirmation Modal (Yes / No) */}
-      {docToDelete && (
+      {/* Archive Confirmation Modal */}
+      {docToArchive && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={() => !deletingId && setDocToDelete(null)}
+          onClick={() => !isArchiving && setDocToArchive(null)}
         >
           <div 
             className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100">
-              <div className="p-3.5 rounded-2xl bg-red-50 text-red-600 border border-red-200/80 shadow-sm shrink-0">
-                <Trash2 className="w-7 h-7 text-red-600" />
+              <div className="p-3.5 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200/80 shadow-sm shrink-0">
+                <Archive className="w-7 h-7 text-amber-600" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-lg font-black text-slate-900 tracking-tight">Delete Bill of Lading?</h3>
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">Archive Bill of Lading?</h3>
                 <p className="text-xs text-slate-500 font-[vazirmatn] font-bold" dir="rtl">
-                  آیا از حذف این بارنامه اطمینان کامل دارید؟
+                  آیا می‌خواهید این بارنامه را بایگانی (آرشیو) کنید؟
                 </p>
               </div>
             </div>
@@ -2731,35 +3151,36 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500 font-bold">BOL Number / شماره بارنامه:</span>
                 <span className="font-mono font-black text-blue-900 text-sm bg-white px-3 py-1 rounded-xl border border-slate-200 shadow-xs">
-                  {docToDelete.bol_number || docToDelete.id}
+                  {docToArchive.bol_number || docToArchive.id}
                 </span>
               </div>
-              {docToDelete.shipper_name && (
+              {docToArchive.shipper_name && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-bold">Shipper / ارسال کننده:</span>
-                  <span className="font-black text-slate-900 truncate max-w-[260px]">{docToDelete.shipper_name}</span>
+                  <span className="font-black text-slate-900 truncate max-w-[260px]">{docToArchive.shipper_name}</span>
                 </div>
               )}
-              {docToDelete.consignee_name && (
+              {docToArchive.consignee_name && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-bold">Consignee / گیرنده:</span>
-                  <span className="font-bold text-slate-800 truncate max-w-[260px]">{docToDelete.consignee_name}</span>
+                  <span className="font-bold text-slate-800 truncate max-w-[260px]">{docToArchive.consignee_name}</span>
                 </div>
               )}
-              {docToDelete.issue_date && (
+              {docToArchive.issue_date && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-bold">Issue Date / تاریخ صدور:</span>
-                  <span className="font-mono font-bold text-slate-700">{docToDelete.issue_date}</span>
+                  <span className="font-mono font-bold text-slate-700">{docToArchive.issue_date}</span>
                 </div>
               )}
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-950 text-xs font-medium space-y-1">
-              <p className="font-bold text-amber-900 flex items-center gap-1.5">
-                <span>⚠️ Warning / هشدار</span>
+            <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-950 text-xs font-medium space-y-1">
+              <p className="font-bold text-blue-900 flex items-center gap-1.5">
+                <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>Safe & Reversible / اقدام قابل بازگشت و ایمن</span>
               </p>
-              <p className="text-[11.5px] leading-relaxed text-amber-800">
-                This document will be permanently removed from cloud database and offline storage.
+              <p className="text-[11.5px] leading-relaxed text-blue-800">
+                Archiving hides this BOL from daily active lists and latest creations, but safely retains all transaction records, financial ledgers, and attached PDFs. You can restore it anytime from the <strong>Archived</strong> filter.
               </p>
             </div>
 
@@ -2767,30 +3188,160 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               <Button
                 type="button"
                 variant="outline"
-                disabled={Boolean(deletingId)}
-                onClick={() => setDocToDelete(null)}
+                disabled={isArchiving}
+                onClick={() => setDocToArchive(null)}
                 className="h-11 px-5 rounded-2xl border-slate-300 font-bold text-xs cursor-pointer hover:bg-slate-100 text-slate-700"
               >
-                ✕ No, Cancel / انصراف
+                ✕ Cancel / انصراف
               </Button>
               <Button
                 type="button"
-                onClick={confirmDeleteDocument}
-                disabled={Boolean(deletingId)}
-                className="h-11 px-6 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-xs cursor-pointer shadow-lg shadow-red-600/25 flex items-center gap-2"
+                onClick={confirmArchiveDocument}
+                disabled={isArchiving}
+                className="h-11 px-6 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs cursor-pointer shadow-lg shadow-amber-600/25 flex items-center gap-2"
               >
-                {deletingId ? (
+                {isArchiving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Deleting / در حال حذف...</span>
+                    <span>Archiving / در حال بایگانی...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4" />
-                    <span>✓ Yes, Delete / بله، حذف شود</span>
+                    <Archive className="w-4 h-4" />
+                    <span>✓ Archive BOL / بایگانی شود</span>
                   </>
                 )}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Danger Zone Hard Delete Modal */}
+      {docToHardDelete && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => !isHardDeleting && setDocToHardDelete(null)}
+        >
+          <div 
+            className="w-full max-w-lg bg-white rounded-3xl border border-red-200 shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3.5 pb-4 border-b border-red-100">
+              <div className="p-3.5 rounded-2xl bg-red-100 text-red-600 border border-red-200/80 shadow-sm shrink-0">
+                <Trash2 className="w-7 h-7 text-red-600" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-black text-red-600 tracking-tight">Danger Zone: Permanent Delete</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase">
+                    IRREVERSIBLE
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-[vazirmatn] font-bold" dir="rtl">
+                  حذف دائمی و غیرقابل بازگشت بارنامه
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500 font-bold">BOL Number / شماره بارنامه:</span>
+                <span className="font-mono font-black text-red-900 text-sm bg-white px-3 py-1 rounded-xl border border-red-200 shadow-xs">
+                  {docToHardDelete.bol_number || docToHardDelete.id}
+                </span>
+              </div>
+              {docToHardDelete.shipper_name && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-bold">Shipper / ارسال کننده:</span>
+                  <span className="font-black text-slate-900 truncate max-w-[260px]">{docToHardDelete.shipper_name}</span>
+                </div>
+              )}
+              {docToHardDelete.consignee_name && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-bold">Consignee / گیرنده:</span>
+                  <span className="font-bold text-slate-800 truncate max-w-[260px]">{docToHardDelete.consignee_name}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Financial Ledger Blocker Alert */}
+            {hardDeleteBlocker ? (
+              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 space-y-2">
+                <div className="flex items-center gap-2 font-black text-xs text-rose-800">
+                  <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0" />
+                  <span>Financial Ledger Protection Active</span>
+                </div>
+                <p className="text-xs leading-relaxed text-rose-900">
+                  This Bill of Lading is linked to <strong>{hardDeleteBlocker.count} transaction(s)</strong> in the financial account ledgers. Deleting it would break accounting invariance (<em>Net Balance = Total Debit - Total Credit</em>).
+                </p>
+                {hardDeleteBlocker.details && hardDeleteBlocker.details.length > 0 && (
+                  <ul className="text-[11px] list-disc list-inside space-y-0.5 text-rose-800 bg-rose-100/70 p-2 rounded-xl font-mono">
+                    {hardDeleteBlocker.details.map((d, i) => (
+                      <li key={i} className="truncate">{d}</li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-xs font-semibold text-rose-950 pt-1">
+                  💡 Recommendation: <strong>Archive this BOL instead</strong>. It will be removed from view without corrupting your company ledger balance.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 text-xs font-medium space-y-1">
+                <p className="font-bold text-amber-900 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Warning / هشدار غیرقابل بازگشت</span>
+                </p>
+                <p className="text-[11.5px] leading-relaxed text-amber-800">
+                  This document will be permanently deleted from the database and all local devices. This action cannot be undone.
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isHardDeleting}
+                onClick={() => setDocToHardDelete(null)}
+                className="h-11 px-5 rounded-2xl border-slate-300 font-bold text-xs cursor-pointer hover:bg-slate-100 text-slate-700"
+              >
+                ✕ Cancel / انصراف
+              </Button>
+              {hardDeleteBlocker ? (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const target = docToHardDelete
+                    setDocToHardDelete(null)
+                    setHardDeleteBlocker(null)
+                    if (target) handleArchive(target)
+                  }}
+                  className="h-11 px-6 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs cursor-pointer shadow-lg shadow-amber-600/25 flex items-center gap-2"
+                >
+                  <Archive className="w-4 h-4" />
+                  <span>Archive Instead (Recommended)</span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={confirmHardDeleteDocument}
+                  disabled={isHardDeleting}
+                  className="h-11 px-6 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-xs cursor-pointer shadow-lg shadow-red-600/25 flex items-center gap-2"
+                >
+                  {isHardDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Deleting permanently...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Permanently Delete / حذف دائم</span>
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>

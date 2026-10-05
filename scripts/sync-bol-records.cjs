@@ -46,6 +46,61 @@ localBols.forEach(b => {
   }
 });
 
+function parseCartons(val) {
+  if (typeof val === 'number') return val;
+  const m = String(val || '').replace(/,/g, '').match(/\d+/);
+  return m ? parseInt(m[0], 10) : 0;
+}
+
+function parseWeight(val) {
+  if (typeof val === 'number') return val;
+  const m = String(val || '').replace(/,/g, '').match(/[\d.]+/);
+  return m ? parseFloat(m[0]) : 0.0;
+}
+
+function parseRent(val) {
+  const str = String(val || '');
+  const m = str.replace(/,/g, '').match(/[\d.]+/);
+  const amt = m ? parseFloat(m[0]) : 0.0;
+  const curr = str.toUpperCase().includes('AFN') ? 'AFN' : 'USD';
+  return { amount: amt, currency: curr };
+}
+
+// Build unified list of all BOLs to sync
+const stagingNums = new Set(stagingBols.map(b => (b.bolNumber || '').trim()));
+const allBolsToSync = [...stagingBols];
+
+for (const localDoc of localBols) {
+  const num = (localDoc.bol_number || localDoc.billOfLadingNumber || localDoc.bolNo || localDoc.id || '').trim();
+  if (num && !stagingNums.has(num)) {
+    const rent = parseRent(localDoc.driver_rent || localDoc.driverFreight);
+    allBolsToSync.push({
+      id: localDoc.id || num,
+      bolNumber: num,
+      issueDate: localDoc.issue_date || localDoc.issueDate,
+      shipperName: localDoc.shipper_name || localDoc.shipperName,
+      consigneeName: localDoc.consignee_name || localDoc.consigneeName,
+      notifyParty: localDoc.notify_party || localDoc.notifyParty,
+      truckNumber: localDoc.truck_number || localDoc.truckNumber,
+      driverName: localDoc.driver_name || localDoc.driverName,
+      origin: localDoc.port_of_loading || 'Kandahar, Afghanistan',
+      destination: localDoc.destination || localDoc.port_of_discharge || 'India',
+      borderCrossing: localDoc.borderCrossing || 'Dogharoon / Islam Qala',
+      cargo: {
+        description: localDoc.cargo_description || localDoc.cargoDescription || '',
+        packagesCount: parseCartons(localDoc.number_of_packages || localDoc.numberOfPackages || localDoc.carton_count),
+        grossWeightKg: parseWeight(localDoc.gross_weight || localDoc.grossWeight),
+        netWeightKg: parseWeight(localDoc.net_weight || localDoc.netWeight),
+      },
+      driverRent: rent,
+      quarantined: false,
+      createdAt: localDoc.created_at || localDoc.createdAt,
+      updatedAt: localDoc.updated_at || localDoc.updatedAt,
+    });
+  }
+}
+console.log(`📋 Total BOLs to sync to SQLite: ${allBolsToSync.length} (${stagingBols.length} staging + ${allBolsToSync.length - stagingBols.length} local newer)\n`);
+
 function syncBolRecordsToDb(dbFilePath) {
   if (!fs.existsSync(dbFilePath)) {
     console.log(`⚠️ Database file ${dbFilePath} does not exist. Skipping.`);
@@ -98,6 +153,13 @@ function syncBolRecordsToDb(dbFilePath) {
     if (c.name) existingConsignees.set(c.name.trim(), c.id);
   });
 
+  // Pre-load existing notify parties
+  const existingNotifyParties = new Map();
+  const notifyPartyRows = db.prepare('SELECT id, name FROM notify_parties').all();
+  notifyPartyRows.forEach(n => {
+    if (n.name) existingNotifyParties.set(n.name.trim(), n.id);
+  });
+
   // Pre-load existing bol_records
   const existingBolRecords = new Map();
   const bolRecordRows = db.prepare('SELECT id, bol_number FROM bol_records').all();
@@ -113,6 +175,30 @@ function syncBolRecordsToDb(dbFilePath) {
       id, truck_number, driver_id, driver_name, container_number, tracking_number,
       destination, truck_model, capacity_tons, revision, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+  `);
+
+  const insertDriverStmt = db.prepare(`
+    INSERT INTO drivers (
+      id, driver_name, father_name, phone, is_active, revision, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, 1, 1, ?, ?)
+  `);
+
+  const insertShipperStmt = db.prepare(`
+    INSERT INTO shippers (
+      id, name, contact_person, phone, email, address, revision, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+  `);
+
+  const insertConsigneeStmt = db.prepare(`
+    INSERT INTO consignees (
+      id, name, contact_person, phone, email, address, revision, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+  `);
+
+  const insertNotifyPartyStmt = db.prepare(`
+    INSERT INTO notify_parties (
+      id, name, contact_person, phone, email, address, revision, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
   `);
 
   const updateBolRecordStmt = db.prepare(`
@@ -182,7 +268,7 @@ function syncBolRecordsToDb(dbFilePath) {
   db.exec('BEGIN TRANSACTION;');
 
   try {
-    for (const b of stagingBols) {
+    for (const b of allBolsToSync) {
       const bolNum = (b.bolNumber || '').trim();
       const localDoc = localMap.get(bolNum) || {};
 
@@ -214,14 +300,80 @@ function syncBolRecordsToDb(dbFilePath) {
 
       // 2. Driver resolution
       const driverName = (b.driverName || localDoc.driver_name || localDoc.driverName || 'Driver Unspecified').trim();
-      const driverId = existingDrivers.get(driverName) || null;
+      let driverId = existingDrivers.get(driverName) || null;
+      if (!driverId && driverName && driverName !== 'Driver Unspecified') {
+        driverId = generateUuid();
+        insertDriverStmt.run(
+          driverId,
+          driverName,
+          localDoc.driver_father_name || localDoc.driverFatherName || null,
+          localDoc.driver_contact || localDoc.driverPhone || null,
+          nowIso,
+          nowIso
+        );
+        existingDrivers.set(driverName, driverId);
+      }
 
       // 3. Parties
       const shipperName = b.shipperName || localDoc.shipper_name || localDoc.shipperName || null;
       const consigneeName = b.consigneeName || localDoc.consignee_name || localDoc.consigneeName || null;
       const notifyPartyName = b.notifyParty || localDoc.notify_party || localDoc.notifyParty || null;
-      const shipperId = shipperName ? (existingShippers.get(shipperName.trim()) || null) : null;
-      const consigneeId = consigneeName ? (existingConsignees.get(consigneeName.trim()) || null) : null;
+
+      let shipperId = shipperName ? (existingShippers.get(shipperName.trim()) || null) : null;
+      if (!shipperId && shipperName) {
+        shipperId = generateUuid();
+        insertShipperStmt.run(
+          shipperId,
+          shipperName.trim(),
+          null,
+          localDoc.shipper_contact || null,
+          localDoc.shipper_email || null,
+          localDoc.shipper_address || null,
+          nowIso,
+          nowIso
+        );
+        existingShippers.set(shipperName.trim(), shipperId);
+      }
+
+      let consigneeId = consigneeName ? (existingConsignees.get(consigneeName.trim()) || null) : null;
+      if (!consigneeId && consigneeName) {
+        for (const [cName, cId] of existingConsignees.entries()) {
+          if (consigneeName.includes(cName) || cName.includes(consigneeName)) {
+            consigneeId = cId;
+            break;
+          }
+        }
+        if (!consigneeId) {
+          consigneeId = generateUuid();
+          insertConsigneeStmt.run(
+            consigneeId,
+            consigneeName.trim(),
+            null,
+            localDoc.consignee_contact || null,
+            localDoc.consignee_email || null,
+            localDoc.consignee_address || null,
+            nowIso,
+            nowIso
+          );
+        }
+        existingConsignees.set(consigneeName.trim(), consigneeId);
+      }
+
+      let notifyPartyId = notifyPartyName ? (existingNotifyParties.get(notifyPartyName.trim()) || null) : null;
+      if (!notifyPartyId && notifyPartyName) {
+        notifyPartyId = generateUuid();
+        insertNotifyPartyStmt.run(
+          notifyPartyId,
+          notifyPartyName.trim(),
+          null,
+          null,
+          null,
+          localDoc.notify_party_address || null,
+          nowIso,
+          nowIso
+        );
+        existingNotifyParties.set(notifyPartyName.trim(), notifyPartyId);
+      }
 
       // 4. Quantities & Weights
       const isNsa490 = bolNum === 'BOL-2026-NSA490';
@@ -323,7 +475,7 @@ function syncBolRecordsToDb(dbFilePath) {
           null, // company_id
           shipperId,
           consigneeId,
-          null, // notify_party_id
+          notifyPartyId,
           driverId,
           truckId,
           chronologicalCreatedAt,
@@ -342,7 +494,7 @@ function syncBolRecordsToDb(dbFilePath) {
             cartons,
             grossKg,
             netKg,
-            createdAt,
+            chronologicalCreatedAt,
             updatedAt
           );
         }
@@ -371,6 +523,8 @@ syncBolRecordsToDb(mainAppDb);
 
 // Also sync other active runtime DB copies if present
 const additionalDbs = [
+  path.join(process.env.APPDATA || '', 'AQ COMPANIES', 'data', 'app.db'),
+  path.join(process.env.LOCALAPPDATA || '', 'AQ COMPANIES', 'data', 'app.db'),
   path.resolve('resources/backend/_internal/data/app.db'),
   path.resolve('resources/backend-dist/aq-backend/_internal/data/app.db'),
   path.resolve('release/win-unpacked/resources/backend/data/app.db'),

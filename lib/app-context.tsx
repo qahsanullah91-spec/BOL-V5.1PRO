@@ -282,6 +282,8 @@ function syncMasterEntitiesToLegacy(entities: import('@/lib/types/master-data').
   } catch (e) {}
 }
 
+let ledgerPostDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>({
     accounts: SAMPLE_ACCOUNTS,
@@ -1112,7 +1114,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
         void syncShippersAndBols()
-      }, 120)
+      }, 1500)
     }
 
     window.addEventListener("skybol:account-ledger-updated", handleUpdate)
@@ -1289,28 +1291,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.warn("[app-context] localStorage quota exceeded, canonical records stored on server:", storageErr)
       }
 
-      // Direct multi-backend persistence
-      fetch("/api/account-ledgers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accounts: companyNames,
-          ledgerEntries: records,
-          deletedLedgerEntries: deletedItems,
-        }),
-        keepalive: true,
-      }).catch(() => {})
+      // Direct multi-backend persistence (debounced by 600ms to eliminate multi-megabyte network thrashing during rapid edits)
+      if (ledgerPostDebounceTimer) clearTimeout(ledgerPostDebounceTimer)
+      ledgerPostDebounceTimer = setTimeout(() => {
+        fetch("/api/account-ledgers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accounts: companyNames,
+            ledgerEntries: records,
+            deletedLedgerEntries: deletedItems,
+          }),
+          keepalive: true,
+        }).catch(() => {})
 
-      fetch("/api/bol-account-ledgers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customCompanies: companyNames,
-          ledgerRecords: records,
-          deletedLedgerEntries: deletedItems,
-        }),
-        keepalive: true,
-      }).catch(() => {})
+        fetch("/api/bol-account-ledgers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customCompanies: companyNames,
+            ledgerRecords: records,
+            deletedLedgerEntries: deletedItems,
+          }),
+          keepalive: true,
+        }).catch(() => {})
+      }, 600)
     } catch (e) {
       console.warn("Direct ledger persistence error:", e)
     }

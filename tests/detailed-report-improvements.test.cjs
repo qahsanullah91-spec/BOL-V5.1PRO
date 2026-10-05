@@ -514,3 +514,84 @@ test("Report Center: Shipper and Consignee aggregation matches overview KPIs and
   }
 });
 
+// ==================================================
+// 12. ENHANCED EXCEL EXPORT & TAB PRIORITIZATION
+// ==================================================
+test("Excel Export: Active tab prioritization puts target sheet at index 0 and includes 12 sheets", async () => {
+  let XLSX;
+  try {
+    XLSX = require("xlsx");
+  } catch {
+    XLSX = require(path.resolve(__dirname, "../node_modules/.pnpm/xlsx@0.18.5/node_modules/xlsx"));
+  }
+
+  const tmpFile = path.resolve(__dirname, `tmp-tab-prioritize-${Date.now()}.xlsx`);
+  const originalWriteFile = XLSX.writeFile;
+  let sheets = [];
+  let detailedSheetData = [];
+  let cargoSheetData = [];
+
+  XLSX.writeFile = (wb, filename) => {
+    sheets = wb.SheetNames;
+    detailedSheetData = XLSX.utils.sheet_to_json(wb.Sheets["Detailed BOLs"]);
+    cargoSheetData = XLSX.utils.sheet_to_json(wb.Sheets["Cargo Items Breakdown"]);
+    return originalWriteFile(wb, tmpFile);
+  };
+
+  try {
+    await exportReportToExcel(MOCK_DETAILED_BOLS, "QA-Test-Prioritize", "routes", "all");
+
+    // 1. Target sheet "Routes" must be prioritized to index 0
+    assert.equal(sheets[0], "Routes", "Active tab sheet 'Routes' must be moved to index 0");
+    assert.equal(sheets.length, 12, "Comprehensive export must produce exactly 12 specialized sheets");
+    assert.ok(sheets.includes("Summary"));
+    assert.ok(sheets.includes("Detailed BOLs"));
+    assert.ok(sheets.includes("Cargo Items Breakdown"));
+    assert.ok(sheets.includes("Financials"));
+    assert.ok(sheets.includes("Trucks"));
+    assert.ok(sheets.includes("Containers"));
+    assert.ok(sheets.includes("Monthly Trends"));
+
+    // 2. Metadata completeness verification (Rule 3)
+    assert.ok("Driver Father Name" in detailedSheetData[0], "Detailed BOLs must have Driver Father Name column");
+    assert.ok("Transit Border Station" in detailedSheetData[0], "Detailed BOLs must have Transit Border Station column");
+    assert.ok("Driver Rent Currency" in detailedSheetData[0], "Detailed BOLs must have Driver Rent Currency column");
+    assert.ok("Driver Rent Amount" in detailedSheetData[0], "Detailed BOLs must have Driver Rent Amount column");
+
+    // 3. Cargo items metadata completeness
+    assert.ok("Driver Father Name" in cargoSheetData[0], "Cargo Breakdown must have Driver Father Name column");
+    assert.ok("Transit Border Station" in cargoSheetData[0], "Cargo Breakdown must have Transit Border Station column");
+  } finally {
+    XLSX.writeFile = originalWriteFile;
+    if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+  }
+});
+
+test("Excel Export: exportMode='current' prunes to Summary and active view sheet only", async () => {
+  let XLSX;
+  try {
+    XLSX = require("xlsx");
+  } catch {
+    XLSX = require(path.resolve(__dirname, "../node_modules/.pnpm/xlsx@0.18.5/node_modules/xlsx"));
+  }
+
+  const tmpFile = path.resolve(__dirname, `tmp-mode-current-${Date.now()}.xlsx`);
+  const originalWriteFile = XLSX.writeFile;
+  let sheets = [];
+
+  XLSX.writeFile = (wb, filename) => {
+    sheets = wb.SheetNames;
+    return originalWriteFile(wb, tmpFile);
+  };
+
+  try {
+    await exportReportToExcel(MOCK_DETAILED_BOLS, "QA-Test-Current", "trucks", "current");
+
+    // Must only contain Summary and Trucks
+    assert.deepEqual(sheets, ["Summary", "Trucks"], "Current-only export must strictly contain Summary and Trucks");
+  } finally {
+    XLSX.writeFile = originalWriteFile;
+    if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+  }
+});
+

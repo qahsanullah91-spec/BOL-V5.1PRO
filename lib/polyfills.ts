@@ -46,3 +46,33 @@ export function safeRandomUUID(): string {
     return v.toString(16)
   })
 }
+
+/**
+ * Global ChunkLoadError auto-recovery for development and production HMR/rebuilds.
+ * When the server rebuilds or restarts, stale browser tabs fail to fetch removed chunk hashes.
+ * This listener catches the chunk failure and automatically reloads the page once.
+ */
+if (typeof window !== "undefined") {
+  window.addEventListener("error", (event) => {
+    const error = event.error || event.message
+    const errorStr = String(error?.message || error || "")
+    const isChunkError =
+      error?.name === "ChunkLoadError" ||
+      errorStr.includes("Loading chunk") ||
+      errorStr.includes("Failed to load chunk") ||
+      errorStr.includes("_next/static/chunks") ||
+      String(event?.message || "").includes("Loading chunk")
+
+    if (isChunkError) {
+      const storageKey = "aq_chunk_reload_timestamp"
+      const lastReload = Number(sessionStorage.getItem(storageKey) || 0)
+      const now = Date.now()
+      // Only reload if we haven't reloaded for a chunk error within the last 15 seconds
+      if (now - lastReload > 15000) {
+        sessionStorage.setItem(storageKey, String(now))
+        console.warn("[ChunkRecovery] Outdated webpack chunk detected. Reloading page to load latest build assets...")
+        window.location.reload()
+      }
+    }
+  })
+}

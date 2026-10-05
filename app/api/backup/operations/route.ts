@@ -4,6 +4,7 @@ import {
   generateBackupHealthReport,
   getBackupAgePolicy,
   saveBackupAgePolicy,
+  invalidateProtectionDashboardCache,
 } from "@/lib/backup/backup-protection-service"
 import {
   runQuickVerify,
@@ -38,6 +39,9 @@ export async function POST(req: NextRequest) {
     if (!action) {
       return NextResponse.json({ success: false, error: "Missing required 'action' field." }, { status: 400 })
     }
+
+    // Invalidate cached protection dashboard on state-changing operations
+    invalidateProtectionDashboardCache()
 
     switch (action) {
       case "drill": {

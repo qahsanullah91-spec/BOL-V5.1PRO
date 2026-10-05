@@ -82,3 +82,8 @@ public/uploads/shipments/2026/BOL-TEST-*/
 implementation_plan.md
 *.backup-*
 backups/
+temp/
+coverage/
+*.heapsnapshot
+*.cpuprofile
+*.trace

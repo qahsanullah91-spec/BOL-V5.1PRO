@@ -50,6 +50,7 @@ export interface A4PreviewToolbarProps {
   isLoading: boolean
   isSaving: boolean
   isEditMode: boolean
+  hasUnsavedChanges?: boolean
   autoSaveStatus: "idle" | "saving" | "saved" | "local" | "error"
   lastAutoSaveTime?: string
   lastAutoSavedTime?: string | null
@@ -88,6 +89,7 @@ function A4PreviewToolbarBase({
   isLoading,
   isSaving,
   isEditMode,
+  hasUnsavedChanges = false,
   autoSaveStatus,
   lastAutoSaveTime,
   lastAutoSavedTime,
@@ -183,7 +185,15 @@ function A4PreviewToolbarBase({
 
         {/* Compact Saved / Autosave Status */}
         <div role="status" aria-live="polite" className="hidden md:flex items-center shrink-0">
-          {autoSaveStatus === "saving" || isSaving ? (
+          {hasUnsavedChanges ? (
+            <div
+              className="flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold text-amber-900 shadow-2xs dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+              title="You have unsaved changes in the editor. Previewing current draft."
+            >
+              <AlertCircle className="h-2.5 w-2.5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>Unsaved Preview</span>
+            </div>
+          ) : autoSaveStatus === "saving" || isSaving ? (
             <div className="flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50/90 px-2 py-0.5 text-[10.5px] text-amber-900 font-bold shadow-2xs animate-pulse">
               <RefreshCw className="h-2.5 w-2.5 text-amber-600 animate-spin shrink-0" />
               <span>Saving...</span>
@@ -197,8 +207,8 @@ function A4PreviewToolbarBase({
               }`}
               title={
                 autoSaveStatus === "saved"
-                  ? `Draft backed up · ${lastAutoSaveTime || lastAutoSavedTime || ""}`
-                  : "Unsaved edits or local backup ready"
+                  ? `Saved ✓ · ${lastAutoSaveTime || lastAutoSavedTime || ""}`
+                  : "Draft backed up"
               }
             >
               {autoSaveStatus === "saved" ? (

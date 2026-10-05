@@ -22,7 +22,24 @@ export function getDataRoot(): string {
 
 export function getBackupRoot(): string {
   if (process.env.BACKUP_PATH) return path.resolve(process.env.BACKUP_PATH)
-  return path.join(getDataRoot(), "..", "backups")
+  
+  // 1. Check primary data/backups location where existing production archives reside
+  const appDataBackups = path.join(process.cwd(), "data", "backups")
+  if (fs.existsSync && fs.existsSync(appDataBackups)) return appDataBackups
+
+  // 2. Check getDataRoot()/backups
+  const dataRootBackups = path.join(getDataRoot(), "backups")
+  if (fs.existsSync && fs.existsSync(dataRootBackups)) return dataRootBackups
+
+  // 3. Check workspace root backups
+  const cwdBackups = path.join(process.cwd(), "backups")
+  if (fs.existsSync && fs.existsSync(cwdBackups)) return cwdBackups
+
+  // Fallback: create appDataBackups if neither exists
+  if (!fs.existsSync(appDataBackups)) {
+    try { fs.mkdirSync(appDataBackups, { recursive: true }) } catch {}
+  }
+  return appDataBackups
 }
 
 export function getDataPath(fileName: string): string {
@@ -77,12 +94,7 @@ export function getDatabasePath(): string {
 }
 
 export function getBackupDir(): string {
-  const root = getDataRoot()
-  const bkp = path.join(root, "backups")
-  if (!fs.existsSync(bkp)) {
-    try { fs.mkdirSync(bkp, { recursive: true }) } catch {}
-  }
-  return bkp
+  return getBackupRoot()
 }
 
 export function getRecoveryDir(): string {

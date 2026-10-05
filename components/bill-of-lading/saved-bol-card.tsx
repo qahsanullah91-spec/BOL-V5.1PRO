@@ -23,6 +23,11 @@ import {
   Trash2,
   MoreHorizontal,
   ChevronDown,
+  Archive,
+  RotateCcw,
+  FolderArchive,
+  FileWarning,
+  FileX,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -93,6 +98,10 @@ export interface SavedBolCardProps<T extends SavedDocumentData = any> {
   onDuplicate: (doc: T) => void
   onOpenPdf: (doc: T) => void
   onDelete: (doc: T, e: MouseEvent) => void
+  onRestore?: (doc: T) => void
+  onFiles?: (doc: T) => void
+  onArchive?: (doc: T) => void
+  onHardDelete?: (doc: T, e: MouseEvent) => void
   onCategoryAssign: (doc: T, category: "account" | "export" | "import") => void
   onFileInput: (doc: T) => (e: ChangeEvent<HTMLInputElement>) => void
   isSelected?: boolean
@@ -363,12 +372,19 @@ export const SavedBolHeader = memo(function SavedBolHeader({
         )}
       </div>
 
-      {/* Right: Latest & PDF Status */}
+      {/* Right: Latest, Archived & PDF Status */}
       <div className="flex items-center gap-1 shrink-0 ml-auto">
-        {isLatest && (
-          <span className="rounded-full px-2 py-0.5 text-[8.5px] font-black bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-xs uppercase tracking-wider">
-            LATEST
+        {doc.isArchived || doc.status === "archived" ? (
+          <span className="rounded-full px-2 py-0.5 text-[8.5px] font-black bg-slate-900 text-amber-300 border border-slate-700 shadow-2xs flex items-center gap-1 uppercase tracking-wider">
+            <Archive className="w-2.5 h-2.5 text-amber-400" />
+            <span>ARCHIVED</span>
           </span>
+        ) : (
+          isLatest && (
+            <span className="rounded-full px-2 py-0.5 text-[8.5px] font-black bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-xs uppercase tracking-wider">
+              LATEST
+            </span>
+          )
         )}
 
         {downloadingPdfId === doc.id ? (
@@ -376,7 +392,17 @@ export const SavedBolHeader = memo(function SavedBolHeader({
             <Loader2 className="w-2.5 h-2.5 animate-spin text-blue-600" />
             <span>Generating</span>
           </span>
-        ) : hasUploadedPdf ? (
+        ) : doc.pdf_status === "outdated" ? (
+          <span className="rounded-full px-2 py-0.5 text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs flex items-center gap-1">
+            <FileWarning className="w-2.5 h-2.5 text-amber-600" />
+            <span>PDF Outdated</span>
+          </span>
+        ) : doc.pdf_status === "missing" ? (
+          <span className="rounded-full px-2 py-0.5 text-[9px] font-extrabold bg-rose-100 text-rose-900 border border-rose-300 shadow-2xs flex items-center gap-1">
+            <FileX className="w-2.5 h-2.5 text-rose-600" />
+            <span>PDF Missing</span>
+          </span>
+        ) : hasUploadedPdf || doc.pdf_status === "ready" ? (
           <span className="rounded-full px-2 py-0.5 text-[9px] font-extrabold bg-emerald-100/90 text-emerald-800 border border-emerald-300 shadow-2xs flex items-center gap-1">
             <FileCheck className="w-2.5 h-2.5 text-emerald-600" />
             <span>PDF Ready</span>
@@ -517,6 +543,8 @@ export const SavedBolMoreMenu = memo(function SavedBolMoreMenu({
   onDuplicate,
   onFileInput,
   onDelete,
+  onArchive,
+  onHardDelete,
 }: {
   doc: any
   hasUploadedPdf?: boolean
@@ -525,8 +553,11 @@ export const SavedBolMoreMenu = memo(function SavedBolMoreMenu({
   onDuplicate: (doc: any) => void
   onFileInput: (doc: any) => (e: ChangeEvent<HTMLInputElement>) => void
   onDelete: (doc: any, e: MouseEvent) => void
+  onArchive?: (doc: any) => void
+  onHardDelete?: (doc: any, e: MouseEvent) => void
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const isArchived = Boolean(doc.isArchived || doc.status === "archived")
 
   const handleAttachClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -561,17 +592,19 @@ export const SavedBolMoreMenu = memo(function SavedBolMoreMenu({
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-48 p-1.5 rounded-2xl shadow-xl z-50">
-          <DropdownMenuItem
-            onClick={(e) => {
-              e.stopPropagation()
-              onDuplicate(doc)
-            }}
-            className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer rounded-xl hover:bg-purple-50 hover:text-purple-700"
-          >
-            <Copy className="w-3.5 h-3.5 text-purple-600" />
-            <span>Duplicate BOL</span>
-          </DropdownMenuItem>
+        <DropdownMenuContent align="end" className="w-52 p-1.5 rounded-2xl shadow-xl z-50">
+          {!isArchived && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation()
+                onDuplicate(doc)
+              }}
+              className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer rounded-xl hover:bg-purple-50 hover:text-purple-700"
+            >
+              <Copy className="w-3.5 h-3.5 text-purple-600" />
+              <span>Duplicate BOL</span>
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuItem
             onClick={handleAttachClick}
@@ -586,12 +619,27 @@ export const SavedBolMoreMenu = memo(function SavedBolMoreMenu({
             <span>{hasUploadedPdf ? "Replace PDF" : "Attach PDF"}</span>
           </DropdownMenuItem>
 
+          {!isArchived && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onArchive) onArchive(doc)
+                else onDelete(doc, e as unknown as MouseEvent)
+              }}
+              className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 cursor-pointer rounded-xl hover:bg-amber-50 hover:text-amber-800"
+            >
+              <Archive className="w-3.5 h-3.5 text-amber-600" />
+              <span>Archive BOL</span>
+            </DropdownMenuItem>
+          )}
+
           <DropdownMenuSeparator className="my-1" />
 
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation()
-              onDelete(doc, e as unknown as MouseEvent)
+              if (onHardDelete) onHardDelete(doc, e as unknown as MouseEvent)
+              else onDelete(doc, e as unknown as MouseEvent)
             }}
             disabled={deletingId === (doc.id || doc.bol_number) || deletingId === doc.bol_number}
             className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-red-600 dark:text-red-400 cursor-pointer rounded-xl hover:bg-red-50 hover:text-red-700"
@@ -601,7 +649,7 @@ export const SavedBolMoreMenu = memo(function SavedBolMoreMenu({
             ) : (
               <Trash2 className="w-3.5 h-3.5 text-red-600" />
             )}
-            <span>Delete Document</span>
+            <span>{isArchived ? "Permanently Delete" : "Delete (Danger Zone)"}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -624,6 +672,10 @@ export const SavedBolActions = memo(function SavedBolActions({
   onDuplicate,
   onOpenPdf,
   onDelete,
+  onRestore,
+  onFiles,
+  onArchive,
+  onHardDelete,
   onFileInput,
   onSendToCMR,
 }: {
@@ -638,58 +690,122 @@ export const SavedBolActions = memo(function SavedBolActions({
   onDuplicate: (doc: any) => void
   onOpenPdf: (doc: any) => void
   onDelete: (doc: any, e: MouseEvent) => void
+  onRestore?: (doc: any) => void
+  onFiles?: (doc: any) => void
+  onArchive?: (doc: any) => void
+  onHardDelete?: (doc: any, e: MouseEvent) => void
   onFileInput: (doc: any) => (e: ChangeEvent<HTMLInputElement>) => void
   onSendToCMR?: (doc: any) => void
 }) {
+  const isArchived = Boolean(doc.isArchived || doc.status === "archived")
+
   return (
     <div className="mt-auto pt-2.5 space-y-1.5 relative z-10 border-t border-slate-100 dark:border-slate-800">
-      {/* Row 1: Primary Actions (Edit BOL + Download) */}
+      {/* Row 1: Primary Actions */}
       <div className="grid grid-cols-2 gap-1.5">
-        <Button
-          type="button"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation()
-            onEdit(doc)
-          }}
-          className="h-9 sm:h-9.5 rounded-xl bg-gradient-to-r from-[#0a2540] via-blue-900 to-[#1d4ed8] hover:from-blue-900 hover:to-blue-700 text-white font-black text-xs cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
-          title="Edit Bill of Lading"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          <span>Edit BOL</span>
-        </Button>
+        {isArchived ? (
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation()
+                onPreview(doc)
+              }}
+              className="h-9 sm:h-9.5 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              title="View Archived BOL"
+            >
+              <Eye className="h-3.5 w-3.5 text-blue-600" />
+              <span>View BOL</span>
+            </Button>
 
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDownload(doc)
-          }}
-          className="h-9 sm:h-9.5 rounded-xl border-amber-300 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-950 dark:text-amber-200 font-bold text-xs cursor-pointer shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
-          title="Download PDF"
-        >
-          <FileDown className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400" />
-          <span>Download</span>
-        </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onRestore) onRestore(doc)
+              }}
+              className="h-9 sm:h-9.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              title="Restore to Active Saved BOLs"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Restore</span>
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit(doc)
+              }}
+              className="h-9 sm:h-9.5 rounded-xl bg-gradient-to-r from-[#0a2540] via-blue-900 to-[#1d4ed8] hover:from-blue-900 hover:to-blue-700 text-white font-black text-xs cursor-pointer shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              title="Edit Bill of Lading"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              <span>Edit BOL</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDownload(doc)
+              }}
+              className={cn(
+                "h-9 sm:h-9.5 rounded-xl font-bold text-xs cursor-pointer shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5",
+                doc.pdf_status === "outdated"
+                  ? "border-amber-300 dark:border-amber-700 bg-amber-50/90 text-amber-950 dark:text-amber-200"
+                  : "border-amber-300 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-950 dark:text-amber-200"
+              )}
+              title={doc.pdf_status === "outdated" ? "Regenerate Outdated PDF" : "Download PDF"}
+            >
+              <FileDown className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400" />
+              <span>{doc.pdf_status === "outdated" ? "Regenerate" : "Download"}</span>
+            </Button>
+          </>
+        )}
       </div>
 
-      {/* Row 2: Secondary & Menu Actions (Preview, PDF, CMR, More) */}
-      <div className={cn("grid gap-1", onSendToCMR ? (hasUploadedPdf ? "grid-cols-4" : "grid-cols-3") : "grid-cols-3")}>
+      {/* Row 2: Secondary & Menu Actions (Preview, Files, PDF, CMR, More) */}
+      <div className={cn("grid gap-1", hasUploadedPdf ? "grid-cols-4" : "grid-cols-3")}>
+        {!isArchived && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              onPreview(doc)
+            }}
+            className="h-8 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-blue-700 dark:text-blue-300 font-bold text-[11px] cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
+            title="Preview A4 Document"
+          >
+            <Eye className="h-3 w-3 mr-1 text-blue-600 shrink-0" />
+            <span>Preview</span>
+          </Button>
+        )}
+
+        {/* Files Button */}
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={(e) => {
             e.stopPropagation()
-            onPreview(doc)
+            if (onFiles) onFiles(doc)
           }}
-          className="h-8 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-blue-700 dark:text-blue-300 font-bold text-[11px] cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
-          title="Preview A4 Document"
+          className="h-8 rounded-xl border-cyan-200 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/40 hover:bg-cyan-100 text-cyan-900 dark:text-cyan-300 font-bold text-[11px] cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
+          title="Digital Shipment Files & Attachments"
         >
-          <Eye className="h-3 w-3 mr-1 text-blue-600 shrink-0" />
-          <span>Preview</span>
+          <FolderArchive className="h-3 w-3 mr-1 text-cyan-600 shrink-0" />
+          <span>Files</span>
         </Button>
 
         {hasUploadedPdf && (
@@ -702,36 +818,24 @@ export const SavedBolActions = memo(function SavedBolActions({
               onOpenPdf(doc)
             }}
             disabled={openingPdfId === doc.id}
-            className="h-8 rounded-xl border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
-            title="Open Uploaded PDF"
+            className={cn(
+              "h-8 rounded-xl font-bold text-[11px] cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1",
+              doc.pdf_status === "outdated"
+                ? "border-amber-300 dark:border-amber-800 bg-amber-50/90 hover:bg-amber-100 text-amber-900 dark:text-amber-300"
+                : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800"
+            )}
+            title={doc.pdf_status === "outdated" ? "Document was updated since PDF generation — PDF Outdated" : "Open Uploaded PDF"}
           >
             {openingPdfId === doc.id ? (
-              <Loader2 className="h-3 w-3 animate-spin text-emerald-600" />
+              <Loader2 className="h-3 w-3 animate-spin text-amber-600" />
             ) : (
-              <ExternalLink className="h-3 w-3 mr-1 text-emerald-600 shrink-0" />
+              <ExternalLink className={cn("h-3 w-3 mr-1 shrink-0", doc.pdf_status === "outdated" ? "text-amber-600" : "text-emerald-600")} />
             )}
-            <span>PDF</span>
+            <span>{doc.pdf_status === "outdated" ? "Outdated" : "PDF"}</span>
           </Button>
         )}
 
-        {onSendToCMR && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation()
-              onSendToCMR(doc)
-            }}
-            className="h-8 rounded-xl border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-800 font-bold text-[11px] cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
-            title="Bridge to CMR Waybill"
-          >
-            <Truck className="h-3 w-3 mr-1 text-indigo-600 shrink-0" />
-            <span>CMR</span>
-          </Button>
-        )}
-
-        {/* More Dropdown (Includes Duplicate, Attach PDF, Delete) */}
+        {/* More Dropdown (Includes Duplicate, Attach PDF, Archive, Delete) */}
         <SavedBolMoreMenu
           doc={doc}
           hasUploadedPdf={hasUploadedPdf}
@@ -740,6 +844,8 @@ export const SavedBolActions = memo(function SavedBolActions({
           onDuplicate={onDuplicate}
           onFileInput={onFileInput}
           onDelete={onDelete}
+          onArchive={onArchive}
+          onHardDelete={onHardDelete}
         />
       </div>
     </div>
@@ -765,6 +871,10 @@ export const SavedBolCard = memo(function SavedBolCard({
   onDuplicate,
   onOpenPdf,
   onDelete,
+  onRestore,
+  onFiles,
+  onArchive,
+  onHardDelete,
   onCategoryAssign,
   onFileInput,
   isSelected = false,
@@ -917,6 +1027,10 @@ export const SavedBolCard = memo(function SavedBolCard({
         onDuplicate={onDuplicate}
         onOpenPdf={onOpenPdf}
         onDelete={onDelete}
+        onRestore={onRestore}
+        onFiles={onFiles}
+        onArchive={onArchive}
+        onHardDelete={onHardDelete}
         onFileInput={onFileInput}
         onSendToCMR={onSendToCMR}
       />
