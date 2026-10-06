@@ -487,7 +487,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
   }, [hasUnsavedChanges])
 
-  const [bolNumber, setBolNumber] = useState<string>("BOL-2026-NSA626")
+  const [bolNumber, setBolNumber] = useState<string>("BOL-2026-NSA659")
   const [isEditingBolNumber, setIsEditingBolNumber] = useState(false)
   const [issueDate, setIssueDate] = useState<string>("")
   const [persianDate, setPersianDate] = useState<string>("")
@@ -1558,10 +1558,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         return
       }
 
-      setBolNumber("BOL-2026-NSA626")
+      setBolNumber("BOL-2026-NSA659")
     } catch (error) {
       console.error("Error fetching BOL number:", error)
-      setBolNumber("BOL-2026-NSA626")
+      setBolNumber("BOL-2026-NSA659")
     } finally {
       setIsLoading(false)
     }
@@ -4525,7 +4525,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     })
     setActiveRouteIndex(null)
     setShowLocationDropdown(null)
-    setBolNumber("BOL-2026-NSA626")
+    setBolNumber("BOL-2026-NSA659")
     fetchNextBolNumber()
     setIssueDate(today)
     const dualDates = getDualDates(today)
@@ -4543,7 +4543,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     try {
       const response = await fetch("/api/bol?action=next-number&advance=true")
       const result = await response.json()
-      const newBolNumber = result.bolNumber || "BOL-2026-NSA626"
+      const newBolNumber = result.bolNumber || "BOL-2026-NSA659"
       const newId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `bol-${Date.now()}`
       const today = new Date().toISOString().split("T")[0]
 

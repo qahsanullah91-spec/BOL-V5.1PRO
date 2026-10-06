@@ -4,7 +4,7 @@ import * as localStorage from "@/lib/services/local-storage-service"
 import { createClient } from "@/lib/supabase/server"
 
 const SEQUENCE_FILE = getDataPath(".local-bol-sequence.json")
-export const START_SEQUENCE = 619
+export const START_SEQUENCE = 659
 export const DEFAULT_BOL_PREFIX = "BOL-2026-NSA"
 
 export function normalizeBolPrefix(prefix?: string, year: number = new Date().getFullYear()): string {
