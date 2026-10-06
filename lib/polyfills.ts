@@ -76,3 +76,38 @@ if (typeof window !== "undefined") {
     }
   })
 }
+
+/**
+ * Storage quota overflow protection.
+ * Prevents QuotaExceededError from crashing React components when saving cached documents or ledgers.
+ */
+if (typeof window !== "undefined" && window.Storage) {
+  try {
+    const originalSetItem = window.Storage.prototype.setItem
+    window.Storage.prototype.setItem = function (key: string, value: string) {
+      try {
+        originalSetItem.call(this, key, value)
+      } catch (err: any) {
+        const isQuota =
+          err?.name === "QuotaExceededError" ||
+          err?.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+          err?.code === 22 ||
+          err?.code === 1014
+
+        if (isQuota) {
+          console.warn(`[Polyfill] Storage quota exceeded for "${key}". Pruning non-critical client caches...`)
+          try {
+            this.removeItem("skybol:backup-documents")
+            this.removeItem("sky-bol-browser-documents")
+            originalSetItem.call(this, key, value)
+            return
+          } catch {
+            console.warn(`[Polyfill] Safely suppressed persistent QuotaExceededError for "${key}"`)
+            return
+          }
+        }
+        throw err
+      }
+    }
+  } catch {}
+}

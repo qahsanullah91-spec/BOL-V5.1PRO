@@ -509,6 +509,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }, [])
 
   const [activeTab, setActiveTab] = useState<string>("form")
+  const activeTabRef = useRef<string>("form")
+  activeTabRef.current = activeTab
   const [isHydrating, setIsHydrating] = useState(false)
   const [activeBolId, setActiveBolId] = useState<string>("")
   const [hydrationError, setHydrationError] = useState<string | null>(null)
@@ -516,6 +518,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   const abortControllerRef = useRef<AbortController | null>(null)
   const activeBolIdRef = useRef<string>("")
   activeBolIdRef.current = activeBolId
+  const bolNumberRef = useRef<string>(bolNumber)
+  bolNumberRef.current = bolNumber
+  const formDataRef = useRef<any>(formData)
+  formDataRef.current = formData
 
   // Intelligent background preloader: Warm up A4Preview chunk and prime critical images in browser cache
   useEffect(() => {
@@ -641,6 +647,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   } = useA4PreviewScale(activeTab === "preview", previewPageCount)
   const [isEditMode, setIsEditMode] = useState(false)
   const [editDocumentId, setEditDocumentId] = useState<string | null>(null)
+  const editDocumentIdRef = useRef<string | null>(null)
+  editDocumentIdRef.current = editDocumentId
   const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | "idle" | "local" | "error">("idle")
   const [lastAutoSaveTime, setLastAutoSaveTime] = useState<string>("")
   const [hasRecoverableDraft, setHasRecoverableDraft] = useState(false)
@@ -1395,7 +1403,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     setActiveBolId(canonicalId)
 
     // Switch tab if requested
-    if (targetTab && activeTab !== targetTab) {
+    if (targetTab && activeTabRef.current !== targetTab) {
       setActiveTab(targetTab)
     }
 
@@ -1412,11 +1420,14 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
 
     // 0. If this is already the currently active document in memory and complete, skip redundant reload
-    if (!force && (bolNumber === canonicalId || editDocumentId === canonicalId)) {
+    const curBolNumber = bolNumberRef.current
+    const curEditDocId = editDocumentIdRef.current
+    const curFormData = formDataRef.current
+    if (!force && (curBolNumber === canonicalId || curEditDocId === canonicalId)) {
       const isCurrentComplete = Boolean(
-        (formData.truck_number || (formData as any).truckNumber) &&
-        (formData.consignee_name || (formData as any).consigneeName) &&
-        (formData.routes && Array.isArray(formData.routes) && formData.routes.length > 0)
+        (curFormData?.truck_number || curFormData?.truckNumber) &&
+        (curFormData?.consignee_name || curFormData?.consigneeName) &&
+        (curFormData?.routes && Array.isArray(curFormData?.routes) && curFormData.routes.length > 0)
       )
       if (isCurrentComplete) {
         setIsHydrating(false)
@@ -1541,7 +1552,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         setIsLoading(false)
       }
     }
-  }, [activeTab, applyLoadedDocument, bolNumber, editDocumentId, formData])
+  }, [applyLoadedDocument])
 
   const loadDocument = useCallback(async (id: string, force = false) => {
     return loadBolDocument(id, { targetTab: activeTab, force })
@@ -1744,13 +1755,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       const urlTab = params.get("tab")
       if (urlBol && urlBol !== activeBolIdRef.current) {
         void loadBolDocument(urlBol, { targetTab: urlTab || "preview", force: true })
-      } else if (urlTab && urlTab !== activeTab) {
+      } else if (urlTab && urlTab !== activeTabRef.current) {
         setActiveTab(urlTab)
       }
     }
     window.addEventListener("popstate", handlePopState)
     return () => window.removeEventListener("popstate", handlePopState)
-  }, [loadBolDocument, activeTab])
+  }, [loadBolDocument])
 
   // Reset scroll to top when switching BOLs (Section 73)
   useEffect(() => {
