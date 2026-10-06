@@ -2115,38 +2115,60 @@ function CargoRow({
         className="rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center overflow-hidden min-h-[24px] shadow-2xs"
         style={cellBoxStyle}
       >
-        {hasValue(item.rate) && hasValue(item.goodsValue) ? (
-          <div className="flex flex-col justify-center items-center w-full gap-0.3 my-auto">
-            <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-slate-50 border border-slate-200/80">
-              <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>RATE</span>
-              <span className={`font-mono font-bold ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
-                {item.rate}
-              </span>
-            </div>
-            <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-emerald-50/90 border border-emerald-200/90">
-              <span className={`${subLabelFont} font-black uppercase text-emerald-800 tracking-tight shrink-0`}>VALUE</span>
-              <span className={`font-mono font-black ${valFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
-                {item.goodsValue}
-              </span>
-            </div>
-          </div>
-        ) : hasValue(item.goodsValue) ? (
-          <div className="flex items-center justify-between w-full px-1.5 py-0.3 rounded bg-emerald-50/90 border border-emerald-200/90 my-auto">
-            <span className={`${subLabelFont} font-black uppercase text-emerald-800 tracking-tight shrink-0`}>VALUE</span>
-            <span className={`font-mono font-black ${qtyFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
-              {item.goodsValue}
-            </span>
-          </div>
-        ) : hasValue(item.rate) ? (
-          <div className="flex items-center justify-between w-full px-1.5 py-0.3 rounded bg-slate-50 border border-slate-200/80 my-auto">
-            <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>RATE</span>
-            <span className={`font-mono font-bold ${qtyFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
-              {item.rate}
-            </span>
-          </div>
-        ) : (
-          <span className="text-slate-400 font-bold my-auto">—</span>
-        )}
+        {(() => {
+          const hasRate = hasValue(item.rate) && /\d/.test(item.rate)
+          const hasGoodsVal = hasValue(item.goodsValue) && /\d/.test(item.goodsValue)
+
+          // Format bare numeric rate like "2.50" -> "2.50 USD"
+          const displayRate = hasRate
+            ? /^\s*[$€£]?\s*[\d.,]+\s*$/.test(item.rate.trim())
+              ? `${item.rate.trim()} USD`
+              : item.rate
+            : ""
+
+          if (hasRate && hasGoodsVal) {
+            return (
+              <div className="flex flex-col justify-center items-center w-full gap-0.3 my-auto">
+                <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-slate-50 border border-slate-200/80">
+                  <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>RATE</span>
+                  <span className={`font-mono font-bold ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+                    {displayRate}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-emerald-50/90 border border-emerald-200/90">
+                  <span className={`${subLabelFont} font-black uppercase text-emerald-800 tracking-tight shrink-0`}>VALUE</span>
+                  <span className={`font-mono font-black ${valFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+                    {item.goodsValue}
+                  </span>
+                </div>
+              </div>
+            )
+          }
+
+          if (hasGoodsVal) {
+            return (
+              <div className="flex items-center justify-between w-full px-1.5 py-0.3 rounded bg-emerald-50/90 border border-emerald-200/90 my-auto">
+                <span className={`${subLabelFont} font-black uppercase text-emerald-800 tracking-tight shrink-0`}>VALUE</span>
+                <span className={`font-mono font-black ${qtyFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+                  {item.goodsValue}
+                </span>
+              </div>
+            )
+          }
+
+          if (hasRate) {
+            return (
+              <div className="flex items-center justify-between w-full px-1.5 py-0.3 rounded bg-slate-50 border border-slate-200/80 my-auto">
+                <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>RATE</span>
+                <span className={`font-mono font-bold ${qtyFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+                  {displayRate}
+                </span>
+              </div>
+            )
+          }
+
+          return <span className="text-slate-400 font-bold my-auto">—</span>
+        })()}
       </div>
     </div>
   )
