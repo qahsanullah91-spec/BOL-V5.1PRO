@@ -7,8 +7,8 @@ const sequenceFileData = path.join(root, 'data', '.local-bol-sequence.json');
 
 const targetSequencePayload = {
   year: 2026,
-  sequence: 658,
-  startSequence: 659,
+  sequence: 677,
+  startSequence: 678,
   prefix: 'BOL-2026-NSA',
   updated_at: new Date().toISOString()
 };
@@ -25,7 +25,7 @@ function writeAtomically(filePath, data) {
   console.log(`[OK] Successfully atomically updated: ${filePath}`);
 }
 
-console.log('--- Applying Starting BOL Sequence BOL-2026-NSA659 ---');
+console.log('--- Applying Starting BOL Sequence BOL-2026-NSA678 ---');
 writeAtomically(sequenceFileRoot, targetSequencePayload);
 if (fs.existsSync(path.dirname(sequenceFileData))) {
   writeAtomically(sequenceFileData, targetSequencePayload);
@@ -37,9 +37,9 @@ const nextExpected = `${verifyRoot.prefix}${Math.max(verifyRoot.sequence + 1, ve
 console.log('Verified Root State:', verifyRoot);
 console.log('Next Available BOL Number will be:', nextExpected);
 
-if (nextExpected !== 'BOL-2026-NSA659') {
-  console.error(`[ERROR] Verification failed: expected BOL-2026-NSA659 but got ${nextExpected}`);
+if (nextExpected !== 'BOL-2026-NSA678') {
+  console.error(`[ERROR] Verification failed: expected BOL-2026-NSA678 but got ${nextExpected}`);
   process.exit(1);
 } else {
-  console.log('[SUCCESS] Verified next sequence number is BOL-2026-NSA659');
+  console.log('[SUCCESS] Verified next sequence number is BOL-2026-NSA678');
 }

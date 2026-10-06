@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ bolNumber })
     } catch (err) {
       console.error("[bol API] Error generating next number:", err)
-      return NextResponse.json({ bolNumber: "BOL-2026-NSA659" })
+      return NextResponse.json({ bolNumber: "BOL-2026-NSA678" })
     }
   }
 
