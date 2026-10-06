@@ -185,38 +185,37 @@ function A4PreviewToolbarBase({
 
         {/* Compact Saved / Autosave Status */}
         <div role="status" aria-live="polite" className="hidden md:flex items-center shrink-0">
-          {hasUnsavedChanges ? (
-            <div
-              className="flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold text-amber-900 shadow-2xs dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
-              title="You have unsaved changes in the editor. Previewing current draft."
-            >
-              <AlertCircle className="h-2.5 w-2.5 shrink-0 text-amber-600 dark:text-amber-400" />
-              <span>Unsaved Preview</span>
-            </div>
-          ) : autoSaveStatus === "saving" || isSaving ? (
+          {autoSaveStatus === "saving" || isSaving ? (
             <div className="flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50/90 px-2 py-0.5 text-[10.5px] text-amber-900 font-bold shadow-2xs animate-pulse">
               <RefreshCw className="h-2.5 w-2.5 text-amber-600 animate-spin shrink-0" />
-              <span>Saving...</span>
+              <span>Autosaving…</span>
+            </div>
+          ) : autoSaveStatus === "saved" ? (
+            <div
+              className="flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10.5px] font-bold text-emerald-800 shadow-2xs dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 cursor-pointer hover:bg-emerald-100/70 transition-all"
+              title={`Draft autosaved at ${lastAutoSaveTime || lastAutoSavedTime || "just now"}. Press Ctrl+S to save official document.`}
+              onClick={onSave}
+            >
+              <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span>Autosaved ✓ {lastAutoSaveTime || lastAutoSavedTime ? `(${lastAutoSaveTime || lastAutoSavedTime})` : ""}</span>
+            </div>
+          ) : autoSaveStatus === "local" ? (
+            <div className="flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10.5px] font-bold text-blue-800 shadow-2xs">
+              <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-blue-600" />
+              <span>Saved locally</span>
+            </div>
+          ) : hasUnsavedChanges ? (
+            <div
+              className="flex items-center gap-1 rounded-lg border border-emerald-300/80 bg-emerald-50/70 px-2 py-0.5 text-[10.5px] font-bold text-emerald-900 shadow-2xs dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+              title="Previewing live draft changes. Click Save/Update to commit official BOL."
+            >
+              <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span>Live Draft Preview</span>
             </div>
           ) : (
-            <div
-              className={`flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10.5px] font-bold shadow-2xs ${
-                autoSaveStatus === "saved"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
-                  : "border-amber-200 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
-              }`}
-              title={
-                autoSaveStatus === "saved"
-                  ? `Saved ✓ · ${lastAutoSaveTime || lastAutoSavedTime || ""}`
-                  : "Draft backed up"
-              }
-            >
-              {autoSaveStatus === "saved" ? (
-                <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <AlertCircle className="h-2.5 w-2.5 shrink-0 text-amber-600 dark:text-amber-400" />
-              )}
-              <span>{autoSaveStatus === "saved" ? "Saved ✓" : "Draft"}</span>
+            <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10.5px] font-bold text-slate-700 shadow-2xs">
+              <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-emerald-600" />
+              <span>Saved ✓</span>
             </div>
           )}
         </div>

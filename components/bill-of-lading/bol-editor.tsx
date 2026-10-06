@@ -547,8 +547,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
   }, [])
 
+  const flushDraftRef = useRef<(() => void) | null>(null)
+
   const handleTabChange = useCallback((newTab: string) => {
     if (newTab === activeTab) return
+    flushDraftRef.current?.()
     if (newTab === "preview") {
       if (typeof performance !== "undefined" && performance.mark) {
         performance.mark("bol:preview-tab-click")
@@ -667,7 +670,14 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       const result: { success?: boolean } = await response.json()
       if (result.success !== true) throw new Error("Draft backup was not confirmed")
     }, (status) => {
-      if (queuedRevision.current === draftRevision.current) setAutoSaveStatus(status)
+      if (queuedRevision.current === draftRevision.current) {
+        setAutoSaveStatus(status)
+        if (status === "saved") {
+          const nowFormatted = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+          setLastAutoSaveTime(nowFormatted)
+          setLastAutoSavedTime(nowFormatted)
+        }
+      }
     })
     draftQueue.current = queue
     const retry = () => queue.retry()
@@ -679,123 +689,156 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
   }, [])
 
-  // Enterprise Multi-Tier Real-Time Auto-Saving Engine (Debounced 800ms)
+  // Synchronous LocalStorage Draft Persist (0ms latency, runs immediately on every change)
+  const persistLocalDraftSync = useCallback(() => {
+    if (typeof window === "undefined") return null
+    try {
+      const currentDocData = {
+        ...formData,
+        bol_number: bolNumber,
+        issue_date: issueDate,
+        persian_date: persianDate,
+        persian_date_numeric: persianDateNumeric,
+        updated_at: new Date().toISOString(),
+      }
+
+      // Tier 1: Instant LocalStorage Write
+      window.localStorage.setItem("skybol:active-form-draft", JSON.stringify(currentDocData))
+      window.localStorage.setItem(
+        "sky-bol-live-draft",
+        JSON.stringify({
+          formData: currentDocData,
+          bolNumber,
+          issueDate,
+          persianDate,
+          persianDateNumeric,
+          savedAt: currentDocData.updated_at,
+        })
+      )
+      if (bolNumber) {
+        window.localStorage.setItem("skybol:last-active-document-id", bolNumber)
+        window.localStorage.setItem(`skybol:draft:${cleanBolNumber(bolNumber)}`, JSON.stringify(currentDocData))
+      }
+      return currentDocData
+    } catch (e) {
+      console.warn("Local storage draft save error:", e)
+      return null
+    }
+  }, [formData, bolNumber, issueDate, persianDate, persianDateNumeric])
+
+  // Flush Draft to Server Queue (Atomically writes to .local-bol-draft.json)
+  const flushDraftToServer = useCallback(() => {
+    if (typeof window === "undefined" || checkingDraft || hasRecoverableDraft || isHydrating) return
+    const currentDocData = persistLocalDraftSync()
+    if (!currentDocData) return
+
+    // Any valid BOL number or non-empty form field is backed up
+    const hasAnyContent = Boolean(
+      (bolNumber && bolNumber.trim().length >= 2) ||
+      Object.entries(currentDocData).some(([key, val]) => {
+        if (["id", "type", "created_at", "updated_at", "revision", "user_id"].includes(key)) return false
+        if (key === "routes") return Array.isArray(val) && val.length > 2
+        if (typeof val === "string") return val.trim().length > 0 && val.trim() !== "0"
+        return false
+      })
+    )
+
+    if (hasAnyContent && draftQueue.current) {
+      draftRevision.current += 1
+      queuedRevision.current = draftRevision.current
+      setAutoSaveStatus("saving")
+      draftQueue.current.enqueue(JSON.stringify({ type: "bol", draft: currentDocData }))
+    } else {
+      setAutoSaveStatus("local")
+    }
+
+    // Tier 3: Auto-save Shipper & Consignee into Autocomplete Databases
+    try {
+      if (formData.shipper_name?.trim()) {
+        const sName = formData.shipper_name.trim()
+        const rawS = window.localStorage.getItem(SAVED_SHIPPERS_STORAGE_KEY)
+        let listS: SavedParty[] = []
+        try { listS = rawS ? JSON.parse(rawS) : [] } catch (_) {}
+        const matchS = listS.find((s) => s.name.trim().toLowerCase() === sName.toLowerCase())
+        const curS: SavedParty = {
+          id: matchS ? matchS.id : crypto.randomUUID(),
+          name: sName,
+          address: formData.shipper_address || "",
+          contact: formData.shipper_contact || "",
+          email: formData.shipper_email || "",
+          savedAt: new Date().toISOString(),
+        }
+        const nextS = [curS, ...listS.filter((s) => s.id !== curS.id)].slice(0, 10000)
+        window.localStorage.setItem(SAVED_SHIPPERS_STORAGE_KEY, JSON.stringify(nextS))
+      }
+
+      if (formData.consignee_name?.trim()) {
+        const cName = formData.consignee_name.trim()
+        const rawC = window.localStorage.getItem(SAVED_CONSIGNEES_STORAGE_KEY)
+        let listC: SavedParty[] = []
+        try { listC = rawC ? JSON.parse(rawC) : [] } catch (_) {}
+        const matchC = listC.find((c) => c.name.trim().toLowerCase() === cName.toLowerCase())
+        const curC: SavedParty = {
+          id: matchC ? matchC.id : crypto.randomUUID(),
+          name: cName,
+          address: formData.consignee_address || "",
+          contact: formData.consignee_contact || "",
+          email: formData.consignee_email || "",
+          savedAt: new Date().toISOString(),
+        }
+        const nextC = [curC, ...listC.filter((c) => c.id !== curC.id)].slice(0, 10000)
+        window.localStorage.setItem(SAVED_CONSIGNEES_STORAGE_KEY, JSON.stringify(nextC))
+      }
+    } catch (_) {}
+  }, [persistLocalDraftSync, checkingDraft, hasRecoverableDraft, isHydrating, bolNumber, formData])
+
+  // Keep ref synchronized for tab changes and lifecycle events
+  useEffect(() => {
+    flushDraftRef.current = flushDraftToServer
+  }, [flushDraftToServer])
+
+  // Enterprise Multi-Tier Real-Time Auto-Saving Engine (0ms local, 450ms debounced server, 20s heartbeat)
   useEffect(() => {
     if (typeof window === "undefined") return
-    if (checkingDraft || hasRecoverableDraft || isHydrating || activeTab === "preview") return
+    if (checkingDraft || hasRecoverableDraft || isHydrating) return
 
-    draftRevision.current += 1
+    // 1. Instant local write (0ms latency on every keystroke)
+    persistLocalDraftSync()
+
+    // 2. Schedule debounced server backup (450ms)
     setAutoSaveStatus("saving")
-    let pendingLocalSave = true
-    const persistLocalDraft = () => {
-        const currentDocData = {
-          ...formData,
-          bol_number: bolNumber,
-          issue_date: issueDate,
-          persian_date: persianDate,
-          persian_date_numeric: persianDateNumeric,
-          updated_at: new Date().toISOString(),
-        }
+    const timer = setTimeout(() => {
+      flushDraftToServer()
+    }, 450)
 
-        // Tier 1: Synchronous In-Memory & LocalStorage Active Draft Sync
-        window.localStorage.setItem("skybol:active-form-draft", JSON.stringify(currentDocData))
-        window.localStorage.setItem(
-          "sky-bol-live-draft",
-          JSON.stringify({
-            formData: currentDocData,
-            bolNumber,
-            issueDate,
-            persianDate,
-            persianDateNumeric,
-            savedAt: currentDocData.updated_at,
-          })
-        )
-        if (bolNumber) {
-          window.localStorage.setItem("skybol:last-active-document-id", bolNumber)
-        }
-        pendingLocalSave = false
-        return currentDocData
-    }
-    const flushLocalDraft = () => {
-      if (!pendingLocalSave) return
-      try { persistLocalDraft(); setAutoSaveStatus("local") }
-      catch { setAutoSaveStatus("error") }
+    // 3. Heartbeat backup every 20 seconds
+    const heartbeat = setInterval(() => {
+      flushDraftToServer()
+    }, 20000)
+
+    // 4. Lifecycle listeners: flush on pagehide, visibility change, and beforeunload
+    const handleFlush = () => {
+      flushDraftToServer()
     }
     const handleVisibility = () => {
-      if (document.visibilityState === "hidden") flushLocalDraft()
-    }
-    window.addEventListener("pagehide", flushLocalDraft)
-    document.addEventListener("visibilitychange", handleVisibility)
-    const timer = setTimeout(() => {
-      try {
-        const currentDocData = persistLocalDraft()
-
-        // Tier 2: Dedicated Server-Side Draft Backup (Crash-resistant, isolated from official BOLs)
-        const isMeaningfulDraft =
-          Boolean(formData.shipper_name?.trim() && formData.shipper_name.trim().toLowerCase() !== "no shipper") ||
-          Boolean(formData.number_of_packages?.trim() && formData.number_of_packages.trim() !== "0") ||
-          Boolean(formData.gross_weight?.trim()) ||
-          Boolean(formData.net_weight?.trim()) ||
-          Boolean(formData.consignee_name?.trim() && formData.consignee_name.trim().toLowerCase() !== "no consignee") ||
-          Boolean(formData.driver_name?.trim()) ||
-          Boolean(formData.driver_rent?.trim()) ||
-          Boolean(formData.truck_number?.trim()) ||
-          Boolean(formData.cargo_description?.trim() && formData.cargo_description.trim().length > 3)
-
-        if (bolNumber && bolNumber.trim().length >= 2 && isMeaningfulDraft) {
-          queuedRevision.current = draftRevision.current
-          draftQueue.current?.enqueue(JSON.stringify({ type: "bol", draft: currentDocData }))
-        } else {
-          setAutoSaveStatus("local")
-        }
-
-        // Tier 3: Auto-save Shipper, Consignee & Notify Parties into Autocomplete Databases
-        try {
-          if (formData.shipper_name?.trim()) {
-            const sName = formData.shipper_name.trim()
-            const matchS = savedShippers.find((s) => s.name.trim().toLowerCase() === sName.toLowerCase())
-            const curS: SavedParty = {
-              id: matchS ? matchS.id : crypto.randomUUID(),
-              name: sName,
-              address: formData.shipper_address || "",
-              contact: formData.shipper_contact || "",
-              email: formData.shipper_email || "",
-              savedAt: new Date().toISOString(),
-            }
-            const nextS = [curS, ...savedShippers.filter((s) => s.id !== curS.id)].slice(0, 10000)
-            window.localStorage.setItem(SAVED_SHIPPERS_STORAGE_KEY, JSON.stringify(nextS))
-          }
-
-          if (formData.consignee_name?.trim()) {
-            const cName = formData.consignee_name.trim()
-            const matchC = savedConsignees.find((c) => c.name.trim().toLowerCase() === cName.toLowerCase())
-            const curC: SavedParty = {
-              id: matchC ? matchC.id : crypto.randomUUID(),
-              name: cName,
-              address: formData.consignee_address || "",
-              contact: formData.consignee_contact || "",
-              email: formData.consignee_email || "",
-              savedAt: new Date().toISOString(),
-            }
-            const nextC = [curC, ...savedConsignees.filter((c) => c.id !== curC.id)].slice(0, 10000)
-            window.localStorage.setItem(SAVED_CONSIGNEES_STORAGE_KEY, JSON.stringify(nextC))
-          }
-        } catch (e) {}
-
-        const nowFormatted = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-        setLastAutoSaveTime(nowFormatted)
-        setLastAutoSavedTime(nowFormatted)
-      } catch (e) {
-        setAutoSaveStatus("error")
+      if (document.visibilityState === "hidden") {
+        flushDraftToServer()
       }
-    }, 1200)
+    }
+
+    window.addEventListener("pagehide", handleFlush)
+    window.addEventListener("beforeunload", handleFlush)
+    document.addEventListener("visibilitychange", handleVisibility)
 
     return () => {
       clearTimeout(timer)
-      window.removeEventListener("pagehide", flushLocalDraft)
+      clearInterval(heartbeat)
+      flushDraftToServer() // Flush any pending work when unmounting or dependencies change!
+      window.removeEventListener("pagehide", handleFlush)
+      window.removeEventListener("beforeunload", handleFlush)
       document.removeEventListener("visibilitychange", handleVisibility)
     }
-  }, [formData, bolNumber, issueDate, persianDate, persianDateNumeric, checkingDraft, hasRecoverableDraft, isHydrating, activeTab])
+  }, [formData, bolNumber, issueDate, persianDate, persianDateNumeric, checkingDraft, hasRecoverableDraft, isHydrating, persistLocalDraftSync, flushDraftToServer])
   const [activeRouteIndex, setActiveRouteIndex] = useState<number | null>(null)
   const [showLocationDropdown, setShowLocationDropdown] = useState<number | null>(null)
   const [selectedCountryFilter, setSelectedCountryFilter] = useState("ALL")
