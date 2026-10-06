@@ -102,37 +102,41 @@ async def list_bols_paged(
 
     # Search Priority (Section 12)
     if clean_q:
-        if _CONTAINER_REGEX.match(clean_q):
-            # Prioritize container lookup
-            container_bol_ids = (
-                select(ContainerModel.bol_id)
-                .where(ContainerModel.container_number.ilike(f"%{clean_q}%"))
-                .scalar_subquery()
-            )
-            filters.append(BOLModel.id.in_(container_bol_ids))
-        elif _BOL_NUM_REGEX.match(clean_q) and len(clean_q) >= 4:
-            # Prioritize exact/prefix indexed BOL number match
-            filters.append(
-                or_(
-                    BOLModel.bol_number == clean_q,
-                    BOLModel.bol_number.ilike(f"{clean_q}%"),
-                    BOLModel.driver_name.ilike(f"%{clean_q}%"),
-                    BOLModel.shipper_name.ilike(f"%{clean_q}%"),
-                    BOLModel.consignee_name.ilike(f"%{clean_q}%"),
-                )
-            )
-        else:
-            # Multi-field substring search
-            filters.append(
-                or_(
-                    BOLModel.bol_number.ilike(f"%{clean_q}%"),
-                    BOLModel.driver_name.ilike(f"%{clean_q}%"),
-                    BOLModel.shipper_name.ilike(f"%{clean_q}%"),
-                    BOLModel.consignee_name.ilike(f"%{clean_q}%"),
-                    BOLModel.notify_party_name.ilike(f"%{clean_q}%"),
-                    BOLModel.cargo_description.ilike(f"%{clean_q}%"),
-                )
-            )
+        # Container subquery
+        container_subq = (
+            select(ContainerModel.bol_id)
+            .where(ContainerModel.container_number.ilike(f"%{clean_q}%"))
+            .scalar_subquery()
+        )
+        # Truck subquery
+        truck_subq = (
+            select(TruckModel.id)
+            .where(TruckModel.truck_number.ilike(f"%{clean_q}%"))
+            .scalar_subquery()
+        )
+
+        clean_stripped = clean_q.replace("-", "").replace(" ", "")
+
+        search_or_conditions = [
+            BOLModel.bol_number == clean_q,
+            BOLModel.bol_number.ilike(f"%{clean_q}%"),
+            BOLModel.driver_name.ilike(f"%{clean_q}%"),
+            BOLModel.father_name.ilike(f"%{clean_q}%"),
+            BOLModel.shipper_name.ilike(f"%{clean_q}%"),
+            BOLModel.consignee_name.ilike(f"%{clean_q}%"),
+            BOLModel.notify_party_name.ilike(f"%{clean_q}%"),
+            BOLModel.cargo_description.ilike(f"%{clean_q}%"),
+            BOLModel.origin.ilike(f"%{clean_q}%"),
+            BOLModel.destination.ilike(f"%{clean_q}%"),
+            BOLModel.border_station.ilike(f"%{clean_q}%"),
+            BOLModel.truck_id.in_(truck_subq),
+            BOLModel.id.in_(container_subq),
+        ]
+
+        if clean_stripped != clean_q and len(clean_stripped) >= 3:
+            search_or_conditions.append(BOLModel.bol_number.ilike(f"%{clean_stripped}%"))
+
+        filters.append(or_(*search_or_conditions))
 
     where_clause = and_(*filters) if filters else True
 
@@ -283,10 +287,15 @@ async def get_bol_detail(db: AsyncSession, bol_id_or_number: str) -> BOLDetail:
         LEFT JOIN notify_parties np ON b.notify_party_id = np.id
         LEFT JOIN drivers d ON b.driver_id = d.id
         LEFT JOIN trucks tr ON b.truck_id = tr.id
-        WHERE b.bol_number = :clean_id OR b.id = :clean_id
+        WHERE b.bol_number = :clean_id 
+           OR b.id = :clean_id 
+           OR b.bol_number LIKE '%' || :clean_id
+           OR b.bol_number LIKE '%' || :clean_stripped
+        ORDER BY (b.bol_number = :clean_id) DESC, (b.id = :clean_id) DESC, b.created_at DESC
         LIMIT 1;
     """
-    bol_res = await db.execute(text(bol_sql), {"clean_id": clean_id})
+    clean_stripped = clean_id.replace("-", "").replace(" ", "")
+    bol_res = await db.execute(text(bol_sql), {"clean_id": clean_id, "clean_stripped": clean_stripped})
     row = bol_res.fetchone()
     if not row:
         raise HTTPException(

@@ -236,6 +236,16 @@ export function enrichBolWithLocal(item: any, localMap: Map<string, any>): any {
     routes: routes,
     shipper_name: shipperName,
     consignee_name: consigneeName,
+    shipper_address: local.shipper_address || local.shipperAddress || item.shipper_address || "",
+    shipper_contact: local.shipper_contact || local.shipperContact || item.shipper_contact || "",
+    consignee_address: local.consignee_address || local.consigneeAddress || item.consignee_address || "",
+    consignee_contact: local.consignee_contact || local.consigneeContact || item.consignee_contact || "",
+    notify_party: local.notify_party || local.notifyParty || item.notify_party || "",
+    notify_party_address: local.notify_party_address || local.notifyPartyAddress || item.notify_party_address || "",
+    notes_1: local.notes_1 || item.notes_1 || "",
+    notes_1_label: local.notes_1_label || item.notes_1_label || "",
+    notes_2: local.notes_2 || item.notes_2 || "",
+    notes_2_label: local.notes_2_label || item.notes_2_label || "",
   }
 }
 

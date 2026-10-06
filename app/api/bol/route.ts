@@ -152,11 +152,11 @@ export async function GET(request: Request) {
           const localBols = await localStorage.getAllLocalBOLs().catch(() => [])
 
           let filteredLocalOnly: any[] = []
-          // Only evaluate local-only BOLs if local storage actually has more records than the DB total
-          if (localBols.length > fastResult.total && !searchParam) {
-            const fastKeys = new Set(
-              fastResult.items.map((i: any) => (cleanBolNumber(i.bol_number) || i.id || "").toUpperCase())
-            )
+          const fastKeys = new Set(
+            fastResult.items.map((i: any) => (cleanBolNumber(i.bol_number) || i.id || "").toUpperCase())
+          )
+
+          if (!searchParam && localBols.length > fastResult.total) {
             const localOnly = localBols.filter((lb: any) => {
               const k = (cleanBolNumber(lb.bol_number) || lb.id || "").toUpperCase()
               return k && !fastKeys.has(k) && isMeaningfulBOL(lb)
@@ -169,6 +169,33 @@ export async function GET(request: Request) {
               filteredLocalOnly = localOnly.filter((b: any) => Boolean(b.isArchived || b.status === "archived"))
             } else {
               filteredLocalOnly = localOnly
+            }
+          } else if (searchParam) {
+            const sLower = searchParam.toLowerCase().trim()
+            const sAlpha = sLower.replace(/[^a-z0-9]/g, "")
+            const localMatches = localBols.filter((lb: any) => {
+              const k = (cleanBolNumber(lb.bol_number) || lb.id || "").toUpperCase()
+              if (!k || fastKeys.has(k) || !isMeaningfulBOL(lb)) return false
+              const bNum = (lb.bol_number || "").toLowerCase()
+              const sName = (lb.shipper_name || lb.shipperName || "").toLowerCase()
+              const cName = (lb.consignee_name || lb.consigneeName || "").toLowerCase()
+              const dName = (lb.driver_name || lb.driverName || "").toLowerCase()
+              const tNum = (lb.truck_number || lb.truckNumber || "").toLowerCase()
+              const cDesc = (lb.cargo_description || lb.cargoDescription || "").toLowerCase()
+              const dContact = (lb.driver_contact || lb.driverContact || lb.driver_phone || "").toLowerCase()
+              const cNotes = ((lb.notes_1 || "") + " " + (lb.notes_2 || "")).toLowerCase()
+              if (bNum.includes(sLower) || sName.includes(sLower) || cName.includes(sLower) || dName.includes(sLower) || tNum.includes(sLower) || cDesc.includes(sLower) || dContact.includes(sLower) || cNotes.includes(sLower)) return true
+              if (sAlpha.length >= 3 && bNum.replace(/[^a-z0-9]/g, "").includes(sAlpha)) return true
+              return false
+            })
+
+            const statusParam = (searchParams.get("status") || "all").toLowerCase().trim()
+            if (statusParam === "active") {
+              filteredLocalOnly = localMatches.filter((b: any) => !b.isArchived && b.status !== "archived")
+            } else if (statusParam === "archived") {
+              filteredLocalOnly = localMatches.filter((b: any) => Boolean(b.isArchived || b.status === "archived"))
+            } else {
+              filteredLocalOnly = localMatches
             }
           }
 
@@ -308,12 +335,19 @@ export async function GET(request: Request) {
     const searchFilter = (searchParams.get("search") || searchParams.get("q") || "").trim().toLowerCase()
 
     if (searchFilter) {
+      const sAlpha = searchFilter.replace(/[^a-z0-9]/g, "")
       allBols = allBols.filter((bol) => {
         const bNum = (bol.bol_number || "").toLowerCase()
         const sName = (bol.shipper_name || "").toLowerCase()
         const cName = (bol.consignee_name || "").toLowerCase()
         const dName = (bol.driver_name || "").toLowerCase()
-        return bNum.includes(searchFilter) || sName.includes(searchFilter) || cName.includes(searchFilter) || dName.includes(searchFilter)
+        const tNum = (bol.truck_number || "").toLowerCase()
+        const cDesc = (bol.cargo_description || "").toLowerCase()
+        const dContact = (bol.driver_contact || bol.driverContact || bol.driver_phone || "").toLowerCase()
+        const cNotes = ((bol.notes_1 || "") + " " + (bol.notes_2 || "")).toLowerCase()
+        if (bNum.includes(searchFilter) || sName.includes(searchFilter) || cName.includes(searchFilter) || dName.includes(searchFilter) || tNum.includes(searchFilter) || cDesc.includes(searchFilter) || dContact.includes(searchFilter) || cNotes.includes(searchFilter)) return true
+        if (sAlpha.length >= 3 && bNum.replace(/[^a-z0-9]/g, "").includes(sAlpha)) return true
+        return false
       })
     }
 
