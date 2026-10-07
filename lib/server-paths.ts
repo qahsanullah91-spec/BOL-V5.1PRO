@@ -45,11 +45,11 @@ export function getBackupRoot(): string {
 export function getDataPath(fileName: string): string {
   const base = path.basename(fileName)
   const root = process.cwd()
-  if (fs.existsSync && fs.existsSync(path.join(root, base))) {
-    return path.join(root, base)
+  if (fs.existsSync && fs.existsSync(path.join(/*turbopackIgnore: true*/ root, base))) {
+    return path.join(/*turbopackIgnore: true*/ root, base)
   }
   const dataDir = getDataRoot()
-  return path.join(dataDir, base)
+  return path.join(/*turbopackIgnore: true*/ dataDir, base)
 }
 
 export function getUploadPath(...segments: string[]): string {
