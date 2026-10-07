@@ -16,14 +16,11 @@ try {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {},
   webpack: (config, { dev, isServer }) => {
-    if (dev) {
-      config.cache = {
-        type: 'filesystem',
-      };
-    } else {
-      config.cache = false;
-    }
+    config.cache = {
+      type: 'filesystem',
+    };
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
