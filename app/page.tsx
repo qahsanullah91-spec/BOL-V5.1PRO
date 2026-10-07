@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { safeLazy, createSafeModule } from '@/lib/safe-lazy'
 import { AppProvider, useApp } from '@/lib/app-context'
 import { Header } from '@/components/header'
+import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { LoginScreen } from '@/components/login-screen'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { ModuleErrorBoundary } from '@/components/system/module-error-boundary'
@@ -14,6 +15,8 @@ import { scheduleIdlePreloads } from '@/lib/startup/module-preloader'
 import { ModuleLoadingSkeleton } from '@/components/system/module-loading-skeleton'
 import { toast } from 'sonner'
 import { smartMergeLedgerRecords } from '@/lib/services/ledger-sync-utils'
+import { UiOverflowDetector } from '@/components/system/ui-overflow-detector'
+import { AppShell, MainWorkspace } from '@/components/layout'
 
 const BOLEditor = createSafeModule('Bill of Lading', () => import('@/components/bill-of-lading/bol-editor').then(m => m.BOLEditor))
 const AccountsView = createSafeModule('Customer Accounts', () => import('@/components/accounts-view').then(m => m.AccountsView))
@@ -55,16 +58,24 @@ const TreasuryWorkspace = createSafeModule('Treasury Workspace', () => import('@
 const ManagementReportingWorkspace = createSafeModule('Management Reports', () => import('@/components/reports/management/management-reporting-workspace').then(m => m.ManagementReportingWorkspace))
 const FileCenterWorkspace = createSafeModule('File Center', () => import('@/components/files/file-center-workspace').then(m => m.FileCenterWorkspace))
 const CommunicationsWorkspace = createSafeModule('Communications Workspace', () => import('@/components/communications/communications-workspace').then(m => m.CommunicationsWorkspace))
+const BookingContainerCenter = createSafeModule('Container & Booking Fleet', () => import('@/components/booking/booking-container-center').then(m => m.BookingContainerCenter))
+const AiAssistantWorkspace = createSafeModule('Sky AI Operations Assistant', () => import('@/components/ai/ai-assistant-workspace').then(m => m.AiAssistantWorkspace))
 import type { CustomerPortalSession } from '@/lib/types/customer-portal'
 
 function MainContent() {
   const { view, setView, accounts, selectAccount, selectCompany, isAuthenticated, currentUser, currentAccount, currentCompany } = useApp()
   const [previewSession, setPreviewSession] = useState<CustomerPortalSession | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const handleNavigate = (e: any) => {
       if (e?.detail?.view) {
-        setView(e.detail.view)
+        const target = e.detail.view === 'backup' ? 'data-protection' : e.detail.view
+        setView(target)
       }
     }
     window.addEventListener("skybol:navigate-view", handleNavigate)
@@ -73,17 +84,6 @@ function MainContent() {
 
   useEffect(() => {
     StartupMachine.getInstance().transition("READY")
-    if (process.env.NODE_ENV === 'production') {
-      scheduleIdlePreloads([
-        { key: 'bol', importer: () => import('@/components/bill-of-lading/bol-editor') },
-        { key: 'shipments', importer: () => import('@/components/control-tower/control-tower-view') },
-        { key: 'ledger', importer: () => import('@/components/ledger-view') },
-        { key: 'invoice', importer: () => import('@/components/invoice-view') },
-        { key: 'reports', importer: () => import('@/components/reports-view') },
-        { key: 'files', importer: () => import('@/components/files/file-center-workspace') },
-        { key: 'workflow', importer: () => import('@/components/workflow/workflow-workspace') },
-      ])
-    }
   }, [])
 
   useEffect(() => {
@@ -166,7 +166,7 @@ function MainContent() {
               toast.success(`🎉 Synced ${allMerged.length} BOLs successfully to this device!`, { id: toastId })
               
               const cleanUrl = window.location.pathname
-              window.history.replaceState({}, document.title, cleanUrl)
+              window.history.replaceState(window.history.state, document.title, cleanUrl)
             } else {
               toast.error("Could not locate documents for this sync link.", { id: toastId })
             }
@@ -258,6 +258,17 @@ function MainContent() {
     }
   }, [isAuthenticated])
 
+  if (!mounted) {
+    return (
+      <div className="fixed inset-0 bg-[#020617] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+          <p className="text-xs font-mono">Initializing workspace...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!isAuthenticated) {
     return <LoginScreen />
   }
@@ -291,9 +302,14 @@ function MainContent() {
   const isBolView = !isShipper && (view === 'bol' || view === 'accounts' || view === 'companies' || view === 'ledger')
 
   return (
-    <div className="liquid-workspace min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1 min-w-0">
+    <AppShell
+      header={<Header />}
+      footer={<MobileBottomNav />}
+    >
+      <MainWorkspace
+        fluid={isBolView || isShipper}
+        noPadding={isBolView}
+      >
         {isShipper ? (
           <div key="shipper-portal" className="animate-page-crossfade">
             <ModuleErrorBoundary moduleName="Shipper Portal">
@@ -303,7 +319,7 @@ function MainContent() {
         ) : (
           <>
             {isBolView && (
-              <div key="bol-editor" className="animate-page-crossfade">
+              <div key="bol-editor" className="animate-page-crossfade flex-1 flex flex-col min-h-0 h-full">
                 <ModuleErrorBoundary moduleName="Bill of Lading Workspace">
                   <BOLEditor accountLedgerPanel={ledgerPanel} />
                 </ModuleErrorBoundary>
@@ -406,7 +422,7 @@ function MainContent() {
               </div>
             )}
             {view === 'accounting' && (
-              <div key="accounting" className="animate-page-crossfade">
+              <div key="accounting" className="animate-page-crossfade w-full flex-1 flex flex-col min-h-0">
                 <ModuleErrorBoundary moduleName="Accounting Workspace">
                   <AccountingWorkspace />
                 </ModuleErrorBoundary>
@@ -461,7 +477,7 @@ function MainContent() {
                 </ModuleErrorBoundary>
               </div>
             )}
-            {view === 'data-protection' && (
+            {(view === 'data-protection' || view === 'backup') && (
               <div key="data-protection" className="animate-page-crossfade w-full max-w-[1780px] mx-auto px-3 sm:px-6 py-2">
                 <ModuleErrorBoundary moduleName="Data Protection">
                   <DataProtectionCenter />
@@ -566,6 +582,20 @@ function MainContent() {
                 </ModuleErrorBoundary>
               </div>
             )}
+            {view === 'booking-containers' && (
+              <div key="booking-containers" className="animate-page-crossfade w-full max-w-[1780px] mx-auto px-3 sm:px-6 py-2">
+                <ModuleErrorBoundary moduleName="Container & Booking Fleet">
+                  <BookingContainerCenter />
+                </ModuleErrorBoundary>
+              </div>
+            )}
+            {view === 'ai-assistant' && (
+              <div key="ai-assistant" className="animate-page-crossfade w-full max-w-[1780px] mx-auto px-3 sm:px-6 py-2">
+                <ModuleErrorBoundary moduleName="Sky AI Operations Assistant">
+                  <AiAssistantWorkspace />
+                </ModuleErrorBoundary>
+              </div>
+            )}
             {view === 'customer-portal' && previewSession && (
               <div key="customer-portal-preview" className="animate-page-crossfade">
                 <ModuleErrorBoundary moduleName="Customer Portal Preview">
@@ -581,8 +611,9 @@ function MainContent() {
             )}
           </>
         )}
-      </main>
-    </div>
+      </MainWorkspace>
+      <UiOverflowDetector />
+    </AppShell>
   )
 }
 

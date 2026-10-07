@@ -2,6 +2,12 @@ import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import * as localStorage from "@/lib/services/local-storage-service"
 import { advanceBolSequenceIfHigher } from "@/lib/services/bol-sequence"
+import { getFastApiBaseUrl, isFastApiHealthy } from "@/lib/api/backend-url"
+import { checkBolLedgerReferences } from "@/lib/services/bol-ledger-safety"
+import { logBolLifecycleAudit } from "@/lib/services/bol-audit-service"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 const isUUID = (str?: string | null): boolean => {
   if (!str) return false
@@ -31,17 +37,30 @@ export async function GET(
 
   const { id } = await params
   
-  // 1. Ultra-fast FastAPI SQLite backend details lookup (<10ms)
+  // 1. Authoritative Full-Fidelity Local Storage Document Lookup
+  // .local-bols.json contains all 40+ form fields, notes, contacts, bilingual labels, and route stops
   try {
-    const fastUrl = `http://127.0.0.1:8000/api/v1/bols/${encodeURIComponent(id)}/details`
-    const fastRes = await fetch(fastUrl, {
-      signal: AbortSignal.timeout(600),
-      headers: { Accept: "application/json" },
-    })
-    if (fastRes.ok) {
-      const fastResult = await fastRes.json()
-      if (fastResult && fastResult.data) {
-        return NextResponse.json({ data: fastResult.data, source: "fastapi-sqlite" })
+    const localBol = await localStorage.getLocalBOL(id)
+    if (localBol && (localBol.bol_number || localBol.id)) {
+      return NextResponse.json({ data: localBol, source: "local-storage" })
+    }
+  } catch (err) {
+    console.warn("[bol/[id] API] Error reading localBol:", err)
+  }
+
+  // 2. Fallback: Ultra-fast FastAPI SQLite backend details lookup (<10ms)
+  try {
+    if (await isFastApiHealthy()) {
+      const fastUrl = `${getFastApiBaseUrl()}/api/v1/bols/${encodeURIComponent(id)}/details`
+      const fastRes = await fetch(fastUrl, {
+        signal: AbortSignal.timeout(600),
+        headers: { Accept: "application/json" },
+      })
+      if (fastRes.ok) {
+        const fastResult = await fastRes.json()
+        if (fastResult && fastResult.data) {
+          return NextResponse.json({ data: fastResult.data, source: "fastapi-sqlite" })
+        }
       }
     }
   } catch {
@@ -114,25 +133,25 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let user: any = null
-  let supabase: any = null
-
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    try {
-      supabase = await createClient()
-      const { data, error: authError } = await supabase.auth.getUser()
-      if (authError || !data?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-      }
-      user = data.user
-    } catch (err) {
-      console.warn("[v0] Supabase auth check error:", err)
-    }
-  }
-
-  const { id } = await params
-  
   try {
+    let user: any = null
+    let supabase: any = null
+
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      try {
+        supabase = await createClient()
+        const { data, error: authError } = await supabase.auth.getUser()
+        if (authError || !data?.user) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+        user = data.user
+      } catch (err) {
+        console.warn("[v0] Supabase auth check error:", err)
+      }
+    }
+
+    const { id } = await params
+
     const role = (user?.user_metadata?.role || user?.app_metadata?.role || request.headers.get("x-user-role") || "").toLowerCase().trim()
     if (role === "shipper" || role === "client" || role === "viewer") {
       return NextResponse.json(
@@ -141,45 +160,125 @@ export async function PUT(
       )
     }
 
-    const body = await request.json()
-    const targetBolNumber = body.bol_number || id
+    let body: any = {}
+    try {
+      const rawText = await request.text()
+      if (rawText && rawText.trim().length > 0) {
+        body = JSON.parse(rawText)
+      }
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 })
+    }
+    let targetBolNumber = (!isUUID(body.bol_number) ? body.bol_number : "") || (!isUUID(id) ? id : "")
+    if (!targetBolNumber) {
+      // Look up existing BOL to preserve its legitimate bol_number
+      const existing = await localStorage.getLocalBOL(id)
+      if (existing?.bol_number && !isUUID(existing.bol_number)) {
+        targetBolNumber = existing.bol_number
+      } else {
+        const { getNextAtomicBolNumber } = await import("@/lib/services/bol-sequence")
+        targetBolNumber = await getNextAtomicBolNumber()
+      }
+    }
 
     // Forward partial update with optimistic concurrency to FastAPI SQLite backend
     try {
-      const fastUrl = `http://127.0.0.1:8000/api/v1/bols/${encodeURIComponent(id)}`
-      const fastRes = await fetch(fastUrl, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({
-          revision: body.revision || 1,
-          ...body,
-        }),
-        signal: AbortSignal.timeout(1200),
-      })
+      if (await isFastApiHealthy()) {
+        const fastUrl = `${getFastApiBaseUrl()}/api/v1/bols/${encodeURIComponent(id)}`
+        let targetRevision = Number(body.revision) || 1
+        try {
+          const detailsRes = await fetch(`${getFastApiBaseUrl()}/api/v1/bols/${encodeURIComponent(id)}/details`, { signal: AbortSignal.timeout(400) })
+          if (detailsRes.ok) {
+            const detailsJson = await detailsRes.json()
+            if (detailsJson?.data?.revision) {
+              targetRevision = detailsJson.data.revision
+            }
+          }
+        } catch {}
 
-      if (fastRes.status === 409) {
-        const errJson = await fastRes.json().catch(() => ({}))
-        return NextResponse.json(
-          { error: errJson.detail || "This BOL was updated elsewhere. Refresh before saving." },
-          { status: 409 }
-        )
+        const fastRes = await fetch(fastUrl, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            ...body,
+            revision: targetRevision,
+            bol_number: targetBolNumber,
+          }),
+          signal: AbortSignal.timeout(1200),
+        })
+
+        if (fastRes.status === 409) {
+          const errJson = await fastRes.json().catch(() => ({}))
+          return NextResponse.json(
+            { error: errJson.detail || "This BOL was updated elsewhere. Refresh before saving." },
+            { status: 409 }
+          )
+        }
       }
     } catch {
       // Fallback
     }
     
-    // Always update local storage first
-    await localStorage.updateLocalBOL(id, body)
-    if (targetBolNumber !== id) {
-      await localStorage.updateLocalBOL(targetBolNumber, body)
-    }
-    await advanceBolSequenceIfHigher(targetBolNumber)
+    const existing = await localStorage.getLocalBOL(id)
+    const newRevision = (Number(existing?.revision) || Number(body.revision) || 1) + 1
 
-    let savedData = {
-      id,
+    // Detect if document content changed compared to existing record with generated PDF
+    let pdfStatus = existing?.pdf_status || (existing?.pdf_url ? "ready" : "none")
+    if (existing?.pdf_url) {
+      const isDocumentChanged =
+        (body.shipper_name && body.shipper_name !== existing.shipper_name) ||
+        (body.consignee_name && body.consignee_name !== existing.consignee_name) ||
+        (body.cargo_description && body.cargo_description !== existing.cargo_description) ||
+        (body.number_of_packages && body.number_of_packages !== existing.number_of_packages) ||
+        (body.net_weight && body.net_weight !== existing.net_weight) ||
+        (body.gross_weight && body.gross_weight !== existing.gross_weight) ||
+        (body.truck_number && body.truck_number !== existing.truck_number) ||
+        (body.driver_name && body.driver_name !== existing.driver_name) ||
+        (body.driver_rent && body.driver_rent !== existing.driver_rent) ||
+        (body.issue_date && body.issue_date !== existing.issue_date)
+      if (isDocumentChanged) {
+        pdfStatus = "outdated"
+      }
+    }
+
+    const isArchiving = body.action === "archive" || body.isArchived === true || body.status === "archived"
+    const isRestoring = body.action === "restore" || (body.isArchived === false && body.status === "active")
+
+    const updatePayload: Record<string, any> = {
       ...body,
       bol_number: targetBolNumber,
+      revision: newRevision,
+      pdf_status: pdfStatus,
       updated_at: new Date().toISOString(),
+    }
+
+    if (isArchiving) {
+      updatePayload.isArchived = true
+      updatePayload.status = "archived"
+      updatePayload.archived_at = body.archived_at || new Date().toISOString()
+      updatePayload.archived_by = body.archived_by || user?.email || "user"
+      updatePayload.archive_reason = body.archive_reason || "Archived by user"
+    } else if (isRestoring) {
+      updatePayload.isArchived = false
+      updatePayload.status = "active"
+      updatePayload.archived_at = null
+      updatePayload.restored_at = new Date().toISOString()
+    }
+
+    // Always update local storage first
+    await localStorage.updateLocalBOL(id, updatePayload)
+    if (targetBolNumber !== id) {
+      await localStorage.updateLocalBOL(targetBolNumber, updatePayload)
+    }
+    if (!isUUID(targetBolNumber)) {
+      await advanceBolSequenceIfHigher(targetBolNumber)
+    }
+
+    const fullUpdated = await localStorage.getLocalBOL(targetBolNumber || id)
+
+    let savedData = fullUpdated || {
+      id,
+      ...updatePayload,
     }
     let savedToSupabase = false
     
@@ -251,6 +350,32 @@ export async function PUT(
       }
     }
     
+    // Non-destructive lifecycle audit log
+    if (isArchiving) {
+      void logBolLifecycleAudit({
+        action: "BOL_ARCHIVED",
+        entityId: id,
+        bolNumber: targetBolNumber,
+        actor: user?.email || updatePayload.archived_by || "user",
+        metadata: { reason: updatePayload.archive_reason },
+      })
+    } else if (isRestoring) {
+      void logBolLifecycleAudit({
+        action: "BOL_RESTORED",
+        entityId: id,
+        bolNumber: targetBolNumber,
+        actor: user?.email || "user",
+      })
+    } else {
+      void logBolLifecycleAudit({
+        action: "BOL_UPDATED",
+        entityId: id,
+        bolNumber: targetBolNumber,
+        actor: user?.email || "user",
+        metadata: { revision: newRevision, pdf_status: pdfStatus },
+      })
+    }
+
     return NextResponse.json({ 
       success: true,
       data: savedData,
@@ -296,6 +421,25 @@ export async function DELETE(
       )
     }
 
+    // Financial Invariance & Ledger Integrity Guard: Block hard delete if active financial records depend on this BOL
+    const force = new URL(request.url).searchParams.get("force") === "true"
+    if (!force) {
+      const ledgerCheck = await checkBolLedgerReferences(id)
+      if (ledgerCheck.hasReferences) {
+        return NextResponse.json(
+          {
+            error: "Cannot hard-delete Bill of Lading: active financial ledger records are linked to this BOL.",
+            blocked: true,
+            ledgerCount: ledgerCheck.count,
+            matchedBolNumber: ledgerCheck.matchedBolNumber,
+            details: ledgerCheck.details,
+            message: "Accounting invariance requires ledger history to be preserved. Please use 'Archive BOL' instead.",
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     let deletedFromSupabase = false
     
     if (supabase) {
@@ -319,23 +463,35 @@ export async function DELETE(
 
     // Forward delete to FastAPI SQLite backend
     try {
-      await fetch(`http://127.0.0.1:8000/api/v1/bols/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-        signal: AbortSignal.timeout(600),
-      })
+      if (await isFastApiHealthy()) {
+        await fetch(`${getFastApiBaseUrl()}/api/v1/bols/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          signal: AbortSignal.timeout(600),
+        })
+      }
     } catch {}
 
     // Also delete from local storage
     await localStorage.deleteLocalBOL(id)
     
+    void logBolLifecycleAudit({
+      action: "BOL_DELETED",
+      entityId: id,
+      bolNumber: id,
+      actor: user?.email || "user",
+    })
+
     return NextResponse.json({ 
       success: true,
       deleted_from: deletedFromSupabase ? "supabase" : "local"
     })
-  } catch (err) {
+  } catch (err: any) {
     console.error("[bol/[id] API] DELETE error:", err)
     return NextResponse.json({ 
-      error: "Failed to delete BOL" 
+      error: "Failed to delete BOL",
+      details: err?.message || String(err)
     }, { status: 500 })
   }
 }
+
+export const PATCH = PUT

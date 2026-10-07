@@ -10,24 +10,46 @@ import fs from "fs"
 export function getDataRoot(): string {
   if (typeof window !== "undefined") return ""
   if (process.env.DATABASE_PATH) return path.resolve(process.env.DATABASE_PATH)
-  if (process.env.SKY_DATA_DIR) return path.resolve(process.env.SKY_DATA_DIR)
   
   const root = process.cwd()
   // Backwards compatibility: if data already exists in root, use it.
   if (fs.existsSync && fs.existsSync(path.join(root, ".local-bols.json"))) {
     return root
   }
+  if (process.env.SKY_DATA_DIR) return path.resolve(process.env.SKY_DATA_DIR)
   return path.join(root, "data")
 }
 
 export function getBackupRoot(): string {
   if (process.env.BACKUP_PATH) return path.resolve(process.env.BACKUP_PATH)
-  return path.join(getDataRoot(), "..", "backups")
+  
+  // 1. Check primary data/backups location where existing production archives reside
+  const appDataBackups = path.join(process.cwd(), "data", "backups")
+  if (fs.existsSync && fs.existsSync(appDataBackups)) return appDataBackups
+
+  // 2. Check getDataRoot()/backups
+  const dataRootBackups = path.join(getDataRoot(), "backups")
+  if (fs.existsSync && fs.existsSync(dataRootBackups)) return dataRootBackups
+
+  // 3. Check workspace root backups
+  const cwdBackups = path.join(process.cwd(), "backups")
+  if (fs.existsSync && fs.existsSync(cwdBackups)) return cwdBackups
+
+  // Fallback: create appDataBackups if neither exists
+  if (!fs.existsSync(appDataBackups)) {
+    try { fs.mkdirSync(appDataBackups, { recursive: true }) } catch {}
+  }
+  return appDataBackups
 }
 
 export function getDataPath(fileName: string): string {
-  const root = getDataRoot()
-  return path.join(root, path.basename(fileName))
+  const base = path.basename(fileName)
+  const root = process.cwd()
+  if (fs.existsSync && fs.existsSync(path.join(/*turbopackIgnore: true*/ root, base))) {
+    return path.join(/*turbopackIgnore: true*/ root, base)
+  }
+  const dataDir = getDataRoot()
+  return path.join(/*turbopackIgnore: true*/ dataDir, base)
 }
 
 export function getUploadPath(...segments: string[]): string {
@@ -55,10 +77,16 @@ export function getAppDataDir(): string {
 }
 
 export function getDatabasePath(): string {
+  if (process.env.SKY_DATA_DIR) {
+    const p = path.join(path.resolve(process.env.SKY_DATA_DIR), "app.db")
+    if (fs.existsSync(p)) return p
+  }
   const root = getDataRoot()
   const candidateApp = path.join(root, "app.db")
-  const candidateAq = path.join(root, "aq_companies.db")
   if (fs.existsSync(candidateApp)) return candidateApp
+  const candidateData = path.join(root, "data", "app.db")
+  if (fs.existsSync(candidateData)) return candidateData
+  const candidateAq = path.join(root, "aq_companies.db")
   if (fs.existsSync(candidateAq)) return candidateAq
   const subDataApp = path.join(root, "Data", "app.db")
   if (fs.existsSync(subDataApp)) return subDataApp
@@ -66,12 +94,7 @@ export function getDatabasePath(): string {
 }
 
 export function getBackupDir(): string {
-  const root = getDataRoot()
-  const bkp = path.join(root, "backups")
-  if (!fs.existsSync(bkp)) {
-    try { fs.mkdirSync(bkp, { recursive: true }) } catch {}
-  }
-  return bkp
+  return getBackupRoot()
 }
 
 export function getRecoveryDir(): string {

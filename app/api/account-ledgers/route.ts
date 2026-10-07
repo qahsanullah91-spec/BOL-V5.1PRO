@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getAccountLedgerDatabase, saveAccountLedgerDatabase } from "@/lib/services/account-ledger-storage-service"
 import { createClient } from "@/lib/supabase/server"
 import { assertLedgerMapNotViolatingClosedPeriods } from "@/lib/accounting/period-closing/period-service"
+import { getFastApiBaseUrl, isFastApiHealthy } from "@/lib/api/backend-url"
 
 export async function GET(request: Request) {
   let user: any = null
@@ -21,16 +22,18 @@ export async function GET(request: Request) {
   // Fast Account Search
   if (action === "search-accounts") {
     try {
-      const q = searchParams.get("q") || ""
-      const fastUrl = new URL("http://127.0.0.1:8000/api/v1/ledger/accounts/search")
-      if (q) fastUrl.searchParams.set("q", q)
-      const fastRes = await fetch(fastUrl.toString(), {
-        signal: AbortSignal.timeout(600),
-        headers: { Accept: "application/json" },
-      })
-      if (fastRes.ok) {
-        const resData = await fastRes.json()
-        return NextResponse.json({ success: true, data: resData.data, source: "fastapi-sqlite" })
+      if (await isFastApiHealthy()) {
+        const q = searchParams.get("q") || ""
+        const fastUrl = new URL(`${getFastApiBaseUrl()}/api/v1/ledger/accounts/search`)
+        if (q) fastUrl.searchParams.set("q", q)
+        const fastRes = await fetch(fastUrl.toString(), {
+          signal: AbortSignal.timeout(600),
+          headers: { Accept: "application/json" },
+        })
+        if (fastRes.ok) {
+          const resData = await fastRes.json()
+          return NextResponse.json({ success: true, data: resData.data, source: "fastapi-sqlite" })
+        }
       }
     } catch {
       // Fallback
@@ -40,18 +43,66 @@ export async function GET(request: Request) {
   // Server-driven ledger query
   if (isServerDriven) {
     try {
-      const fastUrl = new URL("http://127.0.0.1:8000/api/v1/ledger")
-      searchParams.forEach((val, key) => fastUrl.searchParams.set(key, val))
-      const fastRes = await fetch(fastUrl.toString(), {
-        signal: AbortSignal.timeout(600),
-        headers: { Accept: "application/json" },
-      })
-      if (fastRes.ok) {
-        const resData = await fastRes.json()
-        return NextResponse.json({ success: true, data: resData.data, source: "fastapi-sqlite" })
+      if (await isFastApiHealthy()) {
+        const fastUrl = new URL(`${getFastApiBaseUrl()}/api/v1/ledger`)
+        searchParams.forEach((val, key) => fastUrl.searchParams.set(key, val))
+        const fastRes = await fetch(fastUrl.toString(), {
+          signal: AbortSignal.timeout(600),
+          headers: { Accept: "application/json" },
+        })
+        if (fastRes.ok) {
+          const resData = await fastRes.json()
+          return NextResponse.json({ success: true, data: resData.data, source: "fastapi-sqlite" })
+        }
       }
     } catch {
       // Fallback
+    }
+  }
+
+  // Fast Account Summary (Accounts list + tombstones only, without megabytes of transaction rows)
+  if (action === "accounts" || action === "summary") {
+    try {
+      const dbData = await getAccountLedgerDatabase()
+      return NextResponse.json({
+        success: true,
+        data: {
+          accounts: dbData.accounts || [],
+          deletedLedgerEntries: dbData.deletedLedgerEntries || [],
+          totalAccounts: (dbData.accounts || []).length,
+        },
+        source: "local-file-summary",
+      })
+    } catch {
+      return NextResponse.json({ success: false, data: { accounts: [], deletedLedgerEntries: [] } }, { status: 500 })
+    }
+  }
+
+  // Single-account query (operate on selected account only — Section 73)
+  const singleAccountQuery = searchParams.get("account") || searchParams.get("company_name")
+  if (singleAccountQuery) {
+    try {
+      const dbData = await getAccountLedgerDatabase()
+      const targetKey = singleAccountQuery.trim().toLowerCase().replace(/[^a-z0-9]/g, "")
+      const filteredEntries: Record<string, any[]> = {}
+      if (dbData.ledgerEntries && typeof dbData.ledgerEntries === "object") {
+        for (const [k, rows] of Object.entries(dbData.ledgerEntries)) {
+          if (k.toLowerCase().replace(/[^a-z0-9]/g, "") === targetKey) {
+            filteredEntries[k] = rows
+          }
+        }
+      }
+      return NextResponse.json({
+        success: true,
+        data: {
+          accounts: dbData.accounts || [],
+          ledgerEntries: filteredEntries,
+          deletedLedgerEntries: dbData.deletedLedgerEntries || [],
+        },
+        source: "single-account-ledger",
+      })
+    } catch {
+      // Fall through to full
     }
   }
 

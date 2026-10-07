@@ -48,11 +48,13 @@ export async function GET(req: NextRequest) {
     }
 
     const fileBuffer = await fs.readFile(resolvedPath)
+    const isJson = downloadFileName.toLowerCase().endsWith(".json")
+    const contentType = isJson ? "application/json; charset=utf-8" : "application/zip"
 
     return new NextResponse(fileBuffer, {
       status: 200,
       headers: {
-        "Content-Type": "application/zip",
+        "Content-Type": contentType,
         "Content-Disposition": `attachment; filename="${downloadFileName}"`,
         "Content-Length": fileBuffer.length.toString(),
       },
