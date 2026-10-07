@@ -284,19 +284,72 @@ function syncMasterEntitiesToLegacy(entities: import('@/lib/types/master-data').
 
 let ledgerPostDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>({
+function getInitialAppState(): AppState {
+  let isAuth = false
+  let user: User | null = null
+  let currentUsers = DEFAULT_USERS_LIST
+  let restoredDeletedEntries: DeletedLedgerEntryItem[] = []
+  let restoredMasterEntities: import('@/lib/types/master-data').MasterEntity[] = []
+
+  if (typeof window !== "undefined") {
+    try {
+      const storedUsersRaw = localStorage.getItem("skybol:system-users")
+      if (storedUsersRaw) {
+        const parsed = JSON.parse(storedUsersRaw)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          currentUsers = parsed
+        }
+      }
+
+      const rawDeleted = localStorage.getItem("skybol:deleted-ledger-entries")
+      if (rawDeleted) {
+        const parsedDeleted = JSON.parse(rawDeleted)
+        if (Array.isArray(parsedDeleted)) {
+          restoredDeletedEntries = parsedDeleted
+        }
+      }
+
+      const rawMaster = localStorage.getItem("skybol:master-entities")
+      if (rawMaster) {
+        const parsedMaster = JSON.parse(rawMaster)
+        if (Array.isArray(parsedMaster) && parsedMaster.length > 0) {
+          restoredMasterEntities = parsedMaster
+        }
+      }
+
+      const savedUser = localStorage.getItem("skybol:user") || sessionStorage.getItem("skybol:user")
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser)
+        if (parsed?.username) {
+          user = parsed
+          isAuth = true
+        }
+      }
+    } catch (e) {
+      console.warn("[AppProvider] Failed to read storage during state initialization:", e)
+    }
+  }
+
+  if (restoredMasterEntities.length === 0) {
+    restoredMasterEntities = getDefaultMasterEntities()
+  }
+
+  return {
     accounts: SAMPLE_ACCOUNTS,
     invoices: [],
     currentAccount: null,
     currentCompany: null,
-    view: 'accounts',
-    isAuthenticated: false,
-    currentUser: null,
-    users: DEFAULT_USERS_LIST,
-    deletedLedgerEntries: [],
-  masterEntities: [],
-  })
+    view: user?.role === "shipper" ? "shipper-portal" : "accounts",
+    isAuthenticated: isAuth,
+    currentUser: user,
+    users: currentUsers,
+    deletedLedgerEntries: restoredDeletedEntries,
+    masterEntities: restoredMasterEntities,
+  }
+}
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<AppState>(getInitialAppState)
 
   // Restore login session and stored users on mount
   useEffect(() => {
@@ -557,11 +610,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       avatar: foundUser.avatar || "/logo.png",
       lastLogin: new Date().toISOString().split("T")[0],
     }
-    // Remove a previous remembered identity when switching to a session-only login.
-    localStorage.removeItem("skybol:user")
-    sessionStorage.removeItem("skybol:user")
-    const storage = rememberMe ? localStorage : sessionStorage
-    storage.setItem("skybol:user", JSON.stringify(userObj))
+    try {
+      localStorage.setItem("skybol:user", JSON.stringify(userObj))
+      sessionStorage.setItem("skybol:user", JSON.stringify(userObj))
+      localStorage.setItem("skybol:first-run-completed", "true")
+    } catch (_) {}
     setState((prev) => ({
       ...prev,
       isAuthenticated: true,

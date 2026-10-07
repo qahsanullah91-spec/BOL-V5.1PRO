@@ -100,4 +100,15 @@ audit_*.json
 validation_report.json
 sync_audit_report.json
 sync_status.json
+public/images/* - Copy.*
+public/images/*.original.*
+public/images/account-ledger-background.png
+public/images/ledger-background.png
+public/images/login-logistics-background.png
+public/images/account-ledger-logo.png
+public/images/document-backgrounds/global-flight-premium.png
+public/images/bol-mountain-bg.jpg
+public/images/mountain_watermark_bg.jpg
+public/images/air_cargo_jet.jpg
+public/images/globe_flags.png
 !lib/data/**

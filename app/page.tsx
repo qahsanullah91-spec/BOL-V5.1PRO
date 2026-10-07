@@ -161,7 +161,7 @@ function MainContent() {
               toast.success(`🎉 Synced ${allMerged.length} BOLs successfully to this device!`, { id: toastId })
               
               const cleanUrl = window.location.pathname
-              window.history.replaceState({}, document.title, cleanUrl)
+              window.history.replaceState(window.history.state, document.title, cleanUrl)
             } else {
               toast.error("Could not locate documents for this sync link.", { id: toastId })
             }
@@ -254,6 +254,19 @@ function MainContent() {
   }, [isAuthenticated])
 
   if (!isAuthenticated) {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("skybol:user") || sessionStorage.getItem("skybol:user")
+      if (stored) {
+        return (
+          <div className="fixed inset-0 bg-[#020617] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3 text-slate-400">
+              <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+              <p className="text-xs font-mono">Restoring workspace session...</p>
+            </div>
+          </div>
+        )
+      }
+    }
     return <LoginScreen />
   }
 
