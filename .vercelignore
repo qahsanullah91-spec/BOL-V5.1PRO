@@ -126,4 +126,5 @@ public/images/air_cargo_jet.jpg
 air_cargo_jet.jpg
 public/images/globe_flags.png
 globe_flags.png
+pnpm-lock.yaml
 !lib/data/**
