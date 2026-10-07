@@ -528,6 +528,14 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   const formDataRef = useRef<any>(formData)
   formDataRef.current = formData
 
+  const isMountedRef = useRef(true)
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
   // Intelligent background preloader: Warm up A4Preview chunk and prime critical images in browser cache
   useEffect(() => {
     const preloadPreviewAndAssets = () => {
@@ -733,7 +741,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }, [formData, bolNumber, issueDate, persianDate, persianDateNumeric])
 
   // Flush Draft to Server Queue (Atomically writes to .local-bol-draft.json)
-  const flushDraftToServer = useCallback(() => {
+  const flushDraftToServer = useCallback((skipStateUpdate = false) => {
     if (typeof window === "undefined" || checkingDraft || hasRecoverableDraft || isHydrating) return
     const currentDocData = persistLocalDraftSync()
     if (!currentDocData) return
@@ -752,10 +760,14 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     if (hasAnyContent && draftQueue.current) {
       draftRevision.current += 1
       queuedRevision.current = draftRevision.current
-      setAutoSaveStatus("saving")
+      if (!skipStateUpdate && isMountedRef.current) {
+        setAutoSaveStatus("saving")
+      }
       draftQueue.current.enqueue(JSON.stringify({ type: "bol", draft: currentDocData }))
     } else {
-      setAutoSaveStatus("local")
+      if (!skipStateUpdate && isMountedRef.current) {
+        setAutoSaveStatus("local")
+      }
     }
 
     // Tier 3: Auto-save Shipper & Consignee into Autocomplete Databases
@@ -824,11 +836,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
     // 4. Lifecycle listeners: flush on pagehide, visibility change, and beforeunload
     const handleFlush = () => {
-      flushDraftToServer()
+      flushDraftToServer(true)
     }
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
-        flushDraftToServer()
+        flushDraftToServer(true)
       }
     }
 
@@ -839,7 +851,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return () => {
       clearTimeout(timer)
       clearInterval(heartbeat)
-      flushDraftToServer() // Flush any pending work when unmounting or dependencies change!
+      flushDraftToServer(true) // Flush any pending work when unmounting or dependencies change safely!
       window.removeEventListener("pagehide", handleFlush)
       window.removeEventListener("beforeunload", handleFlush)
       document.removeEventListener("visibilitychange", handleVisibility)

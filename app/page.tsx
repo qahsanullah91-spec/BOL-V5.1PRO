@@ -65,6 +65,11 @@ import type { CustomerPortalSession } from '@/lib/types/customer-portal'
 function MainContent() {
   const { view, setView, accounts, selectAccount, selectCompany, isAuthenticated, currentUser, currentAccount, currentCompany } = useApp()
   const [previewSession, setPreviewSession] = useState<CustomerPortalSession | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const handleNavigate = (e: any) => {
@@ -253,20 +258,18 @@ function MainContent() {
     }
   }, [isAuthenticated])
 
+  if (!mounted) {
+    return (
+      <div className="fixed inset-0 bg-[#020617] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+          <p className="text-xs font-mono">Initializing workspace...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!isAuthenticated) {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("skybol:user") || sessionStorage.getItem("skybol:user")
-      if (stored) {
-        return (
-          <div className="fixed inset-0 bg-[#020617] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3 text-slate-400">
-              <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-              <p className="text-xs font-mono">Restoring workspace session...</p>
-            </div>
-          </div>
-        )
-      }
-    }
     return <LoginScreen />
   }
 
