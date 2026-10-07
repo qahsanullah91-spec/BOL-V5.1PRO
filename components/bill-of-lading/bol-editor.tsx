@@ -35,7 +35,12 @@ const safeChunkDynamic = <T,>(loader: () => Promise<T>): (() => Promise<T>) => {
           msg.includes("_next/static/chunks")
         ) {
           console.warn("[bol-editor] Stale chunk detected, refreshing page...", err)
-          window.location.reload()
+          const lastReload = Number(sessionStorage.getItem("sky_chunk_reload") || "0")
+          const now = Date.now()
+          if (now - lastReload > 15000) {
+            sessionStorage.setItem("sky_chunk_reload", String(now))
+            window.location.reload()
+          }
         }
       }
       throw err
