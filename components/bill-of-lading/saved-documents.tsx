@@ -285,6 +285,7 @@ const DocumentGridCard = memo(function DocumentGridCard(props: DocumentGridCardP
       isSelected={props.isSelected}
       onToggleSelect={props.onToggleSelect}
       onSendToCMR={props.onSendToCMR}
+      onCardClick={props.onEdit}
     />
   )
 })

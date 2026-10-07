@@ -740,6 +740,7 @@ export const SavedBolActions = memo(function SavedBolActions({
               type="button"
               size="sm"
               onClick={(e) => {
+                e.preventDefault()
                 e.stopPropagation()
                 onEdit(doc)
               }}
@@ -755,6 +756,7 @@ export const SavedBolActions = memo(function SavedBolActions({
               size="sm"
               variant="outline"
               onClick={(e) => {
+                e.preventDefault()
                 e.stopPropagation()
                 onDownload(doc)
               }}
@@ -781,6 +783,7 @@ export const SavedBolActions = memo(function SavedBolActions({
             variant="outline"
             size="sm"
             onClick={(e) => {
+              e.preventDefault()
               e.stopPropagation()
               onPreview(doc)
             }}
@@ -885,15 +888,20 @@ export const SavedBolCard = memo(function SavedBolCard({
 }: SavedBolCardProps<any>) {
   const routeInfo = extractBolRoute(doc)
 
-  const handleCardClick = () => {
+  const handleCardClick = (e?: React.MouseEvent) => {
+    e?.preventDefault()
+    e?.stopPropagation()
     if (onCardClick) {
       onCardClick(doc)
+    } else if (onEdit) {
+      onEdit(doc)
     }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault()
+      e.stopPropagation()
       handleCardClick()
     }
   }

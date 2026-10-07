@@ -304,15 +304,20 @@ export const RecentBolCard = memo(function RecentBolCard({
   const truck = parseTruckDetails(doc)
   const rent = parseRentDetails(doc)
 
-  const handleCardClick = () => {
+  const handleCardClick = (e?: React.MouseEvent) => {
+    e?.preventDefault()
+    e?.stopPropagation()
     if (onCardClick) {
       onCardClick()
+    } else if (onEdit) {
+      onEdit()
     }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault()
+      e.stopPropagation()
       handleCardClick()
     }
   }
@@ -442,6 +447,7 @@ export const RecentBolCard = memo(function RecentBolCard({
           type="button"
           size="sm"
           onClick={(e) => {
+            e.preventDefault()
             e.stopPropagation()
             onEdit()
           }}
@@ -457,6 +463,7 @@ export const RecentBolCard = memo(function RecentBolCard({
           size="sm"
           variant="outline"
           onClick={(e) => {
+            e.preventDefault()
             e.stopPropagation()
             if (onPreview) {
               onPreview()
