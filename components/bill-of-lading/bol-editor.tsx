@@ -565,7 +565,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         if (bolNumber) {
           url.searchParams.set("bol", bolNumber)
         }
-        window.history.replaceState({ bol: bolNumber, tab: newTab }, "", url.toString())
+        const newUrlStr = url.pathname + url.search + url.hash
+        window.history.replaceState(window.history.state, "", newUrlStr)
       } catch (_) {}
     }
     startTransition(() => {
@@ -1458,7 +1459,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         if (targetTab) {
           url.searchParams.set("tab", targetTab)
         }
-        window.history.replaceState({ bol: canonicalId, tab: targetTab }, "", url.toString())
+        const newUrlStr = url.pathname + url.search + url.hash
+        window.history.replaceState(window.history.state, "", newUrlStr)
       } catch (_) {}
     }
 
