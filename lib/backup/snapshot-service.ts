@@ -85,7 +85,7 @@ export async function createSystemSnapshot(options: SnapshotCreationOptions): Pr
     }
 
     const fileName = generateSnapshotFilename(reasonTag, now, options.targetVersion)
-    const filePath = path.join(targetDir, fileName)
+    const filePath = path.join(/*turbopackIgnore: true*/ targetDir, fileName)
     const snapshotId = `AQ-SNAP-${now.getTime()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`
 
     // 2. Fast snapshot collection (excludes external attachments for speed)
@@ -142,7 +142,7 @@ export async function createSystemSnapshot(options: SnapshotCreationOptions): Pr
     envelope.backupMetadata.checksum = fileChecksum
 
     await atomicWriteFile(filePath, JSON.stringify(envelope, null, 2))
-    const stats = await fs.stat(filePath)
+    const stats = await fs.stat(/*turbopackIgnore: true*/ filePath)
 
     // 4. Record snapshot in catalog
     const catalogItem: BackupItem = {

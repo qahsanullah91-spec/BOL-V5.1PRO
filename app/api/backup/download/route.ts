@@ -29,18 +29,18 @@ export async function GET(req: NextRequest) {
     let resolvedPath = target?.filePath
     let downloadFileName = target?.fileName || "sky-ariana-backup.zip"
 
-    if (!resolvedPath || !fsSync.existsSync(resolvedPath)) {
+    if (!resolvedPath || !fsSync.existsSync(/*turbopackIgnore: true*/ resolvedPath)) {
       // Check data/backups directory directly
       if (fileName && !fileName.includes("..")) {
         const directPath = path.join(process.cwd(), "data", "backups", fileName)
-        if (fsSync.existsSync(directPath)) {
+        if (fsSync.existsSync(/*turbopackIgnore: true*/ directPath)) {
           resolvedPath = directPath
           downloadFileName = fileName
         }
       }
     }
 
-    if (!resolvedPath || !fsSync.existsSync(resolvedPath)) {
+    if (!resolvedPath || !fsSync.existsSync(/*turbopackIgnore: true*/ resolvedPath)) {
       return NextResponse.json(
         { success: false, error: "Backup file not found on server" },
         { status: 404 }

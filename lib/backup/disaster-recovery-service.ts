@@ -171,22 +171,22 @@ export async function quarantineCorruptedDatabase(reason: string): Promise<strin
  */
 export async function discoverBackupsOnDisk(customFolder?: string): Promise<DiscoveredBackupPoint[]> {
   const backupDir = customFolder || path.join(process.cwd(), "data", "backups")
-  if (!fsSync.existsSync(backupDir)) return []
+  if (!fsSync.existsSync(/*turbopackIgnore: true*/ backupDir)) return []
 
-  const files = await fs.readdir(backupDir).catch(() => [])
+  const files = await fs.readdir(/*turbopackIgnore: true*/ backupDir).catch(() => [])
   const discovered: DiscoveredBackupPoint[] = []
 
   for (const f of files) {
     if (!f.endsWith(".json") && !f.endsWith(".zip")) continue
     if (f.includes(".tmp.")) continue
 
-    const fullPath = path.join(backupDir, f)
+    const fullPath = path.join(/*turbopackIgnore: true*/ backupDir, f)
     try {
       const parsed = await parseBackupFileContent(fullPath)
       const meta = parsed.rawParsed?.backupMetadata
       if (!meta || !meta.backupId) continue
 
-      const stats = await fs.stat(fullPath)
+      const stats = await fs.stat(/*turbopackIgnore: true*/ fullPath)
       const isRollback = f.includes("PRE_RESTORE") || meta.backupType === "snapshot"
       const isGolden = Boolean(meta.isGoldenBackup || (meta.restoreTestStatus === "PASS" && meta.invarianceValid))
 
