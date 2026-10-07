@@ -126,6 +126,9 @@ export function BackupRecoveryView() {
           description: `${data.backup.fileName} verified successfully.`,
         })
         await loadBackups()
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("skybol:backup-completed"))
+        }
       } else {
         toast.error("Backup Failed", { description: data.error })
       }
@@ -229,6 +232,40 @@ export function BackupRecoveryView() {
 
   return (
     <div className="space-y-4 w-full">
+      {/* Module Title & Quick Actions Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/20 shadow-xs">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-500/20">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                Data Protection & Backup Center
+              </h1>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800">
+                Enterprise Active
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              Continuous SQLite & JSON snapshots, automated rollback points, and zero-data-loss recovery drills
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleQuickFullBackup}
+            disabled={isCreating}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition shadow-xs cursor-pointer disabled:opacity-50"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{isCreating ? "Backing Up..." : "1-Click Snapshot"}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Top Main Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">

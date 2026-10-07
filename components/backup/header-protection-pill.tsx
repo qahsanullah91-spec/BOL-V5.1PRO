@@ -24,9 +24,19 @@ export function HeaderProtectionPill({ onOpenBackupCenter }: HeaderProtectionPil
 
     checkProtection()
     const timer = setInterval(checkProtection, 60_000)
+    const handleStatusUpdate = () => checkProtection()
+    if (typeof window !== "undefined") {
+      window.addEventListener("skybol:backup-completed", handleStatusUpdate)
+      window.addEventListener("focus", handleStatusUpdate)
+    }
+
     return () => {
       mounted = false
       clearInterval(timer)
+      if (typeof window !== "undefined") {
+        window.removeEventListener("skybol:backup-completed", handleStatusUpdate)
+        window.removeEventListener("focus", handleStatusUpdate)
+      }
     }
   }, [])
 

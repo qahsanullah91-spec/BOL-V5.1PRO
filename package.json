@@ -169,7 +169,15 @@
       },
       {
         "from": ".next-production/standalone",
-        "to": "app-server"
+        "to": "app-server",
+        "filter": [
+          "**/*",
+          "!data/backups/**/*",
+          "!data/rollback-snapshots/**/*",
+          "!data/staging/**/*",
+          "!data/uploads/**/*",
+          "!backups/**/*"
+        ]
       },
       {
         "from": ".next-production/standalone/node_modules",
@@ -204,6 +212,10 @@
           ".bol-counter",
           ".invoice-counter"
         ]
+      },
+      {
+        "from": "data/app.db",
+        "to": "seed-data/data/app.db"
       }
     ],
     "win": {

@@ -1564,7 +1564,7 @@ export function Header({ title, subtitle }: HeaderProps) {
 
             {/* Data Protection Pill */}
             <div className="hidden sm:block shrink-0">
-              <HeaderProtectionPill onOpenBackupCenter={() => handleNavigate('backup')} />
+              <HeaderProtectionPill onOpenBackupCenter={() => handleNavigate('data-protection')} />
             </div>
 
             {/* Cloud Sync Button */}

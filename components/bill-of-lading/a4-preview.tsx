@@ -387,7 +387,7 @@ function renderLineContent(line: string, forceLTR = false) {
   if (isPureNumericPhone) {
     return (
       <span
-        className="block font-mono font-bold text-blue-950 tracking-wider text-[8.8pt] leading-tight text-left"
+        className="block font-mono font-bold text-blue-950 tracking-wider text-[10.5pt] leading-tight text-left"
         dir="ltr"
         style={{ direction: "ltr", unicodeBidi: "isolate" }}
       >
@@ -420,7 +420,7 @@ function renderLineContent(line: string, forceLTR = false) {
                     {pair.label}
                   </span>
                   <span className="text-slate-400 font-black text-[8.2pt]">:</span>
-                  <span className="font-mono font-bold text-blue-950 tracking-tight text-[8.5pt]" dir="ltr" style={{ direction: "ltr", unicodeBidi: "isolate" }}>
+                  <span className="font-mono font-bold text-blue-950 tracking-tight text-[9.8pt]" dir="ltr" style={{ direction: "ltr", unicodeBidi: "isolate" }}>
                     {pair.number}
                   </span>
                 </span>
@@ -691,18 +691,18 @@ function DetailCard({
   const isRedHighlight = theme === "red"
   const isGreenHighlight = theme === "green"
 
-  const phoneBadgeClass = isUltra ? "w-4.5 h-4.5" : isCompactTier ? "w-5.5 h-5.5" : "w-6 h-6"
-  const phoneIconClass = isUltra ? "h-2.5 w-2.5" : isCompactTier ? "h-3 w-3" : "h-3.5 w-3.5"
+  const phoneBadgeClass = isUltra ? "w-5.5 h-5.5" : isCompactTier ? "w-6.5 h-6.5" : "w-7.5 h-7.5"
+  const phoneIconClass = isUltra ? "h-3 w-3" : isCompactTier ? "h-3.5 w-3.5" : "h-4 w-4"
 
   const getPhoneFontSize = (lineStr: string) => {
     const len = lineStr.trim().length
     if (len <= 22) {
-      return isUltra ? "text-[11pt]" : isCompactTier ? "text-[12.8pt]" : "text-[14.8pt]"
+      return isUltra ? "text-[13pt]" : isCompactTier ? "text-[15pt]" : "text-[17pt]"
     }
     if (len <= 34) {
-      return isUltra ? "text-[10.2pt]" : isCompactTier ? "text-[12pt]" : "text-[13.8pt]"
+      return isUltra ? "text-[11.5pt]" : isCompactTier ? "text-[13.5pt]" : "text-[15pt]"
     }
-    return isUltra ? "text-[9pt]" : isCompactTier ? "text-[10.5pt]" : "text-[11.8pt]"
+    return isUltra ? "text-[10pt]" : isCompactTier ? "text-[11.5pt]" : "text-[13pt]"
   }
 
   const lines = cleanText(value).split("\n").map((l) => l.trim()).filter(Boolean)

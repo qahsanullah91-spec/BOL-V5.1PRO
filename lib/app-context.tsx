@@ -89,7 +89,7 @@ interface AppState {
   invoices: Invoice[]
   currentAccount: Account | null
   currentCompany: Company | null
-  view: 'accounts' | 'companies' | 'ledger' | 'accounting' | 'invoice' | 'bol' | 'settings' | 'bank' | 'invoice-pad' | 'sky-cmr' | 'sky-doc' | 'reports' | 'shipper-portal' | 'analytics' | 'export-calculator' | 'acci-portal' | 'shipments' | 'whatsapp' | 'customer-portal' | 'customer-portal-admin' | 'accounting-finance' | 'document-compliance' | 'booking-containers' | 'bulk-entry' | 'master-data' | 'workflow' | 'notifications' | 'data-protection' | 'daily-operations' | 'audit-history' | 'search' | 'ai-assistant' | 'routes-locations' | 'rates-quotations' | 'procurement' | 'fleet-operations' | 'warehouse-cargo' | 'customs-transit' | 'ocean-operations' | 'air-freight' | 'claims-incidents' | 'crm-sales' | 'period-closing' | 'treasury' | 'management-reports' | 'file-center' | 'communications'
+  view: 'accounts' | 'companies' | 'ledger' | 'accounting' | 'invoice' | 'bol' | 'settings' | 'bank' | 'invoice-pad' | 'sky-cmr' | 'sky-doc' | 'reports' | 'shipper-portal' | 'analytics' | 'export-calculator' | 'acci-portal' | 'shipments' | 'whatsapp' | 'customer-portal' | 'customer-portal-admin' | 'accounting-finance' | 'document-compliance' | 'booking-containers' | 'bulk-entry' | 'master-data' | 'workflow' | 'notifications' | 'data-protection' | 'backup' | 'daily-operations' | 'audit-history' | 'search' | 'ai-assistant' | 'routes-locations' | 'rates-quotations' | 'procurement' | 'fleet-operations' | 'warehouse-cargo' | 'customs-transit' | 'ocean-operations' | 'air-freight' | 'claims-incidents' | 'crm-sales' | 'period-closing' | 'treasury' | 'management-reports' | 'file-center' | 'communications'
 
   isAuthenticated: boolean
   currentUser: User | null
