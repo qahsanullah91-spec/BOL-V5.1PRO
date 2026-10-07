@@ -8,6 +8,7 @@ import {
   NotificationMetrics,
   NotificationCategory,
   NotificationSeverity,
+  getDefaultNotificationSettings,
 } from '@/lib/types/notification'
 import { User } from '@/lib/types'
 
