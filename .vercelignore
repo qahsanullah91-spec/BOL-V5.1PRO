@@ -2,6 +2,10 @@ node_modules
 node_modules/**
 .next
 .next/**
+.vercel/output
+.vercel/output/**
+.vercel/cache
+.vercel/cache/**
 .next-*
 .next-*/**
 .desktop-package
@@ -26,8 +30,8 @@ backend/**
 .venv/**
 resources
 resources/**
-data
-data/**
+/data
+/data/**
 bol-ledger
 bol-ledger/**
 scripts
