@@ -1256,15 +1256,16 @@ export const LedgerView = memo(function LedgerView() {
       await new Promise((resolve) => setTimeout(resolve, 150))
 
       // 1. Electron Native PDF Generator (Vector, Searchable, Selectable)
-      if (typeof window !== 'undefined' && window.skyDesktop?.exportPageToPdf) {
-        const filePath = await window.skyDesktop.exportPageToPdf(fileName)
+      const skyDesktop = typeof window !== 'undefined' ? (window as any).skyDesktop : undefined
+      if (skyDesktop?.exportPageToPdf) {
+        const filePath = await skyDesktop.exportPageToPdf(fileName)
         if (filePath) {
           toast.success('Ledger PDF saved successfully!', {
             description: filePath.split(/[/\\]/).pop(),
             duration: 7000,
             action: {
               label: 'Open File',
-              onClick: () => window.skyDesktop?.openFile(filePath),
+              onClick: () => skyDesktop?.openFile?.(filePath),
             },
           })
         }
