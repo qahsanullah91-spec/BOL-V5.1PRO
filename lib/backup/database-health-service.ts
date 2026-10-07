@@ -250,6 +250,206 @@ export async function runDeepHealthScan(): Promise<DeepHealthReport> {
     }
   }
 
+  // 4b. Accounting Health: NaN, Infinity, and broken transaction references
+  let nanInfinityCount = 0
+  if (typeof accountLedgers === "object" && accountLedgers !== null) {
+    for (const [accName, val] of Object.entries(accountLedgers)) {
+      const rows: any[] = Array.isArray(val) ? val : (val as any)?.entries || []
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        if (row && typeof row === "object") {
+          const debit = row.debit
+          const credit = row.credit
+          const balance = row.balance
+          if (
+            Number.isNaN(debit) ||
+            !Number.isFinite(debit) ||
+            Number.isNaN(credit) ||
+            !Number.isFinite(credit) ||
+            Number.isNaN(balance) ||
+            !Number.isFinite(balance)
+          ) {
+            nanInfinityCount++
+            issues.push({
+              severity: "CRITICAL",
+              category: "ACCOUNTING",
+              module: "ACCOUNT_LEDGERS",
+              recordId: `${accName}-row-${i}`,
+              title: `Non-finite numeric balance/debit/credit (NaN or Infinity) in account ${accName}`,
+              details: `Row index ${i} has invalid numeric value (debit: ${debit}, credit: ${credit}, balance: ${balance}).`,
+              repairable: true,
+              repairAction: "RECOMPUTE_LEDGER_BALANCES",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  // 4c. BOL Health & Extreme Value Detection
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  let missingBolNumberCount = 0
+  let uuidAsBolNumberCount = 0
+  let invalidPackagesCount = 0
+  let invalidWeightsCount = 0
+  let extremeValuesCount = 0
+  let legacyProvenanceIssuesCount = 0
+
+  for (const b of bols) {
+    const rawNum = String(b.bol_number || "").trim()
+
+    // Missing official BOL number
+    if (!rawNum) {
+      missingBolNumberCount++
+      issues.push({
+        severity: "CRITICAL",
+        category: "DOCUMENT",
+        module: "BOLS",
+        recordId: b.id,
+        title: `Missing official BOL number on record ${b.id}`,
+        details: "BOL record has blank or missing bol_number identity.",
+        repairable: true,
+        repairAction: "REPAIR_DUPLICATE_BOLS",
+      })
+    }
+    // UUID shown/used as document identity
+    else if (uuidRegex.test(rawNum)) {
+      uuidAsBolNumberCount++
+      issues.push({
+        severity: "WARNING",
+        category: "DOCUMENT",
+        module: "BOLS",
+        recordId: b.id,
+        title: `UUID format used as official BOL document number: ${rawNum}`,
+        details: "BOL number should be canonical sequence (e.g. BOL-YYYY-XXX) rather than raw UUID.",
+        repairable: false,
+      })
+    }
+
+    // Invalid package quantities & weights
+    const pkgs = Number(b.packages || b.total_packages || b.package_count || 0)
+    const weight = Number(b.gross_weight || b.weight || 0)
+
+    if (pkgs < 0 || Number.isNaN(pkgs)) {
+      invalidPackagesCount++
+      issues.push({
+        severity: "WARNING",
+        category: "DOCUMENT",
+        module: "BOLS",
+        recordId: rawNum || b.id,
+        title: `Invalid package quantity (${pkgs}) on BOL ${rawNum || b.id}`,
+        details: "Package count is negative or non-numeric.",
+        repairable: false,
+      })
+    }
+
+    if (weight < 0 || Number.isNaN(weight)) {
+      invalidWeightsCount++
+      issues.push({
+        severity: "WARNING",
+        category: "DOCUMENT",
+        module: "BOLS",
+        recordId: rawNum || b.id,
+        title: `Invalid weight (${weight}) on BOL ${rawNum || b.id}`,
+        details: "Gross weight is negative or non-numeric.",
+        repairable: false,
+      })
+    }
+
+    // Extreme Value Detection (Legacy corruption patterns: packages > 1B, weights > 1e16 KG)
+    // IMPORTANT: DO NOT AUTO-FIX EXTREME VALUES (create Data Quality Warning; no silent mutation)
+    if (pkgs > 1_000_000_000) {
+      extremeValuesCount++
+      issues.push({
+        severity: "CRITICAL",
+        category: "DOCUMENT",
+        module: "BOLS",
+        recordId: rawNum || b.id,
+        title: `DATA QUALITY WARNING: Extreme package quantity detected (${pkgs.toLocaleString()}) on BOL ${rawNum || b.id}`,
+        details: `Package quantity exceeds 1,000,000,000. Suspected legacy overflow corruption. Requires manual operator audit.`,
+        repairable: false,
+      })
+    }
+
+    if (weight > 1e16) {
+      extremeValuesCount++
+      issues.push({
+        severity: "CRITICAL",
+        category: "DOCUMENT",
+        module: "BOLS",
+        recordId: rawNum || b.id,
+        title: `DATA QUALITY WARNING: Extreme cargo weight detected (${weight} KG) on BOL ${rawNum || b.id}`,
+        details: `Gross weight exceeds 1e16 KG. Suspected floating-point corruption. Requires manual operator audit.`,
+        repairable: false,
+      })
+    }
+
+    // Historical BOL Health: Check legacy records retain provenance
+    const isLegacy = Boolean(b.is_legacy || b.isLegacy || b.source === "LEGACY" || rawNum.includes("051"))
+    if (isLegacy) {
+      const hasSource = Boolean(b.source_file || b.sourceFile || b.source_page || b.sourcePage || b.barnama || b.Barnama || b.source_serial)
+      if (!hasSource) {
+        legacyProvenanceIssuesCount++
+        issues.push({
+          severity: "WARNING",
+          category: "DOCUMENT",
+          module: "HISTORICAL_BOLS",
+          recordId: rawNum || b.id,
+          title: `Historical provenance missing on legacy record ${rawNum || b.id}`,
+          details: "Legacy record is missing Barnama or source file/page metadata.",
+          repairable: false,
+        })
+      }
+    }
+  }
+
+  // 4d. Data Drift Detection (sudden unexpected drops in record counts)
+  const DRIFT_FILE = getDataPath(".local-data-drift-history.json")
+  let dataDriftWarning = false
+  const currentSnapshot = {
+    timestamp: new Date().toISOString(),
+    bols: bols.length,
+    ledgerEntries: Object.values(accountLedgers).reduce<number>(
+      (acc, v: any) => acc + (Array.isArray(v) ? v.length : v?.entries?.length || 0),
+      0
+    ),
+    documents: documents.length,
+    companies: companies.length,
+    invoices: invoices.length,
+  }
+
+  const driftHistory = await readJsonFile<any[]>(DRIFT_FILE, [])
+  if (driftHistory.length > 0) {
+    const prev = driftHistory[0]
+    // Check if documents or bols dropped by >50%
+    if (prev.documents >= 50 && currentSnapshot.documents < prev.documents * 0.5) {
+      dataDriftWarning = true
+      issues.push({
+        severity: "CRITICAL",
+        category: "DOCUMENT",
+        module: "DATA_DRIFT",
+        title: `POSSIBLE DATA LOSS: Suspicious sudden drop in documents count (${prev.documents} -> ${currentSnapshot.documents})`,
+        details: "Document count dropped precipitously since last health audit. Check for accidental mass deletion or path detachment.",
+        repairable: false,
+      })
+    }
+    if (prev.bols >= 50 && currentSnapshot.bols < prev.bols * 0.5) {
+      dataDriftWarning = true
+      issues.push({
+        severity: "CRITICAL",
+        category: "DOCUMENT",
+        module: "DATA_DRIFT",
+        title: `POSSIBLE DATA LOSS: Suspicious sudden drop in BOL records (${prev.bols} -> ${currentSnapshot.bols})`,
+        details: "BOL count dropped precipitously since last health audit.",
+        repairable: false,
+      })
+    }
+  }
+
+  driftHistory.unshift(currentSnapshot)
+  if (driftHistory.length > 100) driftHistory.length = 100
+  await writeJsonFile(DRIFT_FILE, driftHistory)
+
   // 5. Document & Attachment Check
   const uploadRoot = getUploadPath()
   let missingFilesCount = 0

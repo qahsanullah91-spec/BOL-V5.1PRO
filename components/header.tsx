@@ -52,6 +52,7 @@ import { Button } from '@/components/ui/button'
 import { useApp } from '@/lib/app-context'
 import { HeaderCloudSyncButton } from '@/components/sync/header-cloud-sync-button'
 import { ServerStatusPill } from '@/components/server/server-status-pill'
+import { HeaderProtectionPill } from '@/components/backup/header-protection-pill'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { GlobalSearch } from '@/components/global-search'
@@ -1559,6 +1560,11 @@ export function Header({ title, subtitle }: HeaderProps) {
             {/* Server Status Pill (Visible on 2xl+, hidden on laptop to preserve space) */}
             <div className="hidden 2xl:block shrink-0">
               <ServerStatusPill onOpenSettings={() => handleNavigate('settings')} />
+            </div>
+
+            {/* Data Protection Pill */}
+            <div className="hidden sm:block shrink-0">
+              <HeaderProtectionPill onOpenBackupCenter={() => handleNavigate('data-protection')} />
             </div>
 
             {/* Cloud Sync Button */}

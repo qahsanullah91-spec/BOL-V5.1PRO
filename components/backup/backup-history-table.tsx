@@ -56,7 +56,12 @@ export function BackupHistoryTable({
     return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
   }
 
-  const filtered = backups.filter((b) => {
+  // Default sort: Newest first (Requirement 91)
+  const sorted = [...backups].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
+
+  const filtered = sorted.filter((b) => {
     const matchesSearch =
       b.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (b.note || "").toLowerCase().includes(searchTerm.toLowerCase()) ||

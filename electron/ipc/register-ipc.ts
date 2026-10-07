@@ -75,6 +75,7 @@ export function registerIpcHandlers(options: {
     if (result.canceled || !result.filePath) return null
     const pdf = await window.webContents.printToPDF({
       pageSize: "A4",
+      landscape: true,
       printBackground: true,
       preferCSSPageSize: true,
     })
@@ -82,9 +83,10 @@ export function registerIpcHandlers(options: {
     return result.filePath
   })
   ipcMain.handle("backup:export", async () => {
+    const nowStr = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
     const options: Electron.SaveDialogOptions = {
-      defaultPath: `Sky-Ariana-Backup-${new Date().toISOString().slice(0, 10)}.json`,
-      filters: [{ name: "Sky Ariana backup", extensions: ["json"] }],
+      defaultPath: `AQ_COMPANIES_FULL_BACKUP_${nowStr}_v5.2.0.json`,
+      filters: [{ name: "AQ Companies backup", extensions: ["json"] }],
     }
     const owner = getWindow()
     const result = owner ? await dialog.showSaveDialog(owner, options) : await dialog.showSaveDialog(options)

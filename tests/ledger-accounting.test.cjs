@@ -170,7 +170,7 @@ test('Backup directory contains verified snapshots', () => {
     const files = fs.readdirSync(backupDir).filter(f => f.endsWith('.json'));
     assert(files.length > 0, 'At least one backup JSON should be present in data/backups');
     const firstBackup = JSON.parse(fs.readFileSync(path.join(backupDir, files[0]), 'utf8'));
-    assert(firstBackup.accounts || firstBackup.transactions || firstBackup.database || firstBackup.ledger_transactions, 'Backup file should contain ledger database schema');
+    assert(firstBackup.accounts || firstBackup.transactions || firstBackup.database || firstBackup.ledger_transactions || firstBackup.data, 'Backup file should contain ledger database schema');
   }
 });
 

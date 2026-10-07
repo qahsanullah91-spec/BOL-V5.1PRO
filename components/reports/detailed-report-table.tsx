@@ -12,6 +12,7 @@ import {
   parsePackages,
   parseMoney,
 } from "@/lib/reports/parsers"
+import { extractDriverFatherName, extractTransitBorderStation } from "@/lib/reports/export-excel"
 import { parseSyncedCargoItems } from "@/lib/utils/cargo-grid"
 import type { BillOfLadingFormData } from "@/lib/types/bill-of-lading"
 import { BolExpandedRow } from "./bol-expanded-row"
@@ -1074,6 +1075,8 @@ export function DetailedReportTable({
               const cellPad = tableDensity === "compact" ? "py-2 px-2 text-[10.5px]" : "py-2.5 px-2.5 text-xs"
 
               const truckText = extractTruckNo(doc) || doc.truck_number || "—"
+              const driverFatherName = extractDriverFatherName(doc)
+              const borderStation = extractTransitBorderStation(doc)
               const invText = extractInvoiceNo(doc) || doc.invoice_no || (doc as any).invoice_number || "—"
               const routeInfo = extractBolRoute(doc)
               const syncedCargo = parseSyncedCargoItems(doc as unknown as Partial<BillOfLadingFormData>)
@@ -1163,10 +1166,15 @@ export function DetailedReportTable({
                           <span className="font-bold text-slate-900 dark:text-white font-mono text-[11px]" dir="ltr">
                             {truckText}
                           </span>
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 flex-wrap">
                             {doc.driver_name && (
-                              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[85px]" title={doc.driver_name}>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]" title={doc.driver_name}>
                                 {doc.driver_name}
+                              </span>
+                            )}
+                            {driverFatherName !== "-" && (
+                              <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-sans" title={`Father: ${driverFatherName}`}>
+                                (ولد {driverFatherName})
                               </span>
                             )}
                             {doc.driver_contact && (
@@ -1178,6 +1186,11 @@ export function DetailedReportTable({
                           {(doc.driver_rent || (doc as any).driverFreight) && (
                             <span className="inline-flex items-center text-[9px] font-black text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 rounded px-1.5 py-0.2 w-fit whitespace-nowrap" title="Driver Rent / کرایه موتر">
                               {doc.driver_rent || (doc as any).driverFreight}
+                            </span>
+                          )}
+                          {borderStation !== "-" && (
+                            <span className="text-[9px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 rounded px-1 w-fit whitespace-nowrap" title={`Transit Border: ${borderStation}`}>
+                              📍 {borderStation.split(" ")[0]}
                             </span>
                           )}
                         </div>

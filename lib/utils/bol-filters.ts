@@ -14,6 +14,13 @@ export function cleanBolNumber(bolNum?: any, fallback = ""): string {
   return trimmed || fallback
 }
 
+export function getCleanBolNumber(docOrNum?: any, fallback = ""): string {
+  if (!docOrNum) return fallback
+  if (typeof docOrNum === "string") return cleanBolNumber(docOrNum, fallback)
+  const candidate = docOrNum.bol_number || docOrNum.billOfLadingNumber || docOrNum.bolNo || ""
+  return cleanBolNumber(candidate, fallback)
+}
+
 export function parseBolSeq(bolNum: any): number {
   if (!bolNum) return 0
   const str = String(bolNum).trim()
@@ -86,7 +93,11 @@ export function toLightweightBol(b: any): any {
     borderCrossing: b.borderCrossing || b.border_station || "",
     route_name: b.route_name || b.route_summary || "",
     routes: b.routes || [],
-    status: b.status || "active",
+    status: b.status || (b.isArchived ? "archived" : "active"),
+    isArchived: Boolean(b.isArchived || b.status === "archived"),
+    archived_at: b.archived_at || b.archivedAt || null,
+    archived_by: b.archived_by || b.archivedBy || null,
+    pdf_status: b.pdf_status || (b.pdf_url ? "ready" : "none"),
     pdf_url: b.pdf_url || null,
     pdf_uploaded_at: b.pdf_uploaded_at || null,
     created_at: b.created_at || b.createdAt || "",
@@ -124,6 +135,17 @@ export function buildLocalBolMap(localBols: any[]): Map<string, any> {
 /**
  * Enriches a single BOL item with authoritative local fields (issue_date, truck_number, driver_rent, routes, etc.)
  */
+function parseUtcTimestamp(str?: any): number {
+  if (!str || typeof str !== "string") return 0
+  const trimmed = str.trim()
+  if (!trimmed) return 0
+  const normalized = trimmed.endsWith("Z") || trimmed.includes("+") || (trimmed.includes("-") && trimmed.lastIndexOf("-") > 10)
+    ? trimmed
+    : `${trimmed}Z`
+  const t = new Date(normalized).getTime()
+  return isNaN(t) ? 0 : t
+}
+
 export function enrichBolWithLocal(item: any, localMap: Map<string, any>): any {
   if (!item) return item
   const num = item.bol_number ? String(item.bol_number).trim().toUpperCase() : ""
@@ -185,11 +207,23 @@ export function enrichBolWithLocal(item: any, localMap: Map<string, any>): any {
     ? item.cargo_description
     : (local.cargo_description || local.goods_description || local.description_of_goods || local.cargoDescription || "")
 
+  const localTime = parseUtcTimestamp(local.updated_at || local.created_at)
+  const itemTime = parseUtcTimestamp(item.updated_at || item.created_at)
+  const useLocalAsAuthoritative = localTime >= itemTime || !item.consignee_name
+
+  const localConsignee = (local.consignee_name || local.consigneeName || "").trim()
+  const itemConsignee = (item.consignee_name || item.consigneeName || "").trim()
+  const consigneeName = (useLocalAsAuthoritative && localConsignee) ? localConsignee : (itemConsignee || localConsignee)
+
+  const localShipper = (local.shipper_name || local.shipperName || "").trim()
+  const itemShipper = (item.shipper_name || item.shipperName || "").trim()
+  const shipperName = (useLocalAsAuthoritative && localShipper) ? localShipper : (itemShipper || localShipper)
+
   return {
     ...item,
     issue_date: issueDate,
     truck_number: truckNumber,
-    driver_name: item.driver_name || local.driver_name || local.driverName || "",
+    driver_name: (useLocalAsAuthoritative && (local.driver_name || local.driverName)) || item.driver_name || local.driver_name || local.driverName || "",
     driver_father_name: item.driver_father_name || item.father_name || local.driver_father_name || local.father_name || "",
     driver_contact: item.driver_contact || item.driver_phone || local.driver_contact || local.driverContact || "",
     driver_phone: item.driver_phone || item.driver_contact || local.driver_phone || local.driver_contact || "",
@@ -197,11 +231,21 @@ export function enrichBolWithLocal(item: any, localMap: Map<string, any>): any {
     net_weight: netWeight,
     gross_weight: grossWeight,
     number_of_packages: packages,
-    goods_value: item.goods_value || local.goods_value || local.goodsValue || "",
+    goods_value: (useLocalAsAuthoritative && (local.goods_value || local.goodsValue)) || item.goods_value || local.goods_value || local.goodsValue || "",
     cargo_description: cargoDesc,
     routes: routes,
-    shipper_name: item.shipper_name || local.shipper_name || local.shipperName || "",
-    consignee_name: item.consignee_name || local.consignee_name || local.consigneeName || "",
+    shipper_name: shipperName,
+    consignee_name: consigneeName,
+    shipper_address: local.shipper_address || local.shipperAddress || item.shipper_address || "",
+    shipper_contact: local.shipper_contact || local.shipperContact || item.shipper_contact || "",
+    consignee_address: local.consignee_address || local.consigneeAddress || item.consignee_address || "",
+    consignee_contact: local.consignee_contact || local.consigneeContact || item.consignee_contact || "",
+    notify_party: local.notify_party || local.notifyParty || item.notify_party || "",
+    notify_party_address: local.notify_party_address || local.notifyPartyAddress || item.notify_party_address || "",
+    notes_1: local.notes_1 || item.notes_1 || "",
+    notes_1_label: local.notes_1_label || item.notes_1_label || "",
+    notes_2: local.notes_2 || item.notes_2 || "",
+    notes_2_label: local.notes_2_label || item.notes_2_label || "",
   }
 }
 
@@ -254,3 +298,204 @@ export function computeBolSummary(bols: any[]) {
     total_goods_value: Math.round(totalGoodsValueUsd * 100) / 100,
   }
 }
+
+/**
+ * Canonical BOL record normalizer.
+ * Standardizes aliases (snake_case vs camelCase vs legacy IDs)
+ * while preserving all original document fields and metadata.
+ */
+export function normalizeBolRecord(doc: any, fallbackId = ""): any {
+  if (!doc || typeof doc !== "object") return doc
+
+  const rawBol =
+    doc.bol_number ||
+    doc.billOfLadingNumber ||
+    doc.bolNo ||
+    doc.id ||
+    fallbackId ||
+    ""
+  const cleanNum = cleanBolNumber(rawBol) || rawBol
+
+  // Preserve all fields, standardizing both snake_case and camelCase accessors
+  return {
+    ...doc,
+    id: doc.id || cleanNum,
+    bol_number: cleanNum,
+    billOfLadingNumber: cleanNum,
+    bolNo: cleanNum,
+    issue_date: doc.issue_date || doc.issueDate || "",
+    issueDate: doc.issue_date || doc.issueDate || "",
+    truck_number: doc.truck_number ?? doc.truckNumber ?? "",
+    truckNumber: doc.truck_number ?? doc.truckNumber ?? "",
+    driver_name: doc.driver_name ?? doc.driverName ?? "",
+    driverName: doc.driver_name ?? doc.driverName ?? "",
+    driver_father_name: doc.driver_father_name ?? doc.driverFatherName ?? "",
+    driverFatherName: doc.driver_father_name ?? doc.driverFatherName ?? "",
+    driver_contact: doc.driver_contact ?? doc.driverContact ?? doc.driver_phone ?? "",
+    driverContact: doc.driver_contact ?? doc.driverContact ?? doc.driver_phone ?? "",
+    driver_rent: doc.driver_rent ?? doc.driverRent ?? doc.driverFreight ?? "",
+    driverRent: doc.driver_rent ?? doc.driverRent ?? doc.driverFreight ?? "",
+    driverFreight: doc.driver_rent ?? doc.driverRent ?? doc.driverFreight ?? "",
+    routes: (Array.isArray(doc.routes) && doc.routes.length > 0) ? doc.routes : doc.routes,
+    container_type: doc.container_type ?? doc.containerType ?? "",
+    containerType: doc.container_type ?? doc.containerType ?? "",
+    container_size: doc.container_size ?? doc.containerSize ?? "",
+    containerSize: doc.container_size ?? doc.containerSize ?? "",
+    container_numbers: doc.container_numbers ?? doc.containerNumbers ?? "",
+    containerNumbers: doc.container_numbers ?? doc.containerNumbers ?? "",
+    seal_numbers: doc.seal_numbers ?? doc.sealNumbers ?? "",
+    sealNumbers: doc.seal_numbers ?? doc.sealNumbers ?? "",
+    shipper_name: doc.shipper_name ?? doc.shipperName ?? "",
+    shipperName: doc.shipper_name ?? doc.shipperName ?? "",
+    shipper_address: doc.shipper_address ?? doc.shipperAddress ?? "",
+    shipperAddress: doc.shipper_address ?? doc.shipperAddress ?? "",
+    shipper_contact: doc.shipper_contact ?? doc.shipperContact ?? "",
+    shipperContact: doc.shipper_contact ?? doc.shipperContact ?? "",
+    shipper_email: doc.shipper_email ?? doc.shipperEmail ?? "",
+    shipperEmail: doc.shipper_email ?? doc.shipperEmail ?? "",
+    consignee_name: doc.consignee_name ?? doc.consigneeName ?? "",
+    consigneeName: doc.consignee_name ?? doc.consigneeName ?? "",
+    consignee_address: doc.consignee_address ?? doc.consigneeAddress ?? "",
+    consigneeAddress: doc.consignee_address ?? doc.consigneeAddress ?? "",
+    consignee_contact: doc.consignee_contact ?? doc.consigneeContact ?? "",
+    consigneeContact: doc.consignee_contact ?? doc.consigneeContact ?? "",
+    consignee_email: doc.consignee_email ?? doc.consigneeEmail ?? "",
+    consigneeEmail: doc.consignee_email ?? doc.consigneeEmail ?? "",
+    notify_party: doc.notify_party ?? doc.notifyParty ?? "",
+    notifyParty: doc.notify_party ?? doc.notifyParty ?? "",
+    notify_party_address: doc.notify_party_address ?? doc.notifyPartyAddress ?? "",
+    notifyPartyAddress: doc.notify_party_address ?? doc.notifyPartyAddress ?? "",
+    vessel_name: doc.vessel_name ?? doc.vesselName ?? "",
+    vesselName: doc.vessel_name ?? doc.vesselName ?? "",
+    voyage_number: doc.voyage_number ?? doc.voyageNumber ?? "",
+    voyageNumber: doc.voyage_number ?? doc.voyageNumber ?? "",
+    port_of_loading: doc.port_of_loading ?? doc.portOfLoading ?? "",
+    portOfLoading: doc.port_of_loading ?? doc.portOfLoading ?? "",
+    port_of_discharge: doc.port_of_discharge ?? doc.portOfDischarge ?? "",
+    portOfDischarge: doc.port_of_discharge ?? doc.portOfDischarge ?? "",
+    place_of_delivery: doc.place_of_delivery ?? doc.placeOfDelivery ?? "",
+    placeOfDelivery: doc.place_of_delivery ?? doc.placeOfDelivery ?? "",
+    cargo_description: doc.cargo_description ?? doc.cargoDescription ?? doc.description_of_goods ?? doc.goods_description ?? "",
+    cargoDescription: doc.cargo_description ?? doc.cargoDescription ?? doc.description_of_goods ?? doc.goods_description ?? "",
+    cargo_route_note: doc.cargo_route_note ?? doc.cargoRouteNote ?? "",
+    cargoRouteNote: doc.cargo_route_note ?? doc.cargoRouteNote ?? "",
+    net_weight: doc.net_weight ?? doc.netWeight ?? "",
+    netWeight: doc.net_weight ?? doc.netWeight ?? "",
+    gross_weight: doc.gross_weight ?? doc.grossWeight ?? "",
+    grossWeight: doc.gross_weight ?? doc.grossWeight ?? "",
+    measurement: doc.measurement ?? "",
+    number_of_packages: doc.number_of_packages ?? doc.numberOfPackages ?? doc.packages_count ?? "",
+    numberOfPackages: doc.number_of_packages ?? doc.numberOfPackages ?? doc.packages_count ?? "",
+    kgs_per_carton: doc.kgs_per_carton ?? doc.kgsPerCarton ?? "",
+    kgsPerCarton: doc.kgs_per_carton ?? doc.kgsPerCarton ?? "",
+    gross_weight_per_carton: doc.gross_weight_per_carton ?? doc.grossWeightPerCarton ?? "",
+    grossWeightPerCarton: doc.gross_weight_per_carton ?? doc.grossWeightPerCarton ?? "",
+    rate_per_kgs: doc.rate_per_kgs ?? doc.ratePerKgs ?? "",
+    ratePerKgs: doc.rate_per_kgs ?? doc.ratePerKgs ?? "",
+    goods_value: doc.goods_value ?? doc.goodsValue ?? "",
+    goodsValue: doc.goods_value ?? doc.goodsValue ?? "",
+    freight_payable_at: doc.freight_payable_at ?? doc.freightPayableAt ?? "",
+    freightPayableAt: doc.freight_payable_at ?? doc.freightPayableAt ?? "",
+    freight_terms: doc.freight_terms ?? doc.freightTerms ?? "",
+    freightTerms: doc.freight_terms ?? doc.freightTerms ?? "",
+    remarks: doc.remarks ?? "",
+    notes_1: doc.notes_1 !== undefined && doc.notes_1 !== null ? doc.notes_1 : (doc.notes1 !== undefined && doc.notes1 !== null ? doc.notes1 : ""),
+    notes_1_label: doc.notes_1_label ?? doc.notes1Label ?? "",
+    notes_1_theme: doc.notes_1_theme ?? doc.notes1Theme ?? "red",
+    notes_2: doc.notes_2 !== undefined && doc.notes_2 !== null ? doc.notes_2 : (doc.notes2 !== undefined && doc.notes2 !== null ? doc.notes2 : ""),
+    notes_2_label: doc.notes_2_label ?? doc.notes2Label ?? "",
+    notes_2_theme: doc.notes_2_theme ?? doc.notes2Theme ?? "red",
+    afghanistan_documents: doc.afghanistan_documents || [],
+    afghanistan_document_details: doc.afghanistan_document_details || {},
+  }
+}
+
+/**
+ * Canonical BOL summary builder.
+ * Extracts clean summary values for cards, list items, and reporting aggregates.
+ */
+export function buildBolSummary(rawDoc: any): {
+  id: string
+  bol_number: string
+  issue_date: string
+  shipper_name: string
+  consignee_name: string
+  truck_number: string
+  driver_name: string
+  driver_rent: string
+  packages: string
+  commodity: string
+  item_count: number
+  net_weight: string
+  gross_weight: string
+  goods_value: string
+  pdf_status: "ready" | "outdated" | "none"
+  updated_at: string
+} {
+  const doc = normalizeBolRecord(rawDoc)
+  const bolNum = cleanBolNumber(doc.bol_number) || cleanBolNumber(doc.id) || ""
+  const pkgStr = (doc.number_of_packages || "").trim()
+  const rawDesc = (doc.cargo_description || "").trim()
+
+  let packages = pkgStr || "—"
+  let commodity = "GENERAL CARGO"
+  let itemCount = 1
+
+  if (pkgStr.includes("-")) {
+    const parts = pkgStr.split(/\s*[-–—]\s*/).map((p: string) => p.trim()).filter(Boolean)
+    let totalPkgs = 0
+    const commodities: string[] = []
+    for (const p of parts) {
+      const numMatch = p.match(/^([0-9,]+)/)
+      if (numMatch) {
+        totalPkgs += parseInt(numMatch[1].replace(/,/g, ""), 10) || 0
+      }
+      const comm = p.replace(/^\s*\d+[\d,.]*\s*(?:CTNS?|CARTONS?|CNTS?|BAGS?|PKGS?|BOXES|PCS|UNITS)?\s*/i, "").trim()
+      if (comm && !commodities.includes(comm)) commodities.push(comm)
+    }
+    packages = totalPkgs > 0 ? `${totalPkgs.toLocaleString()} CTNS` : pkgStr
+    commodity = commodities.join(" / ") || "CARGO"
+    itemCount = parts.length
+  } else if (pkgStr) {
+    const numMatch = pkgStr.match(/^([0-9,]+)/)
+    if (numMatch) {
+      const num = parseInt(numMatch[1].replace(/,/g, ""), 10)
+      if (!isNaN(num) && num > 0) {
+        const unitMatch = pkgStr.match(/\b(CTNS?|CARTONS?|CNTS?|BAGS?|PKGS?|BOXES|PCS|UNITS)\b/i)
+        const unit = unitMatch ? unitMatch[1].toUpperCase() : "CTNS"
+        packages = `${num.toLocaleString()} ${unit}`
+      }
+    }
+    const comm = pkgStr.replace(/^\s*\d+[\d,.]*\s*(?:CTNS?|CARTONS?|CNTS?|BAGS?|PKGS?|BOXES|PCS|UNITS)?\s*/i, "").trim()
+    commodity = comm || rawDesc.slice(0, 30) || "GENERAL CARGO"
+  } else if (rawDesc) {
+    commodity = rawDesc.slice(0, 30)
+  }
+
+  const pdfStatus: "ready" | "outdated" | "none" =
+    doc.pdf_status === "outdated" || doc.pdf_outdated
+      ? "outdated"
+      : doc.pdf_url
+      ? "ready"
+      : "none"
+
+  return {
+    id: doc.id || bolNum,
+    bol_number: bolNum,
+    issue_date: doc.issue_date || "",
+    shipper_name: doc.shipper_name || "",
+    consignee_name: doc.consignee_name || "",
+    truck_number: doc.truck_number || "",
+    driver_name: doc.driver_name || "",
+    driver_rent: doc.driver_rent || "",
+    packages,
+    commodity: commodity.toUpperCase(),
+    item_count: itemCount,
+    net_weight: doc.net_weight || "",
+    gross_weight: doc.gross_weight || "",
+    goods_value: doc.goods_value || "",
+    pdf_status: pdfStatus,
+    updated_at: doc.updated_at || doc.created_at || "",
+  }
+}
+

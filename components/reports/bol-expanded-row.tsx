@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react"
 import { SavedDocument } from "@/lib/reports/types"
 import { formatDisplayDate, isRtlText, extractBolRoute, extractTruckNo, extractInvoiceNo } from "@/lib/reports/parsers"
+import { extractDriverFatherName } from "@/lib/reports/export-excel"
 import { parseSyncedCargoItems, splitMultiCargoItems } from "@/lib/utils/cargo-grid"
 import type { BillOfLadingFormData, RouteStop } from "@/lib/types/bill-of-lading"
 import { Button } from "@/components/ui/button"
@@ -474,7 +475,8 @@ export function BolExpandedRow({
                   <div>
                     <span className="text-[10px] font-black uppercase text-slate-400">Driver Name</span>
                     <p className="font-bold text-slate-900 dark:text-white mt-0.5">
-                      {doc.driver_name || "—"} {doc.driver_father_name ? `s/o ${doc.driver_father_name}` : ""}
+                      {doc.driver_name || "—"}{" "}
+                      {extractDriverFatherName(doc) !== "-" ? `(ولد ${extractDriverFatherName(doc)})` : ""}
                     </p>
                   </div>
                   <div>
