@@ -1441,10 +1441,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
   const loadBolDocument = useCallback(async (
     rawId: string,
-    options?: { targetTab?: string; force?: boolean }
+    options?: { targetTab?: string; force?: boolean; initialData?: any }
   ) => {
     const targetTab = options?.targetTab || "form"
     const force = options?.force ?? false
+    const initialData = options?.initialData
     const id = (rawId || "").trim()
     if (!id) return
 
@@ -1458,16 +1459,6 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     const abortController = new AbortController()
     abortControllerRef.current = abortController
 
-    // Set hydration state immediately
-    setIsHydrating(true)
-    setHydrationError(null)
-    setActiveBolId(canonicalId)
-
-    // Switch tab if requested
-    if (targetTab && activeTabRef.current !== targetTab) {
-      setActiveTab(targetTab)
-    }
-
     // Update URL query parameters for deep linking & refresh
     if (typeof window !== "undefined") {
       try {
@@ -1479,6 +1470,33 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         const newUrlStr = url.pathname + url.search + url.hash
         window.history.replaceState(window.history.state, "", newUrlStr)
       } catch (_) {}
+    }
+
+    // Fast path: If full document is already available in memory (from RecentBolCard or SavedDocuments table)
+    if (initialData) {
+      const normalized = normalizeBolRecord(initialData, canonicalId)
+      startTransition(() => {
+        setIsHydrating(false)
+        setHydrationError(null)
+        setActiveBolId(canonicalId)
+        if (targetTab && activeTabRef.current !== targetTab) {
+          setActiveTab(targetTab)
+        }
+        applyLoadedDocument(normalized, canonicalId)
+      })
+      return
+    }
+
+    // Set hydration state immediately
+    setIsHydrating(true)
+    setHydrationError(null)
+    setActiveBolId(canonicalId)
+
+    // Switch tab if requested
+    if (targetTab && activeTabRef.current !== targetTab) {
+      startTransition(() => {
+        setActiveTab(targetTab)
+      })
     }
 
     // 0. If this is already the currently active document in memory and complete, skip redundant reload
@@ -1531,8 +1549,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     if (isCachedComplete) {
       if (loadRequestIdRef.current === currentRequestId) {
         const normalized = normalizeBolRecord(cachedDoc, canonicalId)
-        applyLoadedDocument(normalized, canonicalId)
-        setIsHydrating(false)
+        startTransition(() => {
+          applyLoadedDocument(normalized, canonicalId)
+          setIsHydrating(false)
+        })
       }
     }
 
@@ -10779,8 +10799,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               <section className="min-h-0 w-full print:hidden [content-visibility:auto]">
                 {savedDocumentsPanel || (
                   <SavedDocuments
-                    onLoadDocument={(id, targetTab) => {
-                      void loadBolDocument(id, { targetTab: targetTab || "form", force: true })
+                    onLoadDocument={(id, targetTab, initialDoc) => {
+                      void loadBolDocument(id, { targetTab: targetTab || "form", force: true, initialData: initialDoc })
                     }}
                   />
                 )}

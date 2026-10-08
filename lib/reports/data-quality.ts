@@ -262,8 +262,8 @@ export function detectPossibleDuplicates(docs: SavedDocument[]): PossibleDuplica
   // 4. Same Shipper + Consignee + Date
   const tripMap = new Map<string, SavedDocument[]>()
   for (const doc of docs) {
-    const s = (doc.shipper_name || "").trim().toLowerCase()
-    const c = (doc.consignee_name || "").trim().toLowerCase()
+    const s = String(doc.shipper_name || "").trim().toLowerCase()
+    const c = String(doc.consignee_name || "").trim().toLowerCase()
     const d = normalizeDate(doc.issue_date || doc.created_at)
     if (!s || !c || !d) continue
 

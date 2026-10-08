@@ -168,7 +168,7 @@ interface AccountCompanyRecord {
 }
 
 interface SavedDocumentsProps {
-  onLoadDocument: (id: string, targetTab?: string) => void
+  onLoadDocument: (id: string, targetTab?: string, initialDoc?: SavedDocument | any) => void
   refreshTrigger?: number
   variant?: "sidebar" | "sheet"
 }
@@ -1675,11 +1675,14 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       document.title = buildBolSmartFileName(doc, canonicalId, "")
     }
     startTransition(() => {
-      onLoadDocument(canonicalId, "preview")
+      onLoadDocument(canonicalId, "preview", doc)
     })
-    toast.success("BOL preview opened", {
-      description: `${doc.bol_number || canonicalId || "Document"} loaded in A4 Preview.`,
-    })
+    // Defer toast notification to browser idle time so click paint is instantaneous
+    setTimeout(() => {
+      toast.success("BOL preview opened", {
+        description: `${doc.bol_number || canonicalId || "Document"} loaded in A4 Preview.`,
+      })
+    }, 60)
   }, [onLoadDocument])
 
   const editBOL = useCallback((doc: SavedDocument) => {
@@ -1688,13 +1691,15 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       document.title = buildBolSmartFileName(doc, canonicalId, "")
     }
     startTransition(() => {
-      onLoadDocument(canonicalId, "form")
+      onLoadDocument(canonicalId, "form", doc)
     })
   }, [onLoadDocument])
 
   const handleFiles = useCallback((doc: SavedDocument) => {
     const canonicalId = cleanBolNumber(doc.bol_number) || cleanBolNumber(doc.id) || doc.id || doc.bol_number
-    onLoadDocument(canonicalId, "attachments")
+    startTransition(() => {
+      onLoadDocument(canonicalId, "attachments", doc)
+    })
   }, [onLoadDocument])
 
   const downloadDocumentJSON = useCallback(async (doc: SavedDocument) => {

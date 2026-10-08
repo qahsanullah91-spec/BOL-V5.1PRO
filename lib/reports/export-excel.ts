@@ -41,14 +41,14 @@ import type { BillOfLadingFormData } from "@/lib/types/bill-of-lading"
  * Extracts Driver Father Name from explicit field or Dari/Pashto 'ولد' pattern.
  */
 export function extractDriverFatherName(doc: SavedDocument): string {
-  if (doc.driver_father_name && doc.driver_father_name.trim()) {
-    return doc.driver_father_name.trim()
+  if (doc.driver_father_name && String(doc.driver_father_name).trim()) {
+    return String(doc.driver_father_name).trim()
   }
-  const rawName = (doc.driver_name || "").trim()
+  const rawName = String(doc.driver_name || "").trim()
   if (rawName) {
     const parts = rawName.split(/\s*ولد\s*/)
-    if (parts.length > 1 && parts[1]?.trim()) {
-      return parts[1].replace(/^[:\-\s]+/, "").trim()
+    if (parts.length > 1 && String(parts[1]).trim()) {
+      return String(parts[1]).replace(/^[:\-\s]+/, "").trim()
     }
   }
   return "-"
