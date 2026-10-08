@@ -17,6 +17,7 @@
 import fs from "node:fs/promises"
 import fsSync from "node:fs"
 import path from "node:path"
+import os from "node:os"
 import crypto from "node:crypto"
 import { getDataPath, getUploadPath, getDataRoot, getBackupRoot } from "@/lib/server-paths"
 import { readJsonFile, writeJsonFile, mutateJsonFile, atomicWriteFile, clearBlobDbCache } from "@/lib/services/blob-db"
@@ -278,12 +279,17 @@ export async function createAQBackup(options: CreateBackupServiceOptions = {}): 
   const actor = options.actor || "System Admin"
   const type = options.type || "full"
   const extension = options.extension || (options.includeAttachments ? "zip" : "json")
-  const targetDir = options.customTargetDir || path.join(process.cwd(), "data", "backups")
+  let targetDir = options.customTargetDir || getBackupRoot()
   const warnings: string[] = []
 
   return await withBackupLock(actor, async () => {
     // 1. Ensure target directory exists and check disk space
-    await fs.mkdir(targetDir, { recursive: true })
+    try {
+      await fs.mkdir(targetDir, { recursive: true })
+    } catch {
+      targetDir = path.join(os.tmpdir(), "backups")
+      await fs.mkdir(targetDir, { recursive: true }).catch(() => {})
+    }
     const hasSpace = await checkDiskSpace(targetDir)
     if (!hasSpace) {
       throw new Error(`Insufficient disk space on target backup location: ${targetDir}`)
@@ -928,8 +934,13 @@ export async function executeAQRestore(
 
     // 2. MANDATORY PRE-RESTORE SAFETY SNAPSHOT
     const rollbackFileName = generateRollbackSnapshotFilename(new Date())
-    const backupDir = path.join(process.cwd(), "data", "backups")
-    await fs.mkdir(backupDir, { recursive: true })
+    let backupDir = getBackupRoot()
+    try {
+      await fs.mkdir(backupDir, { recursive: true })
+    } catch {
+      backupDir = path.join(os.tmpdir(), "backups")
+      await fs.mkdir(backupDir, { recursive: true }).catch(() => {})
+    }
     const preRestoreFilePath = path.join(backupDir, rollbackFileName)
 
     // Fast atomic snapshot of current state
@@ -1417,8 +1428,14 @@ export async function rollbackRestore(restoreId: string, actor = "System Admin")
       return { success: false, error: "No rollback snapshot was recorded for this restore." }
     }
 
-    const backupDir = path.join(process.cwd(), "data", "backups")
-    const snapshotPath = path.join(backupDir, target.preRestoreSnapshotFile)
+    const backupDir = getBackupRoot()
+    let snapshotPath = path.join(backupDir, target.preRestoreSnapshotFile)
+    if (!fsSync.existsSync(snapshotPath)) {
+      const fallbackSnapshotPath = path.join(os.tmpdir(), "backups", target.preRestoreSnapshotFile)
+      if (fsSync.existsSync(fallbackSnapshotPath)) {
+        snapshotPath = fallbackSnapshotPath
+      }
+    }
 
     if (!fsSync.existsSync(snapshotPath)) {
       return { success: false, error: `Rollback snapshot file "${target.preRestoreSnapshotFile}" was not found on disk.` }
@@ -1487,8 +1504,8 @@ export async function getBackupOverviewStats(): Promise<{
     storageUsageBytes: totalBytes,
     dataIntegrityStatus: inv.isValid ? "HEALTHY" : "WARNING",
     restoreReadiness: verified.length > 0 ? "READY" : "ATTENTION",
-    backupLocation: path.join(process.cwd(), "data", "backups"),
-    preferredFolder: config.primaryStoragePath || path.join(process.cwd(), "data", "backups"),
+    backupLocation: getBackupRoot(),
+    preferredFolder: config.primaryStoragePath || getBackupRoot(),
     databaseRevision: Date.now(),
   }
 }

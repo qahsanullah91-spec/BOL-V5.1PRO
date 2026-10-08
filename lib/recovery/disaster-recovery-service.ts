@@ -8,7 +8,7 @@ import fsSync from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import os from 'node:os'
-import { getDataPath, getUploadPath } from '@/lib/server-paths'
+import { getDataPath, getUploadPath, getBackupRoot, getRecoveryDir } from '@/lib/server-paths'
 import { readJsonFile, writeJsonFile, mutateJsonFile } from '@/lib/services/blob-db'
 import { validateLedgerInvariance } from '@/lib/services/ledger-sync-utils'
 import { getDatabaseRevision, incrementDatabaseRevision } from '@/lib/backup/revision'
@@ -158,8 +158,8 @@ export const CANONICAL_TABLES = [
 
 const BACKUP_CATALOG_FILE = getDataPath('.local-backups-catalog.json')
 const RECOVERY_CONFIG_FILE = getDataPath('.local-recovery-config.json')
-const BACKUPS_DIR = path.join(process.cwd(), 'data', 'backups')
-const RECOVERY_DIR = path.join(process.cwd(), 'data', 'recovery')
+const BACKUPS_DIR = getBackupRoot()
+const RECOVERY_DIR = getRecoveryDir()
 
 const DEFAULT_CONFIG: DisasterRecoveryConfig = {
   autoBackupEnabled: true,

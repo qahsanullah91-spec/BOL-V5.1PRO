@@ -14,7 +14,8 @@ import fs from "node:fs/promises"
 import fsSync from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
-import { getDataPath } from "@/lib/server-paths"
+import os from "node:os"
+import { getDataPath, getBackupRoot } from "@/lib/server-paths"
 import { readJsonFile, writeJsonFile, atomicWriteFile } from "@/lib/services/blob-db"
 import {
   BACKUP_FORMAT_VERSION,
@@ -63,8 +64,13 @@ export async function createIncrementalBackup(
 ): Promise<IncrementalBackupResult> {
   const actor = options.actor || "System Incremental"
   const now = new Date()
-  const targetDir = options.customTargetDir || path.join(process.cwd(), "data", "backups")
-  await fs.mkdir(targetDir, { recursive: true })
+  let targetDir = options.customTargetDir || getBackupRoot()
+  try {
+    await fs.mkdir(targetDir, { recursive: true })
+  } catch {
+    targetDir = path.join(os.tmpdir(), "backups")
+    await fs.mkdir(targetDir, { recursive: true }).catch(() => {})
+  }
 
   return await withBackupLock(actor, async () => {
     // 1. Locate the parent backup (defaults to latest verified backup)

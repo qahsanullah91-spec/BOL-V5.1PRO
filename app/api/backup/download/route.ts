@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import fs from "node:fs/promises"
 import fsSync from "node:fs"
 import path from "node:path"
-import { getDataPath } from "@/lib/server-paths"
+import os from "node:os"
+import { getDataPath, getBackupRoot } from "@/lib/server-paths"
 import { readJsonFile } from "@/lib/services/blob-db"
 import type { BackupItem } from "@/lib/backup/backup-types"
 
@@ -30,12 +31,19 @@ export async function GET(req: NextRequest) {
     let downloadFileName = target?.fileName || "sky-ariana-backup.zip"
 
     if (!resolvedPath || !fsSync.existsSync(/*turbopackIgnore: true*/ resolvedPath)) {
-      // Check data/backups directory directly
+      // Check backup roots directly
       if (fileName && !fileName.includes("..")) {
-        const directPath = path.join(process.cwd(), "data", "backups", fileName)
-        if (fsSync.existsSync(/*turbopackIgnore: true*/ directPath)) {
-          resolvedPath = directPath
-          downloadFileName = fileName
+        const candidatePaths = [
+          path.join(getBackupRoot(), fileName),
+          path.join(process.cwd(), "data", "backups", fileName),
+          path.join(os.tmpdir(), "backups", fileName),
+        ]
+        for (const candidate of candidatePaths) {
+          if (fsSync.existsSync(/*turbopackIgnore: true*/ candidate)) {
+            resolvedPath = candidate
+            downloadFileName = fileName
+            break
+          }
         }
       }
     }
