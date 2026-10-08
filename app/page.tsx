@@ -326,7 +326,7 @@ function MainContent() {
               </div>
             )}
             {view === 'settings' && (
-              <div key="settings" className="animate-page-crossfade">
+              <div key="settings" className="animate-page-crossfade w-full flex-1 flex flex-col min-h-0">
                 <ModuleErrorBoundary moduleName="Settings & Diagnostics">
                   <SettingsView />
                 </ModuleErrorBoundary>

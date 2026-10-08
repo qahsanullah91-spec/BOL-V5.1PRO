@@ -58,6 +58,7 @@ import {
   Compass,
   Maximize2,
   FileSignature,
+  ChevronUp,
 } from "lucide-react"
 import { PWAInstallButton } from "@/components/pwa-install-prompt"
 import { Button } from "@/components/ui/button"
@@ -337,6 +338,50 @@ export function SettingsView() {
   // System Update Check State
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [updateMsg, setUpdateMsg] = useState<string | null>(null)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+
+  // Track scroll position on main workspace to display Quick Scroll-To-Top button
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const mainScroller = document.querySelector('[data-main-workspace="true"]')
+    const handleScroll = () => {
+      const top = mainScroller ? mainScroller.scrollTop : window.scrollY
+      setShowScrollTop(top > 280)
+    }
+    if (mainScroller) {
+      mainScroller.addEventListener("scroll", handleScroll, { passive: true })
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => {
+      if (mainScroller) mainScroller.removeEventListener("scroll", handleScroll)
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [])
+
+  const scrollToSection = (sectionId: string) => {
+    if (activeTab !== "all") {
+      setActiveTab("all")
+      setTimeout(() => {
+        const el = document.getElementById(sectionId)
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+      }, 100)
+      return
+    }
+    const el = document.getElementById(sectionId)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }
+
+  const scrollToTop = () => {
+    const mainScroller = document.querySelector('[data-main-workspace="true"]')
+    if (mainScroller) {
+      mainScroller.scrollTo({ top: 0, behavior: "smooth" })
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
 
   useEffect(() => {
     setStampConfig(getStoredCompanyStampConfig())
@@ -642,7 +687,7 @@ export function SettingsView() {
   const passStrength = getPasswordStrength(newPassword)
 
   return (
-    <div data-settings-view="true" className="w-full max-w-7xl mx-auto p-2.5 sm:p-4 md:p-6 space-y-4 sm:space-y-6 font-sans">
+    <div data-settings-view="true" className="w-full max-w-7xl mx-auto p-2.5 sm:p-4 md:p-6 space-y-4 sm:space-y-6 font-sans select-text touch-auto">
       {/* Top Banner - Luxury Glassmorphic Sapphire Theme */}
       <div className="rounded-3xl border border-blue-200/70 bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-950 p-5 sm:p-7 md:p-8 text-white shadow-2xl shadow-blue-950/30 relative overflow-hidden">
         {/* Subtle Ambient Background Glows */}
@@ -940,58 +985,126 @@ export function SettingsView() {
               <span className="hidden sm:inline">Quick Jump:</span>
             </div>
             <div className="flex items-center gap-1 flex-wrap py-0.5">
-              <a href="#section-users" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-users")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <Users className="w-3 h-3 text-amber-400" />
                 <span>1. Users</span>
-              </a>
-              <a href="#section-portal" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-blue-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-portal")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-blue-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <MonitorSmartphone className="w-3 h-3 text-blue-400" />
                 <span>2. Portal</span>
-              </a>
-              <a href="#section-stamp" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-emerald-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-stamp")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-emerald-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <ShieldCheck className="w-3 h-3 text-emerald-400" />
                 <span>3. Stamp & Sign</span>
-              </a>
-              <a href="#section-company" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-company")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <Building2 className="w-3 h-3 text-amber-400" />
                 <span>4. Company</span>
-              </a>
-              <a href="#section-cloud" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-sky-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-cloud")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-sky-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <Cloud className="w-3 h-3 text-sky-400" />
                 <span>5. Cloud Sync</span>
-              </a>
-              <a href="#section-gdrive" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-teal-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-gdrive")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-teal-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <UploadCloud className="w-3 h-3 text-teal-400" />
                 <span>6. Google Drive</span>
-              </a>
-              <a href="#section-vault" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-indigo-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-vault")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-indigo-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <HardDrive className="w-3 h-3 text-indigo-400" />
                 <span>7. Vault</span>
-              </a>
-              <a href="#section-security" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-security")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <Key className="w-3 h-3 text-amber-400" />
                 <span>8. Security</span>
-              </a>
-              <a href="#section-deleted" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-rose-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-deleted")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-rose-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <RotateCcw className="w-3 h-3 text-rose-400" />
                 <span>9. Recovery</span>
-              </a>
-              <a href="#section-server" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-blue-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-server")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-blue-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <Server className="w-3 h-3 text-blue-400" />
                 <span>LAN Server</span>
-              </a>
-              <a href="#section-ai-assistant" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-purple-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-backup-recovery")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-emerald-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
+                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                <span>Backup Pro</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-accounting-periods")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-blue-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
+                <Lock className="w-3 h-3 text-blue-400" />
+                <span>Periods</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-ai-assistant")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-purple-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <Sparkles className="w-3 h-3 text-purple-400" />
                 <span>AI Assistant</span>
-              </a>
-              <a href="#section-performance" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-performance")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <Activity className="w-3 h-3 text-amber-400" />
                 <span>Diagnostics</span>
-              </a>
-              <a href="#section-updates" className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-emerald-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1">
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-updates")}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-emerald-400 hover:text-slate-950 text-white whitespace-nowrap text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+              >
                 <Smartphone className="w-3 h-3 text-emerald-400" />
                 <span>10. Build</span>
-              </a>
+              </button>
             </div>
           </div>
         )}
@@ -2718,6 +2831,19 @@ export function SettingsView() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating Quick Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-blue-600/90 hover:bg-blue-600 text-white shadow-2xl border border-blue-400/50 backdrop-blur-md transition-all animate-in fade-in zoom-in-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold ring-2 ring-white/20 active:scale-95"
+          title="Back to Top (بازگشت به بالا)"
+        >
+          <ChevronUp className="w-4 h-4 text-white" />
+          <span className="hidden sm:inline">Top</span>
+        </button>
       )}
 
     </div>

@@ -380,7 +380,7 @@ export function UsersPermissionsTab() {
       </div>
 
       {/* Subpage Navigation Bar */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 shadow-xs backdrop-blur-md overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 shadow-xs backdrop-blur-md overflow-x-auto scrollbar-none touch-pan-y overscroll-x-contain">
         <button
           type="button"
           onClick={() => setActiveSubTab("users")}
