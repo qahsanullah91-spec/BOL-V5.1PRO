@@ -101,7 +101,19 @@ export async function getFullHealthReport(): Promise<DatabaseHealthReport> {
     }
     await fs.unlink(testFile).catch(() => {})
   } catch (err) {
-    errors.push(`Database storage access test failed: ${err instanceof Error ? err.message : String(err)}`)
+    try {
+      const os = await import("node:os")
+      const testTmp = path.join(os.default.tmpdir(), `.health-check-${Date.now()}.tmp`)
+      await fs.writeFile(testTmp, "OK", "utf-8")
+      databaseWritable = true
+      const read = await fs.readFile(testTmp, "utf-8")
+      if (read === "OK") {
+        databaseReadable = true
+      }
+      await fs.unlink(testTmp).catch(() => {})
+    } catch (_) {
+      errors.push(`Database storage access test failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
 
   // 3. Check data counts

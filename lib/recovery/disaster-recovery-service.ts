@@ -852,14 +852,22 @@ export async function runDeepDatabaseHealthScan(): Promise<DeepHealthReport> {
     await fs.writeFile(testFile, 'ok', 'utf8')
     await fs.unlink(testFile)
   } catch (err: any) {
-    databaseWritable = false
-    issues.push({
-      severity: 'CRITICAL',
-      module: 'Storage Engine',
-      message: 'Database storage directory is NOT writable.',
-      details: err.message,
-      repairable: false,
-    })
+    // In serverless environments (Vercel / AWS Lambda), the deployment root is read-only.
+    // The storage engine (blob-db) writes to os.tmpdir() and synchronizes with cloud storage.
+    try {
+      const testTmp = path.join(os.tmpdir(), '.test-write-safety.tmp')
+      await fs.writeFile(testTmp, 'ok', 'utf8')
+      await fs.unlink(testTmp)
+    } catch (tmpErr: any) {
+      databaseWritable = false
+      issues.push({
+        severity: 'CRITICAL',
+        module: 'Storage Engine',
+        message: 'Database storage directory is NOT writable.',
+        details: err.message,
+        repairable: false,
+      })
+    }
   }
 
   // 3. Accounting Invariant Check
