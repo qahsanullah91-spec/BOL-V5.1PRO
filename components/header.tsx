@@ -443,18 +443,23 @@ export function Header({ title, subtitle }: HeaderProps) {
   const handleNavigate = (modId: any) => {
     if (view === modId) return
     previousView.current = view
-    startTransition(() => {
-      setView(modId)
-    })
+    // Defer state transition out of Radix UI's synchronous ReactDOM.flushSync discrete event loop (< 16ms INP)
+    setTimeout(() => {
+      startTransition(() => {
+        setView(modId)
+      })
+    }, 0)
   }
 
   const handleCreateNewBol = () => {
-    startTransition(() => {
-      setView('bol')
-    })
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('skybol:new-bol'))
-    }
+    setTimeout(() => {
+      startTransition(() => {
+        setView('bol')
+      })
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('skybol:new-bol'))
+      }
+    }, 0)
   }
 
   return (
