@@ -560,7 +560,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
   }, [])
 
-  const flushDraftRef = useRef<(() => void) | null>(null)
+  const flushDraftRef = useRef<((skipStateUpdate?: boolean) => void) | null>(null)
 
   const handleTabChange = useCallback((newTab: string) => {
     if (newTab === activeTab) return
@@ -770,44 +770,50 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       }
     }
 
-    // Tier 3: Auto-save Shipper & Consignee into Autocomplete Databases
-    try {
-      if (formData.shipper_name?.trim()) {
-        const sName = formData.shipper_name.trim()
-        const rawS = window.localStorage.getItem(SAVED_SHIPPERS_STORAGE_KEY)
-        let listS: SavedParty[] = []
-        try { listS = rawS ? JSON.parse(rawS) : [] } catch (_) {}
-        const matchS = listS.find((s) => s.name.trim().toLowerCase() === sName.toLowerCase())
-        const curS: SavedParty = {
-          id: matchS ? matchS.id : crypto.randomUUID(),
-          name: sName,
-          address: formData.shipper_address || "",
-          contact: formData.shipper_contact || "",
-          email: formData.shipper_email || "",
-          savedAt: new Date().toISOString(),
-        }
-        const nextS = [curS, ...listS.filter((s) => s.id !== curS.id)].slice(0, 10000)
-        window.localStorage.setItem(SAVED_SHIPPERS_STORAGE_KEY, JSON.stringify(nextS))
-      }
+    // Tier 3: Auto-save Shipper & Consignee into Autocomplete Databases (deferred to idle to eliminate main thread blocking)
+    const deferPartyPersist = typeof window !== "undefined" && "requestIdleCallback" in window
+      ? (cb: () => void) => (window as any).requestIdleCallback(cb, { timeout: 1200 })
+      : (cb: () => void) => setTimeout(cb, 600)
 
-      if (formData.consignee_name?.trim()) {
-        const cName = formData.consignee_name.trim()
-        const rawC = window.localStorage.getItem(SAVED_CONSIGNEES_STORAGE_KEY)
-        let listC: SavedParty[] = []
-        try { listC = rawC ? JSON.parse(rawC) : [] } catch (_) {}
-        const matchC = listC.find((c) => c.name.trim().toLowerCase() === cName.toLowerCase())
-        const curC: SavedParty = {
-          id: matchC ? matchC.id : crypto.randomUUID(),
-          name: cName,
-          address: formData.consignee_address || "",
-          contact: formData.consignee_contact || "",
-          email: formData.consignee_email || "",
-          savedAt: new Date().toISOString(),
+    deferPartyPersist(() => {
+      try {
+        if (formData.shipper_name?.trim()) {
+          const sName = formData.shipper_name.trim()
+          const rawS = window.localStorage.getItem(SAVED_SHIPPERS_STORAGE_KEY)
+          let listS: SavedParty[] = []
+          try { listS = rawS ? JSON.parse(rawS) : [] } catch (_) {}
+          const matchS = listS.find((s) => s.name.trim().toLowerCase() === sName.toLowerCase())
+          const curS: SavedParty = {
+            id: matchS ? matchS.id : crypto.randomUUID(),
+            name: sName,
+            address: formData.shipper_address || "",
+            contact: formData.shipper_contact || "",
+            email: formData.shipper_email || "",
+            savedAt: new Date().toISOString(),
+          }
+          const nextS = [curS, ...listS.filter((s) => s.id !== curS.id)].slice(0, 1000)
+          window.localStorage.setItem(SAVED_SHIPPERS_STORAGE_KEY, JSON.stringify(nextS))
         }
-        const nextC = [curC, ...listC.filter((c) => c.id !== curC.id)].slice(0, 10000)
-        window.localStorage.setItem(SAVED_CONSIGNEES_STORAGE_KEY, JSON.stringify(nextC))
-      }
-    } catch (_) {}
+
+        if (formData.consignee_name?.trim()) {
+          const cName = formData.consignee_name.trim()
+          const rawC = window.localStorage.getItem(SAVED_CONSIGNEES_STORAGE_KEY)
+          let listC: SavedParty[] = []
+          try { listC = rawC ? JSON.parse(rawC) : [] } catch (_) {}
+          const matchC = listC.find((c) => c.name.trim().toLowerCase() === cName.toLowerCase())
+          const curC: SavedParty = {
+            id: matchC ? matchC.id : crypto.randomUUID(),
+            name: cName,
+            address: formData.consignee_address || "",
+            contact: formData.consignee_contact || "",
+            email: formData.consignee_email || "",
+            savedAt: new Date().toISOString(),
+          }
+          const nextC = [curC, ...listC.filter((c) => c.id !== curC.id)].slice(0, 1000)
+          window.localStorage.setItem(SAVED_CONSIGNEES_STORAGE_KEY, JSON.stringify(nextC))
+        }
+      } catch (_) {}
+    })
   }, [persistLocalDraftSync, checkingDraft, hasRecoverableDraft, isHydrating, bolNumber, formData])
 
   // Keep ref synchronized for tab changes and lifecycle events
@@ -834,13 +840,23 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       flushDraftToServer()
     }, 20000)
 
-    // 4. Lifecycle listeners: flush on pagehide, visibility change, and beforeunload
+    return () => {
+      clearTimeout(timer)
+      clearInterval(heartbeat)
+      // Note: Do NOT flush synchronously on every keystroke/effect re-run.
+      // Doing so previously blocked the main thread for >1000ms on resets and fast typing.
+    }
+  }, [formData, bolNumber, issueDate, persianDate, persianDateNumeric, checkingDraft, hasRecoverableDraft, isHydrating, persistLocalDraftSync, flushDraftToServer])
+
+  // Dedicated unmount & page visibility lifecycle listeners (attached once on mount)
+  useEffect(() => {
+    if (typeof window === "undefined") return
     const handleFlush = () => {
-      flushDraftToServer(true)
+      flushDraftRef.current?.(true)
     }
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
-        flushDraftToServer(true)
+        flushDraftRef.current?.(true)
       }
     }
 
@@ -849,14 +865,12 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     document.addEventListener("visibilitychange", handleVisibility)
 
     return () => {
-      clearTimeout(timer)
-      clearInterval(heartbeat)
-      flushDraftToServer(true) // Flush any pending work when unmounting or dependencies change safely!
       window.removeEventListener("pagehide", handleFlush)
       window.removeEventListener("beforeunload", handleFlush)
       document.removeEventListener("visibilitychange", handleVisibility)
+      flushDraftRef.current?.(true)
     }
-  }, [formData, bolNumber, issueDate, persianDate, persianDateNumeric, checkingDraft, hasRecoverableDraft, isHydrating, persistLocalDraftSync, flushDraftToServer])
+  }, [])
   const [activeRouteIndex, setActiveRouteIndex] = useState<number | null>(null)
   const [showLocationDropdown, setShowLocationDropdown] = useState<number | null>(null)
   const [selectedCountryFilter, setSelectedCountryFilter] = useState("ALL")
@@ -1640,25 +1654,31 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return loadBolDocument(id, { targetTab: activeTab, force })
   }, [loadBolDocument, activeTab])
 
-  const fetchNextBolNumber = async () => {
+  const fetchNextBolNumber = useCallback(async () => {
     setIsLoading(true)
     try {
       const response = await fetch("/api/bol?action=next-number")
       const result = await response.json()
       
       if (result?.bolNumber) {
-        setBolNumber(result.bolNumber)
+        startTransition(() => {
+          setBolNumber(result.bolNumber)
+        })
         return
       }
 
-      setBolNumber("BOL-2026-NSA659")
+      startTransition(() => {
+        setBolNumber("BOL-2026-NSA684")
+      })
     } catch (error) {
       console.error("Error fetching BOL number:", error)
-      setBolNumber("BOL-2026-NSA659")
+      startTransition(() => {
+        setBolNumber("BOL-2026-NSA684")
+      })
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   // Unified Session Auto-Resume: Automatically restores active work on app launch or reload
   useEffect(() => {
@@ -4602,30 +4622,52 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }
 
   const handleNewDocument = () => {
-    try {
-      window.localStorage.removeItem("sky-bol-live-draft")
-      window.localStorage.removeItem("skybol:active-form-draft")
-      window.localStorage.setItem("skybol:last-active-document-id", "__NEW__")
-      fetch("/api/draft?type=bol", { method: "DELETE" }).catch(() => {})
-      setHasRecoverableDraft(false)
-    } catch (_) {}
-    setIsEditMode(false)
-    setEditDocumentId(null)
-    const today = new Date().toISOString().split("T")[0]
-    setFormData({
-      ...initialFormData,
-      cargo_description: `📦 CONTAINER & CARGO PARTICULARS:\n• Description: \n• Transit Date: ${today}\n• INV-`,
+    // 1. Switch to form tab immediately
+    startTransition(() => {
+      setActiveTab("form")
     })
-    setActiveRouteIndex(null)
-    setShowLocationDropdown(null)
-    setBolNumber("BOL-2026-NSA659")
-    fetchNextBolNumber()
-    setIssueDate(today)
-    const dualDates = getDualDates(today)
-    if (dualDates) {
-      setPersianDate(dualDates.persian)
-      setPersianDateNumeric(formatPersianDate(today) ?? dualDates.persianNumeric)
+    if (typeof window !== "undefined") {
+      try {
+        const url = new URL(window.location.href)
+        url.searchParams.set("tab", "form")
+        url.searchParams.delete("bol")
+        window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash)
+      } catch (_) {}
     }
+
+    // 2. Clear stored drafts asynchronously to avoid blocking the event loop (< 16ms INP)
+    setTimeout(() => {
+      try {
+        window.localStorage.removeItem("sky-bol-live-draft")
+        window.localStorage.removeItem("skybol:active-form-draft")
+        window.localStorage.setItem("skybol:last-active-document-id", "__NEW__")
+        fetch("/api/draft?type=bol", { method: "DELETE" }).catch(() => {})
+      } catch (_) {}
+    }, 0)
+
+    // 3. Mark state reset as non-blocking React 19 transition
+    startTransition(() => {
+      setHasRecoverableDraft(false)
+      setIsEditMode(false)
+      setEditDocumentId(null)
+      const today = new Date().toISOString().split("T")[0]
+      setFormData({
+        ...initialFormData,
+        cargo_description: `📦 CONTAINER & CARGO PARTICULARS:\n• Description: \n• Transit Date: ${today}\n• INV-`,
+      })
+      setActiveRouteIndex(null)
+      setShowLocationDropdown(null)
+      setBolNumber("BOL-2026-NSA684")
+      setIssueDate(today)
+      const dualDates = getDualDates(today)
+      if (dualDates) {
+        setPersianDate(dualDates.persian)
+        setPersianDateNumeric(formatPersianDate(today) ?? dualDates.persianNumeric)
+      }
+    })
+
+    // 4. Fetch the real sequence number in background
+    void fetchNextBolNumber()
   }
 
   const handleDuplicateCurrent = async () => {
