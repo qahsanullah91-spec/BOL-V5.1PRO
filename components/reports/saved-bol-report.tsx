@@ -330,10 +330,41 @@ export function SavedBolReport({
     toast.success("Set as default Report Center view")
   }
 
-  // 1. Resolve Active Dataset based on Filters and Drill-downs
+  // Full Dataset State: Ensure reports always display the entire database of BOLs
+  const [fullDataset, setFullDataset] = useState<SavedDocument[] | null>(null)
+  const [isLoadingFullDataset, setIsLoadingFullDataset] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+    const loadAllBols = async () => {
+      try {
+        setIsLoadingFullDataset(true)
+        const res = await fetch("/api/bol?all=true")
+        if (res.ok) {
+          const json = await res.json()
+          if (isMounted && json?.data && Array.isArray(json.data) && json.data.length > 0) {
+            setFullDataset(json.data)
+          }
+        }
+      } catch (err) {
+        console.warn("[SavedBolReport] Failed to fetch full BOL dataset:", err)
+      } finally {
+        if (isMounted) setIsLoadingFullDataset(false)
+      }
+    }
+    void loadAllBols()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  // 1. Resolve Active Dataset based on full fetched dataset or passed documents
   const baseData = useMemo(() => {
+    if (fullDataset && fullDataset.length > 0) {
+      return fullDataset
+    }
     return documents
-  }, [documents])
+  }, [fullDataset, documents])
 
   // Extract unique options for quick dropdown filters
   const filterOptions = useMemo(() => {
@@ -3751,8 +3782,8 @@ export function SavedBolReport({
                 {filteredData.length}
               </p>
               <p className="text-[10px] font-bold text-slate-500 truncate mt-0.5">
-                {filteredData.length === documents.length ? (
-                  `${documents.length} Total Records`
+                {filteredData.length === baseData.length ? (
+                  `${baseData.length} Total Records`
                 ) : (
                   <span className="text-blue-600 font-extrabold">{filteredData.length} Filtered</span>
                 )}
@@ -4584,7 +4615,7 @@ export function SavedBolReport({
                 </div>
               )}
               <DetailedReportTable
-                documents={documents}
+                documents={baseData}
                 filteredDocuments={filteredData}
                 overviewKpis={overviewKpis}
                 selectedDocIds={selectedIds}

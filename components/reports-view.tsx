@@ -412,6 +412,16 @@ export function ReportsView() {
       console.error("Error loading documents for reports:", e)
     }
 
+    // Also fetch the complete authoritative dataset from /api/bol?all=true
+    fetch("/api/bol?all=true")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.data && Array.isArray(json.data) && json.data.length > 0) {
+          setBolDocs(json.data)
+        }
+      })
+      .catch(() => {})
+
     try {
       const rawInvs = window.localStorage.getItem("skybol:saved-invoices")
       if (rawInvs) {

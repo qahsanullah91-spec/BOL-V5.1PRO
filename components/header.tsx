@@ -1,7 +1,7 @@
 "use client"
 
 import Image from 'next/image'
-import { useRef, useState, useMemo } from 'react'
+import { useRef, useState, useMemo, startTransition } from 'react'
 import { QuickShipmentModal } from '@/components/shipments/quick-shipment-modal'
 import {
   LogOut,
@@ -443,11 +443,15 @@ export function Header({ title, subtitle }: HeaderProps) {
   const handleNavigate = (modId: any) => {
     if (view === modId) return
     previousView.current = view
-    setView(modId)
+    startTransition(() => {
+      setView(modId)
+    })
   }
 
   const handleCreateNewBol = () => {
-    setView('bol')
+    startTransition(() => {
+      setView('bol')
+    })
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('skybol:new-bol'))
     }
@@ -1468,12 +1472,13 @@ export function Header({ title, subtitle }: HeaderProps) {
             </div>
 
             {/* Quick Action (+ New) Multi-Drop Button */}
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button
+                  type="button"
                   variant="default"
                   size="sm"
-                  className="hidden md:inline-flex h-7.5 gap-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-[11.5px] font-bold text-white shadow-xs cursor-pointer px-2 shrink-0 whitespace-nowrap"
+                  className="hidden md:inline-flex h-7.5 gap-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-[11.5px] font-bold text-white shadow-xs cursor-pointer px-2 shrink-0 whitespace-nowrap active:scale-[0.98]"
                   title="Create New Document or Record"
                 >
                   <Plus className="h-3.5 w-3.5 shrink-0" />

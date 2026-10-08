@@ -345,6 +345,21 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [showSavedBolReport, setShowSavedBolReport] = useState(false)
   const [reportInitialTab, setReportInitialTab] = useState<ReportTab>("detailed")
+  const [allReportDocuments, setAllReportDocuments] = useState<SavedDocument[]>([])
+
+  const fetchAllReportDocuments = useCallback(async () => {
+    try {
+      const res = await fetch("/api/bol?all=true")
+      if (res.ok) {
+        const json = await res.json()
+        if (json?.data && Array.isArray(json.data) && json.data.length > 0) {
+          setAllReportDocuments(json.data)
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch all documents for report:", e)
+    }
+  }, [])
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -1862,11 +1877,12 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   }, [])
 
   if (showSavedBolReport) {
+    const reportDataset = allReportDocuments.length > 0 ? allReportDocuments : documents
     return (
       <div className="w-full min-h-[calc(100vh-100px)] animate-page-crossfade">
         <SavedBolReport
-          documents={documents}
-          filteredDocuments={filteredDocuments}
+          documents={reportDataset}
+          filteredDocuments={reportDataset}
           onClose={() => setShowSavedBolReport(false)}
           selectedDocIds={selectedDocIds}
           initialTab={reportInitialTab}
@@ -1914,6 +1930,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               onClick={() => {
                 setReportInitialTab("detailed")
                 setShowSavedBolReport(true)
+                void fetchAllReportDocuments()
               }}
               className="h-8.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white px-3.5 text-xs font-black shadow-md shadow-blue-500/25 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
               title="Open Master Saved BOL Report & Analytics with Print & PDF / گزارش جامع بارنامه‌ها"
