@@ -35,20 +35,21 @@ import {
   parseMoney,
 } from "./parsers"
 import { parseSyncedCargoItems } from "@/lib/utils/cargo-grid"
+import { extractBolCargoAndRates } from "./cargo-rate-extractor"
 import type { BillOfLadingFormData } from "@/lib/types/bill-of-lading"
 
 /**
  * Extracts Driver Father Name from explicit field or Dari/Pashto 'ولد' pattern.
  */
 export function extractDriverFatherName(doc: SavedDocument): string {
-  if (doc.driver_father_name && doc.driver_father_name.trim()) {
-    return doc.driver_father_name.trim()
+  if (doc.driver_father_name && String(doc.driver_father_name).trim()) {
+    return String(doc.driver_father_name).trim()
   }
-  const rawName = (doc.driver_name || "").trim()
+  const rawName = String(doc.driver_name || "").trim()
   if (rawName) {
     const parts = rawName.split(/\s*ولد\s*/)
-    if (parts.length > 1 && parts[1]?.trim()) {
-      return parts[1].replace(/^[:\-\s]+/, "").trim()
+    if (parts.length > 1 && String(parts[1]).trim()) {
+      return String(parts[1]).replace(/^[:\-\s]+/, "").trim()
     }
   }
   return "-"
@@ -319,6 +320,7 @@ export async function exportReportToExcel(
       const fatherName = extractDriverFatherName(doc)
       const borderCrossing = extractTransitBorderStation(doc)
       const originLoc = doc.port_of_loading || doc.origin_country || extractBolRoute(doc).origin || "-"
+      const cargoData = extractBolCargoAndRates(doc)
 
       return [
         idx + 1,
@@ -336,8 +338,8 @@ export async function exportReportToExcel(
         originLoc,
         doc.shipper_name || "-",
         doc.consignee_name || "-",
-        doc.notify_party_name || (doc as any).notify_party || "-",
-        doc.cargo_description || doc.commodity || doc.description_of_goods || doc.goods_description || "-",
+        doc.notify_party_name || doc.notify_party || (doc as any).notifyParty || "-",
+        cargoData.cargoSummaryLine || doc.cargo_description || doc.commodity || doc.description_of_goods || doc.goods_description || "-",
         extractBolRoute(doc).display,
         doc.number_of_packages || "-",
         pkgNum,
@@ -347,7 +349,7 @@ export async function exportReportToExcel(
         grossNum,
         doc.kgs_per_carton || "-",
         doc.gross_weight_per_carton || "-",
-        doc.rate_per_kg || (doc as any).rate || (doc as any).rate_per_kgs || "-",
+        cargoData.displayRate || doc.rate_per_kg || (doc as any).rate || (doc as any).rate_per_kgs || "-",
         doc.goods_value || "-",
         gv.currency || (gv.amount > 0 ? "USD" : "-"),
         gv.amount || 0,

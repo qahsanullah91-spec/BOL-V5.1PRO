@@ -77,6 +77,7 @@ import { ReportDetailDrawer, DrawerKpiItem, DrawerBreakdownSection } from "./rep
 import { buildManagementSummary } from "@/lib/whatsapp/bulk-message"
 import { normalizeToWhatsAppShipment } from "@/lib/whatsapp/normalized-shipment"
 import { Button } from "@/components/ui/button"
+import { AQ_COMPANIES_LOGO_SRC } from "@/lib/reports/report-logo"
 
 import {
   DropdownMenu,
@@ -330,10 +331,41 @@ export function SavedBolReport({
     toast.success("Set as default Report Center view")
   }
 
-  // 1. Resolve Active Dataset based on Filters and Drill-downs
+  // Full Dataset State: Ensure reports always display the entire database of BOLs
+  const [fullDataset, setFullDataset] = useState<SavedDocument[] | null>(null)
+  const [isLoadingFullDataset, setIsLoadingFullDataset] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+    const loadAllBols = async () => {
+      try {
+        setIsLoadingFullDataset(true)
+        const res = await fetch("/api/bol?all=true")
+        if (res.ok) {
+          const json = await res.json()
+          if (isMounted && json?.data && Array.isArray(json.data) && json.data.length > 0) {
+            setFullDataset(json.data)
+          }
+        }
+      } catch (err) {
+        console.warn("[SavedBolReport] Failed to fetch full BOL dataset:", err)
+      } finally {
+        if (isMounted) setIsLoadingFullDataset(false)
+      }
+    }
+    void loadAllBols()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  // 1. Resolve Active Dataset based on full fetched dataset or passed documents
   const baseData = useMemo(() => {
+    if (fullDataset && fullDataset.length > 0) {
+      return fullDataset
+    }
     return documents
-  }, [documents])
+  }, [fullDataset, documents])
 
   // Extract unique options for quick dropdown filters
   const filterOptions = useMemo(() => {
@@ -2725,27 +2757,54 @@ export function SavedBolReport({
       tbl.style.tableLayout = "fixed"
     })
 
+    // Remove duplicate on-screen header from clone since executive letterhead banner is prepended
+    clone.querySelectorAll("[data-report-header='true']").forEach((el) => el.remove())
+
     // Prepend executive letterhead banner to print root
     const printLetterhead = document.createElement("div")
     printLetterhead.className = "print-letterhead-banner mb-3 border-b-2 border-slate-900 pb-2.5"
     printLetterhead.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 6px;">
-        <div>
-          <h1 style="font-size: 19px; font-weight: 900; color: #0a2540; text-transform: uppercase; margin: 0; letter-spacing: -0.5px;">${reportCompanyName || "AQ COMPANIES"}</h1>
-          <p style="font-size: 9.5px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 2px 0 0 0; letter-spacing: 0.8px;">SKY ARIANA • INTERNATIONAL FREIGHT & MULTI-MODAL LOGISTICS MANAGEMENT</p>
-          <p style="font-size: 11px; font-weight: 800; color: #1e3a8a; margin: 3px 0 0 0; text-transform: uppercase;">MASTER BILL OF LADING AUDIT & SHIPMENT MANIFEST (گزارش جامع بارنامه‌ها)</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 7px; border-bottom: 2px solid #0f172a;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 58px; height: 58px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; padding: 2px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); flex-shrink: 0;">
+            <img
+              src="${AQ_COMPANIES_LOGO_SRC}"
+              alt="AQ COMPANIES"
+              style="width: 100%; height: 100%; object-fit: contain;"
+            />
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h1 style="font-size: 20px; font-weight: 900; color: #0a2540; text-transform: uppercase; margin: 0; letter-spacing: -0.5px; line-height: 1.1;">${reportCompanyName || "AQ COMPANIES"}</h1>
+              <span style="font-size: 8.5px; font-weight: 800; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 1.5px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.6px;">${activeTab.replace("_", " ").toUpperCase()} REPORT</span>
+            </div>
+            <p style="font-size: 9px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 2px 0 0 0; letter-spacing: 0.8px;">SKY ARIANA • INTERNATIONAL FREIGHT & MULTI-MODAL LOGISTICS MANAGEMENT</p>
+            <p style="font-size: 10.5px; font-weight: 800; color: #1e3a8a; margin: 2px 0 0 0; text-transform: uppercase; letter-spacing: 0.2px;">MASTER BILL OF LADING AUDIT & SHIPMENT MANIFEST (گزارش جامع بارنامه‌ها)</p>
+          </div>
         </div>
-        <div style="text-align: right; font-size: 9px; font-weight: 600; color: #475569; line-height: 1.4;">
+        <div style="text-align: right; font-size: 8.5px; font-weight: 600; color: #475569; line-height: 1.45; border-left: 2px solid #e2e8f0; padding-left: 12px;">
           <p style="margin: 0;"><span style="color: #64748b;">Audit Date:</span> <strong style="color: #0f172a; font-family: monospace;">${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString()}</strong></p>
           <p style="margin: 0;"><span style="color: #64748b;">Audited Records:</span> <strong style="color: #0f172a; font-family: monospace;">${activeReportData.length} Bills of Lading</strong></p>
-          <p style="margin: 0;"><span style="color: #64748b;">Verification:</span> <strong style="color: #059669;">Verified Operations Record</strong></p>
+          <p style="margin: 0;"><span style="color: #64748b;">Verification:</span> <strong style="color: #059669; font-weight: 800;">Verified Operations Record</strong></p>
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 4px; padding: 5px 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
-        <div><span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total BOLs</span><p style="font-size: 12px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${activeReportData.length}</p></div>
-        <div><span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total Packages</span><p style="font-size: 11px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${Object.keys(overviewKpis.packageUnitsBreakdown || {}).length > 0 ? Object.entries(overviewKpis.packageUnitsBreakdown || {}).map(([unit, cnt]) => `${cnt.toLocaleString()} ${unit}`).join(" / ") : `${overviewKpis.totalPackages.toLocaleString()} PKGS`}</p></div>
-        <div><span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">Gross / Net Weight</span><p style="font-size: 12px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${overviewKpis.totalGrossWeightKg.toLocaleString()} / ${overviewKpis.totalNetWeightKg.toLocaleString()} KG</p></div>
-        <div><span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total Goods Value</span><p style="font-size: 12px; font-weight: 900; color: #059669; margin: 0; font-family: monospace;">$${(overviewKpis.currencyTotals.find(c => c.currency === "USD")?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 5px; padding: 6px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
+        <div style="border-right: 1px solid #e2e8f0; padding-right: 6px;">
+          <span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;">Total BOLs</span>
+          <p style="font-size: 13px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${activeReportData.length}</p>
+        </div>
+        <div style="border-right: 1px solid #e2e8f0; padding-right: 6px;">
+          <span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;">Total Packages</span>
+          <p style="font-size: 11.5px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${Object.keys(overviewKpis.packageUnitsBreakdown || {}).length > 0 ? Object.entries(overviewKpis.packageUnitsBreakdown || {}).map(([unit, cnt]) => `${cnt.toLocaleString()} ${unit}`).join(" / ") : `${overviewKpis.totalPackages.toLocaleString()} PKGS`}</p>
+        </div>
+        <div style="border-right: 1px solid #e2e8f0; padding-right: 6px;">
+          <span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;">Gross / Net Weight</span>
+          <p style="font-size: 12px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${overviewKpis.totalGrossWeightKg.toLocaleString()} / ${overviewKpis.totalNetWeightKg.toLocaleString()} KG</p>
+        </div>
+        <div>
+          <span style="font-size: 7.5px; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 0.4px;">Total Goods Value</span>
+          <p style="font-size: 12.5px; font-weight: 900; color: #059669; margin: 0; font-family: monospace;">$${(overviewKpis.currencyTotals.find(c => c.currency === "USD")?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </div>
       </div>
     `
     clone.prepend(printLetterhead)
@@ -3751,8 +3810,8 @@ export function SavedBolReport({
                 {filteredData.length}
               </p>
               <p className="text-[10px] font-bold text-slate-500 truncate mt-0.5">
-                {filteredData.length === documents.length ? (
-                  `${documents.length} Total Records`
+                {filteredData.length === baseData.length ? (
+                  `${baseData.length} Total Records`
                 ) : (
                   <span className="text-blue-600 font-extrabold">{filteredData.length} Filtered</span>
                 )}
@@ -4060,8 +4119,12 @@ export function SavedBolReport({
               style={{ background: "linear-gradient(180deg, #0f172a 0%, #172554 100%)" }}
             >
               <div className="flex justify-between items-start">
-                <div className="w-16 h-16 rounded-2xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center font-black text-2xl text-blue-400">
-                  SA
+                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center p-1.5 overflow-hidden shadow-md">
+                  <img
+                    src={AQ_COMPANIES_LOGO_SRC}
+                    alt="AQ COMPANIES"
+                    className="w-full h-full object-contain filter drop-shadow-sm brightness-110"
+                  />
                 </div>
                 <div className="text-right text-xs text-blue-200">
                   <p className="font-black text-sm text-white uppercase tracking-wide">{reportCompanyName || "AQ COMPANIES"}</p>
@@ -4101,17 +4164,24 @@ export function SavedBolReport({
           {/* Standard Report Top Title Header */}
           <div
             data-report-header="true"
-            className="border-b-2 border-slate-900 pb-4 mb-6 print:pb-2.5 print:mb-3 flex flex-col sm:flex-row justify-between items-start gap-4 break-inside-avoid print:break-inside-avoid"
+            className="border-b-2 border-slate-900 pb-4 mb-6 print:hidden flex flex-col sm:flex-row justify-between items-start gap-4 break-inside-avoid"
           >
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
-                <Sparkles className="w-7 h-7 text-blue-600" />
+              <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 p-1.5 overflow-hidden">
+                <img
+                  src={AQ_COMPANIES_LOGO_SRC}
+                  alt="AQ COMPANIES"
+                  className="w-full h-full object-contain filter drop-shadow-xs"
+                />
               </div>
               <div>
-                <div>
-                  <h1 className="text-2xl font-black text-slate-950 uppercase tracking-tight">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-black text-slate-950 dark:text-white uppercase tracking-tight">
                     {reportCompanyName || "AQ COMPANIES"}
                   </h1>
+                  <span className="text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800 uppercase tracking-wider">
+                    Official Manifest
+                  </span>
                 </div>
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">
                   International Transport & Multi-Modal Logistics
@@ -4584,7 +4654,7 @@ export function SavedBolReport({
                 </div>
               )}
               <DetailedReportTable
-                documents={documents}
+                documents={baseData}
                 filteredDocuments={filteredData}
                 overviewKpis={overviewKpis}
                 selectedDocIds={selectedIds}

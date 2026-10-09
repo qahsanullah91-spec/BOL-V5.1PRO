@@ -2,7 +2,7 @@
 
 import { Account, Company, LedgerEntry, Invoice, InvoiceItem, LedgerSettings, User, UserRole } from '@/lib/types'
 import { authenticateLocalUser } from "@/lib/services/local-user-auth"
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react'
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect, startTransition } from 'react'
 import { mergeEntities } from '@/lib/master-data/duplicate-detector'
 import { getDefaultMasterEntities } from '@/lib/master-data/seed-loader'
 import { getFinancialsMap, saveFinancialsForEntry, saveFinancialsForEntries, smartMergeRow, smartMergeLedgerRecords, isCleanCompanyName } from '@/lib/services/ledger-sync-utils'
@@ -2227,7 +2227,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setView = useCallback((view: AppState['view']) => {
-    setState(prev => ({ ...prev, view }))
+    startTransition(() => {
+      setState(prev => ({ ...prev, view }))
+    })
   }, [])
 
   const goBack = useCallback(() => {

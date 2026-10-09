@@ -40,5 +40,18 @@ const nsa644 = localBols.find(b => b.bol_number === 'BOL-2026-NSA644' || b.billO
 assert(nsa644, 'NSA644 must exist');
 assert(nsa644.numberOfPackages.includes('850 CTNS BLACK RAISNIS - 672 CTNS BLACK RAISNIS'));
 assert.strictEqual(nsa644.shipperName, 'NEW YAQOUBI LTD');
+// Test NSA683 (Restored RAHMAT NAZAR LTD / RICH VALLEY DRY FRUITS PVT LTD)
+const nsa683 = localBols.find(b => b.bol_number === 'BOL-2026-NSA683' || b.billOfLadingNumber === 'BOL-2026-NSA683');
+assert(nsa683, 'NSA683 must exist');
+assert.strictEqual(nsa683.bol_number, 'BOL-2026-NSA683');
+assert.strictEqual(nsa683.shipper_name, 'RAHMAT NAZAR LTD');
+assert.strictEqual(nsa683.consignee_name, 'RICH VALLEY DRY FRUITS PVT LTD');
+assert(nsa683.truck_number.includes('35599'));
+assert.strictEqual(nsa683.net_weight, '23,328 KG');
+assert.strictEqual(nsa683.gross_weight, '25,660.8 KG');
+assert.strictEqual(nsa683.number_of_packages, '1,458 CTNS');
+assert(nsa683.cargo_description.includes('BLACK RAISINS 1458 CTNS'));
+assert(nsa683.cargo_route_note.includes('از دوغارون کانتینر معمولی'));
+assert.strictEqual(nsa683.routes.length, 5);
 
 console.log('ALL VERIFICATION ASSERTIONS PASSED SUCCESSFULLY!');

@@ -15,7 +15,8 @@ import fs from "node:fs/promises"
 import fsSync from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
-import { getDataPath } from "@/lib/server-paths"
+import os from "node:os"
+import { getDataPath, getBackupRoot } from "@/lib/server-paths"
 import { readJsonFile, writeJsonFile, atomicWriteFile } from "@/lib/services/blob-db"
 import {
   BACKUP_FORMAT_VERSION,
@@ -72,8 +73,13 @@ export async function createSystemSnapshot(options: SnapshotCreationOptions): Pr
   const actor = options.actor || "System Automated Snapshot"
   const now = new Date()
   const reason = options.reason
-  const targetDir = options.customTargetDir || path.join(process.cwd(), "data", "backups")
-  await fs.mkdir(targetDir, { recursive: true })
+  let targetDir = options.customTargetDir || getBackupRoot()
+  try {
+    await fs.mkdir(targetDir, { recursive: true })
+  } catch {
+    targetDir = path.join(os.tmpdir(), "backups")
+    await fs.mkdir(targetDir, { recursive: true }).catch(() => {})
+  }
 
   return await withBackupLock(`Snapshot:${reason}:${actor}`, async () => {
     // 1. Generate safe, deterministic snapshot filename

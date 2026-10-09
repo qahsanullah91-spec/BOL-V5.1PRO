@@ -1,7 +1,7 @@
 "use client"
 
 import '@/lib/polyfills'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition } from 'react'
 import dynamic from 'next/dynamic'
 import { safeLazy, createSafeModule } from '@/lib/safe-lazy'
 import { AppProvider, useApp } from '@/lib/app-context'
@@ -75,7 +75,9 @@ function MainContent() {
     const handleNavigate = (e: any) => {
       if (e?.detail?.view) {
         const target = e.detail.view === 'backup' ? 'data-protection' : e.detail.view
-        setView(target)
+        startTransition(() => {
+          setView(target)
+        })
       }
     }
     window.addEventListener("skybol:navigate-view", handleNavigate)
@@ -326,7 +328,7 @@ function MainContent() {
               </div>
             )}
             {view === 'settings' && (
-              <div key="settings" className="animate-page-crossfade">
+              <div key="settings" className="animate-page-crossfade w-full flex-1 flex flex-col min-h-0">
                 <ModuleErrorBoundary moduleName="Settings & Diagnostics">
                   <SettingsView />
                 </ModuleErrorBoundary>

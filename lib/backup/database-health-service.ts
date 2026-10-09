@@ -6,9 +6,11 @@
 import fs from "node:fs/promises"
 import fsSync from "node:fs"
 import path from "node:path"
-import { getDataPath, getUploadPath } from "@/lib/server-paths"
+import os from "node:os"
+import { getDataPath, getDataRoot, getUploadPath } from "@/lib/server-paths"
 import { readJsonFile, writeJsonFile } from "@/lib/services/blob-db"
 import { validateLedgerInvariance } from "@/lib/services/ledger-sync-utils"
+import { parseWeight, parsePackages } from "@/lib/reports/parsers"
 import { collectAllSystemData } from "./backup-collector"
 import { createFullSystemBackup } from "./create-backup"
 import { CURRENT_DATABASE_SCHEMA_VERSION } from "./backup-manifest"
@@ -22,7 +24,14 @@ const BACKUPS_CATALOG_FILE = getDataPath(".local-backups-catalog.json")
  */
 export async function runDeepHealthScan(): Promise<DeepHealthReport> {
   const issues: DatabaseHealthIssue[] = []
-  const dataDir = path.join(process.cwd(), "data")
+  const primaryDataDir = getDataRoot() || path.join(process.cwd(), "data")
+
+  // Ensure primary data directory exists if possible
+  try {
+    if (!fsSync.existsSync(primaryDataDir)) {
+      await fs.mkdir(primaryDataDir, { recursive: true })
+    }
+  } catch (_) {}
 
   // 1. Storage & Writable check
   let databaseReadable = true
@@ -30,21 +39,32 @@ export async function runDeepHealthScan(): Promise<DeepHealthReport> {
   let totalStorageBytes = 0
 
   try {
-    const testFile = path.join(dataDir, `.health-probe-${Date.now()}.tmp`)
+    const testFile = path.join(primaryDataDir, `.health-probe-${Date.now()}.tmp`)
     await fs.writeFile(testFile, "health-check-probe", "utf8")
     const testRead = await fs.readFile(testFile, "utf8")
     databaseWritable = testRead === "health-check-probe"
     await fs.unlink(testFile).catch(() => {})
   } catch (err) {
-    databaseWritable = false
-    issues.push({
-      severity: "CRITICAL",
-      category: "STORAGE",
-      module: "STORAGE_ENGINE",
-      title: "Database storage directory is NOT writable",
-      details: err instanceof Error ? err.message : String(err),
-      repairable: false,
-    })
+    // In serverless environments (Vercel / AWS Lambda), the deployment root is read-only (/var/task).
+    // The storage engine (blob-db) writes to os.tmpdir() and synchronizes with cloud storage.
+    try {
+      const serverlessTmpDir = os.tmpdir()
+      const testTmpFile = path.join(serverlessTmpDir, `.health-probe-${Date.now()}.tmp`)
+      await fs.writeFile(testTmpFile, "health-check-probe", "utf8")
+      const testRead = await fs.readFile(testTmpFile, "utf8")
+      databaseWritable = testRead === "health-check-probe"
+      await fs.unlink(testTmpFile).catch(() => {})
+    } catch (tmpErr) {
+      databaseWritable = false
+      issues.push({
+        severity: "CRITICAL",
+        category: "STORAGE",
+        module: "STORAGE_ENGINE",
+        title: "Database storage directory is NOT writable",
+        details: err instanceof Error ? err.message : String(err),
+        repairable: false,
+      })
+    }
   }
 
   // 2. Load all tables
@@ -80,11 +100,17 @@ export async function runDeepHealthScan(): Promise<DeepHealthReport> {
 
   // Compute storage size of .local-*.json files
   try {
-    const dataFiles = await fs.readdir(dataDir).catch(() => [])
-    for (const f of dataFiles) {
-      if (f.startsWith(".local-") && f.endsWith(".json")) {
-        const stat = await fs.stat(path.join(dataDir, f)).catch(() => null)
-        if (stat) totalStorageBytes += stat.size
+    const scanDirs = [primaryDataDir, path.join(process.cwd(), "data"), process.cwd(), os.tmpdir()]
+    const seenFiles = new Set<string>()
+    for (const dir of scanDirs) {
+      if (!fsSync.existsSync(dir)) continue
+      const dataFiles = await fs.readdir(dir).catch(() => [])
+      for (const f of dataFiles) {
+        if (f.startsWith(".local-") && f.endsWith(".json") && !seenFiles.has(f)) {
+          seenFiles.add(f)
+          const stat = await fs.stat(path.join(dir, f)).catch(() => null)
+          if (stat) totalStorageBytes += stat.size
+        }
       }
     }
   } catch {}
@@ -327,30 +353,41 @@ export async function runDeepHealthScan(): Promise<DeepHealthReport> {
     }
 
     // Invalid package quantities & weights
-    const pkgs = Number(b.packages || b.total_packages || b.package_count || 0)
-    const weight = Number(b.gross_weight || b.weight || 0)
+    const rawPkgs = b.number_of_packages || b.numberOfPackages || b.packages || b.total_packages || b.package_count
+    const pkgs = rawPkgs !== undefined && rawPkgs !== null && String(rawPkgs).trim() !== "" ? parsePackages(rawPkgs) : 0
 
-    if (pkgs < 0 || Number.isNaN(pkgs)) {
+    const rawWeight = b.gross_weight || b.grossWeight || b.weight
+    const weight = rawWeight !== undefined && rawWeight !== null && String(rawWeight).trim() !== "" ? parseWeight(rawWeight) : 0
+
+    const rawPkgsStr = rawPkgs !== undefined && rawPkgs !== null ? String(rawPkgs).trim() : ""
+    const hasPkgsText = rawPkgsStr !== ""
+    const isPkgsInvalid = pkgs < 0 || Number.isNaN(pkgs) || (hasPkgsText && !/\d/.test(rawPkgsStr) && !["N/A", "PENDING", "-", "NONE"].includes(rawPkgsStr.toUpperCase()))
+
+    if (isPkgsInvalid) {
       invalidPackagesCount++
       issues.push({
         severity: "WARNING",
         category: "DOCUMENT",
         module: "BOLS",
         recordId: rawNum || b.id,
-        title: `Invalid package quantity (${pkgs}) on BOL ${rawNum || b.id}`,
+        title: `Invalid package quantity (${rawPkgsStr || pkgs}) on BOL ${rawNum || b.id}`,
         details: "Package count is negative or non-numeric.",
         repairable: false,
       })
     }
 
-    if (weight < 0 || Number.isNaN(weight)) {
+    const rawWeightStr = rawWeight !== undefined && rawWeight !== null ? String(rawWeight).trim() : ""
+    const hasWeightText = rawWeightStr !== ""
+    const isWeightInvalid = weight < 0 || Number.isNaN(weight) || (hasWeightText && !/\d/.test(rawWeightStr) && !["N/A", "PENDING", "-", "NONE"].includes(rawWeightStr.toUpperCase()))
+
+    if (isWeightInvalid) {
       invalidWeightsCount++
       issues.push({
         severity: "WARNING",
         category: "DOCUMENT",
         module: "BOLS",
         recordId: rawNum || b.id,
-        title: `Invalid weight (${weight}) on BOL ${rawNum || b.id}`,
+        title: `Invalid weight (${rawWeightStr || weight}) on BOL ${rawNum || b.id}`,
         details: "Gross weight is negative or non-numeric.",
         repairable: false,
       })

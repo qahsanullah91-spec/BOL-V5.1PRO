@@ -286,6 +286,8 @@ export function applyReportFilters(
         doc.shipper_name,
         doc.consignee_name,
         doc.notify_party_name,
+        doc.notify_party,
+        (doc as any).notifyParty,
         doc.cargo_description,
         doc.goods_description,
         doc.description_of_goods,
@@ -338,7 +340,8 @@ export function applyReportFilters(
     }
     if (criteria.notify && criteria.notify.trim()) {
       const q = criteria.notify.trim().toLowerCase()
-      if (!doc.notify_party_name || !doc.notify_party_name.toLowerCase().includes(q)) return false
+      const np = (doc.notify_party_name || doc.notify_party || (doc as any).notifyParty || "").toLowerCase()
+      if (!np || !np.includes(q)) return false
     }
 
     // 4. Commodity

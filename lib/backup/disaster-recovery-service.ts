@@ -170,7 +170,7 @@ export async function quarantineCorruptedDatabase(reason: string): Promise<strin
  * even when the catalog database is missing or destroyed.
  */
 export async function discoverBackupsOnDisk(customFolder?: string): Promise<DiscoveredBackupPoint[]> {
-  const backupDir = customFolder || path.join(process.cwd(), "data", "backups")
+  const backupDir = customFolder || getBackupRoot()
   if (!fsSync.existsSync(/*turbopackIgnore: true*/ backupDir)) return []
 
   const files = await fs.readdir(/*turbopackIgnore: true*/ backupDir).catch(() => [])

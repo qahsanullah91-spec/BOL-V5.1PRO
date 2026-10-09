@@ -560,11 +560,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
   }, [])
 
-  const flushDraftRef = useRef<(() => void) | null>(null)
+  const flushDraftRef = useRef<((skipStateUpdate?: boolean) => void) | null>(null)
+  const pendingTabRef = useRef<string | null>(null)
 
   const handleTabChange = useCallback((newTab: string) => {
-    if (newTab === activeTab) return
-    flushDraftRef.current?.()
+    if (newTab === activeTab || newTab === pendingTabRef.current) return
+    pendingTabRef.current = newTab
+
     if (newTab === "preview") {
       if (typeof performance !== "undefined" && performance.mark) {
         performance.mark("bol:preview-tab-click")
@@ -582,12 +584,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         window.history.replaceState(window.history.state, "", newUrlStr)
       } catch (_) {}
     }
-    startTransition(() => {
-      setActiveTab(newTab)
-    })
+    // Break out of Radix UI's synchronous discrete pointerdown event loop to guarantee < 16ms INP
+    setTimeout(() => {
+      pendingTabRef.current = null
+      flushDraftRef.current?.(true)
+      startTransition(() => {
+        setActiveTab(newTab)
+      })
+    }, 0)
   }, [activeTab, bolNumber])
 
   useEffect(() => {
+    pendingTabRef.current = null
     const mainWorkspace = document.querySelector('[data-main-workspace="true"]') as HTMLElement | null
     if (activeTab === "preview") {
       if (mainWorkspace) {
@@ -770,44 +778,50 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       }
     }
 
-    // Tier 3: Auto-save Shipper & Consignee into Autocomplete Databases
-    try {
-      if (formData.shipper_name?.trim()) {
-        const sName = formData.shipper_name.trim()
-        const rawS = window.localStorage.getItem(SAVED_SHIPPERS_STORAGE_KEY)
-        let listS: SavedParty[] = []
-        try { listS = rawS ? JSON.parse(rawS) : [] } catch (_) {}
-        const matchS = listS.find((s) => s.name.trim().toLowerCase() === sName.toLowerCase())
-        const curS: SavedParty = {
-          id: matchS ? matchS.id : crypto.randomUUID(),
-          name: sName,
-          address: formData.shipper_address || "",
-          contact: formData.shipper_contact || "",
-          email: formData.shipper_email || "",
-          savedAt: new Date().toISOString(),
-        }
-        const nextS = [curS, ...listS.filter((s) => s.id !== curS.id)].slice(0, 10000)
-        window.localStorage.setItem(SAVED_SHIPPERS_STORAGE_KEY, JSON.stringify(nextS))
-      }
+    // Tier 3: Auto-save Shipper & Consignee into Autocomplete Databases (deferred to idle to eliminate main thread blocking)
+    const deferPartyPersist = typeof window !== "undefined" && "requestIdleCallback" in window
+      ? (cb: () => void) => (window as any).requestIdleCallback(cb, { timeout: 1200 })
+      : (cb: () => void) => setTimeout(cb, 600)
 
-      if (formData.consignee_name?.trim()) {
-        const cName = formData.consignee_name.trim()
-        const rawC = window.localStorage.getItem(SAVED_CONSIGNEES_STORAGE_KEY)
-        let listC: SavedParty[] = []
-        try { listC = rawC ? JSON.parse(rawC) : [] } catch (_) {}
-        const matchC = listC.find((c) => c.name.trim().toLowerCase() === cName.toLowerCase())
-        const curC: SavedParty = {
-          id: matchC ? matchC.id : crypto.randomUUID(),
-          name: cName,
-          address: formData.consignee_address || "",
-          contact: formData.consignee_contact || "",
-          email: formData.consignee_email || "",
-          savedAt: new Date().toISOString(),
+    deferPartyPersist(() => {
+      try {
+        if (formData.shipper_name?.trim()) {
+          const sName = formData.shipper_name.trim()
+          const rawS = window.localStorage.getItem(SAVED_SHIPPERS_STORAGE_KEY)
+          let listS: SavedParty[] = []
+          try { listS = rawS ? JSON.parse(rawS) : [] } catch (_) {}
+          const matchS = listS.find((s) => s.name.trim().toLowerCase() === sName.toLowerCase())
+          const curS: SavedParty = {
+            id: matchS ? matchS.id : crypto.randomUUID(),
+            name: sName,
+            address: formData.shipper_address || "",
+            contact: formData.shipper_contact || "",
+            email: formData.shipper_email || "",
+            savedAt: new Date().toISOString(),
+          }
+          const nextS = [curS, ...listS.filter((s) => s.id !== curS.id)].slice(0, 1000)
+          window.localStorage.setItem(SAVED_SHIPPERS_STORAGE_KEY, JSON.stringify(nextS))
         }
-        const nextC = [curC, ...listC.filter((c) => c.id !== curC.id)].slice(0, 10000)
-        window.localStorage.setItem(SAVED_CONSIGNEES_STORAGE_KEY, JSON.stringify(nextC))
-      }
-    } catch (_) {}
+
+        if (formData.consignee_name?.trim()) {
+          const cName = formData.consignee_name.trim()
+          const rawC = window.localStorage.getItem(SAVED_CONSIGNEES_STORAGE_KEY)
+          let listC: SavedParty[] = []
+          try { listC = rawC ? JSON.parse(rawC) : [] } catch (_) {}
+          const matchC = listC.find((c) => c.name.trim().toLowerCase() === cName.toLowerCase())
+          const curC: SavedParty = {
+            id: matchC ? matchC.id : crypto.randomUUID(),
+            name: cName,
+            address: formData.consignee_address || "",
+            contact: formData.consignee_contact || "",
+            email: formData.consignee_email || "",
+            savedAt: new Date().toISOString(),
+          }
+          const nextC = [curC, ...listC.filter((c) => c.id !== curC.id)].slice(0, 1000)
+          window.localStorage.setItem(SAVED_CONSIGNEES_STORAGE_KEY, JSON.stringify(nextC))
+        }
+      } catch (_) {}
+    })
   }, [persistLocalDraftSync, checkingDraft, hasRecoverableDraft, isHydrating, bolNumber, formData])
 
   // Keep ref synchronized for tab changes and lifecycle events
@@ -834,13 +848,23 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       flushDraftToServer()
     }, 20000)
 
-    // 4. Lifecycle listeners: flush on pagehide, visibility change, and beforeunload
+    return () => {
+      clearTimeout(timer)
+      clearInterval(heartbeat)
+      // Note: Do NOT flush synchronously on every keystroke/effect re-run.
+      // Doing so previously blocked the main thread for >1000ms on resets and fast typing.
+    }
+  }, [formData, bolNumber, issueDate, persianDate, persianDateNumeric, checkingDraft, hasRecoverableDraft, isHydrating, persistLocalDraftSync, flushDraftToServer])
+
+  // Dedicated unmount & page visibility lifecycle listeners (attached once on mount)
+  useEffect(() => {
+    if (typeof window === "undefined") return
     const handleFlush = () => {
-      flushDraftToServer(true)
+      flushDraftRef.current?.(true)
     }
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
-        flushDraftToServer(true)
+        flushDraftRef.current?.(true)
       }
     }
 
@@ -849,14 +873,12 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     document.addEventListener("visibilitychange", handleVisibility)
 
     return () => {
-      clearTimeout(timer)
-      clearInterval(heartbeat)
-      flushDraftToServer(true) // Flush any pending work when unmounting or dependencies change safely!
       window.removeEventListener("pagehide", handleFlush)
       window.removeEventListener("beforeunload", handleFlush)
       document.removeEventListener("visibilitychange", handleVisibility)
+      flushDraftRef.current?.(true)
     }
-  }, [formData, bolNumber, issueDate, persianDate, persianDateNumeric, checkingDraft, hasRecoverableDraft, isHydrating, persistLocalDraftSync, flushDraftToServer])
+  }, [])
   const [activeRouteIndex, setActiveRouteIndex] = useState<number | null>(null)
   const [showLocationDropdown, setShowLocationDropdown] = useState<number | null>(null)
   const [selectedCountryFilter, setSelectedCountryFilter] = useState("ALL")
@@ -1441,10 +1463,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
   const loadBolDocument = useCallback(async (
     rawId: string,
-    options?: { targetTab?: string; force?: boolean }
+    options?: { targetTab?: string; force?: boolean; initialData?: any }
   ) => {
     const targetTab = options?.targetTab || "form"
     const force = options?.force ?? false
+    const initialData = options?.initialData
     const id = (rawId || "").trim()
     if (!id) return
 
@@ -1458,16 +1481,6 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     const abortController = new AbortController()
     abortControllerRef.current = abortController
 
-    // Set hydration state immediately
-    setIsHydrating(true)
-    setHydrationError(null)
-    setActiveBolId(canonicalId)
-
-    // Switch tab if requested
-    if (targetTab && activeTabRef.current !== targetTab) {
-      setActiveTab(targetTab)
-    }
-
     // Update URL query parameters for deep linking & refresh
     if (typeof window !== "undefined") {
       try {
@@ -1479,6 +1492,33 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         const newUrlStr = url.pathname + url.search + url.hash
         window.history.replaceState(window.history.state, "", newUrlStr)
       } catch (_) {}
+    }
+
+    // Fast path: If full document is already available in memory (from RecentBolCard or SavedDocuments table)
+    if (initialData) {
+      const normalized = normalizeBolRecord(initialData, canonicalId)
+      startTransition(() => {
+        setIsHydrating(false)
+        setHydrationError(null)
+        setActiveBolId(canonicalId)
+        if (targetTab && activeTabRef.current !== targetTab) {
+          setActiveTab(targetTab)
+        }
+        applyLoadedDocument(normalized, canonicalId)
+      })
+      return
+    }
+
+    // Set hydration state immediately
+    setIsHydrating(true)
+    setHydrationError(null)
+    setActiveBolId(canonicalId)
+
+    // Switch tab if requested
+    if (targetTab && activeTabRef.current !== targetTab) {
+      startTransition(() => {
+        setActiveTab(targetTab)
+      })
     }
 
     // 0. If this is already the currently active document in memory and complete, skip redundant reload
@@ -1531,8 +1571,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     if (isCachedComplete) {
       if (loadRequestIdRef.current === currentRequestId) {
         const normalized = normalizeBolRecord(cachedDoc, canonicalId)
-        applyLoadedDocument(normalized, canonicalId)
-        setIsHydrating(false)
+        startTransition(() => {
+          applyLoadedDocument(normalized, canonicalId)
+          setIsHydrating(false)
+        })
       }
     }
 
@@ -1620,25 +1662,31 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return loadBolDocument(id, { targetTab: activeTab, force })
   }, [loadBolDocument, activeTab])
 
-  const fetchNextBolNumber = async () => {
+  const fetchNextBolNumber = useCallback(async () => {
     setIsLoading(true)
     try {
       const response = await fetch("/api/bol?action=next-number")
       const result = await response.json()
       
       if (result?.bolNumber) {
-        setBolNumber(result.bolNumber)
+        startTransition(() => {
+          setBolNumber(result.bolNumber)
+        })
         return
       }
 
-      setBolNumber("BOL-2026-NSA659")
+      startTransition(() => {
+        setBolNumber("BOL-2026-NSA684")
+      })
     } catch (error) {
       console.error("Error fetching BOL number:", error)
-      setBolNumber("BOL-2026-NSA659")
+      startTransition(() => {
+        setBolNumber("BOL-2026-NSA684")
+      })
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   // Unified Session Auto-Resume: Automatically restores active work on app launch or reload
   useEffect(() => {
@@ -4582,30 +4630,52 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }
 
   const handleNewDocument = () => {
-    try {
-      window.localStorage.removeItem("sky-bol-live-draft")
-      window.localStorage.removeItem("skybol:active-form-draft")
-      window.localStorage.setItem("skybol:last-active-document-id", "__NEW__")
-      fetch("/api/draft?type=bol", { method: "DELETE" }).catch(() => {})
-      setHasRecoverableDraft(false)
-    } catch (_) {}
-    setIsEditMode(false)
-    setEditDocumentId(null)
-    const today = new Date().toISOString().split("T")[0]
-    setFormData({
-      ...initialFormData,
-      cargo_description: `📦 CONTAINER & CARGO PARTICULARS:\n• Description: \n• Transit Date: ${today}\n• INV-`,
+    // 1. Switch to form tab immediately
+    startTransition(() => {
+      setActiveTab("form")
     })
-    setActiveRouteIndex(null)
-    setShowLocationDropdown(null)
-    setBolNumber("BOL-2026-NSA659")
-    fetchNextBolNumber()
-    setIssueDate(today)
-    const dualDates = getDualDates(today)
-    if (dualDates) {
-      setPersianDate(dualDates.persian)
-      setPersianDateNumeric(formatPersianDate(today) ?? dualDates.persianNumeric)
+    if (typeof window !== "undefined") {
+      try {
+        const url = new URL(window.location.href)
+        url.searchParams.set("tab", "form")
+        url.searchParams.delete("bol")
+        window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash)
+      } catch (_) {}
     }
+
+    // 2. Clear stored drafts asynchronously to avoid blocking the event loop (< 16ms INP)
+    setTimeout(() => {
+      try {
+        window.localStorage.removeItem("sky-bol-live-draft")
+        window.localStorage.removeItem("skybol:active-form-draft")
+        window.localStorage.setItem("skybol:last-active-document-id", "__NEW__")
+        fetch("/api/draft?type=bol", { method: "DELETE" }).catch(() => {})
+      } catch (_) {}
+    }, 0)
+
+    // 3. Mark state reset as non-blocking React 19 transition
+    startTransition(() => {
+      setHasRecoverableDraft(false)
+      setIsEditMode(false)
+      setEditDocumentId(null)
+      const today = new Date().toISOString().split("T")[0]
+      setFormData({
+        ...initialFormData,
+        cargo_description: `📦 CONTAINER & CARGO PARTICULARS:\n• Description: \n• Transit Date: ${today}\n• INV-`,
+      })
+      setActiveRouteIndex(null)
+      setShowLocationDropdown(null)
+      setBolNumber("BOL-2026-NSA684")
+      setIssueDate(today)
+      const dualDates = getDualDates(today)
+      if (dualDates) {
+        setPersianDate(dualDates.persian)
+        setPersianDateNumeric(formatPersianDate(today) ?? dualDates.persianNumeric)
+      }
+    })
+
+    // 4. Fetch the real sequence number in background
+    void fetchNextBolNumber()
   }
 
   const handleDuplicateCurrent = async () => {
@@ -5409,6 +5479,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="preview"
               data-tab="preview"
+              onPointerDown={(e) => {
+                if (activeTab === "preview") {
+                  e.preventDefault()
+                }
+              }}
               className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
             >
               <Eye className="h-3.5 w-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" />
@@ -5418,23 +5493,55 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="saved-documents"
               data-tab="saved-documents"
+              onPointerDown={(e) => {
+                if (activeTab === "saved-documents") {
+                  e.preventDefault()
+                }
+              }}
               className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
             >
               <Layers className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
               <span className="hidden sm:inline">Saved BOLs</span>
               <span className="sm:hidden">Saved</span>
             </TabsTrigger>
-            <TabsTrigger value="attachments" data-tab="attachments" className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer">
+            <TabsTrigger
+              value="attachments"
+              data-tab="attachments"
+              onPointerDown={(e) => {
+                if (activeTab === "attachments") {
+                  e.preventDefault()
+                }
+              }}
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+            >
               <FolderArchive className="h-3.5 w-3.5 shrink-0 text-cyan-600 dark:text-cyan-400" />
               <span className="hidden sm:inline">Files</span>
               <span className="sm:hidden">Files</span>
             </TabsTrigger>
-            <TabsTrigger value="account" data-tab="account" className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer">
+            <TabsTrigger
+              value="account"
+              data-tab="account"
+              onPointerDown={(e) => {
+                if (activeTab === "account") {
+                  e.preventDefault()
+                }
+              }}
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+            >
               <Landmark className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span className="hidden sm:inline">Account Ledger</span>
               <span className="sm:hidden">Ledger</span>
             </TabsTrigger>
-            <TabsTrigger value="pdf-settings" data-tab="pdf-settings" className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer">
+            <TabsTrigger
+              value="pdf-settings"
+              data-tab="pdf-settings"
+              onPointerDown={(e) => {
+                if (activeTab === "pdf-settings") {
+                  e.preventDefault()
+                }
+              }}
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+            >
               <Sliders className="h-3.5 w-3.5 shrink-0 text-slate-600 dark:text-slate-400" />
               <span className="hidden sm:inline">BOL Settings</span>
               <span className="sm:hidden">Settings</span>
@@ -10779,8 +10886,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               <section className="min-h-0 w-full print:hidden [content-visibility:auto]">
                 {savedDocumentsPanel || (
                   <SavedDocuments
-                    onLoadDocument={(id, targetTab) => {
-                      void loadBolDocument(id, { targetTab: targetTab || "form", force: true })
+                    onLoadDocument={(id, targetTab, initialDoc) => {
+                      void loadBolDocument(id, { targetTab: targetTab || "form", force: true, initialData: initialDoc })
                     }}
                   />
                 )}

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { memo } from "react"
+import React, { memo, startTransition } from "react"
 import { Clock, ArrowRight, Boxes, Truck, Pencil, FolderArchive, FileDown, Loader2, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -307,11 +307,13 @@ export const RecentBolCard = memo(function RecentBolCard({
   const handleCardClick = (e?: React.MouseEvent) => {
     e?.preventDefault()
     e?.stopPropagation()
-    if (onCardClick) {
-      onCardClick()
-    } else if (onEdit) {
-      onEdit()
-    }
+    startTransition(() => {
+      if (onCardClick) {
+        onCardClick()
+      } else if (onEdit) {
+        onEdit()
+      }
+    })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -449,9 +451,11 @@ export const RecentBolCard = memo(function RecentBolCard({
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            onEdit()
+            startTransition(() => {
+              onEdit()
+            })
           }}
-          className="h-8.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-[11px] sm:text-xs cursor-pointer shadow-xs transition-all flex items-center justify-center px-1"
+          className="h-8.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-[11px] sm:text-xs cursor-pointer shadow-xs transition-[color,background-color,border-color,transform] flex items-center justify-center px-1"
           title="Edit Bill of Lading"
         >
           <Pencil className="w-3 h-3 mr-0.5 sm:mr-1 shrink-0" />
@@ -465,13 +469,15 @@ export const RecentBolCard = memo(function RecentBolCard({
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            if (onPreview) {
-              onPreview()
-            } else if (onCardClick) {
-              onCardClick()
-            }
+            startTransition(() => {
+              if (onPreview) {
+                onPreview()
+              } else if (onCardClick) {
+                onCardClick()
+              }
+            })
           }}
-          className="h-8.5 rounded-xl border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-900 dark:text-blue-300 font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
+          className="h-8.5 rounded-xl border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-900 dark:text-blue-300 font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-[color,background-color,border-color,transform] flex items-center justify-center px-1"
           title="Preview A4 Document"
         >
           <Eye className="w-3 h-3 mr-0.5 sm:mr-1 text-blue-700 dark:text-blue-400 shrink-0" />
@@ -484,9 +490,11 @@ export const RecentBolCard = memo(function RecentBolCard({
           variant="outline"
           onClick={(e) => {
             e.stopPropagation()
-            onFiles()
+            startTransition(() => {
+              onFiles()
+            })
           }}
-          className="h-8.5 rounded-xl border-cyan-300 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/40 hover:bg-cyan-100 text-cyan-900 dark:text-cyan-300 font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1"
+          className="h-8.5 rounded-xl border-cyan-300 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/40 hover:bg-cyan-100 text-cyan-900 dark:text-cyan-300 font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-[color,background-color,border-color,transform] flex items-center justify-center px-1"
           title="Digital Shipment Files & Attachments"
         >
           <FolderArchive className="w-3 h-3 mr-0.5 sm:mr-1 text-cyan-700 dark:text-cyan-400 shrink-0" />
@@ -500,10 +508,12 @@ export const RecentBolCard = memo(function RecentBolCard({
           disabled={isDownloadingPdf}
           onClick={(e) => {
             e.stopPropagation()
-            onPdf()
+            startTransition(() => {
+              onPdf()
+            })
           }}
           className={cn(
-            "h-8.5 rounded-xl border font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center px-1",
+            "h-8.5 rounded-xl border font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-[color,background-color,border-color,transform] flex items-center justify-center px-1",
             doc.pdf_status === "missing"
               ? "border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-900 dark:text-rose-300 shadow-2xs"
               : doc.pdf_status === "outdated"

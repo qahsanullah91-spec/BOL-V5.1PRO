@@ -152,7 +152,7 @@ function A4PreviewToolbarBase({
     <div
       role="toolbar"
       aria-label="A4 Preview Controls"
-      className="a4-preview-toolbar flex items-center justify-between gap-1.5 sm:gap-2 px-2.5 py-1 h-11 min-h-[44px] rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 shadow-xs backdrop-blur-xl shrink-0 mb-1.5 overflow-x-auto print:hidden"
+      className="a4-preview-toolbar flex items-center justify-between gap-1 sm:gap-1.5 px-2 py-1 min-h-[44px] h-11 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 shadow-xs backdrop-blur-xl shrink-0 mb-1.5 overflow-x-auto no-scrollbar scrollbar-none print:hidden"
     >
       {/* ==================================================== */}
       {/* GROUP 1: LEFT (Editor Back, BOL Number, Save Status) */}
@@ -168,8 +168,8 @@ function A4PreviewToolbarBase({
           title="Back to BOL Editor Form (Ctrl + Shift + F)"
         >
           <ArrowLeft className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-          <span className="hidden sm:inline">BOL Editor</span>
-          <span className="sm:hidden">Editor</span>
+          <span className="hidden xl:inline">BOL Editor</span>
+          <span className="xl:hidden">Editor</span>
         </Button>
 
         {/* BOL Number Badge */}
@@ -184,7 +184,7 @@ function A4PreviewToolbarBase({
         </div>
 
         {/* Compact Saved / Autosave Status */}
-        <div role="status" aria-live="polite" className="hidden md:flex items-center shrink-0">
+        <div role="status" aria-live="polite" className="hidden lg:flex items-center shrink-0">
           {autoSaveStatus === "saving" || isSaving ? (
             <div className="flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50/90 px-2 py-0.5 text-[10.5px] text-amber-900 font-bold shadow-2xs animate-pulse">
               <RefreshCw className="h-2.5 w-2.5 text-amber-600 animate-spin shrink-0" />
@@ -197,7 +197,8 @@ function A4PreviewToolbarBase({
               onClick={onSave}
             >
               <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>Autosaved ✓ {lastAutoSaveTime || lastAutoSavedTime ? `(${lastAutoSaveTime || lastAutoSavedTime})` : ""}</span>
+              <span className="hidden 2xl:inline">Autosaved ✓ {lastAutoSaveTime || lastAutoSavedTime ? `(${lastAutoSaveTime || lastAutoSavedTime})` : ""}</span>
+              <span className="2xl:hidden">Autosaved ✓</span>
             </div>
           ) : autoSaveStatus === "local" ? (
             <div className="flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10.5px] font-bold text-blue-800 shadow-2xs">
@@ -210,7 +211,8 @@ function A4PreviewToolbarBase({
               title="Previewing live draft changes. Click Save/Update to commit official BOL."
             >
               <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>Live Draft Preview</span>
+              <span className="hidden xl:inline">Live Draft Preview</span>
+              <span className="xl:hidden">Draft</span>
             </div>
           ) : (
             <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10.5px] font-bold text-slate-700 shadow-2xs">
@@ -225,7 +227,7 @@ function A4PreviewToolbarBase({
           size="sm"
           onClick={onSave}
           disabled={isSaving}
-          className="h-7.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-2.5 text-xs font-black text-white shadow-2xs hover:shadow-xs cursor-pointer hidden lg:flex items-center shrink-0"
+          className="h-7.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-2.5 text-xs font-black text-white shadow-2xs hover:shadow-xs cursor-pointer flex items-center shrink-0"
           title="Save / Update Document (Ctrl + S)"
         >
           {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
@@ -320,7 +322,7 @@ function A4PreviewToolbarBase({
               title={`Background & Watermark: ${currentPreset?.label ?? "None"} (${Math.round(bgOpacity * 100)}%)`}
             >
               <Palette className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-              <span className="text-xs font-bold">Watermark</span>
+              <span className="hidden sm:inline text-xs font-bold">Watermark</span>
               {bgImageUrl ? (
                 <span className="rounded bg-blue-100/90 dark:bg-blue-900/60 px-1 py-0.2 text-[10px] font-mono font-bold text-blue-800 dark:text-blue-200">
                   {Math.round(bgOpacity * 100)}%

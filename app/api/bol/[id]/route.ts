@@ -252,6 +252,16 @@ export async function PUT(
       updated_at: new Date().toISOString(),
     }
 
+    const notifyPartyValue = body.notify_party_name || body.notify_party || body.notifyParty || undefined
+    const notifyAddressValue = body.notify_party_address || body.notifyAddress || undefined
+    if (notifyPartyValue) {
+      updatePayload.notify_party = updatePayload.notify_party || notifyPartyValue
+      updatePayload.notify_party_name = updatePayload.notify_party_name || notifyPartyValue
+    }
+    if (notifyAddressValue) {
+      updatePayload.notify_party_address = updatePayload.notify_party_address || notifyAddressValue
+    }
+
     if (isArchiving) {
       updatePayload.isArchived = true
       updatePayload.status = "archived"

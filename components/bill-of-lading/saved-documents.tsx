@@ -168,7 +168,7 @@ interface AccountCompanyRecord {
 }
 
 interface SavedDocumentsProps {
-  onLoadDocument: (id: string, targetTab?: string) => void
+  onLoadDocument: (id: string, targetTab?: string, initialDoc?: SavedDocument | any) => void
   refreshTrigger?: number
   variant?: "sidebar" | "sheet"
 }
@@ -345,6 +345,21 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [showSavedBolReport, setShowSavedBolReport] = useState(false)
   const [reportInitialTab, setReportInitialTab] = useState<ReportTab>("detailed")
+  const [allReportDocuments, setAllReportDocuments] = useState<SavedDocument[]>([])
+
+  const fetchAllReportDocuments = useCallback(async () => {
+    try {
+      const res = await fetch("/api/bol?all=true")
+      if (res.ok) {
+        const json = await res.json()
+        if (json?.data && Array.isArray(json.data) && json.data.length > 0) {
+          setAllReportDocuments(json.data)
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch all documents for report:", e)
+    }
+  }, [])
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -1660,11 +1675,14 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       document.title = buildBolSmartFileName(doc, canonicalId, "")
     }
     startTransition(() => {
-      onLoadDocument(canonicalId, "preview")
+      onLoadDocument(canonicalId, "preview", doc)
     })
-    toast.success("BOL preview opened", {
-      description: `${doc.bol_number || canonicalId || "Document"} loaded in A4 Preview.`,
-    })
+    // Defer toast notification to browser idle time so click paint is instantaneous
+    setTimeout(() => {
+      toast.success("BOL preview opened", {
+        description: `${doc.bol_number || canonicalId || "Document"} loaded in A4 Preview.`,
+      })
+    }, 60)
   }, [onLoadDocument])
 
   const editBOL = useCallback((doc: SavedDocument) => {
@@ -1673,13 +1691,15 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       document.title = buildBolSmartFileName(doc, canonicalId, "")
     }
     startTransition(() => {
-      onLoadDocument(canonicalId, "form")
+      onLoadDocument(canonicalId, "form", doc)
     })
   }, [onLoadDocument])
 
   const handleFiles = useCallback((doc: SavedDocument) => {
     const canonicalId = cleanBolNumber(doc.bol_number) || cleanBolNumber(doc.id) || doc.id || doc.bol_number
-    onLoadDocument(canonicalId, "attachments")
+    startTransition(() => {
+      onLoadDocument(canonicalId, "attachments", doc)
+    })
   }, [onLoadDocument])
 
   const downloadDocumentJSON = useCallback(async (doc: SavedDocument) => {
@@ -1862,11 +1882,12 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   }, [])
 
   if (showSavedBolReport) {
+    const reportDataset = allReportDocuments.length > 0 ? allReportDocuments : documents
     return (
       <div className="w-full min-h-[calc(100vh-100px)] animate-page-crossfade">
         <SavedBolReport
-          documents={documents}
-          filteredDocuments={filteredDocuments}
+          documents={reportDataset}
+          filteredDocuments={reportDataset}
           onClose={() => setShowSavedBolReport(false)}
           selectedDocIds={selectedDocIds}
           initialTab={reportInitialTab}
@@ -1914,6 +1935,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               onClick={() => {
                 setReportInitialTab("detailed")
                 setShowSavedBolReport(true)
+                void fetchAllReportDocuments()
               }}
               className="h-8.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white px-3.5 text-xs font-black shadow-md shadow-blue-500/25 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
               title="Open Master Saved BOL Report & Analytics with Print & PDF / گزارش جامع بارنامه‌ها"

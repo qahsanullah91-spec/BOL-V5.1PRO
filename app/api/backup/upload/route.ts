@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import fs from "node:fs/promises"
 import path from "node:path"
+import os from "node:os"
 import crypto from "node:crypto"
+import { getBackupRoot } from "@/lib/server-paths"
 import { parseBackupFileContent, analyzeAndDryRunRestore } from "@/lib/backup/central-backup-service"
 import { registerBackupInCatalog } from "@/lib/backup/create-backup"
 import { CURRENT_APPLICATION_VERSION, CURRENT_DATABASE_SCHEMA_VERSION, computeSha256 } from "@/lib/backup/backup-format"
@@ -53,8 +55,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const backupDir = path.join(process.cwd(), "data", "backups")
-    await fs.mkdir(backupDir, { recursive: true }).catch(() => {})
+    let backupDir = getBackupRoot()
+    try {
+      await fs.mkdir(backupDir, { recursive: true })
+    } catch {
+      backupDir = path.join(os.tmpdir(), "backups")
+      await fs.mkdir(backupDir, { recursive: true }).catch(() => {})
+    }
 
     const originalName = file.name || "uploaded-backup"
     const isZip = parsed.isZip

@@ -138,6 +138,102 @@ export async function GET(request: Request) {
     }
   }
 
+  // Handle request for ALL BOLs (e.g. Reports, analytics, full exports)
+  const isAllRequested =
+    searchParams.get("all") === "true" ||
+    searchParams.get("limit") === "all" ||
+    searchParams.get("page_size") === "all" ||
+    searchParams.get("action") === "all"
+
+  if (isAllRequested) {
+    try {
+      const localBols = await localStorage.getAllLocalBOLs().catch(() => [])
+      let allFastItems: any[] = []
+
+      if (await isFastApiHealthy()) {
+        const fastApiUrl = new URL(`${getFastApiBaseUrl()}/api/v1/bols`)
+        fastApiUrl.searchParams.set("page", "1")
+        fastApiUrl.searchParams.set("page_size", "100")
+        const statusVal = searchParams.get("status")
+        if (statusVal && statusVal !== "all") {
+          fastApiUrl.searchParams.set("status", statusVal)
+        }
+
+        const fastRes = await fetch(fastApiUrl.toString(), {
+          signal: AbortSignal.timeout(1000),
+          headers: { Accept: "application/json" },
+        })
+
+        if (fastRes.ok) {
+          const fastResult = await fastRes.json()
+          if (fastResult && Array.isArray(fastResult.items)) {
+            allFastItems = [...fastResult.items]
+            const total = fastResult.total || fastResult.items.length
+            if (total > fastResult.items.length) {
+              const totalPages = Math.ceil(total / 100)
+              const extraPromises = []
+              for (let p = 2; p <= totalPages; p++) {
+                const pageUrl = new URL(fastApiUrl.toString())
+                pageUrl.searchParams.set("page", String(p))
+                pageUrl.searchParams.set("page_size", "100")
+                if (statusVal && statusVal !== "all") {
+                  pageUrl.searchParams.set("status", statusVal)
+                }
+                extraPromises.push(
+                  fetch(pageUrl.toString(), { signal: AbortSignal.timeout(1500), headers: { Accept: "application/json" } })
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((j) => (Array.isArray(j?.items) ? j.items : []))
+                    .catch(() => [])
+                )
+              }
+              const extraPages = await Promise.all(extraPromises)
+              allFastItems = [...allFastItems, ...extraPages.flat()]
+            }
+          }
+        }
+      }
+
+      // Merge SQLite items with any local-only files
+      const fastKeys = new Set(
+        allFastItems.map((i: any) => (cleanBolNumber(i.bol_number) || i.id || "").toUpperCase())
+      )
+      const localOnly = localBols.filter((lb: any) => {
+        const k = (cleanBolNumber(lb.bol_number) || lb.id || "").toUpperCase()
+        return k && !fastKeys.has(k) && isMeaningfulBOL(lb)
+      })
+
+      const combined = [...localOnly, ...allFastItems]
+      const enrichedAll = enrichBolListWithLocal(combined, localBols)
+
+      // Sort chronological descending (latest first)
+      enrichedAll.sort((a: any, b: any) => {
+        const dateA = new Date((a as any).updated_at || a.created_at || a.issue_date || 0).getTime()
+        const dateB = new Date((b as any).updated_at || b.created_at || b.issue_date || 0).getTime()
+        if (dateB !== dateA) return dateB - dateA
+        return parseBolSeq(b.bol_number || "") - parseBolSeq(a.bol_number || "")
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: enrichedAll.map(toLightweightBol),
+        total: enrichedAll.length,
+        page: 1,
+        page_size: enrichedAll.length,
+        total_pages: 1,
+        source: allFastItems.length > 0 ? "fastapi-sqlite-all" : "local-storage-all",
+      })
+    } catch (err) {
+      console.error("[bol API] Error fetching all BOLs:", err)
+      const localBols = await localStorage.getAllLocalBOLs().catch(() => [])
+      return NextResponse.json({
+        success: true,
+        data: localBols.filter(isMeaningfulBOL).map(toLightweightBol),
+        total: localBols.length,
+        source: "local-storage-fallback",
+      })
+    }
+  }
+
   // 1. Ultra-Fast FastAPI SQLite Backend with server-side pagination (<10ms)
   try {
     if (await isFastApiHealthy()) {
@@ -501,6 +597,8 @@ export async function POST(request: Request) {
         : null
       const bolNumber = (attempts === 1 && candidateBol) ? candidateBol : await getNextAtomicBolNumber()
 
+      const notifyPartyValue = body.notify_party_name || body.notify_party || body.notifyParty || null
+      const notifyAddressValue = body.notify_party_address || body.notifyAddress || null
       const bolData: Record<string, any> = {
         bol_number: bolNumber,
         issue_date: body.issue_date || new Date().toISOString().split("T")[0],
@@ -508,6 +606,8 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
         user_id: user?.id || null,
         ...cleanBody,
+        ...(notifyPartyValue ? { notify_party: notifyPartyValue, notify_party_name: notifyPartyValue } : {}),
+        ...(notifyAddressValue ? { notify_party_address: notifyAddressValue } : {}),
       }
 
       if (rawId && typeof rawId === "string" && rawId.length > 20 && !rawId.startsWith("BOL-")) {
@@ -563,7 +663,7 @@ export async function POST(request: Request) {
               status: "active",
               shipper_name: bolData.shipper_name || null,
               consignee_name: bolData.consignee_name || null,
-              notify_party_name: bolData.notify_party || null,
+              notify_party_name: bolData.notify_party_name || bolData.notify_party || bolData.notifyParty || null,
               truck_number: bolData.truck_number || null,
               driver_phone: bolData.driver_contact || null,
             }),
