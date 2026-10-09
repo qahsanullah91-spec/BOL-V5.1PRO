@@ -561,10 +561,12 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }, [])
 
   const flushDraftRef = useRef<((skipStateUpdate?: boolean) => void) | null>(null)
+  const pendingTabRef = useRef<string | null>(null)
 
   const handleTabChange = useCallback((newTab: string) => {
-    if (newTab === activeTab) return
-    flushDraftRef.current?.()
+    if (newTab === activeTab || newTab === pendingTabRef.current) return
+    pendingTabRef.current = newTab
+
     if (newTab === "preview") {
       if (typeof performance !== "undefined" && performance.mark) {
         performance.mark("bol:preview-tab-click")
@@ -582,12 +584,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         window.history.replaceState(window.history.state, "", newUrlStr)
       } catch (_) {}
     }
-    startTransition(() => {
-      setActiveTab(newTab)
-    })
+    // Break out of Radix UI's synchronous discrete pointerdown event loop to guarantee < 16ms INP
+    setTimeout(() => {
+      pendingTabRef.current = null
+      flushDraftRef.current?.(true)
+      startTransition(() => {
+        setActiveTab(newTab)
+      })
+    }, 0)
   }, [activeTab, bolNumber])
 
   useEffect(() => {
+    pendingTabRef.current = null
     const mainWorkspace = document.querySelector('[data-main-workspace="true"]') as HTMLElement | null
     if (activeTab === "preview") {
       if (mainWorkspace) {
@@ -5471,6 +5479,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="preview"
               data-tab="preview"
+              onPointerDown={(e) => {
+                if (activeTab === "preview") {
+                  e.preventDefault()
+                }
+              }}
               className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
             >
               <Eye className="h-3.5 w-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" />
@@ -5480,23 +5493,55 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="saved-documents"
               data-tab="saved-documents"
+              onPointerDown={(e) => {
+                if (activeTab === "saved-documents") {
+                  e.preventDefault()
+                }
+              }}
               className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
             >
               <Layers className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
               <span className="hidden sm:inline">Saved BOLs</span>
               <span className="sm:hidden">Saved</span>
             </TabsTrigger>
-            <TabsTrigger value="attachments" data-tab="attachments" className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer">
+            <TabsTrigger
+              value="attachments"
+              data-tab="attachments"
+              onPointerDown={(e) => {
+                if (activeTab === "attachments") {
+                  e.preventDefault()
+                }
+              }}
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+            >
               <FolderArchive className="h-3.5 w-3.5 shrink-0 text-cyan-600 dark:text-cyan-400" />
               <span className="hidden sm:inline">Files</span>
               <span className="sm:hidden">Files</span>
             </TabsTrigger>
-            <TabsTrigger value="account" data-tab="account" className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer">
+            <TabsTrigger
+              value="account"
+              data-tab="account"
+              onPointerDown={(e) => {
+                if (activeTab === "account") {
+                  e.preventDefault()
+                }
+              }}
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+            >
               <Landmark className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span className="hidden sm:inline">Account Ledger</span>
               <span className="sm:hidden">Ledger</span>
             </TabsTrigger>
-            <TabsTrigger value="pdf-settings" data-tab="pdf-settings" className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer">
+            <TabsTrigger
+              value="pdf-settings"
+              data-tab="pdf-settings"
+              onPointerDown={(e) => {
+                if (activeTab === "pdf-settings") {
+                  e.preventDefault()
+                }
+              }}
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+            >
               <Sliders className="h-3.5 w-3.5 shrink-0 text-slate-600 dark:text-slate-400" />
               <span className="hidden sm:inline">BOL Settings</span>
               <span className="sm:hidden">Settings</span>
