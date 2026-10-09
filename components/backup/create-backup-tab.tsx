@@ -40,6 +40,8 @@ export function CreateBackupTab({ onBackupCreated }: CreateBackupTabProps) {
   const [isProtected, setIsProtected] = useState(false)
   const [note, setNote] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isReverifying, setIsReverifying] = useState(false)
+  const [isOpeningFolder, setIsOpeningFolder] = useState(false)
 
   // Custom module selection
   const [selectedModules, setSelectedModules] = useState<string[]>([
