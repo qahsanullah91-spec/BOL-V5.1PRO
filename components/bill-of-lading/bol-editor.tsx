@@ -5470,7 +5470,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <FileText className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
               <span className="hidden sm:inline">BOL Editor</span>
@@ -5484,7 +5484,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <Eye className="h-3.5 w-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" />
               <span className="hidden sm:inline">A4 Preview</span>
@@ -5498,7 +5498,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <Layers className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
               <span className="hidden sm:inline">Saved BOLs</span>
@@ -5512,7 +5512,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <FolderArchive className="h-3.5 w-3.5 shrink-0 text-cyan-600 dark:text-cyan-400" />
               <span className="hidden sm:inline">Files</span>
@@ -5526,7 +5526,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <Landmark className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span className="hidden sm:inline">Account Ledger</span>
@@ -5540,7 +5540,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer"
+              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <Sliders className="h-3.5 w-3.5 shrink-0 text-slate-600 dark:text-slate-400" />
               <span className="hidden sm:inline">BOL Settings</span>

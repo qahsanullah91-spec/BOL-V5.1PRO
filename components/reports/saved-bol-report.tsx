@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState, useRef, useEffect, useCallback } from "react"
+import React, { useMemo, useState, useRef, useEffect, useCallback, startTransition } from "react"
 import {
   SavedDocument,
   ReportTab,
@@ -226,6 +226,11 @@ export function SavedBolReport({
 }: SavedBolReportProps) {
   // Navigation & View State
   const [activeTab, setActiveTab] = useState<ReportTab>(initialTab)
+  const handleSwitchTab = useCallback((targetTab: ReportTab) => {
+    startTransition(() => {
+      setActiveTab(targetTab)
+    })
+  }, [])
   const [expandedCargoIds, setExpandedCargoIds] = useState<Set<string>>(new Set())
   const toggleCargoExpanded = (id: string) => {
     setExpandedCargoIds((prev) => {
@@ -491,56 +496,58 @@ export function SavedBolReport({
   }, [searchQuery, advancedFilters, drillDownEntity])
 
   const handleQuickDateSelect = (opt: QuickDate) => {
-    setQuickDate(opt)
-    if (opt === "all") {
-      setAdvancedFilters((prev) => {
-        const next = { ...prev }
-        delete next.dateFrom
-        delete next.dateTo
-        return next
-      })
-      return
-    }
-    const now = new Date()
-    const todayStr = now.toISOString().split("T")[0]
+    startTransition(() => {
+      setQuickDate(opt)
+      if (opt === "all") {
+        setAdvancedFilters((prev) => {
+          const next = { ...prev }
+          delete next.dateFrom
+          delete next.dateTo
+          return next
+        })
+        return
+      }
+      const now = new Date()
+      const todayStr = now.toISOString().split("T")[0]
 
-    let from = ""
-    let to = todayStr
+      let from = ""
+      let to = todayStr
 
-    if (opt === "today") {
-      from = todayStr
-      to = todayStr
-    } else if (opt === "yesterday") {
-      const y = new Date(now)
-      y.setDate(y.getDate() - 1)
-      from = y.toISOString().split("T")[0]
-      to = from
-    } else if (opt === "7days") {
-      const d = new Date(now)
-      d.setDate(d.getDate() - 7)
-      from = d.toISOString().split("T")[0]
-    } else if (opt === "30days") {
-      const d = new Date(now)
-      d.setDate(d.getDate() - 30)
-      from = d.toISOString().split("T")[0]
-    } else if (opt === "this_month") {
-      const d = new Date(now.getFullYear(), now.getMonth(), 1)
-      from = d.toISOString().split("T")[0]
-    } else if (opt === "last_month") {
-      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const last = new Date(now.getFullYear(), now.getMonth(), 0)
-      from = first.toISOString().split("T")[0]
-      to = last.toISOString().split("T")[0]
-    } else if (opt === "this_year") {
-      const d = new Date(now.getFullYear(), 0, 1)
-      from = d.toISOString().split("T")[0]
-    }
+      if (opt === "today") {
+        from = todayStr
+        to = todayStr
+      } else if (opt === "yesterday") {
+        const y = new Date(now)
+        y.setDate(y.getDate() - 1)
+        from = y.toISOString().split("T")[0]
+        to = from
+      } else if (opt === "7days") {
+        const d = new Date(now)
+        d.setDate(d.getDate() - 7)
+        from = d.toISOString().split("T")[0]
+      } else if (opt === "30days") {
+        const d = new Date(now)
+        d.setDate(d.getDate() - 30)
+        from = d.toISOString().split("T")[0]
+      } else if (opt === "this_month") {
+        const d = new Date(now.getFullYear(), now.getMonth(), 1)
+        from = d.toISOString().split("T")[0]
+      } else if (opt === "last_month") {
+        const first = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        const last = new Date(now.getFullYear(), now.getMonth(), 0)
+        from = first.toISOString().split("T")[0]
+        to = last.toISOString().split("T")[0]
+      } else if (opt === "this_year") {
+        const d = new Date(now.getFullYear(), 0, 1)
+        from = d.toISOString().split("T")[0]
+      }
 
-    setAdvancedFilters((prev) => ({
-      ...prev,
-      dateFrom: from,
-      dateTo: to,
-    }))
+      setAdvancedFilters((prev) => ({
+        ...prev,
+        dateFrom: from,
+        dateTo: to,
+      }))
+    })
   }
 
   const handleClearAllFilters = () => {
@@ -3238,10 +3245,16 @@ export function SavedBolReport({
             <Button
               variant="outline"
               size="sm"
-              onClick={onClose}
-              className="rounded-xl border-slate-200 dark:border-slate-700 h-9 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0"
+              onClick={() => {
+                setTimeout(() => {
+                  startTransition(() => {
+                    onClose()
+                  })
+                }, 0)
+              }}
+              className="rounded-xl border-slate-200 dark:border-slate-700 h-9 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none cursor-pointer"
             >
-              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              <ArrowLeft className="w-4 h-4 mr-1.5 shrink-0 pointer-events-none" />
               <span>Saved BOLs</span>
             </Button>
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block shrink-0"></div>
@@ -3268,7 +3281,7 @@ export function SavedBolReport({
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 shrink-0 cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
                   title="Load or manage saved views and presets"
                 >
                   <Bookmark className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -3286,7 +3299,7 @@ export function SavedBolReport({
                     <DropdownMenuItem
                       key={preset.id}
                       onClick={() => handleApplyPreset(preset)}
-                      className="flex items-center justify-between text-xs font-semibold py-2 px-2 cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="flex items-center justify-between text-xs font-semibold py-2 px-2 cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
                     >
                       <div className="flex items-center gap-2 truncate">
                         <Bookmark className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -3336,7 +3349,7 @@ export function SavedBolReport({
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-9 px-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs shrink-0 cursor-pointer"
+                  className="h-9 px-2.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs shrink-0 cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
                   title="More actions and exports"
                 >
                   <Download className="w-3.5 h-3.5 mr-1 text-slate-500" />
@@ -3391,7 +3404,7 @@ export function SavedBolReport({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsFitScreen(!isFitScreen)}
-                className={"h-8 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer " + (isFitScreen ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100")}
+                className={"h-8 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none " + (isFitScreen ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100")}
                 title={isFitScreen ? "Standard width" : "Fit to width"}
               >
                 {isFitScreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -3401,7 +3414,7 @@ export function SavedBolReport({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsPreviewMode(!isPreviewMode)}
-                className={"h-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer " + (isPreviewMode ? "bg-slate-800 text-white dark:bg-blue-600" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100")}
+                className={"h-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none " + (isPreviewMode ? "bg-slate-800 text-white dark:bg-blue-600" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100")}
               >
                 <Eye className="w-3.5 h-3.5 mr-1.5" />
                 <span>{isPreviewMode ? "Exit Preview" : "A4 Preview"}</span>
@@ -3410,14 +3423,14 @@ export function SavedBolReport({
               <button
                 type="button"
                 onClick={() => setPdfOrientation("landscape")}
-                className={"px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer " + (pdfOrientation === "landscape" ? "bg-slate-800 text-white dark:bg-blue-600" : "text-slate-600 hover:bg-slate-100")}
+                className={"px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none " + (pdfOrientation === "landscape" ? "bg-slate-800 text-white dark:bg-blue-600" : "text-slate-600 hover:bg-slate-100")}
               >
                 Landscape
               </button>
               <button
                 type="button"
                 onClick={() => setPdfOrientation("portrait")}
-                className={"px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer " + (pdfOrientation === "portrait" ? "bg-slate-800 text-white dark:bg-blue-600" : "text-slate-600 hover:bg-slate-100")}
+                className={"px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none " + (pdfOrientation === "portrait" ? "bg-slate-800 text-white dark:bg-blue-600" : "text-slate-600 hover:bg-slate-100")}
               >
                 Portrait
               </button>
@@ -3440,7 +3453,7 @@ export function SavedBolReport({
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               onClick={handlePrint}
-              className="h-9 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-black text-xs shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0"
+              className="h-9 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-black text-xs shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Print this report / Save as PDF (Ctrl+P)"
             >
               <Printer className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
@@ -3450,7 +3463,7 @@ export function SavedBolReport({
             <Button
               onClick={handleGeneratePdf}
               disabled={isGeneratingPdf}
-              className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-blue-500/25 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0 disabled:opacity-60"
+              className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-blue-500/25 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0 disabled:opacity-60 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Download complete report as PDF file"
             >
               {isGeneratingPdf ? (
@@ -3470,7 +3483,7 @@ export function SavedBolReport({
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-9 px-3 rounded-xl border-emerald-300 dark:border-emerald-800 bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200 font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-all hover:shadow-xs active:scale-95"
+                  className="h-9 px-3 rounded-xl border-emerald-300 dark:border-emerald-800 bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200 font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-all hover:shadow-xs active:scale-95 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
                   title="Export report dataset to Microsoft Excel (.xlsx)"
                 >
                   <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -3578,7 +3591,7 @@ export function SavedBolReport({
                   <button
                     key={btn.id}
                     onClick={() => handleQuickDateSelect(btn.id as QuickDate)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                       isSelected
                         ? "bg-blue-600 text-white shadow-xs"
                         : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
@@ -3596,7 +3609,7 @@ export function SavedBolReport({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsFilterDrawerOpen(true)}
-                className={`h-9 rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs font-bold ${
+                className={`h-9 rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs font-bold [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                   activeFiltersCount > 0
                     ? "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/80 dark:text-blue-300"
                     : "text-slate-700 dark:text-slate-200"
@@ -3616,7 +3629,7 @@ export function SavedBolReport({
                   variant="ghost"
                   size="sm"
                   onClick={handleClearAllFilters}
-                  className="h-9 px-3 rounded-xl text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                  className="h-9 px-3 rounded-xl text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
                   title="Clear all active filters"
                 >
                   <RotateCcw className="w-3.5 h-3.5 mr-1" />
@@ -3798,8 +3811,8 @@ export function SavedBolReport({
           <div className="grid grid-cols-2 sm:grid-cols-4 2xl:grid-cols-8 gap-2.5">
             {/* 1. Total BOLs */}
             <div
-              onClick={() => setActiveTab("detailed")}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0"
+              onClick={() => handleSwitchTab("detailed")}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Click to view in Detailed Report"
             >
               <div className="flex items-center justify-between text-slate-400 group-hover:text-blue-600">
@@ -3820,8 +3833,8 @@ export function SavedBolReport({
 
             {/* 2. Total Packages */}
             <div
-              onClick={() => setActiveTab("detailed")}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0"
+              onClick={() => handleSwitchTab("detailed")}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Click to view in Detailed Report"
             >
               <div className="flex items-center justify-between text-slate-400 group-hover:text-indigo-600">
@@ -3842,8 +3855,8 @@ export function SavedBolReport({
 
             {/* 3. Net Weight */}
             <div
-              onClick={() => setActiveTab("detailed")}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0"
+              onClick={() => handleSwitchTab("detailed")}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Click to view in Detailed Report"
             >
               <div className="flex items-center justify-between text-slate-400 group-hover:text-emerald-600">
@@ -3858,8 +3871,8 @@ export function SavedBolReport({
 
             {/* 4. Gross Weight */}
             <div
-              onClick={() => setActiveTab("detailed")}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0"
+              onClick={() => handleSwitchTab("detailed")}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Click to view in Detailed Report"
             >
               <div className="flex items-center justify-between text-slate-400 group-hover:text-slate-600">
@@ -3874,8 +3887,8 @@ export function SavedBolReport({
 
             {/* 5. Goods Value */}
             <div
-              onClick={() => setActiveTab("financial")}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0"
+              onClick={() => handleSwitchTab("financial")}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Click to view Financial Breakdown"
             >
               <div className="flex items-center justify-between text-slate-400 group-hover:text-emerald-600">
@@ -3900,8 +3913,8 @@ export function SavedBolReport({
 
             {/* 6. Active Shippers */}
             <div
-              onClick={() => setActiveTab("shippers")}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0"
+              onClick={() => handleSwitchTab("shippers")}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xs group min-w-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Click to view Shippers list"
             >
               <div className="flex items-center justify-between text-slate-400 group-hover:text-blue-600">
@@ -3916,8 +3929,8 @@ export function SavedBolReport({
 
             {/* 7. Active Consignees */}
             <div
-              onClick={() => setActiveTab("consignees")}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-purple-400 cursor-pointer transition-all hover:shadow-xs group min-w-0"
+              onClick={() => handleSwitchTab("consignees")}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-purple-400 cursor-pointer transition-all hover:shadow-xs group min-w-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Click to view Consignees list"
             >
               <div className="flex items-center justify-between text-slate-400 group-hover:text-purple-600">
@@ -3932,8 +3945,8 @@ export function SavedBolReport({
 
             {/* 8. Missing Data / Quality */}
             <div
-              onClick={() => setActiveTab("missing_data")}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-amber-400 cursor-pointer transition-all hover:shadow-xs group min-w-0"
+              onClick={() => handleSwitchTab("missing_data")}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-amber-400 cursor-pointer transition-all hover:shadow-xs group min-w-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Click to view Data Completeness Audit"
             >
               <div className="flex items-center justify-between text-slate-400 group-hover:text-amber-600">
@@ -4013,8 +4026,8 @@ export function SavedBolReport({
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 py-3 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
+                    onClick={() => handleSwitchTab(tab.id)}
+                    className={`flex items-center gap-2 py-3 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-colors cursor-pointer shrink-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                       isActive
                         ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/40"
                         : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
@@ -4031,7 +4044,7 @@ export function SavedBolReport({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className={`flex items-center gap-1.5 py-3 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
+                    className={`flex items-center gap-1.5 py-3 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-colors cursor-pointer shrink-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                       isSecondaryActive
                         ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/40"
                         : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700"
@@ -4072,8 +4085,8 @@ export function SavedBolReport({
                     return (
                       <DropdownMenuItem
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center justify-between text-xs font-bold py-2 px-2.5 cursor-pointer rounded-lg ${
+                        onClick={() => handleSwitchTab(tab.id)}
+                        className={`flex items-center justify-between text-xs font-bold py-2 px-2.5 cursor-pointer rounded-lg [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                           isTabActive
                             ? "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-black"
                             : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"

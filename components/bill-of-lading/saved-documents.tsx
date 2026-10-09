@@ -1888,7 +1888,13 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
         <SavedBolReport
           documents={reportDataset}
           filteredDocuments={reportDataset}
-          onClose={() => setShowSavedBolReport(false)}
+          onClose={() => {
+            setTimeout(() => {
+              startTransition(() => {
+                setShowSavedBolReport(false)
+              })
+            }, 0)
+          }}
           selectedDocIds={selectedDocIds}
           initialTab={reportInitialTab}
         />
@@ -1933,14 +1939,18 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
             <Button
               type="button"
               onClick={() => {
-                setReportInitialTab("detailed")
-                setShowSavedBolReport(true)
-                void fetchAllReportDocuments()
+                setTimeout(() => {
+                  startTransition(() => {
+                    setReportInitialTab("detailed")
+                    setShowSavedBolReport(true)
+                  })
+                  void fetchAllReportDocuments()
+                }, 0)
               }}
-              className="h-8.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white px-3.5 text-xs font-black shadow-md shadow-blue-500/25 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
+              className="h-8.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white px-3.5 text-xs font-black shadow-md shadow-blue-500/25 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Open Master Saved BOL Report & Analytics with Print & PDF / گزارش جامع بارنامه‌ها"
             >
-              <Printer className="h-4 w-4" />
+              <Printer className="h-4 w-4 shrink-0 pointer-events-none" />
               <span>Saved BOL Report</span>
             </Button>
           </div>
@@ -2079,8 +2089,12 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
           <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold">
             <button
               type="button"
-              onClick={() => setStatusFilter("active")}
-              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              onClick={() => {
+                startTransition(() => {
+                  setStatusFilter("active")
+                })
+              }}
+              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 [&_span]:pointer-events-none ${
                 statusFilter === "active"
                   ? "bg-blue-600 text-white font-black shadow-xs"
                   : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
@@ -2095,8 +2109,12 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter("archived")}
-              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              onClick={() => {
+                startTransition(() => {
+                  setStatusFilter("archived")
+                })
+              }}
+              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 [&_span]:pointer-events-none ${
                 statusFilter === "archived"
                   ? "bg-amber-600 text-white font-black shadow-xs"
                   : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
@@ -2113,8 +2131,12 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter("all")}
-              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              onClick={() => {
+                startTransition(() => {
+                  setStatusFilter("all")
+                })
+              }}
+              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 [&_span]:pointer-events-none ${
                 statusFilter === "all"
                   ? "bg-slate-700 text-white font-black shadow-xs"
                   : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
@@ -2142,8 +2164,12 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               <button
                 key={f.id}
                 type="button"
-                onClick={() => setDateFilter(f.id)}
-                className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
+                onClick={() => {
+                  startTransition(() => {
+                    setDateFilter(f.id)
+                  })
+                }}
+                className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer [&_span]:pointer-events-none ${
                   dateFilter === f.id
                     ? "bg-blue-600 text-white font-black shadow-xs"
                     : "text-slate-600 hover:text-slate-950"
@@ -2160,40 +2186,40 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               type="button"
               variant="outline"
               onClick={handleExportToCSV}
-              className="h-8.5 rounded-xl border-emerald-300 bg-emerald-50/90 px-2.5 text-xs font-black text-emerald-800 hover:bg-emerald-100 shadow-2xs cursor-pointer"
+              className="h-8.5 rounded-xl border-emerald-300 bg-emerald-50/90 px-2.5 text-xs font-black text-emerald-800 hover:bg-emerald-100 shadow-2xs cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Export currently filtered list to CSV / Excel spreadsheet"
             >
-              <FileSpreadsheet className="h-3.5 w-3.5 mr-1 text-emerald-600 shrink-0" />
+              <FileSpreadsheet className="h-3.5 w-3.5 mr-1 text-emerald-600 shrink-0 pointer-events-none" />
               <span>Export CSV</span>
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsCloudSyncModalOpen(true)}
-              className="h-8.5 rounded-xl border-blue-300 bg-blue-50/90 px-2.5 text-xs font-black text-blue-900 hover:bg-blue-100 shadow-2xs cursor-pointer flex items-center gap-1 active:scale-98 transition-all"
+              className="h-8.5 rounded-xl border-blue-300 bg-blue-50/90 px-2.5 text-xs font-black text-blue-900 hover:bg-blue-100 shadow-2xs cursor-pointer flex items-center gap-1 active:scale-98 transition-all [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Cloud Sync: Upload & download verified BOL documents and ledgers across all devices & browsers"
             >
-              <Cloud className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+              <Cloud className="h-3.5 w-3.5 text-blue-600 shrink-0 pointer-events-none" />
               <span>Cloud Sync</span>
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={handleDeleteEmptyBOLs}
-              className="h-8.5 rounded-xl border-rose-300 bg-rose-50/90 px-2.5 text-xs font-black text-rose-800 hover:bg-rose-100 shadow-2xs cursor-pointer flex items-center gap-1"
+              className="h-8.5 rounded-xl border-rose-300 bg-rose-50/90 px-2.5 text-xs font-black text-rose-800 hover:bg-rose-100 shadow-2xs cursor-pointer flex items-center gap-1 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Clean empty draft BOLs / حذف بارنامه‌های خالی"
             >
-              <Trash2 className="h-3.5 w-3.5 text-rose-600 shrink-0" />
+              <Trash2 className="h-3.5 w-3.5 text-rose-600 shrink-0 pointer-events-none" />
               <span>Clean Drafts</span>
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={handleRecoverAllBOLs}
-              className="h-8.5 rounded-xl border-slate-300 bg-slate-50/80 px-2.5 text-xs font-bold text-slate-800 hover:bg-slate-100 shadow-2xs cursor-pointer"
+              className="h-8.5 rounded-xl border-slate-300 bg-slate-50/80 px-2.5 text-xs font-bold text-slate-800 hover:bg-slate-100 shadow-2xs cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               title="Sync & recover all saved BOL documents from server & disk"
             >
-              <RotateCcw className="h-3.5 w-3.5 mr-1 text-slate-600 shrink-0" />
+              <RotateCcw className="h-3.5 w-3.5 mr-1 text-slate-600 shrink-0 pointer-events-none" />
               <span>Recover Saved BOLs</span>
             </Button>
             {/* Sort Selector */}
@@ -2254,12 +2280,14 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               key={category.key}
               type="button"
               onClick={() => {
-                setActiveCategory(category.key)
-                if (category.key !== "account") {
-                  setSelectedCompanyName(null)
-                }
+                startTransition(() => {
+                  setActiveCategory(category.key)
+                  if (category.key !== "account") {
+                    setSelectedCompanyName(null)
+                  }
+                })
               }}
-              className={`whitespace-nowrap rounded-xl border px-3 py-1.5 text-xs font-extrabold transition-all cursor-pointer shrink-0 ${
+              className={`whitespace-nowrap rounded-xl border px-3 py-1.5 text-xs font-extrabold transition-all cursor-pointer shrink-0 [&_span]:pointer-events-none ${
                 activeCategory === category.key
                   ? "border-blue-600 bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20"
                   : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-blue-50 hover:text-blue-900 hover:border-blue-200"

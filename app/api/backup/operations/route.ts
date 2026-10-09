@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import path from "node:path"
+import fsSync from "node:fs"
 import {
   getProtectionDashboardData,
   generateBackupHealthReport,
@@ -95,6 +97,26 @@ export async function POST(req: NextRequest) {
       case "cleanup_sandboxes": {
         const result = await cleanupStaleSandboxesAndInterruptedJobs()
         return NextResponse.json({ success: true, result })
+      }
+
+      case "open_folder": {
+        let folderToOpen = path.join(process.cwd(), "data", "backups")
+        if (body.filePath && typeof body.filePath === "string") {
+          const abs = path.isAbsolute(body.filePath) ? body.filePath : path.join(process.cwd(), body.filePath)
+          if (fsSync.existsSync(abs)) {
+            const stat = fsSync.statSync(abs)
+            folderToOpen = stat.isDirectory() ? abs : path.dirname(abs)
+          }
+        }
+        if (process.platform === "win32") {
+          try {
+            const { spawn } = await import("node:child_process")
+            spawn("explorer.exe", [folderToOpen], { detached: true, stdio: "ignore" }).unref()
+          } catch (e) {
+            console.error("Failed to spawn explorer:", e)
+          }
+        }
+        return NextResponse.json({ success: true, openedFolder: folderToOpen })
       }
 
       default:
