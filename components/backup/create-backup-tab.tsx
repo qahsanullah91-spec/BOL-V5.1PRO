@@ -493,11 +493,31 @@ export function CreateBackupTab({ onBackupCreated }: CreateBackupTabProps) {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => handleOpenFolder(lastResult.backup.filePath)}
+                disabled={isOpeningFolder}
+                className="gap-1.5 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/10"
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                {isOpeningFolder ? "Opening..." : "Open Folder"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => copyToClipboard(lastResult.backup.filePath)}
                 className="gap-1.5 text-xs"
               >
                 <Copy className="h-3.5 w-3.5" />
                 Copy File Path
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleVerifyAgain(lastResult.backup.id)}
+                disabled={isReverifying}
+                className="gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isReverifying ? "animate-spin" : ""}`} />
+                {isReverifying ? "Verifying..." : "Verify Again"}
               </Button>
               <Button
                 variant="outline"

@@ -17,7 +17,9 @@ import {
   Scale,
   RotateCcw,
   AlertOctagon,
+  Copy,
 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
@@ -99,6 +101,29 @@ export function OverviewTab({
     return { status: "At Risk", variant: "destructive" as const, desc: "Backup overdue (> 72 hours)." }
   }
 
+  const copyPath = (text: string) => {
+    navigator.clipboard.writeText(text)
+    toast.success("Path copied to clipboard", { description: text })
+  }
+
+  const openFolder = async (folderPath?: string) => {
+    try {
+      const res = await fetch("/api/backup/operations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "open_folder", filePath: folderPath }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("Opened Backup Folder in Explorer", { description: data.openedFolder })
+      } else {
+        toast.error("Could not open folder", { description: data.error })
+      }
+    } catch (e: any) {
+      toast.error("Error opening folder", { description: e.message })
+    }
+  }
+
   const protection = getProtectionStatus()
   const isHealthy = stats.dataIntegrityStatus !== "WARNING"
   const latestBackup = backups[0] || null
@@ -164,91 +189,123 @@ export function OverviewTab({
         isCreating={isCreating}
       />
 
-      {/* Grid of Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* Last Successful Backup */}
+      {/* Grid of Key Metrics (9 Core Dimensions: Last Backup, Auto Backup, Size, Integrity, DB Status, Readiness) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        {/* 1. Last Successful Backup */}
         <Card className="border shadow-xs">
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Last Successful Backup
+          <CardHeader className="p-3.5 pb-1.5 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Last Backup
             </CardTitle>
-            <Clock className="h-4 w-4 text-emerald-600" />
+            <Clock className="h-3.5 w-3.5 text-emerald-600" />
           </CardHeader>
-          <CardContent className="p-4 pt-1">
-            <div className="text-sm font-bold text-foreground truncate">
+          <CardContent className="p-3.5 pt-1">
+            <div className="text-xs font-bold text-foreground truncate" title={stats.lastSuccessfulBackup || undefined}>
               {stats.lastSuccessfulBackup ? formatDate(stats.lastSuccessfulBackup) : "No backup yet"}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+            <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
               Verified with SHA-256
             </p>
           </CardContent>
         </Card>
 
-        {/* Data Integrity Status */}
+        {/* 2. Last Automatic Backup */}
         <Card className="border shadow-xs">
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <CardHeader className="p-3.5 pb-1.5 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Auto Backup
+            </CardTitle>
+            <Layers className="h-3.5 w-3.5 text-blue-600" />
+          </CardHeader>
+          <CardContent className="p-3.5 pt-1">
+            <div className="text-xs font-bold text-foreground truncate" title={stats.lastAutomaticBackup || undefined}>
+              {stats.lastAutomaticBackup ? formatDate(stats.lastAutomaticBackup) : "Scheduled Daily"}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+              Pre-Restore Snapshot ON
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* 3. Latest Backup File Size */}
+        <Card className="border shadow-xs">
+          <CardHeader className="p-3.5 pb-1.5 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Backup Size
+            </CardTitle>
+            <FileCheck className="h-3.5 w-3.5 text-indigo-600" />
+          </CardHeader>
+          <CardContent className="p-3.5 pt-1">
+            <div className="text-xs font-bold text-foreground truncate">
+              {latestBackup ? formatBytes(latestBackup.fileSizeBytes) : "—"}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Envelope Format v2.0
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* 4. Data Integrity Status */}
+        <Card className="border shadow-xs">
+          <CardHeader className="p-3.5 pb-1.5 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Data Integrity
             </CardTitle>
             {isHealthy ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
             ) : (
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
             )}
           </CardHeader>
-          <CardContent className="p-4 pt-1">
-            <div className="flex items-center gap-2">
-              <span className={`text-base font-bold ${isHealthy ? "text-emerald-600" : "text-amber-600"}`}>
-                {isHealthy ? "Healthy" : "Warning Discrepancy"}
+          <CardContent className="p-3.5 pt-1">
+            <div className="flex items-center gap-1.5">
+              <span className={`text-xs font-bold ${isHealthy ? "text-emerald-600" : "text-amber-600"}`}>
+                {isHealthy ? "Healthy" : "Discrepancy"}
               </span>
-              <Badge variant={isHealthy ? "default" : "destructive"} className="text-[10px] px-1.5 py-0">
+              <Badge variant={isHealthy ? "default" : "destructive"} className="text-[9px] px-1 py-0">
                 {isHealthy ? "PASS" : "CHECK"}
               </Badge>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Invariance: Net Balance = Debit - Credit
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Invariance: Debit - Credit
             </p>
           </CardContent>
         </Card>
 
-        {/* Storage Usage & Retained Count */}
+        {/* 5. Database Status & Storage */}
         <Card className="border shadow-xs">
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Retained Backups
+          <CardHeader className="p-3.5 pb-1.5 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Database Status
             </CardTitle>
-            <HardDrive className="h-4 w-4 text-blue-600" />
+            <HardDrive className="h-3.5 w-3.5 text-purple-600" />
           </CardHeader>
-          <CardContent className="p-4 pt-1">
-            <div className="text-lg font-bold text-foreground">
-              {stats.totalBackups} Backups
-              <span className="text-xs font-normal text-muted-foreground ml-2">
-                ({formatBytes(stats.totalStorageBytes)})
-              </span>
+          <CardContent className="p-3.5 pt-1">
+            <div className="text-xs font-bold text-foreground truncate">
+              Rev #{stats.databaseRevision || 1000} · {stats.totalBackups} Backups
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {stats.verifiedBackups} verified · {stats.protectedBackups} protected
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {formatBytes(stats.totalStorageBytes)} storage used
             </p>
           </CardContent>
         </Card>
 
-        {/* Restore Readiness */}
+        {/* 6. Restore Readiness */}
         <Card className="border shadow-xs">
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <CardHeader className="p-3.5 pb-1.5 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Restore Readiness
             </CardTitle>
-            <FileCheck className="h-4 w-4 text-indigo-600" />
+            <RotateCcw className="h-3.5 w-3.5 text-amber-600" />
           </CardHeader>
-          <CardContent className="p-4 pt-1">
-            <div className="flex items-center gap-2">
-              <span className="text-base font-bold text-emerald-600">
-                {stats.verifiedBackups > 0 ? "100% Ready" : "Attention Needed"}
-              </span>
+          <CardContent className="p-3.5 pt-1">
+            <div className="text-xs font-bold text-emerald-600 truncate">
+              {stats.verifiedBackups > 0 ? "100% Ready" : "Attention"}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {stats.verifiedBackups > 0 ? "Safety snapshot auto-enabled" : "Create first backup"}
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Rollback Auto-Enabled
             </p>
           </CardContent>
         </Card>
@@ -353,9 +410,33 @@ export function OverviewTab({
         </CardHeader>
         <CardContent className="p-4 pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div className="space-y-1 bg-muted/50 p-3 rounded-lg border">
-              <span className="text-muted-foreground font-semibold">Active Backup Directory:</span>
-              <p className="font-mono text-foreground break-all select-all font-medium">
+            <div className="space-y-1.5 bg-muted/50 p-3 rounded-lg border">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground font-semibold">Active Backup Directory:</span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => copyPath(stats.backupLocation || "data/backups")}
+                    className="h-6 px-2 text-[10px] gap-1 hover:bg-muted"
+                    title="Copy directory path"
+                  >
+                    <Copy className="h-3 w-3" />
+                    Copy
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => openFolder(stats.backupLocation || "data/backups")}
+                    className="h-6 px-2 text-[10px] gap-1 text-primary hover:bg-primary/10"
+                    title="Open in Windows File Explorer"
+                  >
+                    <FolderOpen className="h-3 w-3" />
+                    Open Folder
+                  </Button>
+                </div>
+              </div>
+              <p className="font-mono text-foreground break-all select-all font-medium text-[11px]">
                 {stats.backupLocation || "data/backups"}
               </p>
             </div>

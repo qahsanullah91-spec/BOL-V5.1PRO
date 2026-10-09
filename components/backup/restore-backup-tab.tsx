@@ -60,8 +60,8 @@ export function RestoreBackupTab({ onRestoreSuccess }: RestoreBackupTabProps) {
     "accountLedgers",
   ])
 
-  // Conflict resolutions: key = `${entityType}:${identifier}`, value = "keep_current" | "use_backup"
-  const [conflictResolutions, setConflictResolutions] = useState<Record<string, "keep_current" | "use_backup">>({})
+  // Conflict resolutions: key = `${entityType}:${identifier}`, value = "keep_current" | "use_backup" | "review_later"
+  const [conflictResolutions, setConflictResolutions] = useState<Record<string, "keep_current" | "use_backup" | "review_later">>({})
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false)
 
   // Execution state
@@ -202,18 +202,20 @@ export function RestoreBackupTab({ onRestoreSuccess }: RestoreBackupTabProps) {
     }
   }
 
-  const handleConflictStrategy = (key: string, strategy: "keep_current" | "use_backup") => {
+  const handleConflictStrategy = (key: string, strategy: "keep_current" | "use_backup" | "review_later") => {
     setConflictResolutions((prev) => ({ ...prev, [key]: strategy }))
   }
 
-  const applyToAllConflicts = (strategy: "keep_current" | "use_backup") => {
+  const applyToAllConflicts = (strategy: "keep_current" | "use_backup" | "review_later") => {
     if (!dryRunResult?.conflicts) return
-    const updated: Record<string, "keep_current" | "use_backup"> = {}
+    const updated: Record<string, "keep_current" | "use_backup" | "review_later"> = {}
     for (const c of dryRunResult.conflicts) {
       updated[`${c.entityType}:${c.identifier}`] = strategy
     }
     setConflictResolutions(updated)
-    toast.info(`Applied "${strategy === "keep_current" ? "Keep Current" : "Use Backup"}" to all conflicts`)
+    const label =
+      strategy === "keep_current" ? "Keep Current" : strategy === "review_later" ? "Review Later" : "Use Backup"
+    toast.info(`Applied "${label}" to all conflicts`)
   }
 
   return (
@@ -571,6 +573,46 @@ export function RestoreBackupTab({ onRestoreSuccess }: RestoreBackupTabProps) {
             <p className="text-muted-foreground">
               Accounting invariance identity verified: Total Debit - Total Credit = Net Balance for all ledger accounts.
             </p>
+
+            {/* Audit Report Downloads (Requirement 62) */}
+            <div className="flex flex-wrap items-center justify-between p-3 bg-background rounded-lg border gap-2 mt-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-emerald-600" />
+                <span className="font-semibold text-foreground">Immutable Restore Audit Report Generated</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const reportFile = restoreResult.reportJsonPath
+                      ? restoreResult.reportJsonPath.split(/[/\\]/).pop()
+                      : `${restoreResult.restoreId}.json`
+                    window.open(`/api/backup/report?file=${encodeURIComponent(reportFile || "")}&format=json`, "_blank")
+                  }}
+                  className="h-7 text-xs gap-1"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download Audit Report (.json)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const reportFile = restoreResult.reportHtmlPath
+                      ? restoreResult.reportHtmlPath.split(/[/\\]/).pop()
+                      : restoreResult.reportJsonPath
+                      ? restoreResult.reportJsonPath.split(/[/\\]/).pop()
+                      : `${restoreResult.restoreId}.json`
+                    window.open(`/api/backup/report?file=${encodeURIComponent(reportFile || "")}&format=html`, "_blank")
+                  }}
+                  className="h-7 text-xs gap-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download Audit Report (.html)
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -606,15 +648,18 @@ export function RestoreBackupTab({ onRestoreSuccess }: RestoreBackupTabProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center justify-between py-2 border-b text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b text-xs gap-2">
             <span className="text-muted-foreground">
               Total Conflicts: <strong>{dryRunResult?.conflicts?.length || 0}</strong>
             </span>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => applyToAllConflicts("keep_current")} className="text-xs">
+            <div className="flex flex-wrap gap-1.5">
+              <Button size="sm" variant="outline" onClick={() => applyToAllConflicts("keep_current")} className="text-xs h-7">
                 Keep All Current
               </Button>
-              <Button size="sm" variant="outline" onClick={() => applyToAllConflicts("use_backup")} className="text-xs">
+              <Button size="sm" variant="outline" onClick={() => applyToAllConflicts("review_later")} className="text-xs h-7">
+                Review All Later
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => applyToAllConflicts("use_backup")} className="text-xs h-7">
                 Use All Backup
               </Button>
             </div>
@@ -649,7 +694,7 @@ export function RestoreBackupTab({ onRestoreSuccess }: RestoreBackupTabProps) {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-1">
+                  <div className="flex justify-end gap-1.5 pt-1">
                     <Button
                       size="sm"
                       variant={currentChoice === "keep_current" ? "default" : "outline"}
@@ -657,6 +702,14 @@ export function RestoreBackupTab({ onRestoreSuccess }: RestoreBackupTabProps) {
                       className="text-xs h-7"
                     >
                       Keep Current
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={currentChoice === "review_later" ? "default" : "outline"}
+                      onClick={() => handleConflictStrategy(conflictKey, "review_later")}
+                      className="text-xs h-7"
+                    >
+                      Review Later
                     </Button>
                     <Button
                       size="sm"

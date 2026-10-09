@@ -136,7 +136,7 @@ export interface RestoreExecutionOptions {
   note?: string
   confirmationText?: string // Required for replace mode ("RESTORE")
   selectedModules?: string[] // For selective restore
-  conflictResolutions?: Record<string, "keep_current" | "use_backup"> // key: `${entityType}:${identifier}:${field}`
+  conflictResolutions?: Record<string, "keep_current" | "use_backup" | "review_later"> // key: `${entityType}:${identifier}:${field}`
   createPostRestoreSnapshot?: boolean // Creates immediate POST_RESTORE_VERIFIED snapshot (Req 83)
 }
 
@@ -1077,7 +1077,7 @@ export async function executeAQRestore(
               } else {
                 // Apply conflict choices if specified
                 const resolution = options.conflictResolutions?.[`${t.key.toUpperCase()}:${k}`]
-                if (resolution === "keep_current") {
+                if (resolution === "keep_current" || resolution === "review_later") {
                   // Keep existing
                 } else {
                   // Newer timestamp or default to backup

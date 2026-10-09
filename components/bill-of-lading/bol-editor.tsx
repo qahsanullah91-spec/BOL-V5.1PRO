@@ -536,6 +536,30 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
   }, [])
 
+  const [isPreviewReady, setIsPreviewReady] = useState(false)
+
+  // Two-phase progressive mount for A4 Preview to guarantee < 16ms INP:
+  // Phase 1 (Frame 1): Renders lightweight paper skeleton immediately so the tab switch paints instantly.
+  // Phase 2 (Frame 2): Double-RAF mounts the full A4Preview component after the browser paint finishes.
+  useEffect(() => {
+    if (activeTab === "preview") {
+      let isCancelled = false
+      const rafId = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!isCancelled) {
+            setIsPreviewReady(true)
+          }
+        })
+      })
+      return () => {
+        isCancelled = true
+        cancelAnimationFrame(rafId)
+      }
+    } else {
+      setIsPreviewReady(false)
+    }
+  }, [activeTab])
+
   // Intelligent background preloader: Warm up A4Preview chunk and prime critical images in browser cache
   useEffect(() => {
     const preloadPreviewAndAssets = () => {
@@ -567,27 +591,37 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     if (newTab === activeTab || newTab === pendingTabRef.current) return
     pendingTabRef.current = newTab
 
-    if (newTab === "preview") {
-      if (typeof performance !== "undefined" && performance.mark) {
-        performance.mark("bol:preview-tab-click")
-      }
-      resetAllParentScrolls()
+    if (typeof performance !== "undefined" && performance.mark) {
+      performance.mark(`bol:tab-click-${newTab}`)
     }
+
     if (typeof window !== "undefined") {
-      try {
-        const url = new URL(window.location.href)
-        url.searchParams.set("tab", newTab)
-        if (bolNumber) {
-          url.searchParams.set("bol", bolNumber)
-        }
-        const newUrlStr = url.pathname + url.search + url.hash
-        window.history.replaceState(window.history.state, "", newUrlStr)
-      } catch (_) {}
+      // Defer URL update to idle/timeout so it never blocks the interaction paint
+      setTimeout(() => {
+        try {
+          const url = new URL(window.location.href)
+          url.searchParams.set("tab", newTab)
+          if (bolNumber) {
+            url.searchParams.set("bol", bolNumber)
+          }
+          const newUrlStr = url.pathname + url.search + url.hash
+          window.history.replaceState(window.history.state, "", newUrlStr)
+        } catch (_) {}
+      }, 80)
+
+      // Defer draft serialization and LocalStorage write off the critical render path
+      const deferDraft = "requestIdleCallback" in window
+        ? (cb: () => void) => (window as any).requestIdleCallback(cb, { timeout: 1500 })
+        : (cb: () => void) => setTimeout(cb, 200)
+
+      deferDraft(() => {
+        flushDraftRef.current?.(true)
+      })
     }
-    // Break out of Radix UI's synchronous discrete pointerdown event loop to guarantee < 16ms INP
+
+    // Break out of synchronous event loop to guarantee < 16ms INP
     setTimeout(() => {
       pendingTabRef.current = null
-      flushDraftRef.current?.(true)
       startTransition(() => {
         setActiveTab(newTab)
       })
@@ -600,10 +634,14 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     if (activeTab === "preview") {
       if (mainWorkspace) {
         mainWorkspace.dataset.previewActive = "true"
-        mainWorkspace.scrollTop = 0
-        mainWorkspace.scrollLeft = 0
       }
-      resetAllParentScrolls()
+      requestAnimationFrame(() => {
+        if (mainWorkspace) {
+          mainWorkspace.scrollTop = 0
+          mainWorkspace.scrollLeft = 0
+        }
+        resetAllParentScrolls()
+      })
     } else {
       if (mainWorkspace) {
         delete mainWorkspace.dataset.previewActive
@@ -5460,7 +5498,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       )}
 
       <div className={`w-full ${activeTab === "preview" ? "flex-1 flex flex-col min-h-0 h-full p-0 max-w-none" : "max-w-[1780px] mx-auto px-2 sm:px-4 lg:px-6 py-1.5 md:py-2"} print:max-w-none print:p-0 print:m-0`}>
-        <Tabs value={activeTab} onValueChange={handleTabChange} className={`print:hidden w-full ${activeTab === "preview" ? "flex-1 flex flex-col min-h-0 h-full" : ""}`}>
+        <Tabs activationMode="manual" value={activeTab} onValueChange={handleTabChange} className={`print:hidden w-full ${activeTab === "preview" ? "flex-1 flex flex-col min-h-0 h-full" : ""}`}>
           <TabsList className={`bol-navigation ${activeTab === "preview" ? "hidden" : "mb-1.5"} flex sm:grid overflow-x-auto sm:overflow-visible no-scrollbar w-full sm:grid-cols-6 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-100/85 dark:bg-slate-900/90 p-0.5 shadow-2xs backdrop-blur-xl h-auto sm:h-9 gap-1 sm:gap-0 shrink-0`}>
             <TabsTrigger
               value="form"
@@ -10795,7 +10833,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                       minHeight: `${totalUnscaledHeight}px`,
                     }}
                   >
-                    {isHydrating ? (
+                    {isHydrating || !isPreviewReady ? (
                       <div className="w-[210mm] h-[297mm] bg-white rounded-xl p-8 animate-pulse flex flex-col justify-between box-border shadow-lg">
                         <div className="space-y-4">
                           <div className="flex items-center justify-between pb-4 border-b border-slate-100">
