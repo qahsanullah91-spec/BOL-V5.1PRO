@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useCallback, useEffect } from "react"
+import React, { useState, useMemo, useCallback, useEffect, startTransition } from "react"
 import { SavedDocument, OverviewKpis } from "@/lib/reports/types"
 import {
   formatDisplayDate,
@@ -173,6 +173,79 @@ export interface DetailedReportTableProps {
 
 const LOCAL_STORAGE_COLS_KEY = "aq_bol_report_visible_cols_v2"
 
+const TOGGLEABLE_COLUMNS = COLUMN_DEFINITIONS.filter(
+  (c) => c.id !== "idx" && c.id !== "expand" && c.id !== "bolNo"
+)
+
+interface ColumnCustomizerProps {
+  visibleColumns: Set<ColumnId>
+  onToggleColumn: (colId: ColumnId) => void
+  onApplyPreset: (preset: ColumnPreset) => void
+}
+
+const ColumnCustomizer = React.memo(function ColumnCustomizer({
+  visibleColumns,
+  onToggleColumn,
+  onApplyPreset,
+}: ColumnCustomizerProps) {
+  const [open, setOpen] = useState(false)
+
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    // Break out of synchronous event dispatch so button click responds immediately (< 16ms INP)
+    startTransition(() => {
+      setOpen(nextOpen)
+    })
+  }, [])
+
+  return (
+    <DropdownMenu modal={false} open={open} onOpenChange={handleOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8.5 px-3 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-extrabold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-[0.98]"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+          <span>Columns ({visibleColumns.size})</span>
+          <ChevronDown className="w-3 h-3 text-slate-400" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64 max-h-[80vh] overflow-y-auto rounded-xl p-2 font-medium">
+        <DropdownMenuLabel className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+          Column Presets
+        </DropdownMenuLabel>
+        <div className="grid grid-cols-2 gap-1 p-1">
+          {(["operations", "finance", "shipping", "minimal", "all"] as ColumnPreset[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onApplyPreset(p)}
+              className="px-2 py-1 rounded text-left text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950 hover:text-blue-700 cursor-pointer transition-all"
+            >
+              {COLUMN_PRESETS[p].label}
+            </button>
+          ))}
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+          Toggle Individual Columns
+        </DropdownMenuLabel>
+        {TOGGLEABLE_COLUMNS.map((col) => (
+          <DropdownMenuCheckboxItem
+            key={col.id}
+            checked={visibleColumns.has(col.id)}
+            onCheckedChange={() => onToggleColumn(col.id)}
+            className="text-xs cursor-pointer"
+          >
+            {col.label} <span className="text-[10px] text-slate-400 ml-auto font-mono">({col.category})</span>
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+})
+
 export function DetailedReportTable({
   documents,
   filteredDocuments,
@@ -221,26 +294,39 @@ export function DetailedReportTable({
 
   // Save column visibility changes
   const updateVisibleColumns = useCallback((cols: Set<ColumnId>) => {
-    setVisibleColumns(cols)
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(LOCAL_STORAGE_COLS_KEY, JSON.stringify(Array.from(cols)))
-      } catch {}
-    }
+    startTransition(() => {
+      setVisibleColumns(cols)
+    })
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(LOCAL_STORAGE_COLS_KEY, JSON.stringify(Array.from(cols)))
+        } catch {}
+      }
+    }, 0)
   }, [])
 
-  const applyPreset = (preset: ColumnPreset) => {
+  const applyPreset = useCallback((preset: ColumnPreset) => {
     updateVisibleColumns(new Set(COLUMN_PRESETS[preset].columns))
     toast.success(`Switched to ${COLUMN_PRESETS[preset].label} column preset`)
-  }
+  }, [updateVisibleColumns])
 
-  const toggleColumn = (colId: ColumnId) => {
+  const toggleColumn = useCallback((colId: ColumnId) => {
     if (colId === "idx" || colId === "expand" || colId === "bolNo") return // Always visible
-    const next = new Set(visibleColumns)
-    if (next.has(colId)) next.delete(colId)
-    else next.add(colId)
-    updateVisibleColumns(next)
-  }
+    startTransition(() => {
+      setVisibleColumns((prev) => {
+        const next = new Set(prev)
+        if (next.has(colId)) next.delete(colId)
+        else next.add(colId)
+        setTimeout(() => {
+          try {
+            localStorage.setItem(LOCAL_STORAGE_COLS_KEY, JSON.stringify(Array.from(next)))
+          } catch {}
+        }, 0)
+        return next
+      })
+    })
+  }, [])
 
   // Ensure all rows are rendered during browser print / PDF export
   useEffect(() => {
@@ -275,12 +361,16 @@ export function DetailedReportTable({
   }
 
   const expandAllRows = () => {
-    setExpandedDocIds(new Set(paginatedRows.map((r) => r.id)))
+    startTransition(() => {
+      setExpandedDocIds(new Set(paginatedRows.map((r) => r.id)))
+    })
     toast.info(`Expanded all ${paginatedRows.length} visible rows`)
   }
 
   const collapseAllRows = () => {
-    setExpandedDocIds(new Set())
+    startTransition(() => {
+      setExpandedDocIds(new Set())
+    })
     toast.info("Collapsed all rows")
   }
 
@@ -326,12 +416,14 @@ export function DetailedReportTable({
 
   // Sorting Handler
   const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
-    } else {
-      setSortField(field)
-      setSortOrder(field === "issue_date" || field === "goods_value" || field === "packages" ? "desc" : "asc")
-    }
+    startTransition(() => {
+      if (sortField === field) {
+        setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
+      } else {
+        setSortField(field)
+        setSortOrder(field === "issue_date" || field === "goods_value" || field === "packages" ? "desc" : "asc")
+      }
+    })
   }
 
   // Sorted Dataset
@@ -522,8 +614,10 @@ export function DetailedReportTable({
                 key={chip.id}
                 type="button"
                 onClick={() => {
-                  setQuickChip(chip.id)
-                  setCurrentPage(1)
+                  startTransition(() => {
+                    setQuickChip(chip.id)
+                    setCurrentPage(1)
+                  })
                 }}
                 className={`px-2 py-0.8 rounded-lg text-[10.5px] font-extrabold transition-all cursor-pointer whitespace-nowrap ${
                   quickChip === chip.id
@@ -540,50 +634,11 @@ export function DetailedReportTable({
         {/* Right: Columns Selector, Export, Print, Density & View Mode */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Column Customizer Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8.5 px-3 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-extrabold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
-                <span>Columns ({visibleColumns.size})</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 max-h-[80vh] overflow-y-auto rounded-xl p-2 font-medium">
-              <DropdownMenuLabel className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                Column Presets
-              </DropdownMenuLabel>
-              <div className="grid grid-cols-2 gap-1 p-1">
-                {(["operations", "finance", "shipping", "minimal", "all"] as ColumnPreset[]).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => applyPreset(p)}
-                    className="px-2 py-1 rounded text-left text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950 hover:text-blue-700 cursor-pointer transition-all"
-                  >
-                    {COLUMN_PRESETS[p].label}
-                  </button>
-                ))}
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                Toggle Individual Columns
-              </DropdownMenuLabel>
-              {COLUMN_DEFINITIONS.filter((c) => c.id !== "idx" && c.id !== "expand" && c.id !== "bolNo").map((col) => (
-                <DropdownMenuCheckboxItem
-                  key={col.id}
-                  checked={visibleColumns.has(col.id)}
-                  onCheckedChange={() => toggleColumn(col.id)}
-                  className="text-xs cursor-pointer"
-                >
-                  {col.label} <span className="text-[10px] text-slate-400 ml-auto font-mono">({col.category})</span>
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ColumnCustomizer
+            visibleColumns={visibleColumns}
+            onToggleColumn={toggleColumn}
+            onApplyPreset={applyPreset}
+          />
 
           {/* Expand/Collapse All Rows */}
           <Button
@@ -636,7 +691,11 @@ export function DetailedReportTable({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setIsFitScreen(!isFitScreen)}
+            onClick={() => {
+              startTransition(() => {
+                setIsFitScreen(!isFitScreen)
+              })
+            }}
             className={`h-8.5 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
               !isFitScreen
                 ? "border-blue-600 bg-blue-600 text-white shadow-xs"
@@ -652,7 +711,11 @@ export function DetailedReportTable({
           <div className="flex items-center gap-0.5 border border-slate-200 dark:border-slate-700 rounded-xl p-0.5 bg-slate-100 dark:bg-slate-800 h-8.5">
             <button
               type="button"
-              onClick={() => setTableDensity("compact")}
+              onClick={() => {
+                startTransition(() => {
+                  setTableDensity("compact")
+                })
+              }}
               className={`px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
                 tableDensity === "compact"
                   ? "bg-white dark:bg-slate-700 text-blue-900 dark:text-blue-200 shadow-xs"
@@ -663,7 +726,11 @@ export function DetailedReportTable({
             </button>
             <button
               type="button"
-              onClick={() => setTableDensity("normal")}
+              onClick={() => {
+                startTransition(() => {
+                  setTableDensity("normal")
+                })
+              }}
               className={`px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
                 tableDensity === "normal"
                   ? "bg-white dark:bg-slate-700 text-blue-900 dark:text-blue-200 shadow-xs"
@@ -1573,18 +1640,28 @@ export function DetailedReportTable({
 
           <div className="flex items-center gap-1.5">
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(1)}
+              onClick={() => {
+                startTransition(() => {
+                  setCurrentPage(1)
+                })
+              }}
               disabled={currentPage === 1}
               className="h-7 px-2 text-xs rounded-lg"
             >
               First
             </Button>
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              onClick={() => {
+                startTransition(() => {
+                  setCurrentPage((p) => Math.max(1, p - 1))
+                })
+              }}
               disabled={currentPage === 1}
               className="h-7 px-2.5 text-xs rounded-lg"
             >
@@ -1594,18 +1671,28 @@ export function DetailedReportTable({
               Page {currentPage} of {totalPages}
             </span>
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => {
+                startTransition(() => {
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                })
+              }}
               disabled={currentPage === totalPages}
               className="h-7 px-2.5 text-xs rounded-lg"
             >
               Next
             </Button>
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(totalPages)}
+              onClick={() => {
+                startTransition(() => {
+                  setCurrentPage(totalPages)
+                })
+              }}
               disabled={currentPage === totalPages}
               className="h-7 px-2 text-xs rounded-lg"
             >
