@@ -118,8 +118,15 @@ const BolFilesAttachmentsTab = dynamic(
 import { getFinancialsMap, saveFinancialsForEntry } from "@/lib/services/ledger-sync-utils"
 import { findDuplicatePartyCandidates } from "@/lib/utils/duplicate-prevention"
 import { PrintOptionsDialog, type PrintOptions } from "@/components/print-options-dialog"
+import { BolSettingsSkeleton } from "./settings/bol-settings-skeleton"
 const BackgroundGallery = dynamic(safeChunkDynamic(() => import("./background-gallery").then((m) => m.BackgroundGallery)), { ssr: false })
-const BolSettingsCenter = dynamic(safeChunkDynamic(() => import("./settings/bol-settings-center").then((m) => m.BolSettingsCenter)), { ssr: false })
+const BolSettingsCenter = dynamic(
+  safeChunkDynamic(() => import("./settings/bol-settings-center").then((m) => m.BolSettingsCenter)),
+  {
+    loading: () => <BolSettingsSkeleton />,
+    ssr: false,
+  }
+)
 const ShippingDocumentCenter = dynamic(safeChunkDynamic(() => import("./shipping-document-center").then((m) => m.ShippingDocumentCenter)), { ssr: false })
 const CloudSyncModal = dynamic(safeChunkDynamic(() => import("./cloud-sync-modal").then((m) => m.CloudSyncModal)), { ssr: false })
 const PartyDirectoryModal = dynamic(safeChunkDynamic(() => import("./party-directory-modal").then((m) => m.PartyDirectoryModal)), { ssr: false })
@@ -560,10 +567,35 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
   }, [activeTab])
 
-  // Intelligent background preloader: Warm up A4Preview chunk and prime critical images in browser cache
+  const [isSettingsReady, setIsSettingsReady] = useState(false)
+
+  // Two-phase progressive mount for Document Configuration Settings to guarantee < 16ms INP:
+  // Phase 1 (Frame 1): Renders lightweight settings skeleton immediately so the tab switch paints instantly.
+  // Phase 2 (Frame 2): Double-RAF mounts the full BolSettingsCenter component after the browser paint finishes.
+  useEffect(() => {
+    if (activeTab === "pdf-settings") {
+      let isCancelled = false
+      const rafId = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!isCancelled) {
+            setIsSettingsReady(true)
+          }
+        })
+      })
+      return () => {
+        isCancelled = true
+        cancelAnimationFrame(rafId)
+      }
+    } else {
+      setIsSettingsReady(false)
+    }
+  }, [activeTab])
+
+  // Intelligent background preloader: Warm up chunks and prime critical images in browser cache
   useEffect(() => {
     const preloadPreviewAndAssets = () => {
       void import("./a4-preview").catch(() => {})
+      void import("./settings/bol-settings-center").catch(() => {})
       if (typeof window !== "undefined") {
         const prime = (src: string) => {
           const img = new Image()
@@ -10957,56 +10989,60 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           {/* PDF Settings Tab */}
           <TabsContent value="pdf-settings" className="focus-visible:outline-none">
             {activeTab === "pdf-settings" && (
-              <BolSettingsCenter
-                currentBol={deferredFormData}
-                activeBgImageUrl={bgImageUrl}
-                activeBgOpacity={bgOpacity}
-                onBgImageChange={setBgImageUrl}
-                onBgOpacityChange={setBgOpacity}
-                showStampSignature={showStampSignature}
-                onToggleStampSignature={setShowStampSignature}
-                logoUrl={logoUrl}
-                onLogoChange={setLogoUrl}
-                companyName={companyName}
-                companyNamePersian={companyNamePersian}
-                companySubtitle={companySubtitle}
-                companyPhone={companyPhone}
-                companyEmail={companyEmail}
-                companyAddress={companyAddress}
-                companyLicence={companyLicence}
-                onCompanyInfoChange={(info) => {
-                  if (info.companyName !== undefined) setCompanyName(info.companyName)
-                  if (info.companyNamePersian !== undefined) setCompanyNamePersian(info.companyNamePersian)
-                  if (info.companySubtitle !== undefined) setCompanySubtitle(info.companySubtitle)
-                  if (info.companyPhone !== undefined) setCompanyPhone(info.companyPhone)
-                  if (info.companyEmail !== undefined) setCompanyEmail(info.companyEmail)
-                  if (info.companyAddress !== undefined) setCompanyAddress(info.companyAddress)
-                  if (info.companyLicence !== undefined) setCompanyLicence(info.companyLicence)
-                }}
-                iranOffice={{
-                  iran_office_building: formData.iran_office_building,
-                  iran_office_location: formData.iran_office_location,
-                  iran_office_pobox: formData.iran_office_pobox,
-                  iran_office_telefax: formData.iran_office_telefax,
-                  iran_office_cellphone: formData.iran_office_cellphone,
-                  iran_office_email: formData.iran_office_email,
-                }}
-                onIranOfficeChange={(info) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    iran_office_building: info.iran_office_building ?? prev.iran_office_building,
-                    iran_office_location: info.iran_office_location ?? prev.iran_office_location,
-                    iran_office_pobox: info.iran_office_pobox ?? prev.iran_office_pobox,
-                    iran_office_telefax: info.iran_office_telefax ?? prev.iran_office_telefax,
-                    iran_office_cellphone: info.iran_office_cellphone ?? prev.iran_office_cellphone,
-                    iran_office_email: info.iran_office_email ?? prev.iran_office_email,
-                  }))
-                }}
-                onOpenDocumentCenter={() => setIsDocumentCenterOpen(true)}
-                onOpenPrintDialog={() => setIsPrintDialogOpen(true)}
-                onSaveToCloud={handleExportPDF}
-                isSaving={isSaving}
-              />
+              !isSettingsReady ? (
+                <BolSettingsSkeleton />
+              ) : (
+                <BolSettingsCenter
+                  currentBol={deferredFormData}
+                  activeBgImageUrl={bgImageUrl}
+                  activeBgOpacity={bgOpacity}
+                  onBgImageChange={setBgImageUrl}
+                  onBgOpacityChange={setBgOpacity}
+                  showStampSignature={showStampSignature}
+                  onToggleStampSignature={setShowStampSignature}
+                  logoUrl={logoUrl}
+                  onLogoChange={setLogoUrl}
+                  companyName={companyName}
+                  companyNamePersian={companyNamePersian}
+                  companySubtitle={companySubtitle}
+                  companyPhone={companyPhone}
+                  companyEmail={companyEmail}
+                  companyAddress={companyAddress}
+                  companyLicence={companyLicence}
+                  onCompanyInfoChange={(info) => {
+                    if (info.companyName !== undefined) setCompanyName(info.companyName)
+                    if (info.companyNamePersian !== undefined) setCompanyNamePersian(info.companyNamePersian)
+                    if (info.companySubtitle !== undefined) setCompanySubtitle(info.companySubtitle)
+                    if (info.companyPhone !== undefined) setCompanyPhone(info.companyPhone)
+                    if (info.companyEmail !== undefined) setCompanyEmail(info.companyEmail)
+                    if (info.companyAddress !== undefined) setCompanyAddress(info.companyAddress)
+                    if (info.companyLicence !== undefined) setCompanyLicence(info.companyLicence)
+                  }}
+                  iranOffice={{
+                    iran_office_building: formData.iran_office_building,
+                    iran_office_location: formData.iran_office_location,
+                    iran_office_pobox: formData.iran_office_pobox,
+                    iran_office_telefax: formData.iran_office_telefax,
+                    iran_office_cellphone: formData.iran_office_cellphone,
+                    iran_office_email: formData.iran_office_email,
+                  }}
+                  onIranOfficeChange={(info) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      iran_office_building: info.iran_office_building ?? prev.iran_office_building,
+                      iran_office_location: info.iran_office_location ?? prev.iran_office_location,
+                      iran_office_pobox: info.iran_office_pobox ?? prev.iran_office_pobox,
+                      iran_office_telefax: info.iran_office_telefax ?? prev.iran_office_telefax,
+                      iran_office_cellphone: info.iran_office_cellphone ?? prev.iran_office_cellphone,
+                      iran_office_email: info.iran_office_email ?? prev.iran_office_email,
+                    }))
+                  }}
+                  onOpenDocumentCenter={() => setIsDocumentCenterOpen(true)}
+                  onOpenPrintDialog={() => setIsPrintDialogOpen(true)}
+                  onSaveToCloud={handleExportPDF}
+                  isSaving={isSaving}
+                />
+              )
             )}
           </TabsContent>
         </Tabs>
