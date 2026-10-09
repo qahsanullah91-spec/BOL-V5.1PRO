@@ -14,6 +14,7 @@ import {
 } from "@/lib/reports/parsers"
 import { extractDriverFatherName, extractTransitBorderStation } from "@/lib/reports/export-excel"
 import { parseSyncedCargoItems } from "@/lib/utils/cargo-grid"
+import { extractBolCargoAndRates } from "@/lib/reports/cargo-rate-extractor"
 import type { BillOfLadingFormData } from "@/lib/types/bill-of-lading"
 import { BolExpandedRow } from "./bol-expanded-row"
 import { Button } from "@/components/ui/button"
@@ -1173,9 +1174,9 @@ export function DetailedReportTable({
                 notifyPartyText.toUpperCase() === "SAME" ||
                 Boolean(doc.consignee_name && notifyPartyText.toUpperCase() === doc.consignee_name.trim().toUpperCase())
 
-              // Formatted single/multi cargo summary
-              const isMultiCargo = syncedCargo.items.length > 1
-              const firstCommodity = doc.commodity || "Cargo"
+              // Comprehensive full cargo & multi-rate extraction
+              const cargoData = extractBolCargoAndRates(doc)
+              const isMultiCargo = cargoData.isMultiCargo
 
               return (
                 <React.Fragment key={`${doc.id}-${idx}`}>
@@ -1359,25 +1360,76 @@ export function DetailedReportTable({
 
                     {/* Cargo Summary */}
                     {visibleColumns.has("cargo") && (
-                      <td className={`${cellPad}`}>
-                        {isMultiCargo ? (
-                          <div className="flex flex-col space-y-0.5">
-                            <span className="inline-flex items-center gap-1 font-bold text-blue-900 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-1.5 py-0.5 rounded text-[10.5px] w-fit">
-                              <Boxes className="w-3 h-3 text-blue-600" />
-                              {syncedCargo.items.length} Cargo Items
-                            </span>
-                            <span className="text-[10px] text-slate-500 truncate max-w-[200px]" title={firstCommodity}>
-                              {firstCommodity}
-                            </span>
+                      <td className={`${cellPad} min-w-[220px]`}>
+                        {cargoData.isMultiCargo ? (
+                          <div className="flex flex-col space-y-1.5 py-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center gap-1 font-black text-blue-900 dark:text-blue-200 bg-blue-100/90 dark:bg-blue-950/90 border border-blue-300 dark:border-blue-800 px-1.5 py-0.5 rounded text-[10px] w-fit shadow-2xs">
+                                <Boxes className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                {cargoData.items.length} Cargo Items
+                              </span>
+                              {syncedCargo.totals.totalPackages > 0 && (
+                                <span className="text-[9.5px] font-bold text-slate-400 tabular-nums">
+                                  (Σ {syncedCargo.totals.totalPackages.toLocaleString()} {syncedCargo.totals.packageUnit})
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-1 divide-y divide-slate-100 dark:divide-slate-800/80">
+                              {cargoData.items.map((item, cIdx) => (
+                                <div key={item.id || cIdx} className="pt-1 first:pt-0">
+                                  <div className="flex items-start gap-1.5 text-[11px] leading-snug">
+                                    <span className="w-3.5 h-3.5 rounded bg-blue-50 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[9px] font-black flex items-center justify-center shrink-0 mt-0.5 border border-blue-200/80 dark:border-blue-800">
+                                      {cIdx + 1}
+                                    </span>
+                                    <span className="font-bold text-slate-900 dark:text-slate-100 break-words" title={item.fullTitle}>
+                                      {item.fullTitle}
+                                    </span>
+                                  </div>
+                                  {(item.netWeight || item.rate) && (
+                                    <div className="flex items-center gap-2 pl-5 text-[10px] text-slate-500 dark:text-slate-400 font-mono flex-wrap mt-0.5">
+                                      {item.netWeight && (
+                                        <span className="text-amber-700 dark:text-amber-400 font-semibold" title="Net Weight">
+                                          ⚖️ {item.netWeight}
+                                        </span>
+                                      )}
+                                      {item.rate && (
+                                        <span className="text-blue-700 dark:text-blue-300 font-bold" title="Item Rate">
+                                          @ {item.rate}
+                                        </span>
+                                      )}
+                                      {item.goodsValue && (
+                                        <span className="text-emerald-700 dark:text-emerald-400 font-medium" title="Item Goods Value">
+                                          💵 {item.goodsValue}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ) : (
-                          <div className="flex flex-col space-y-0.5">
-                            <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]" title={firstCommodity}>
-                              {firstCommodity}
+                          <div className="flex flex-col space-y-0.5 min-w-[180px]">
+                            <span className="font-bold text-slate-900 dark:text-white break-words text-[11.5px]" title={cargoData.singleCommodityTitle}>
+                              {cargoData.singleCommodityTitle}
                             </span>
-                            <span className="text-[10px] text-slate-500 font-mono">
-                              {syncedCargo.items[0]?.packageText || doc.number_of_packages || "—"} {syncedCargo.items[0]?.rate ? `@ ${syncedCargo.items[0].rate}` : ""}
-                            </span>
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono flex-wrap">
+                              {cargoData.items[0]?.packageText && (
+                                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                  📦 {cargoData.items[0].packageText}
+                                </span>
+                              )}
+                              {cargoData.items[0]?.netWeight && (
+                                <span className="text-amber-700 dark:text-amber-400 font-semibold">
+                                  • ⚖️ {cargoData.items[0].netWeight}
+                                </span>
+                              )}
+                              {cargoData.items[0]?.rate && (
+                                <span className="text-blue-600 dark:text-blue-400 font-bold">
+                                  • @ {cargoData.items[0].rate}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </td>
@@ -1461,13 +1513,45 @@ export function DetailedReportTable({
 
                     {/* Rate */}
                     {visibleColumns.has("rate") && (
-                      <td className={`${cellPad} font-semibold tabular-nums text-right text-blue-700 dark:text-blue-300`}>
-                        {isMultiCargo ? (
-                          <span className="text-[10px] font-extrabold text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 px-1 py-0.2 rounded border border-blue-200">
-                            Multi-Rate
-                          </span>
+                      <td className={`${cellPad} font-semibold tabular-nums text-right text-blue-700 dark:text-blue-300 whitespace-nowrap min-w-[110px]`}>
+                        {cargoData.isMultiRate ? (
+                          <div className="flex flex-col items-end space-y-1">
+                            <span className="inline-flex items-center gap-1 text-[9px] font-black text-blue-900 dark:text-blue-200 bg-blue-100/90 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 rounded px-1.5 py-0.2 mb-0.5 shadow-2xs">
+                              {cargoData.allRates.length} Rates
+                            </span>
+                            <div className="space-y-0.5 w-full">
+                              {cargoData.items.map((item, rIdx) => {
+                                if (!item.rate) return null
+                                return (
+                                  <div
+                                    key={rIdx}
+                                    className="flex items-center justify-end gap-1.5 font-mono text-[11px]"
+                                    title={`${item.fullTitle}: ${item.rate}`}
+                                  >
+                                    <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 font-sans">
+                                      #{rIdx + 1}:
+                                    </span>
+                                    <span className="font-black text-blue-800 dark:text-blue-300">
+                                      {item.rate}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ) : cargoData.isUniformRate ? (
+                          <div className="flex flex-col items-end space-y-0.5">
+                            <span className="font-black text-blue-800 dark:text-blue-300 text-[11px]">
+                              {cargoData.allRates[0]}
+                            </span>
+                            <span className="text-[9px] font-medium text-slate-400 dark:text-slate-500">
+                              (All {cargoData.items.length} Items)
+                            </span>
+                          </div>
                         ) : (
-                          <span>{doc.rate_per_kgs || "—"}</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                            {cargoData.displayRate || doc.rate_per_kgs || (doc as any).rate_per_kg || "—"}
+                          </span>
                         )}
                       </td>
                     )}

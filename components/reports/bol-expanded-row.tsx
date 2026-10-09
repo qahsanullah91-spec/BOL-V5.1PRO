@@ -5,6 +5,7 @@ import { SavedDocument } from "@/lib/reports/types"
 import { formatDisplayDate, isRtlText, extractBolRoute, extractTruckNo, extractInvoiceNo } from "@/lib/reports/parsers"
 import { extractDriverFatherName } from "@/lib/reports/export-excel"
 import { parseSyncedCargoItems, splitMultiCargoItems } from "@/lib/utils/cargo-grid"
+import { extractBolCargoAndRates } from "@/lib/reports/cargo-rate-extractor"
 import type { BillOfLadingFormData, RouteStop } from "@/lib/types/bill-of-lading"
 import { Button } from "@/components/ui/button"
 import {
@@ -63,6 +64,11 @@ export function BolExpandedRow({
   // Parse multi-item cargo
   const syncedCargo = useMemo(() => {
     return parseSyncedCargoItems(doc as unknown as Partial<BillOfLadingFormData>)
+  }, [doc])
+
+  // Comprehensive cargo & multi-rate extraction
+  const cargoData = useMemo(() => {
+    return extractBolCargoAndRates(doc)
   }, [doc])
 
   // Extract clean commodities list
@@ -279,7 +285,7 @@ export function BolExpandedRow({
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                     {syncedCargo.items.map((item, cIdx) => {
-                      const commName = commodityList[cIdx] || commodityList[0] || doc.commodity || "Cargo"
+                      const commName = cargoData.items[cIdx]?.fullTitle || cargoData.items[cIdx]?.commodity || commodityList[cIdx] || "Cargo"
                       return (
                         <tr key={item.id || cIdx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
                           <td className="py-2 px-2.5 text-center font-bold text-slate-400">{cIdx + 1}</td>
@@ -602,11 +608,29 @@ export function BolExpandedRow({
               </div>
 
               <div className="p-3 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/30">
-                <span className="text-[10px] font-black uppercase text-blue-700 dark:text-blue-400 block mb-0.5">Rate per Unit/KG</span>
-                <p className="text-base font-black font-mono text-blue-900 dark:text-blue-200">
-                  {doc.rate_per_kgs || "—"}
-                </p>
-                <span className="text-[10px] text-blue-600 dark:text-blue-400">Billing freight/cargo rate</span>
+                <span className="text-[10px] font-black uppercase text-blue-700 dark:text-blue-400 block mb-0.5">
+                  Rate per Unit/KG {cargoData.isMultiRate ? `(${cargoData.allRates.length} Rates)` : ""}
+                </span>
+                {cargoData.isMultiRate ? (
+                  <div className="space-y-1 mt-1 font-mono text-xs text-blue-950 dark:text-blue-100">
+                    {cargoData.items.map((it, idx) => {
+                      if (!it.rate) return null
+                      return (
+                        <div key={idx} className="flex items-center justify-between gap-1 border-b border-blue-200/50 dark:border-blue-800/50 pb-0.5 last:border-0">
+                          <span className="text-[10px] text-slate-500 font-sans truncate max-w-[120px]" title={it.fullTitle}>
+                            #{idx + 1} {it.commodity}:
+                          </span>
+                          <span className="font-bold">{it.rate}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-base font-black font-mono text-blue-900 dark:text-blue-200">
+                    {cargoData.displayRate || doc.rate_per_kgs || "—"}
+                  </p>
+                )}
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 block mt-0.5">Billing freight/cargo rate</span>
               </div>
 
               <div className="p-3 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/30">

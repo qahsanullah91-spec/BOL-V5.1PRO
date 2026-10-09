@@ -10,6 +10,7 @@ import os from "node:os"
 import { getDataPath, getDataRoot, getUploadPath } from "@/lib/server-paths"
 import { readJsonFile, writeJsonFile } from "@/lib/services/blob-db"
 import { validateLedgerInvariance } from "@/lib/services/ledger-sync-utils"
+import { parseWeight, parsePackages } from "@/lib/reports/parsers"
 import { collectAllSystemData } from "./backup-collector"
 import { createFullSystemBackup } from "./create-backup"
 import { CURRENT_DATABASE_SCHEMA_VERSION } from "./backup-manifest"
@@ -352,30 +353,41 @@ export async function runDeepHealthScan(): Promise<DeepHealthReport> {
     }
 
     // Invalid package quantities & weights
-    const pkgs = Number(b.packages || b.total_packages || b.package_count || 0)
-    const weight = Number(b.gross_weight || b.weight || 0)
+    const rawPkgs = b.number_of_packages || b.numberOfPackages || b.packages || b.total_packages || b.package_count
+    const pkgs = rawPkgs !== undefined && rawPkgs !== null && String(rawPkgs).trim() !== "" ? parsePackages(rawPkgs) : 0
 
-    if (pkgs < 0 || Number.isNaN(pkgs)) {
+    const rawWeight = b.gross_weight || b.grossWeight || b.weight
+    const weight = rawWeight !== undefined && rawWeight !== null && String(rawWeight).trim() !== "" ? parseWeight(rawWeight) : 0
+
+    const rawPkgsStr = rawPkgs !== undefined && rawPkgs !== null ? String(rawPkgs).trim() : ""
+    const hasPkgsText = rawPkgsStr !== ""
+    const isPkgsInvalid = pkgs < 0 || Number.isNaN(pkgs) || (hasPkgsText && !/\d/.test(rawPkgsStr) && !["N/A", "PENDING", "-", "NONE"].includes(rawPkgsStr.toUpperCase()))
+
+    if (isPkgsInvalid) {
       invalidPackagesCount++
       issues.push({
         severity: "WARNING",
         category: "DOCUMENT",
         module: "BOLS",
         recordId: rawNum || b.id,
-        title: `Invalid package quantity (${pkgs}) on BOL ${rawNum || b.id}`,
+        title: `Invalid package quantity (${rawPkgsStr || pkgs}) on BOL ${rawNum || b.id}`,
         details: "Package count is negative or non-numeric.",
         repairable: false,
       })
     }
 
-    if (weight < 0 || Number.isNaN(weight)) {
+    const rawWeightStr = rawWeight !== undefined && rawWeight !== null ? String(rawWeight).trim() : ""
+    const hasWeightText = rawWeightStr !== ""
+    const isWeightInvalid = weight < 0 || Number.isNaN(weight) || (hasWeightText && !/\d/.test(rawWeightStr) && !["N/A", "PENDING", "-", "NONE"].includes(rawWeightStr.toUpperCase()))
+
+    if (isWeightInvalid) {
       invalidWeightsCount++
       issues.push({
         severity: "WARNING",
         category: "DOCUMENT",
         module: "BOLS",
         recordId: rawNum || b.id,
-        title: `Invalid weight (${weight}) on BOL ${rawNum || b.id}`,
+        title: `Invalid weight (${rawWeightStr || weight}) on BOL ${rawNum || b.id}`,
         details: "Gross weight is negative or non-numeric.",
         repairable: false,
       })

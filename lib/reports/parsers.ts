@@ -22,7 +22,7 @@ export function parseWeight(val: unknown): number {
     if (parts.length > 1) {
       let total = 0
       for (const p of parts) {
-        const m = p.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/)
+        const m = p.replace(/,/g, "").match(/-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/)
         if (m) {
           const num = parseFloat(m[0])
           if (!isNaN(num) && isFinite(num)) total += num
@@ -33,7 +33,7 @@ export function parseWeight(val: unknown): number {
   }
 
   // Match the first valid numeric group with optional decimals and commas
-  const match = str.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/)
+  const match = str.replace(/,/g, "").match(/-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/)
   if (!match) return 0
 
   const decomposed = decomposeConcatenatedNumber(match[0], "weight")
@@ -294,11 +294,29 @@ export function extractCleanCommodity(description?: string | null): string {
   let text = description.trim()
   if (!text) return "General Cargo"
 
-  // Take the first line or primary description segment
-  const firstLine = text.split("\n")[0].trim()
+  // Filter out cargo particulars / header metadata lines
+  const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean)
+  const candidateLine =
+    lines.find((l) => {
+      const u = l.toUpperCase()
+      if (
+        u.includes("CONTAINER & CARGO") ||
+        u.includes("CARGO PARTICULARS") ||
+        u.includes("DOCUMENT & SHIPPING") ||
+        u.includes("SHIPPING DETAILS")
+      )
+        return false
+      if (u.startsWith("TRANSIT DATE:") || u.startsWith("BORDER:") || u.startsWith("HS CODE:")) return false
+      if (u.startsWith("INVOICE NO:") || u.startsWith("INV NO:") || u.startsWith("TRUCK NO:")) return false
+      return true
+    }) ||
+    lines[0] ||
+    ""
 
-  // Clean known prefixes like "1. 1476 CTNS - " or "1476 CTNS OF "
-  let cleaned = firstLine
+  // Clean known prefixes like "1. 1476 CTNS - " or "• Description: "
+  let cleaned = candidateLine
+    .replace(/^[•*·\-🥬📦│\s]+/, "")
+    .replace(/^(?:Description|Cargo):\s*/i, "")
     .replace(/^\d+[\.\)]\s*/, "") // Strip leading numbering
     .replace(/^\d+[\s,-]*(?:CTNS|CARTONS|BAGS|PKGS|PACKAGES|BOXES)[\s,-]*(?:OF)?\s*/i, "")
     .replace(/\bRAISNIS\b/gi, "RAISINS")
@@ -308,10 +326,20 @@ export function extractCleanCommodity(description?: string | null): string {
     .replace(/["']/g, "")
     .trim()
 
-  // Remove trailing dashes, commas, colons
-  cleaned = cleaned.replace(/^[-,:\s]+|[-,:\s]+$/g, "").trim()
+  // Remove trailing dashes, commas, colons, pipes
+  cleaned = cleaned.replace(/^[-|,:;\s]+|[-|,:;\s]+$/g, "").trim()
 
-  if (!cleaned) return "General Cargo"
+  if (
+    !cleaned ||
+    cleaned === "|" ||
+    cleaned.startsWith("|") ||
+    /^(?:TRANSIT DATE|HS CODE|AFGHAN TC|INVOICE NO)\b/i.test(cleaned) ||
+    /^[|│\s]*(?:📅|📄|🧾)/.test(cleaned) ||
+    cleaned.includes("Transit Date:") ||
+    cleaned.includes("HS CODE:")
+  ) {
+    return "General Cargo"
+  }
 
   // Standardize common commodities
   const upper = cleaned.toUpperCase()

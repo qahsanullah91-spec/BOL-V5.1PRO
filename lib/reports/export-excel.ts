@@ -35,6 +35,7 @@ import {
   parseMoney,
 } from "./parsers"
 import { parseSyncedCargoItems } from "@/lib/utils/cargo-grid"
+import { extractBolCargoAndRates } from "./cargo-rate-extractor"
 import type { BillOfLadingFormData } from "@/lib/types/bill-of-lading"
 
 /**
@@ -319,6 +320,7 @@ export async function exportReportToExcel(
       const fatherName = extractDriverFatherName(doc)
       const borderCrossing = extractTransitBorderStation(doc)
       const originLoc = doc.port_of_loading || doc.origin_country || extractBolRoute(doc).origin || "-"
+      const cargoData = extractBolCargoAndRates(doc)
 
       return [
         idx + 1,
@@ -337,7 +339,7 @@ export async function exportReportToExcel(
         doc.shipper_name || "-",
         doc.consignee_name || "-",
         doc.notify_party_name || doc.notify_party || (doc as any).notifyParty || "-",
-        doc.cargo_description || doc.commodity || doc.description_of_goods || doc.goods_description || "-",
+        cargoData.cargoSummaryLine || doc.cargo_description || doc.commodity || doc.description_of_goods || doc.goods_description || "-",
         extractBolRoute(doc).display,
         doc.number_of_packages || "-",
         pkgNum,
@@ -347,7 +349,7 @@ export async function exportReportToExcel(
         grossNum,
         doc.kgs_per_carton || "-",
         doc.gross_weight_per_carton || "-",
-        doc.rate_per_kg || (doc as any).rate || (doc as any).rate_per_kgs || "-",
+        cargoData.displayRate || doc.rate_per_kg || (doc as any).rate || (doc as any).rate_per_kgs || "-",
         doc.goods_value || "-",
         gv.currency || (gv.amount > 0 ? "USD" : "-"),
         gv.amount || 0,

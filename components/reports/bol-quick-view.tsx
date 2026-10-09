@@ -424,7 +424,7 @@ export function BolQuickView({
                         <td className="py-2 px-2 text-right text-slate-400">—</td>
                         <td className="py-2 px-2 text-right font-bold text-amber-600 dark:text-amber-400">{doc.net_weight || "—"}</td>
                         <td className="py-2 px-2 text-right text-slate-700 dark:text-slate-300">{doc.gross_weight || "—"}</td>
-                        <td className="py-2 px-2 text-right text-slate-600 dark:text-slate-400">{doc.rate_per_kg || (doc as any).rate || "—"}</td>
+                        <td className="py-2 px-2 text-right text-slate-600 dark:text-slate-400">{doc.rate_per_kgs || doc.rate_per_kg || (doc as any).rate || "—"}</td>
                         <td className="py-2 px-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400">{doc.goods_value || "—"}</td>
                       </tr>
                     )}

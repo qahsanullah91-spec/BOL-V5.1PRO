@@ -1,5 +1,6 @@
 import fs from "node:fs/promises"
 import path from "node:path"
+import os from "node:os"
 import { getServerPaths, ensureServerDirectories } from "../server/paths"
 import { getServerCollection } from "./engine"
 import { validateLedgerInvariance, type LedgerAuditResult } from "../services/ledger-sync-utils"
@@ -102,8 +103,8 @@ export async function getFullHealthReport(): Promise<DatabaseHealthReport> {
     await fs.unlink(testFile).catch(() => {})
   } catch (err) {
     try {
-      const os = await import("node:os")
-      const testTmp = path.join(os.default.tmpdir(), `.health-check-${Date.now()}.tmp`)
+      const fallbackDir = typeof os.tmpdir === "function" ? os.tmpdir() : "/tmp"
+      const testTmp = path.join(fallbackDir, `.health-check-${Date.now()}.tmp`)
       await fs.writeFile(testTmp, "OK", "utf-8")
       databaseWritable = true
       const read = await fs.readFile(testTmp, "utf-8")
