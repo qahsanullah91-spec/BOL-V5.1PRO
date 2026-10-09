@@ -336,7 +336,7 @@ export async function exportReportToExcel(
         originLoc,
         doc.shipper_name || "-",
         doc.consignee_name || "-",
-        doc.notify_party_name || (doc as any).notify_party || "-",
+        doc.notify_party_name || doc.notify_party || (doc as any).notifyParty || "-",
         doc.cargo_description || doc.commodity || doc.description_of_goods || doc.goods_description || "-",
         extractBolRoute(doc).display,
         doc.number_of_packages || "-",

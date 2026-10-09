@@ -104,6 +104,13 @@ export function BolExpandedRow({
 
   const isShipperRtl = isRtlText(doc.shipper_name)
   const isConsigneeRtl = isRtlText(doc.consignee_name)
+  const notifyPartyText = (doc.notify_party_name || doc.notify_party || (doc as any).notifyParty || "").trim()
+  const notifyAddressText = (doc.notify_party_address || (doc as any).notifyAddress || "").trim()
+  const isNotifyRtl = isRtlText(notifyPartyText)
+  const isNotifySame = !notifyPartyText ||
+    notifyPartyText.toUpperCase() === "SAME" ||
+    notifyPartyText.toUpperCase() === "SAME AS CONSIGNEE" ||
+    (doc.consignee_name && notifyPartyText.toLowerCase() === doc.consignee_name.toLowerCase())
 
   const handleCopyWhatsApp = async () => {
     try {
@@ -436,13 +443,21 @@ export function BolExpandedRow({
                   <span>Notify Party / طرف مطلع</span>
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900 dark:text-white text-xs">
-                    {doc.notify_party_name || (doc as any).notify_party || <span className="text-slate-400 italic">SAME AS CONSIGNEE</span>}
-                  </p>
-                  {(doc as any).notify_party_address && (
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 whitespace-pre-wrap leading-relaxed">
-                      {(doc as any).notify_party_address}
+                  {isNotifySame ? (
+                    <p className="font-medium text-slate-400 italic text-xs">
+                      SAME AS CONSIGNEE
                     </p>
+                  ) : (
+                    <>
+                      <p className={`font-bold text-slate-900 dark:text-white text-xs ${isNotifyRtl ? "text-right font-[vazirmatn]" : ""}`} dir={isNotifyRtl ? "rtl" : "ltr"}>
+                        {notifyPartyText}
+                      </p>
+                      {notifyAddressText && (
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 whitespace-pre-wrap leading-relaxed">
+                          {notifyAddressText}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

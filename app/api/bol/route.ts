@@ -597,6 +597,8 @@ export async function POST(request: Request) {
         : null
       const bolNumber = (attempts === 1 && candidateBol) ? candidateBol : await getNextAtomicBolNumber()
 
+      const notifyPartyValue = body.notify_party_name || body.notify_party || body.notifyParty || null
+      const notifyAddressValue = body.notify_party_address || body.notifyAddress || null
       const bolData: Record<string, any> = {
         bol_number: bolNumber,
         issue_date: body.issue_date || new Date().toISOString().split("T")[0],
@@ -604,6 +606,8 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
         user_id: user?.id || null,
         ...cleanBody,
+        ...(notifyPartyValue ? { notify_party: notifyPartyValue, notify_party_name: notifyPartyValue } : {}),
+        ...(notifyAddressValue ? { notify_party_address: notifyAddressValue } : {}),
       }
 
       if (rawId && typeof rawId === "string" && rawId.length > 20 && !rawId.startsWith("BOL-")) {
@@ -659,7 +663,7 @@ export async function POST(request: Request) {
               status: "active",
               shipper_name: bolData.shipper_name || null,
               consignee_name: bolData.consignee_name || null,
-              notify_party_name: bolData.notify_party || null,
+              notify_party_name: bolData.notify_party_name || bolData.notify_party || bolData.notifyParty || null,
               truck_number: bolData.truck_number || null,
               driver_phone: bolData.driver_contact || null,
             }),

@@ -67,6 +67,7 @@ export type SortField =
   | "invoice_no"
   | "shipper_name"
   | "consignee_name"
+  | "notify_party"
   | "packages"
   | "net_weight"
   | "gross_weight"
@@ -358,6 +359,11 @@ export function DetailedReportTable({
           break
         case "consignee_name":
           comparison = (a.consignee_name || "").localeCompare(b.consignee_name || "")
+          break
+        case "notify_party":
+          const notifyA = (a.notify_party_name || a.notify_party || (a as any).notifyParty || "").trim()
+          const notifyB = (b.notify_party_name || b.notify_party || (b as any).notifyParty || "").trim()
+          comparison = notifyA.localeCompare(notifyB)
           break
         case "packages":
           comparison = parsePackages(a.number_of_packages) - parsePackages(b.number_of_packages)
@@ -941,8 +947,16 @@ export function DetailedReportTable({
 
               {/* Notify Party */}
               {visibleColumns.has("notify") && (
-                <th className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[150px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
-                  Notify Party
+                <th
+                  onClick={() => handleSort("notify_party")}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[150px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Notify Party</span>
+                    {sortField === "notify_party" && (
+                      sortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-400" />
+                    )}
+                  </div>
                 </th>
               )}
 
@@ -1084,6 +1098,13 @@ export function DetailedReportTable({
 
               const isShipperRtl = isRtlText(doc.shipper_name)
               const isConsigneeRtl = isRtlText(doc.consignee_name)
+              const notifyPartyText = (doc.notify_party_name || doc.notify_party || (doc as any).notifyParty || "").trim()
+              const notifyAddressText = (doc.notify_party_address || (doc as any).notify_party_address || (doc as any).notifyPartyAddress || (doc as any).notifyAddress || "").trim()
+              const isNotifyRtl = isRtlText(notifyPartyText)
+              const isNotifySame = !notifyPartyText ||
+                notifyPartyText.toUpperCase() === "SAME AS CONSIGNEE" ||
+                notifyPartyText.toUpperCase() === "SAME" ||
+                Boolean(doc.consignee_name && notifyPartyText.toUpperCase() === doc.consignee_name.trim().toUpperCase())
 
               // Formatted single/multi cargo summary
               const isMultiCargo = syncedCargo.items.length > 1
@@ -1245,8 +1266,27 @@ export function DetailedReportTable({
 
                     {/* Notify Party */}
                     {visibleColumns.has("notify") && (
-                      <td className={`${cellPad} text-slate-700 dark:text-slate-300 truncate max-w-[140px]`} title={doc.notify_party_name || "Same as Consignee"}>
-                        {doc.notify_party_name || <span className="text-slate-400 italic font-light">Same</span>}
+                      <td className={`${cellPad} text-slate-700 dark:text-slate-300 max-w-[170px]`}>
+                        {isNotifySame ? (
+                          <span className="text-slate-400 italic font-light text-xs" title="Same as Consignee">Same</span>
+                        ) : (
+                          <div
+                            className="flex flex-col"
+                            title={notifyAddressText ? `${notifyPartyText}\n${notifyAddressText}` : notifyPartyText}
+                          >
+                            <span
+                              className={`font-medium text-slate-800 dark:text-slate-200 hover:text-blue-600 transition-colors whitespace-normal break-words leading-tight ${isNotifyRtl ? "text-right font-[vazirmatn]" : ""}`}
+                              dir={isNotifyRtl ? "rtl" : "ltr"}
+                            >
+                              {notifyPartyText}
+                            </span>
+                            {notifyAddressText && (
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5" title={notifyAddressText}>
+                                {notifyAddressText.split("\n")[0]}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                     )}
 

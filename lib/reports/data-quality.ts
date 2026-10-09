@@ -93,7 +93,10 @@ const AUDIT_RULES: FieldAuditRule[] = [
     field: "notify_party_name",
     label: "Notify Party",
     severity: "optional",
-    validator: (d) => Boolean(d.notify_party_name && d.notify_party_name.trim()),
+    validator: (d) => {
+      const np = d.notify_party_name || d.notify_party || (d as any).notifyParty
+      return Boolean(np && String(np).trim())
+    },
   },
   {
     field: "invoice_no",
