@@ -110,6 +110,52 @@ export function CreateBackupTab({ onBackupCreated }: CreateBackupTabProps) {
     toast.success("Copied to clipboard", { description: text })
   }
 
+  const handleOpenFolder = async (filePath: string) => {
+    setIsOpeningFolder(true)
+    try {
+      const res = await fetch("/api/backup/operations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "open_folder", filePath }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("Folder Opened in Explorer", {
+          description: data.openedFolder,
+        })
+      } else {
+        toast.error("Could not open folder", { description: data.error })
+      }
+    } catch (err: any) {
+      toast.error("Error opening folder", { description: err.message })
+    } finally {
+      setIsOpeningFolder(false)
+    }
+  }
+
+  const handleVerifyAgain = async (backupId: string) => {
+    setIsReverifying(true)
+    try {
+      const res = await fetch("/api/backup/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ backupId }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("Re-Verification: PASS", {
+          description: "Checksum and all database stores validated 100%.",
+        })
+      } else {
+        toast.error("Re-Verification Failed", { description: data.error })
+      }
+    } catch (err: any) {
+      toast.error("Verification Error", { description: err.message })
+    } finally {
+      setIsReverifying(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Primary Action Hero Card */}
