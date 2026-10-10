@@ -29,6 +29,11 @@ export async function GET(request: Request) {
   if (action === "next-number") {
     try {
       const advance = searchParams.get("advance") === "true"
+      const minSeqParam = searchParams.get("minSequence")
+      const minSeq = minSeqParam ? parseInt(minSeqParam, 10) : 0
+      if (minSeq > 0) {
+        await advanceBolSequenceIfHigher(`BOL-2026-NSA${minSeq - 1}`)
+      }
       const bolNumber = advance ? await getNextAtomicBolNumber() : await getNextAvailableBolNumber()
       return NextResponse.json({ bolNumber })
     } catch (err) {

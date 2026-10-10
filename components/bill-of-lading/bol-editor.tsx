@@ -65,7 +65,7 @@ import { parseSyncedCargoItems, shouldSplitToPage2 } from "@/lib/utils/cargo-gri
 import { CopyWhatsAppButton } from "./copy-whatsapp-button"
 const PrintSafeBOL = dynamic(safeChunkDynamic(() => import("./print-safe-bol")), { ssr: false })
 import { BillOfLadingFormData, initialFormData, RouteStop, AFGHANISTAN_DOCUMENT_OPTIONS, DOCUMENT_CATEGORIES, AfghanistanDocumentDetail, type DocumentCategory, NOTE_THEMES, type NoteTheme, CARGO_ROUTE_NOTE_OPTIONS } from "@/lib/types/bill-of-lading"
-import { isUUID, cleanBolNumber, normalizeBolRecord } from "@/lib/utils/bol-filters"
+import { isUUID, cleanBolNumber, normalizeBolRecord, parseBolSeq } from "@/lib/utils/bol-filters"
 import { ArrowLeft, Printer, Save, FileText, Eye, Plus, Loader2, Calendar, Truck, MapPin, Trash2, ArrowRight, Package, Edit3, ImageIcon, Upload, RotateCcw, ScrollText, Check, Download, Building2, Phone, Mail, Ship, Plane, Train, AlertCircle, User, Bell, Globe, Shield, Leaf, Heart, Scale, Bookmark, BookmarkPlus, X, IdCard, Car, Landmark, ShieldCheck, Receipt, List, ChevronDown, ChevronUp, Info, CheckCircle2, Circle, Sparkles, Copy, Box, ArrowLeftRight, Zap, Calculator, Sliders, SlidersHorizontal, Layers, Keyboard, Cloud, DownloadCloud, UploadCloud, RefreshCw, FileSpreadsheet, Coins, Hash, MoreHorizontal, Palette, ZoomIn, ZoomOut, Maximize2, Minimize2, FolderArchive, Search, Snowflake } from "lucide-react"
 import { formatPersianDate, getDualDates } from "@/lib/utils/persian-date"
 import {
@@ -1732,31 +1732,76 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return loadBolDocument(id, { targetTab: activeTab, force })
   }, [loadBolDocument, activeTab])
 
-  const fetchNextBolNumber = useCallback(async () => {
+  const getHighestKnownBolSequence = useCallback((): number => {
+    let max = 683
+
+    // 1. Current in-memory document / form
+    const currentSeq = parseBolSeq(bolNumberRef.current || bolNumber)
+    if (currentSeq > max) max = currentSeq
+
+    // 2. Check localStorage records (saved, browser, backups)
+    if (typeof window !== "undefined") {
+      try {
+        const storedMax = window.localStorage.getItem("skybol:highest-allocated-bol")
+        if (storedMax) {
+          const parsed = parseInt(storedMax, 10)
+          if (!isNaN(parsed) && parsed > max) max = parsed
+        }
+
+        const keys = ["sky-bol-browser-documents", "skybol:saved-documents", "skybol:backup-documents"]
+        for (const k of keys) {
+          const raw = window.localStorage.getItem(k)
+          if (!raw) continue
+          const list = JSON.parse(raw)
+          if (Array.isArray(list)) {
+            for (const item of list) {
+              const seq = parseBolSeq(item?.bol_number || item?.billOfLadingNumber || item?.bolNo || item?.id)
+              if (seq > max) max = seq
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return max
+  }, [bolNumber, formData?.bol_number])
+
+  const fetchNextBolNumber = useCallback(async (minRequiredSeq?: number) => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/bol?action=next-number")
+      const highestKnown = getHighestKnownBolSequence()
+      const minSeq = typeof minRequiredSeq === "number" ? minRequiredSeq : Math.max(highestKnown + 1, 684)
+      const fetchUrl = `/api/bol?action=next-number&minSequence=${minSeq}`
+      const response = await fetch(fetchUrl)
       const result = await response.json()
       
-      if (result?.bolNumber) {
-        startTransition(() => {
-          setBolNumber(result.bolNumber)
-        })
-        return
-      }
+      const serverSeq = parseBolSeq(result?.bolNumber)
+      const targetSeq = Math.max(serverSeq, minSeq)
+      const finalBol = `BOL-2026-NSA${targetSeq}`
 
       startTransition(() => {
-        setBolNumber("BOL-2026-NSA684")
+        setBolNumber(finalBol)
+        setFormData((prev: any) => ({
+          ...prev,
+          bol_number: finalBol,
+        }))
       })
     } catch (error) {
       console.error("Error fetching BOL number:", error)
+      const highestKnown = getHighestKnownBolSequence()
+      const targetSeq = Math.max(minRequiredSeq || 0, highestKnown + 1, 684)
+      const fallbackBol = `BOL-2026-NSA${targetSeq}`
       startTransition(() => {
-        setBolNumber("BOL-2026-NSA684")
+        setBolNumber(fallbackBol)
+        setFormData((prev: any) => ({
+          ...prev,
+          bol_number: fallbackBol,
+        }))
       })
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [getHighestKnownBolSequence])
 
   // Unified Session Auto-Resume: Automatically restores active work on app launch or reload
   useEffect(() => {
@@ -1874,8 +1919,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         if (lastActiveId === "__NEW__") {
           initialized = true
           setCheckingDraft(false)
-          setBolNumber("BOL-2026-NSA684")
-          void fetchNextBolNumber()
+          const highestKnown = getHighestKnownBolSequence()
+          const nextInitSeq = Math.max(highestKnown + 1, 684)
+          setBolNumber(`BOL-2026-NSA${nextInitSeq}`)
+          void fetchNextBolNumber(nextInitSeq)
           const today = new Date().toISOString().split("T")[0]
           setIssueDate(today)
           const dualDates = getDualDates(today)
@@ -3116,42 +3163,33 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
   }
 
-  const handleIncrementBolNumber = async () => {
-    try {
-      const response = await fetch("/api/bol?action=next-number")
-      const result = await response.json()
-      if (result?.bolNumber) {
-        const serverSeq = parseInt(result.bolNumber.replace(/\D+/g, "") || "0", 10)
-        const currentMatch = bolNumber?.match(/^(.*?)(\d+)$/)
-        const currentSeq = currentMatch ? parseInt(currentMatch[2], 10) : 0
-        const prefix = currentMatch ? currentMatch[1] : "BOL-2026-NSA"
+  const handleIncrementBolNumber = useCallback(() => {
+    const currentSeq = parseBolSeq(bolNumber)
+    const highestKnown = getHighestKnownBolSequence()
 
-        const targetSeq = currentSeq < serverSeq ? serverSeq : currentSeq + 1
-        const nextBol = `${prefix}${targetSeq}`
-        setBolNumber(nextBol)
-        toast.success("Next BOL # Generated", { description: nextBol })
-        return
-      }
-    } catch {}
+    // If current BOL has a valid sequence, increment by 1. Otherwise take highest known + 1 (minimum 684)
+    const nextSeq = currentSeq > 0 ? currentSeq + 1 : Math.max(highestKnown + 1, 684)
+    const prefixMatch = (bolNumber || "").match(/^(.*?)(\d+)$/)
+    const prefix = prefixMatch ? prefixMatch[1] : "BOL-2026-NSA"
+    const nextBol = `${prefix}${nextSeq}`
 
-    if (!bolNumber) {
-      setBolNumber("BOL-2026-NSA684")
-      toast.success("Next BOL # Generated", { description: "BOL-2026-NSA684" })
-      return
+    setBolNumber(nextBol)
+    setFormData((prev) => ({
+      ...prev,
+      bol_number: nextBol,
+    }))
+
+    if (typeof window !== "undefined") {
+      try {
+        const currentHighest = Number(window.localStorage.getItem("skybol:highest-allocated-bol") || "0")
+        const newHighest = Math.max(currentHighest, nextSeq)
+        window.localStorage.setItem("skybol:highest-allocated-bol", String(newHighest))
+        fetch(`/api/bol?action=set-sequence&sequence=${newHighest + 1}`).catch(() => {})
+      } catch (_) {}
     }
-    const match = bolNumber.match(/^(.*?)(\d+)$/)
-    if (match) {
-      const prefix = match[1]
-      const currentSeq = parseInt(match[2], 10)
-      const targetSeq = Math.max(currentSeq + 1, 684)
-      const nextBol = `${prefix}${targetSeq}`
-      setBolNumber(nextBol)
-      toast.success("Next BOL # Generated", { description: nextBol })
-    } else {
-      setBolNumber("BOL-2026-NSA684")
-      toast.success("Next BOL # Generated", { description: "BOL-2026-NSA684" })
-    }
-  }
+
+    toast.success("Next BOL # Generated", { description: nextBol })
+  }, [bolNumber, getHighestKnownBolSequence])
 
   const handleClearNote1 = () => {
     setFormData((prev) => ({ ...prev, notes_1: "" }))
@@ -4680,6 +4718,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           window.localStorage.removeItem(`skybol:draft:${cleanBolNumber(savedBolNumber)}`)
           window.localStorage.removeItem(`skybol:draft:${cleanBolNumber(validEditId)}`)
           window.localStorage.setItem("skybol:last-active-document-id", savedBolNumber)
+          const savedSeq = parseBolSeq(savedBolNumber)
+          if (savedSeq > 0) {
+            const currentHighest = Number(window.localStorage.getItem("skybol:highest-allocated-bol") || "0")
+            const newHighest = Math.max(currentHighest, savedSeq)
+            window.localStorage.setItem("skybol:highest-allocated-bol", String(newHighest))
+            fetch(`/api/bol?action=set-sequence&sequence=${newHighest + 1}`).catch(() => {})
+          }
           fetch("/api/draft?type=bol", { method: "DELETE" }).catch(() => {})
           setHasRecoverableDraft(false)
           setAutoSaveStatus("saved")
@@ -4718,6 +4763,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }
 
   const handleNewDocument = () => {
+    // 0. Compute next available sequence based on all known documents before state reset
+    const highestBeforeReset = getHighestKnownBolSequence()
+    const nextNewSeq = Math.max(highestBeforeReset + 1, 684)
+    const nextNewBol = `BOL-2026-NSA${nextNewSeq}`
+
     // 1. Switch to form tab immediately
     startTransition(() => {
       setActiveTab("form")
@@ -4737,6 +4787,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         window.localStorage.removeItem("sky-bol-live-draft")
         window.localStorage.removeItem("skybol:active-form-draft")
         window.localStorage.setItem("skybol:last-active-document-id", "__NEW__")
+        window.localStorage.setItem("skybol:highest-allocated-bol", String(nextNewSeq))
+        fetch(`/api/bol?action=set-sequence&sequence=${nextNewSeq + 1}`).catch(() => {})
         fetch("/api/draft?type=bol", { method: "DELETE" }).catch(() => {})
       } catch (_) {}
     }, 0)
@@ -4749,11 +4801,12 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       const today = new Date().toISOString().split("T")[0]
       setFormData({
         ...initialFormData,
+        bol_number: nextNewBol,
         cargo_description: `📦 CONTAINER & CARGO PARTICULARS:\n• Description: \n• Transit Date: ${today}\n• INV-`,
       })
       setActiveRouteIndex(null)
       setShowLocationDropdown(null)
-      setBolNumber("BOL-2026-NSA684")
+      setBolNumber(nextNewBol)
       setIssueDate(today)
       const dualDates = getDualDates(today)
       if (dualDates) {
@@ -4763,7 +4816,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     })
 
     // 4. Fetch the real sequence number in background
-    void fetchNextBolNumber()
+    void fetchNextBolNumber(nextNewSeq)
   }
 
   const handleDuplicateCurrent = async () => {
@@ -4772,9 +4825,19 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       description: "Allocating official atomic sequence number...",
     })
     try {
-      const response = await fetch("/api/bol?action=next-number&advance=true")
-      const result = await response.json()
-      const newBolNumber = result.bolNumber || "BOL-2026-NSA684"
+      const highestKnown = getHighestKnownBolSequence()
+      const minAlloc = Math.max(highestKnown + 1, 684)
+      const response = await fetch(`/api/bol?action=next-number&advance=true&minSequence=${minAlloc}`)
+      let newBolNumber = `BOL-2026-NSA${minAlloc}`
+      if (response.ok) {
+        const result = await response.json()
+        if (result?.bolNumber) {
+          const s = parseBolSeq(result.bolNumber)
+          if (s >= minAlloc) {
+            newBolNumber = result.bolNumber
+          }
+        }
+      }
       const newId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `bol-${Date.now()}`
       const today = new Date().toISOString().split("T")[0]
 
@@ -4806,6 +4869,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           duplicated_from: prev.bol_number || prev.id || null,
         }
         try {
+          const s = parseBolSeq(newBolNumber)
+          if (s > 0) {
+            window.localStorage.setItem("skybol:highest-allocated-bol", String(s))
+            fetch(`/api/bol?action=set-sequence&sequence=${s + 1}`).catch(() => {})
+          }
           window.localStorage.setItem(`skybol:draft:${newBolNumber}`, JSON.stringify(next))
           window.localStorage.setItem("skybol:last-active-document-id", newBolNumber)
         } catch (_) {}
