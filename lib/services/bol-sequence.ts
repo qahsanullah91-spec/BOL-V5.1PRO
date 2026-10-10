@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import seedBolsData from "@/lib/data/seed-bols.json"
 
 const SEQUENCE_FILE = getDataPath(".local-bol-sequence.json")
-export const START_SEQUENCE = 684
+export const START_SEQUENCE = 685
 export const DEFAULT_BOL_PREFIX = "BOL-2026-NSA"
 
 export function normalizeBolPrefix(prefix?: string, year: number = new Date().getFullYear()): string {

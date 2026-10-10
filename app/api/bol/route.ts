@@ -38,14 +38,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ bolNumber })
     } catch (err) {
       console.error("[bol API] Error generating next number:", err)
-      return NextResponse.json({ bolNumber: "BOL-2026-NSA684" })
+      return NextResponse.json({ bolNumber: "BOL-2026-NSA685" })
     }
   }
 
   if (action === "set-sequence") {
     try {
       const seqStr = searchParams.get("sequence") || searchParams.get("start")
-      const seqNum = seqStr ? parseInt(seqStr, 10) : 684
+      const seqNum = seqStr ? parseInt(seqStr, 10) : 685
       if (!isNaN(seqNum) && seqNum > 0) {
         const { setBolStartingSequence } = await import("@/lib/services/bol-sequence")
         await setBolStartingSequence(seqNum)

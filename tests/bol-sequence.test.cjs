@@ -89,22 +89,22 @@ test("BOL Sequence Starting Number & Format Verification", async (t) => {
     assert.equal(uuidBols.length, 0, `Expected 0 BOL records with UUID as bol_number, found ${uuidBols.length}`);
   });
 
-  await t.test("8. Starting sequence for new BOL is BOL-2026-NSA684 since finale BOL is 683", async () => {
+  await t.test("8. Starting sequence for new BOL is BOL-2026-NSA685 since finale BOL is 684", async () => {
     const { getNextAvailableBolNumber, START_SEQUENCE } = loadTypescript("lib/services/bol-sequence.ts");
-    assert.equal(START_SEQUENCE, 684, "START_SEQUENCE must be 684");
+    assert.equal(START_SEQUENCE, 685, "START_SEQUENCE must be 685");
     const nextNum = await getNextAvailableBolNumber();
-    assert.equal(nextNum, "BOL-2026-NSA684", "Next available BOL must be BOL-2026-NSA684");
+    assert.equal(nextNum, "BOL-2026-NSA685", "Next available BOL must be BOL-2026-NSA685");
   });
 
-  await t.test("9. advanceBolSequenceIfHigher past 684 advances next available BOL to BOL-2026-NSA685", async () => {
+  await t.test("9. advanceBolSequenceIfHigher past 685 advances next available BOL to BOL-2026-NSA686", async () => {
     const { advanceBolSequenceIfHigher, getNextAvailableBolNumber } = loadTypescript("lib/services/bol-sequence.ts");
-    await advanceBolSequenceIfHigher("BOL-2026-NSA684");
+    await advanceBolSequenceIfHigher("BOL-2026-NSA685");
     const nextNum = await getNextAvailableBolNumber();
-    assert.equal(nextNum, "BOL-2026-NSA685", "After BOL-2026-NSA684, next available BOL must be BOL-2026-NSA685");
+    assert.equal(nextNum, "BOL-2026-NSA686", "After BOL-2026-NSA685, next available BOL must be BOL-2026-NSA686");
 
-    // Revert sequence back to 683 for clean test environment
+    // Revert sequence back to 685 for clean test environment
     const { setBolStartingSequence } = loadTypescript("lib/services/bol-sequence.ts");
-    await setBolStartingSequence(684);
+    await setBolStartingSequence(685);
   });
 
   await t.test("10. Auto +1 sequential increment formula reliably increments 684 to 685 and 686", () => {
