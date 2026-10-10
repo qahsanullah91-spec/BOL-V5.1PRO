@@ -62,6 +62,8 @@ _backend_offline/
 /data/*
 !/data/.local-ledger-system.json
 .local-*.json
+!/data/.local-bol-sequence.json
+!.local-bol-sequence.json
 .local-*.key
 .pre_restore_backup_*.json
 sync_status.json

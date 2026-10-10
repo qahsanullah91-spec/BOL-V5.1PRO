@@ -499,7 +499,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
   }, [hasUnsavedChanges])
 
-  const [bolNumber, setBolNumber] = useState<string>("BOL-2026-NSA659")
+  const [bolNumber, setBolNumber] = useState<string>("BOL-2026-NSA684")
   const [isEditingBolNumber, setIsEditingBolNumber] = useState(false)
   const [issueDate, setIssueDate] = useState<string>("")
   const [persianDate, setPersianDate] = useState<string>("")
@@ -1874,6 +1874,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         if (lastActiveId === "__NEW__") {
           initialized = true
           setCheckingDraft(false)
+          setBolNumber("BOL-2026-NSA684")
           void fetchNextBolNumber()
           const today = new Date().toISOString().split("T")[0]
           setIssueDate(today)
@@ -3115,23 +3116,40 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
   }
 
-  const handleIncrementBolNumber = () => {
+  const handleIncrementBolNumber = async () => {
+    try {
+      const response = await fetch("/api/bol?action=next-number")
+      const result = await response.json()
+      if (result?.bolNumber) {
+        const serverSeq = parseInt(result.bolNumber.replace(/\D+/g, "") || "0", 10)
+        const currentMatch = bolNumber?.match(/^(.*?)(\d+)$/)
+        const currentSeq = currentMatch ? parseInt(currentMatch[2], 10) : 0
+        const prefix = currentMatch ? currentMatch[1] : "BOL-2026-NSA"
+
+        const targetSeq = currentSeq < serverSeq ? serverSeq : currentSeq + 1
+        const nextBol = `${prefix}${targetSeq}`
+        setBolNumber(nextBol)
+        toast.success("Next BOL # Generated", { description: nextBol })
+        return
+      }
+    } catch {}
+
     if (!bolNumber) {
-      setBolNumber("BOL-2026-NSA501")
+      setBolNumber("BOL-2026-NSA684")
+      toast.success("Next BOL # Generated", { description: "BOL-2026-NSA684" })
       return
     }
     const match = bolNumber.match(/^(.*?)(\d+)$/)
     if (match) {
       const prefix = match[1]
-      const num = parseInt(match[2], 10) + 1
-      const paddedNum = String(num).padStart(match[2].length, "0")
-      const nextBol = `${prefix}${paddedNum}`
+      const currentSeq = parseInt(match[2], 10)
+      const targetSeq = Math.max(currentSeq + 1, 684)
+      const nextBol = `${prefix}${targetSeq}`
       setBolNumber(nextBol)
       toast.success("Next BOL # Generated", { description: nextBol })
     } else {
-      const nextBol = `${bolNumber}-1`
-      setBolNumber(nextBol)
-      toast.success("Next BOL # Generated", { description: nextBol })
+      setBolNumber("BOL-2026-NSA684")
+      toast.success("Next BOL # Generated", { description: "BOL-2026-NSA684" })
     }
   }
 
@@ -4756,7 +4774,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     try {
       const response = await fetch("/api/bol?action=next-number&advance=true")
       const result = await response.json()
-      const newBolNumber = result.bolNumber || "BOL-2026-NSA659"
+      const newBolNumber = result.bolNumber || "BOL-2026-NSA684"
       const newId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `bol-${Date.now()}`
       const today = new Date().toISOString().split("T")[0]
 
@@ -5825,7 +5843,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               if (e.key === "Enter") setIsEditingBolNumber(false)
                             }}
                             className="font-mono font-black text-xs sm:text-sm text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-700 shadow-inner rounded-xl h-8.5 sm:h-9 focus:ring-2 focus:ring-blue-500/20 uppercase"
-                            placeholder="BOL-2026-NSA626"
+                            placeholder="BOL-2026-NSA684"
                             autoFocus
                           />
                           <Button

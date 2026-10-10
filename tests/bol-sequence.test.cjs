@@ -88,4 +88,11 @@ test("BOL Sequence Starting Number & Format Verification", async (t) => {
     const uuidBols = bols.filter((b) => isUUID(b.bol_number));
     assert.equal(uuidBols.length, 0, `Expected 0 BOL records with UUID as bol_number, found ${uuidBols.length}`);
   });
+
+  await t.test("8. Starting sequence for new BOL is BOL-2026-NSA684 since finale BOL is 683", async () => {
+    const { getNextAvailableBolNumber, START_SEQUENCE } = loadTypescript("lib/services/bol-sequence.ts");
+    assert.equal(START_SEQUENCE, 684, "START_SEQUENCE must be 684");
+    const nextNum = await getNextAvailableBolNumber();
+    assert.equal(nextNum, "BOL-2026-NSA684", "Next available BOL must be BOL-2026-NSA684");
+  });
 });
