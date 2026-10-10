@@ -499,7 +499,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
   }, [hasUnsavedChanges])
 
-  const [bolNumber, setBolNumber] = useState<string>("BOL-2026-NSA684")
+  const [bolNumber, setBolNumber] = useState<string>("BOL-2026-NSA685")
   const [isEditingBolNumber, setIsEditingBolNumber] = useState(false)
   const [issueDate, setIssueDate] = useState<string>("")
   const [persianDate, setPersianDate] = useState<string>("")
@@ -1770,7 +1770,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     setIsLoading(true)
     try {
       const highestKnown = getHighestKnownBolSequence()
-      const minSeq = typeof minRequiredSeq === "number" ? minRequiredSeq : Math.max(highestKnown + 1, 684)
+      const minSeq = typeof minRequiredSeq === "number" ? minRequiredSeq : Math.max(highestKnown + 1, 685)
       const fetchUrl = `/api/bol?action=next-number&minSequence=${minSeq}`
       const response = await fetch(fetchUrl)
       const result = await response.json()
@@ -1789,7 +1789,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     } catch (error) {
       console.error("Error fetching BOL number:", error)
       const highestKnown = getHighestKnownBolSequence()
-      const targetSeq = Math.max(minRequiredSeq || 0, highestKnown + 1, 684)
+      const targetSeq = Math.max(minRequiredSeq || 0, highestKnown + 1, 685)
       const fallbackBol = `BOL-2026-NSA${targetSeq}`
       startTransition(() => {
         setBolNumber(fallbackBol)
@@ -1920,7 +1920,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           initialized = true
           setCheckingDraft(false)
           const highestKnown = getHighestKnownBolSequence()
-          const nextInitSeq = Math.max(highestKnown + 1, 684)
+          const nextInitSeq = Math.max(highestKnown + 1, 685)
           setBolNumber(`BOL-2026-NSA${nextInitSeq}`)
           void fetchNextBolNumber(nextInitSeq)
           const today = new Date().toISOString().split("T")[0]
@@ -3167,8 +3167,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     const currentSeq = parseBolSeq(bolNumber)
     const highestKnown = getHighestKnownBolSequence()
 
-    // If current BOL has a valid sequence, increment by 1. Otherwise take highest known + 1 (minimum 684)
-    const nextSeq = currentSeq > 0 ? currentSeq + 1 : Math.max(highestKnown + 1, 684)
+    // If current BOL has a valid sequence, increment by 1. Otherwise take highest known + 1 (minimum 685)
+    const nextSeq = currentSeq > 0 ? currentSeq + 1 : Math.max(highestKnown + 1, 685)
     const prefixMatch = (bolNumber || "").match(/^(.*?)(\d+)$/)
     const prefix = prefixMatch ? prefixMatch[1] : "BOL-2026-NSA"
     const nextBol = `${prefix}${nextSeq}`
@@ -4765,7 +4765,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   const handleNewDocument = () => {
     // 0. Compute next available sequence based on all known documents before state reset
     const highestBeforeReset = getHighestKnownBolSequence()
-    const nextNewSeq = Math.max(highestBeforeReset + 1, 684)
+    const nextNewSeq = Math.max(highestBeforeReset + 1, 685)
     const nextNewBol = `BOL-2026-NSA${nextNewSeq}`
 
     // 1. Switch to form tab immediately
@@ -4826,7 +4826,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     })
     try {
       const highestKnown = getHighestKnownBolSequence()
-      const minAlloc = Math.max(highestKnown + 1, 684)
+      const minAlloc = Math.max(highestKnown + 1, 685)
       const response = await fetch(`/api/bol?action=next-number&advance=true&minSequence=${minAlloc}`)
       let newBolNumber = `BOL-2026-NSA${minAlloc}`
       if (response.ok) {
@@ -4900,7 +4900,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
   const handleExportPDF = async () => {
     try {
-      if (!formData.id) {
+      if (!isEditMode || hasUnsavedChanges || !editDocumentId) {
         await handleSave()
       }
 
@@ -5161,6 +5161,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     stickerQuantity = 1,
     stickerLayout: StickerLayout = "single",
   ) => {
+    if (!isEditMode || hasUnsavedChanges || !editDocumentId) {
+      try {
+        await handleSave()
+      } catch (saveErr) {
+        console.warn("Auto-save before download notice:", saveErr)
+      }
+    }
     setIsSaving(true)
     setIsShippingExporting(true)
     await new Promise((resolve) => setTimeout(resolve, 80))
@@ -5200,9 +5207,17 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     stickerQuantity = 1,
     stickerLayout: StickerLayout = "single",
   ) => {
+    if (!isEditMode || hasUnsavedChanges || !editDocumentId) {
+      try {
+        await handleSave()
+      } catch (saveErr) {
+        console.warn("Auto-save before print notice:", saveErr)
+      }
+    }
     const fileName = buildShippingDocumentFileName(kind, shippingDocumentData)
     const printWindow = openPDFPrintWindow(fileName)
     setIsSaving(true)
+
     setIsShippingExporting(true)
     await new Promise((resolve) => setTimeout(resolve, 80))
     const toastId = toast.loading("Preparing print-ready PDF...", { description: fileName })
@@ -5911,7 +5926,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               if (e.key === "Enter") setIsEditingBolNumber(false)
                             }}
                             className="font-mono font-black text-xs sm:text-sm text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-700 shadow-inner rounded-xl h-8.5 sm:h-9 focus:ring-2 focus:ring-blue-500/20 uppercase"
-                            placeholder="BOL-2026-NSA684"
+                            placeholder="BOL-2026-NSA685"
                             autoFocus
                           />
                           <Button
