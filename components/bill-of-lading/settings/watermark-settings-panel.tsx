@@ -147,7 +147,7 @@ export function WatermarkSettingsPanel({
             <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-white p-1 shadow ring-1 ring-white/20 select-none">
               {activeWatermarkUrl && (
                 <div
-                  className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none"
+                  className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
                   style={{
                     backgroundImage: `url('${activeWatermarkUrl}')`,
                     opacity: Math.max(0.04, Math.min(0.40, activeOpacity)),
@@ -425,8 +425,8 @@ export function WatermarkSettingsPanel({
             >
               {/* Thumbnail Stage */}
               <div
-                className={`relative w-full overflow-hidden bg-slate-50/80 dark:bg-slate-950/40 p-2 flex items-center justify-center ${
-                  cardDensity === 'compact' ? 'h-32 sm:h-36' : 'h-40 sm:h-44'
+                className={`relative w-full overflow-hidden bg-slate-100/70 dark:bg-slate-950/60 p-1.5 flex items-center justify-center ${
+                  cardDensity === 'compact' ? 'h-36 sm:h-40' : 'h-44 sm:h-48'
                 }`}
               >
                 <WatermarkThumbnail

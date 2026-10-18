@@ -83,6 +83,36 @@ const syncScript = path.join(__dirname, "sync-desktop-data.cjs")
 if (fs.existsSync(syncScript)) {
   execSync(`node "${syncScript}"`, { cwd: rootDir, stdio: "inherit" })
 }
+
+// Prune heavy directories accidentally traced into .next-production/standalone
+const standaloneDir = path.join(nextProductionDir, "standalone")
+const dirsToPrune = [
+  "release",
+  "release-desktop",
+  "Data",
+  "data",
+  "backups",
+  "resources",
+  "scratch",
+  "awesome-claude-code-subagents",
+  "tests",
+  "test-results",
+  "_backend_offline",
+  "bol-ledger",
+  "bol-software-v-5-3-pro",
+]
+for (const dirName of dirsToPrune) {
+  const target = path.join(standaloneDir, dirName)
+  if (fs.existsSync(target)) {
+    try {
+      fs.rmSync(target, { recursive: true, force: true })
+      console.log(`  -> Pruned heavy standalone directory: ${dirName}`)
+    } catch (e) {
+      console.warn(`  -> Could not prune ${dirName}: ${e.message}`)
+    }
+  }
+}
+
 const electronBuilderBin = path.join(rootDir, "node_modules", "electron-builder", "cli.js")
 execSync(`node "${electronBuilderBin}" --win nsis --x64`, {
   cwd: rootDir,

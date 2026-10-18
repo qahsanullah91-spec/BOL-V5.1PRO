@@ -317,7 +317,16 @@ function getInitialAppState(): AppState {
         }
       }
 
-      const savedUser = localStorage.getItem("skybol:user") || sessionStorage.getItem("skybol:user")
+      let savedUser = localStorage.getItem("skybol:user") || sessionStorage.getItem("skybol:user")
+      if (!savedUser && typeof document !== "undefined") {
+        const match = document.cookie.match(/(?:^|;\s*)skybol_user=([^;]*)/)
+        if (match?.[1]) {
+          try {
+            savedUser = decodeURIComponent(match[1])
+            localStorage.setItem("skybol:user", savedUser)
+          } catch (_) {}
+        }
+      }
       if (savedUser) {
         const parsed = JSON.parse(savedUser)
         if (parsed?.username) {
@@ -392,7 +401,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } catch (e) {}
       }
 
-      const savedUser = localStorage.getItem("skybol:user") || sessionStorage.getItem("skybol:user")
+      let savedUser = localStorage.getItem("skybol:user") || sessionStorage.getItem("skybol:user")
+      if (!savedUser && typeof document !== "undefined") {
+        const match = document.cookie.match(/(?:^|;\s*)skybol_user=([^;]*)/)
+        if (match?.[1]) {
+          try {
+            savedUser = decodeURIComponent(match[1])
+            localStorage.setItem("skybol:user", savedUser)
+          } catch (_) {}
+        }
+      }
       if (savedUser) {
         const parsed = JSON.parse(savedUser)
         if (parsed?.username) {
@@ -611,9 +629,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       lastLogin: new Date().toISOString().split("T")[0],
     }
     try {
-      localStorage.setItem("skybol:user", JSON.stringify(userObj))
-      sessionStorage.setItem("skybol:user", JSON.stringify(userObj))
+      const serializedUser = JSON.stringify(userObj)
+      sessionStorage.setItem("skybol:user", serializedUser)
       localStorage.setItem("skybol:first-run-completed", "true")
+      if (rememberMe) {
+        localStorage.setItem("skybol:user", serializedUser)
+        const rememberedPayload = JSON.stringify({ username: username.trim(), password, rememberMe: true })
+        localStorage.setItem("skybol:remembered-credentials", rememberedPayload)
+        if (typeof document !== "undefined") {
+          document.cookie = `skybol_user=${encodeURIComponent(serializedUser)}; path=/; max-age=31536000; SameSite=Lax`
+          document.cookie = `skybol_creds=${encodeURIComponent(rememberedPayload)}; path=/; max-age=31536000; SameSite=Lax`
+        }
+      } else {
+        localStorage.removeItem("skybol:user")
+        localStorage.removeItem("skybol:remembered-credentials")
+        if (typeof document !== "undefined") {
+          document.cookie = "skybol_user=; path=/; max-age=0; SameSite=Lax"
+          document.cookie = "skybol_creds=; path=/; max-age=0; SameSite=Lax"
+        }
+      }
     } catch (_) {}
     setState((prev) => ({
       ...prev,
@@ -628,6 +662,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.removeItem("skybol:user")
       sessionStorage.removeItem("skybol:user")
+      if (typeof document !== "undefined") {
+        document.cookie = "skybol_user=; path=/; max-age=0; SameSite=Lax"
+      }
     } catch (e) {}
 
     setState((prev) => ({

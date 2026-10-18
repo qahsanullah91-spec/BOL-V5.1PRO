@@ -7,155 +7,108 @@
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
     <linearGradient id="primary-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#15803d" stop-opacity="0.85" />
-      <stop offset="100%" stop-color="#166534" stop-opacity="0.5" />
+      <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#1e3a8a" stop-opacity="0.5" />
     </linearGradient>
-    <linearGradient id="fade-down" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#15803d" stop-opacity="0.7" />
-      <stop offset="100%" stop-color="#166534" stop-opacity="0.1" />
-    </linearGradient>
+    
   </defs>
-  
-  <!-- Security Document Outer Border & Fine Calibrated Grid -->
-  <g fill="none" stroke="#15803d">
-    <!-- Primary Outer Frame -->
-    <rect x="24" y="24" width="852" height="1352" rx="4" stroke-width="1.5" opacity="0.65" />
-    <rect x="32" y="32" width="836" height="1336" rx="2" stroke-width="0.7" stroke-dasharray="5 3" opacity="0.5" />
-    <rect x="42" y="42" width="816" height="1316" stroke-width="0.5" opacity="0.3" />
+
+  <!-- Security Document Outer Border & Calibrated Framing -->
+  <g fill="none" stroke="#1e3a8a">
+    <rect x="22" y="22" width="856" height="1356" rx="4" stroke-width="2.4" opacity="0.8" />
+    <rect x="30" y="30" width="840" height="1340" rx="2" stroke-width="1" stroke-dasharray="6 4" opacity="0.65" />
+    <rect x="40" y="40" width="820" height="1320" stroke-width="0.8" opacity="0.45" />
 
     <!-- Corner Alignment Crosshairs -->
-    <path d="M16,40 L16,16 L40,16" stroke-width="2" opacity="0.8" />
-    <path d="M884,40 L884,16 L860,16" stroke-width="2" opacity="0.8" />
-    <path d="M16,1360 L16,1384 L40,1384" stroke-width="2" opacity="0.8" />
-    <path d="M884,1360 L884,1384 L860,1384" stroke-width="2" opacity="0.8" />
+    <path d="M14,44 L14,14 L44,14" stroke-width="3" opacity="0.9" />
+    <path d="M886,44 L886,14 L856,14" stroke-width="3" opacity="0.9" />
+    <path d="M14,1356 L14,1386 L44,1386" stroke-width="3" opacity="0.9" />
+    <path d="M886,1356 L886,1386 L856,1386" stroke-width="3" opacity="0.9" />
+
+    <!-- Corner Security Rosettes -->
+    <g transform="translate(75,75)">
+      <circle cx="0" cy="0" r="34" stroke-width="1.8" opacity="0.75" />
+      <circle cx="0" cy="0" r="28" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.65" />
+      <circle cx="0" cy="0" r="16" stroke-width="1.4" opacity="0.75" />
+      <circle cx="0" cy="0" r="5" fill="#1e3a8a" opacity="0.9" />
+      <path d="M-40,0 L40,0 M0,-40 L0,40" stroke-width="1" opacity="0.6" />
+      <path d="M-28,-28 L28,28 M-28,28 L28,-28" stroke-width="1" opacity="0.6" />
+    </g>
+    <g transform="translate(825,75)">
+      <circle cx="0" cy="0" r="34" stroke-width="1.8" opacity="0.75" />
+      <circle cx="0" cy="0" r="28" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.65" />
+      <circle cx="0" cy="0" r="16" stroke-width="1.4" opacity="0.75" />
+      <circle cx="0" cy="0" r="5" fill="#1e3a8a" opacity="0.9" />
+      <path d="M-40,0 L40,0 M0,-40 L0,40" stroke-width="1" opacity="0.6" />
+      <path d="M-28,-28 L28,28 M-28,28 L28,-28" stroke-width="1" opacity="0.6" />
+    </g>
+    <g transform="translate(75,1325)">
+      <circle cx="0" cy="0" r="34" stroke-width="1.8" opacity="0.75" />
+      <circle cx="0" cy="0" r="28" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.65" />
+      <circle cx="0" cy="0" r="16" stroke-width="1.4" opacity="0.75" />
+      <circle cx="0" cy="0" r="5" fill="#1e3a8a" opacity="0.9" />
+      <path d="M-40,0 L40,0 M0,-40 L0,40" stroke-width="1" opacity="0.6" />
+      <path d="M-28,-28 L28,28 M-28,28 L28,-28" stroke-width="1" opacity="0.6" />
+    </g>
+    <g transform="translate(825,1325)">
+      <circle cx="0" cy="0" r="34" stroke-width="1.8" opacity="0.75" />
+      <circle cx="0" cy="0" r="28" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.65" />
+      <circle cx="0" cy="0" r="16" stroke-width="1.4" opacity="0.75" />
+      <circle cx="0" cy="0" r="5" fill="#1e3a8a" opacity="0.9" />
+      <path d="M-40,0 L40,0 M0,-40 L0,40" stroke-width="1" opacity="0.6" />
+      <path d="M-28,-28 L28,28 M-28,28 L28,-28" stroke-width="1" opacity="0.6" />
+    </g>
 
     <!-- Top & Bottom Micro-Text Security Banners -->
-    <text x="450" y="20" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#15803d" opacity="0.75">★ SKY ARIANA LOGISTICS · OFFICIAL MULTI-MODAL BILL OF LADING SECURITY SYSTEM ★</text>
-    <text x="450" y="1390" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#15803d" opacity="0.75">★ AUTHENTIC SECURE CARGO WAYBILL · VERIFIED INTERNATIONAL TRANSIT NETWORK ★</text>
-
-    <!-- Side Margin Degree & Metric Ticks -->
-    <g opacity="0.4" stroke-width="0.6">
-      <line x1="20" y1="350" x2="28" y2="350" /><line x1="20" y1="700" x2="30" y2="700" stroke-width="1.2" /><line x1="20" y1="1050" x2="28" y2="1050" />
-      <line x1="872" y1="350" x2="880" y2="350" /><line x1="870" y1="700" x2="880" y2="700" stroke-width="1.2" /><line x1="872" y1="1050" x2="880" y2="1050" />
-      <line x1="225" y1="20" x2="225" y2="28" /><line x1="450" y1="18" x2="450" y2="30" stroke-width="1.2" /><line x1="675" y1="20" x2="675" y2="28" />
-      <line x1="225" y1="1372" x2="225" y2="1380" /><line x1="450" y1="1370" x2="450" y2="1382" stroke-width="1.2" /><line x1="675" y1="1372" x2="675" y2="1380" />
-    </g>
+    <text x="450" y="19" font-family="Arial, sans-serif" font-size="8.5" font-weight="900" letter-spacing="4" text-anchor="middle" fill="#1e3a8a" opacity="0.9">★ SKY ARIANA LOGISTICS · OFFICIAL MULTI-MODAL BILL OF LADING SECURITY SYSTEM ★</text>
+    <text x="450" y="1391" font-family="Arial, sans-serif" font-size="8.5" font-weight="900" letter-spacing="4" text-anchor="middle" fill="#1e3a8a" opacity="0.9">★ AUTHENTIC SECURE CARGO WAYBILL · VERIFIED INTERNATIONAL TRANSIT NETWORK ★</text>
   </g>
-  <g transform="translate(75,75)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#15803d" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#166534" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#15803d" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#15803d" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#15803d" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#166534" stroke-width="0.6" opacity="0.4" />
-    </g><g transform="translate(825,75)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#15803d" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#166534" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#15803d" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#15803d" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#15803d" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#166534" stroke-width="0.6" opacity="0.4" />
-    </g><g transform="translate(75,1325)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#15803d" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#166534" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#15803d" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#15803d" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#15803d" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#166534" stroke-width="0.6" opacity="0.4" />
-    </g><g transform="translate(825,1325)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#15803d" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#166534" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#15803d" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#15803d" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#15803d" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#166534" stroke-width="0.6" opacity="0.4" />
+
+  <!-- Central Security Engraving Artwork -->
+  <g>
+    <g stroke="#1e3a8a" fill="none">
+      <!-- Plinth Base -->
+      <rect x="75" y="1240" width="70" height="70" stroke-width="2.6" fill="#1e3a8a" fill-opacity="0.08" />
+      <rect x="85" y="1225" width="50" height="15" stroke-width="2" />
+      <!-- Vertical Fluted Shaft -->
+      <rect x="88" y="240" width="44" height="985" stroke-width="2.4" />
+      <line x1="99" y1="240" x2="99" y2="1225" stroke-width="1.2" stroke-dasharray="6 3" />
+      <line x1="110" y1="240" x2="110" y2="1225" stroke-width="1.8" />
+      <line x1="121" y1="240" x2="121" y2="1225" stroke-width="1.2" stroke-dasharray="6 3" />
+      <!-- Capital Top -->
+      <rect x="85" y="225" width="50" height="15" stroke-width="2" />
+      <rect x="75" y="170" width="70" height="55" stroke-width="2.6" fill="#1e3a8a" fill-opacity="0.08" />
+      <polygon points="75,225 145,225 135,170 85,170" stroke-width="1.8" />
     </g>
-
-
-  <!-- Classical Banknote Architectural Guilloche Arches -->
-  <g fill="none" stroke="#15803d">
-    <!-- Repeating Banknote Guilloche Interlocking Arches -->
-    <g opacity="0.65">
-      
-          <path d="M 370,700 A 80 104 0 0 1 530,700" stroke="#15803d" stroke-width="1.4" />
-          <path d="M 370,700 A 80 104 0 0 0 530,700" stroke="#166534" stroke-width="1.4" stroke-dasharray="6 4" />
-        
-
-          <path d="M 352,700 A 98 127.4 0 0 1 548,700" stroke="#166534" stroke-width="1.7999999999999998" />
-          <path d="M 352,700 A 98 127.4 0 0 0 548,700" stroke="#15803d" stroke-width="1.7999999999999998" stroke-dasharray="none" />
-        
-
-          <path d="M 334,700 A 116 150.8 0 0 1 566,700" stroke="#15803d" stroke-width="2.2" />
-          <path d="M 334,700 A 116 150.8 0 0 0 566,700" stroke="#166534" stroke-width="2.2" stroke-dasharray="none" />
-        
-
-          <path d="M 316,700 A 134 174.20000000000002 0 0 1 584,700" stroke="#166534" stroke-width="1.4" />
-          <path d="M 316,700 A 134 174.20000000000002 0 0 0 584,700" stroke="#15803d" stroke-width="1.4" stroke-dasharray="6 4" />
-        
-
-          <path d="M 298,700 A 152 197.6 0 0 1 602,700" stroke="#15803d" stroke-width="1.7999999999999998" />
-          <path d="M 298,700 A 152 197.6 0 0 0 602,700" stroke="#166534" stroke-width="1.7999999999999998" stroke-dasharray="none" />
-        
-
-          <path d="M 280,700 A 170 221 0 0 1 620,700" stroke="#166534" stroke-width="2.2" />
-          <path d="M 280,700 A 170 221 0 0 0 620,700" stroke="#15803d" stroke-width="2.2" stroke-dasharray="none" />
-        
-
-          <path d="M 262,700 A 188 244.4 0 0 1 638,700" stroke="#15803d" stroke-width="1.4" />
-          <path d="M 262,700 A 188 244.4 0 0 0 638,700" stroke="#166534" stroke-width="1.4" stroke-dasharray="6 4" />
-        
-
-          <path d="M 244,700 A 206 267.8 0 0 1 656,700" stroke="#166534" stroke-width="1.7999999999999998" />
-          <path d="M 244,700 A 206 267.8 0 0 0 656,700" stroke="#15803d" stroke-width="1.7999999999999998" stroke-dasharray="none" />
-        
-
-          <path d="M 226,700 A 224 291.2 0 0 1 674,700" stroke="#15803d" stroke-width="2.2" />
-          <path d="M 226,700 A 224 291.2 0 0 0 674,700" stroke="#166534" stroke-width="2.2" stroke-dasharray="none" />
-        
-
-          <path d="M 208,700 A 242 314.6 0 0 1 692,700" stroke="#166534" stroke-width="1.4" />
-          <path d="M 208,700 A 242 314.6 0 0 0 692,700" stroke="#15803d" stroke-width="1.4" stroke-dasharray="6 4" />
-        
-
-          <path d="M 190,700 A 260 338 0 0 1 710,700" stroke="#15803d" stroke-width="1.7999999999999998" />
-          <path d="M 190,700 A 260 338 0 0 0 710,700" stroke="#166534" stroke-width="1.7999999999999998" stroke-dasharray="none" />
-        
-
-          <path d="M 172,700 A 278 361.40000000000003 0 0 1 728,700" stroke="#166534" stroke-width="2.2" />
-          <path d="M 172,700 A 278 361.40000000000003 0 0 0 728,700" stroke="#15803d" stroke-width="2.2" stroke-dasharray="none" />
-        
-
-          <path d="M 154,700 A 296 384.8 0 0 1 746,700" stroke="#15803d" stroke-width="1.4" />
-          <path d="M 154,700 A 296 384.8 0 0 0 746,700" stroke="#166534" stroke-width="1.4" stroke-dasharray="6 4" />
-        
-
-          <path d="M 136,700 A 314 408.2 0 0 1 764,700" stroke="#166534" stroke-width="1.7999999999999998" />
-          <path d="M 136,700 A 314 408.2 0 0 0 764,700" stroke="#15803d" stroke-width="1.7999999999999998" stroke-dasharray="none" />
-        
-
-          <path d="M 118,700 A 332 431.6 0 0 1 782,700" stroke="#15803d" stroke-width="2.2" />
-          <path d="M 118,700 A 332 431.6 0 0 0 782,700" stroke="#166534" stroke-width="2.2" stroke-dasharray="none" />
-        
-
-          <path d="M 100,700 A 350 455 0 0 1 800,700" stroke="#166534" stroke-width="1.4" />
-          <path d="M 100,700 A 350 455 0 0 0 800,700" stroke="#15803d" stroke-width="1.4" stroke-dasharray="6 4" />
-        
-
-          <path d="M 82,700 A 368 478.40000000000003 0 0 1 818,700" stroke="#15803d" stroke-width="1.7999999999999998" />
-          <path d="M 82,700 A 368 478.40000000000003 0 0 0 818,700" stroke="#166534" stroke-width="1.7999999999999998" stroke-dasharray="none" />
-        
-
-          <path d="M 64,700 A 386 501.8 0 0 1 836,700" stroke="#166534" stroke-width="2.2" />
-          <path d="M 64,700 A 386 501.8 0 0 0 836,700" stroke="#15803d" stroke-width="2.2" stroke-dasharray="none" />
-        
+  
+    <g stroke="#1e3a8a" fill="none">
+      <!-- Plinth Base -->
+      <rect x="755" y="1240" width="70" height="70" stroke-width="2.6" fill="#1e3a8a" fill-opacity="0.08" />
+      <rect x="765" y="1225" width="50" height="15" stroke-width="2" />
+      <!-- Vertical Fluted Shaft -->
+      <rect x="768" y="240" width="44" height="985" stroke-width="2.4" />
+      <line x1="779" y1="240" x2="779" y2="1225" stroke-width="1.2" stroke-dasharray="6 3" />
+      <line x1="790" y1="240" x2="790" y2="1225" stroke-width="1.8" />
+      <line x1="801" y1="240" x2="801" y2="1225" stroke-width="1.2" stroke-dasharray="6 3" />
+      <!-- Capital Top -->
+      <rect x="765" y="225" width="50" height="15" stroke-width="2" />
+      <rect x="755" y="170" width="70" height="55" stroke-width="2.6" fill="#1e3a8a" fill-opacity="0.08" />
+      <polygon points="755,225 825,225 815,170 765,170" stroke-width="1.8" />
     </g>
-
-    <!-- Banknote Lathe Rosette in Center -->
-    <g transform="translate(450, 700)">
-      <circle cx="0" cy="0" r="95" stroke="#15803d" stroke-width="2" />
-      <circle cx="0" cy="0" r="75" stroke="#166534" stroke-width="1.2" stroke-dasharray="3 3" />
-      <text x="0" y="-8" font-family="Arial, sans-serif" font-size="10" font-weight="900" fill="#15803d" text-anchor="middle">BANKNOTE GUILLOCHE</text>
-      <text x="0" y="10" font-family="Arial, sans-serif" font-size="12" font-weight="900" fill="#166534" text-anchor="middle">SECURITY WATERMARK</text>
+  <path d="M90,1240 C90,625.5 415,150 450,150 C485,150 810,625.5 810,1240" fill="none" stroke="#1e3a8a" stroke-width="3.6" opacity="0.92" /><path d="M115,1240 C115,641.25 415,185 450,185 C485,185 785,641.25 785,1240" fill="none" stroke="#b45309" stroke-width="2.4" opacity="0.65" /><path d="M140,1240 C140,657 415,220 450,220 C485,220 760,657 760,1240" fill="none" stroke="#1e3a8a" stroke-width="2" opacity="0.65" /><path d="M165,1240 C165,672.75 415,255 450,255 C485,255 735,672.75 735,1240" fill="none" stroke="#1e3a8a" stroke-width="2.8" opacity="0.92" /><path d="M190,1240 C190,688.5 415,290 450,290 C485,290 710,688.5 710,1240" fill="none" stroke="#b45309" stroke-width="1.8" opacity="0.65" /><path d="M215,1240 C215,704.25 415,325 450,325 C485,325 685,704.25 685,1240" fill="none" stroke="#1e3a8a" stroke-width="2.2" opacity="0.65" /><path d="M240,1240 C240,720 415,360 450,360 C485,360 660,720 660,1240" fill="none" stroke="#b45309" stroke-width="2.6" opacity="0.92" /><path d="M265,1240 C265,735.75 415,395 450,395 C485,395 635,735.75 635,1240" fill="none" stroke="#1e3a8a" stroke-width="1.6" opacity="0.65" /><path d="M290,1240 C290,751.5 415,430 450,430 C485,430 610,751.5 610,1240" fill="none" stroke="#b45309" stroke-width="2" opacity="0.65" /><path d="M315,1240 C315,767.25 415,465 450,465 C485,465 585,767.25 585,1240" fill="none" stroke="#1e3a8a" stroke-width="2.4" opacity="0.92" /><g stroke="#b45309" fill="none" stroke-width="1.6" opacity="0.8"><circle cx="190.0" cy="600.0" r="14" /><circle cx="193.2" cy="549.9" r="14" /><circle cx="202.7" cy="501.1" r="14" /><circle cx="218.3" cy="454.7" r="14" /><circle cx="239.7" cy="411.9" r="14" /><circle cx="266.2" cy="373.7" r="14" /><circle cx="297.2" cy="341.1" r="14" /><circle cx="332.0" cy="314.9" r="14" /><circle cx="369.7" cy="295.7" r="14" /><circle cx="409.3" cy="283.9" r="14" /><circle cx="450.0" cy="280.0" r="14" /><circle cx="490.7" cy="283.9" r="14" /><circle cx="530.3" cy="295.7" r="14" /><circle cx="568.0" cy="314.9" r="14" /><circle cx="602.8" cy="341.1" r="14" /><circle cx="633.8" cy="373.7" r="14" /><circle cx="660.3" cy="411.9" r="14" /><circle cx="681.7" cy="454.7" r="14" /><circle cx="697.3" cy="501.1" r="14" /><circle cx="706.8" cy="549.9" r="14" /><circle cx="710.0" cy="600.0" r="14" /></g><g transform="translate(450, 700)"><circle cx="0" cy="0" r="180" fill="none" stroke="#1e3a8a" stroke-width="3" opacity="0.9" /><circle cx="0" cy="0" r="165" fill="none" stroke="#b45309" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.75" /><circle cx="0" cy="0" r="140" fill="#1e3a8a" fill-opacity="0.12" stroke="#1e3a8a" stroke-width="2.4" /><polygon points="135.0,0.0 0.0,135.0 -135.0,0.0 -0.0,-135.0" fill="#b45309" fill-opacity="0.15" stroke="#b45309" stroke-width="2.6" opacity="0.9" /><polygon points="95.5,95.5 -95.5,95.5 -95.5,-95.5 95.5,-95.5" fill="#b45309" fill-opacity="0.15" stroke="#b45309" stroke-width="2.6" opacity="0.9" /><line x1="0" y1="0" x2="110.0" y2="0.0" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="110.0" cy="0.0" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="101.6" y2="42.1" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="101.6" cy="42.1" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="77.8" y2="77.8" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="77.8" cy="77.8" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="42.1" y2="101.6" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="42.1" cy="101.6" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="0.0" y2="110.0" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="0.0" cy="110.0" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-42.1" y2="101.6" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-42.1" cy="101.6" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-77.8" y2="77.8" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-77.8" cy="77.8" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-101.6" y2="42.1" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-101.6" cy="42.1" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-110.0" y2="0.0" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-110.0" cy="0.0" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-101.6" y2="-42.1" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-101.6" cy="-42.1" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-77.8" y2="-77.8" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-77.8" cy="-77.8" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-42.1" y2="-101.6" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-42.1" cy="-101.6" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-0.0" y2="-110.0" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-0.0" cy="-110.0" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="42.1" y2="-101.6" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="42.1" cy="-101.6" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="77.8" y2="-77.8" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="77.8" cy="-77.8" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="101.6" y2="-42.1" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="101.6" cy="-42.1" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" />
+    <circle cx="0" cy="0" r="65" fill="#ffffff" fill-opacity="0.95" stroke="#1e3a8a" stroke-width="3" />
+    <circle cx="0" cy="0" r="52" fill="none" stroke="#b45309" stroke-width="1.8" stroke-dasharray="3 2" />
+    <circle cx="0" cy="0" r="38" fill="#1e3a8a" fill-opacity="0.25" stroke="#1e3a8a" stroke-width="2" />
+    <circle cx="0" cy="0" r="16" fill="#b45309" stroke="#ffffff" stroke-width="1.5" />
+    <circle cx="0" cy="0" r="5" fill="#ffffff" />
+  <text x="0" y="200" font-family="Arial, sans-serif" font-size="11" font-weight="900" letter-spacing="3" fill="#1e3a8a" text-anchor="middle">MUQARNAS VAULTING · ISLAMIC ARCHITECTURAL GEOMETRY</text></g>
+    <g stroke="#b45309" fill="none" stroke-width="1.4" opacity="0.5">
+      <!-- Top Left Spandrel Ribbon -->
+      <path d="M150,170 C220,170 280,120 330,80 C360,130 310,180 250,200 Z" />
+      <path d="M170,190 C230,190 280,150 310,110" />
+      <!-- Top Right Spandrel Ribbon -->
+      <path d="M750,170 C680,170 620,120 570,80 C540,130 590,180 650,200 Z" />
+      <path d="M730,190 C670,190 620,150 590,110" />
     </g>
   </g>
 </svg>

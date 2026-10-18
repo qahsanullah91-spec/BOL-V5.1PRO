@@ -175,11 +175,19 @@
         "to": "app-server",
         "filter": [
           "**/*",
-          "!data/backups/**/*",
-          "!data/rollback-snapshots/**/*",
-          "!data/staging/**/*",
-          "!data/uploads/**/*",
-          "!backups/**/*"
+          "!data/**/*",
+          "!Data/**/*",
+          "!release/**/*",
+          "!release-desktop/**/*",
+          "!awesome-claude-code-subagents/**/*",
+          "!dist-electron/**/*",
+          "!dist-test/**/*",
+          "!tests/**/*",
+          "!test-results/**/*",
+          "!_backend_offline/**/*",
+          "!resources/**/*",
+          "!backups/**/*",
+          "!scratch/**/*"
         ]
       },
       {
@@ -189,6 +197,10 @@
       {
         "from": ".next-production/static",
         "to": "app-server/.next-production/static"
+      },
+      {
+        "from": ".next-production/static",
+        "to": "app-server/.next/static"
       },
       {
         "from": "public",

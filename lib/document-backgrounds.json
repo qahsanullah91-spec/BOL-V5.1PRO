@@ -189,54 +189,54 @@
     "label": "Evening Arrival",
     "category": "Aviation",
     "url": "/images/document-backgrounds/evening-arrival.svg",
-    "opacity": 0.14
+    "opacity": 0.18
   },
   {
     "label": "Compass Lines",
     "category": "Geometric",
     "url": "/images/document-backgrounds/compass-lines.svg",
-    "opacity": 0.14
+    "opacity": 0.18
   },
   {
     "label": "Contour Map",
     "category": "Geometric",
     "url": "/images/document-backgrounds/contour-map.svg",
-    "opacity": 0.14
+    "opacity": 0.18
   },
   {
     "label": "Trade Network",
     "category": "Geometric",
     "url": "/images/document-backgrounds/trade-network.svg",
-    "opacity": 0.14
+    "opacity": 0.18
   },
   {
     "label": "Meridian Grid",
     "category": "Geometric",
     "url": "/images/document-backgrounds/meridian-grid.svg",
-    "opacity": 0.14
+    "opacity": 0.18
   },
   {
     "label": "Soft Arches",
     "category": "Geometric",
     "url": "/images/document-backgrounds/soft-arches.svg",
-    "opacity": 0.14
+    "opacity": 0.18
   },
   {
     "label": "Route Geometry",
     "category": "Geometric",
     "url": "/images/document-backgrounds/route-geometry.svg",
-    "opacity": 0.14
+    "opacity": 0.18
   },
   {
     "label": "Pearl Waves",
     "category": "Geometric",
     "url": "/images/document-backgrounds/pearl-waves.svg",
-    "opacity": 0.14
+    "opacity": 0.18
   },
   {
     "label": "Northern Star",
     "category": "Geometric",
     "url": "/images/document-backgrounds/northern-star.svg",
-    "opacity": 0.14
+    "opacity": 0.18
   }
 ]

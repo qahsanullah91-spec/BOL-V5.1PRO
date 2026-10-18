@@ -250,11 +250,15 @@ export async function calculateLiveRecordCounts(): Promise<BackupRecordCounts> {
     invoices,
     financeInvoices,
     accountLedgers,
+    bolAccountLedgers,
+    ledgerSystem,
+    companies,
     financePayments,
     supplierBills,
     supplierCosts,
     supplierPayments,
     documents,
+    shipmentFiles,
     workflowTasks,
     dailyOps,
     alerts,
@@ -271,11 +275,15 @@ export async function calculateLiveRecordCounts(): Promise<BackupRecordCounts> {
     readJsonFile<any[]>(getDataPath(".local-invoices.json"), []),
     readJsonFile<any[]>(getDataPath(".local-finance-invoices.json"), []),
     readJsonFile<any>(getDataPath(".local-account-ledgers.json"), {}),
+    readJsonFile<any>(getDataPath(".local-bol-account-ledgers.json"), {}),
+    readJsonFile<any>(getDataPath(".local-ledger-system.json"), {}),
+    readJsonFile<any[]>(getDataPath(".local-companies.json"), []),
     readJsonFile<any[]>(getDataPath(".local-finance-payments.json"), []),
     readJsonFile<any[]>(getDataPath(".local-supplier-bills.json"), []),
     readJsonFile<any[]>(getDataPath(".local-shipment-costs.json"), []),
     readJsonFile<any[]>(getDataPath(".local-supplier-payments.json"), []),
     readJsonFile<any[]>(getDataPath(".local-shipment-documents.json"), []),
+    readJsonFile<any[]>(getDataPath(".local-shipment-files.json"), []),
     readJsonFile<any[]>(getDataPath(".local-workflow-tasks.json"), []),
     readJsonFile<any>(getDataPath(".local-daily-ops.json"), {}),
     readJsonFile<any[]>(getDataPath(".local-alerts.json"), []),
@@ -286,18 +294,37 @@ export async function calculateLiveRecordCounts(): Promise<BackupRecordCounts> {
     readJsonFile<any[]>(getDataPath(".local-audit-logs.json"), []),
   ])
 
-  // Count ledger entries across dictionary
-  let ledgerCount = 0
-  if (accountLedgers && typeof accountLedgers === "object") {
-    for (const key of Object.keys(accountLedgers)) {
-      const val = accountLedgers[key]
-      if (Array.isArray(val)) {
-        ledgerCount += val.length
-      } else if (val?.entries && Array.isArray(val.entries)) {
-        ledgerCount += val.entries.length
+  // Count ledger entries across dictionary structures (.local-account-ledgers, .local-bol-account-ledgers, .local-ledger-system)
+  const countEntriesFromDict = (dict: any): number => {
+    let count = 0
+    if (!dict || typeof dict !== "object") return 0
+    if (Array.isArray(dict)) return dict.length
+    const sub = dict.ledgerEntries || dict.ledgerRecords || dict.transactions || dict.entries
+    if (sub && typeof sub === "object") {
+      if (Array.isArray(sub)) count += sub.length
+      else {
+        for (const k of Object.keys(sub)) {
+          const v = sub[k]
+          if (Array.isArray(v)) count += v.length
+          else if (v?.entries && Array.isArray(v.entries)) count += v.entries.length
+        }
       }
     }
+    for (const key of Object.keys(dict)) {
+      if (["accounts", "ledgerProfiles", "receipts", "deletedLedgerEntries", "customCompanies", "updated_at", "version"].includes(key)) continue
+      const val = dict[key]
+      if (Array.isArray(val)) count += val.length
+      else if (val?.entries && Array.isArray(val.entries)) count += val.entries.length
+    }
+    return count
   }
+
+  const c1 = countEntriesFromDict(accountLedgers)
+  const c2 = countEntriesFromDict(bolAccountLedgers)
+  const c3 = Array.isArray(ledgerSystem?.ledger_transactions)
+    ? ledgerSystem.ledger_transactions.length
+    : countEntriesFromDict(ledgerSystem)
+  const ledgerCount = Math.max(c1, c2, c3, 0)
 
   // Count container records from shipments + bookings
   const containerSet = new Set<string>()
@@ -319,13 +346,20 @@ export async function calculateLiveRecordCounts(): Promise<BackupRecordCounts> {
   const bLen = Array.isArray(bols) ? bols.length : 0
   const sLen = Array.isArray(shipments) ? shipments.length : 0
   const cLen = containerSet.size
-  const coLen = Array.isArray(accounts) ? accounts.length : 0
+  const coLen = Math.max(
+    Array.isArray(accounts) ? accounts.length : 0,
+    Array.isArray(companies) ? companies.length : 0,
+    typeof accountLedgers?.accounts === "object" ? Object.keys(accountLedgers.accounts).length : 0
+  )
   const invLen = Math.max(Array.isArray(invoices) ? invoices.length : 0, Array.isArray(financeInvoices) ? financeInvoices.length : 0)
   const payLen = Array.isArray(financePayments) ? financePayments.length : 0
   const sbLen = Array.isArray(supplierBills) ? supplierBills.length : 0
   const scLen = Array.isArray(supplierCosts) ? supplierCosts.length : 0
   const spLen = Array.isArray(supplierPayments) ? supplierPayments.length : 0
-  const docLen = Array.isArray(documents) ? documents.length : 0
+  const docLen = Math.max(
+    Array.isArray(documents) ? documents.length : 0,
+    Array.isArray(shipmentFiles) ? shipmentFiles.length : 0
+  )
   const taskLen = (Array.isArray(workflowTasks) ? workflowTasks.length : 0) + (Array.isArray(dailyOps?.tasks) ? dailyOps.tasks.length : 0)
   const alertLen = Array.isArray(alerts) ? alerts.length : 0
   const appLen = Array.isArray(approvals) ? approvals.length : 0

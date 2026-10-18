@@ -78,8 +78,9 @@ export function UiOverflowDetector() {
 
       if (sw > cw + 1 && cw > 0) {
         const diff = sw - cw
-        // Only consider if overflowing the viewport width or parent container significantly
-        if (diff >= 2) {
+        // Subpixel font anti-aliasing and fractional scaling can cause 1-2px rounding variance.
+        // Only report genuine layout overflows (>= 3px)
+        if (diff >= 3) {
           const rect = el.getBoundingClientRect()
           const id = el.id ? `#${el.id}` : ""
           const firstClasses = el.className && typeof el.className === "string"

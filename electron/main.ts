@@ -36,12 +36,12 @@ function handleSquirrelEvent(): boolean {
   return true
 }
 
-async function reservePort(): Promise<number> {
+async function tryListenPort(candidatePort: number): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = createServer()
     server.unref()
-    server.on("error", reject)
-    server.listen(0, "127.0.0.1", () => {
+    server.once("error", reject)
+    server.listen(candidatePort, "127.0.0.1", () => {
       const address = server.address()
       const port = typeof address === "object" && address ? address.port : 0
       server.close(() => resolve(port))
@@ -49,17 +49,49 @@ async function reservePort(): Promise<number> {
   })
 }
 
+async function reservePort(): Promise<number> {
+  const preferredPorts = [39481, 39482, 39483, 39484, 39485, 0]
+  for (const candidate of preferredPorts) {
+    try {
+      const boundPort = await tryListenPort(candidate)
+      if (boundPort > 0) return boundPort
+    } catch {
+      // Port in use, try next candidate
+    }
+  }
+  return tryListenPort(0)
+}
+
 async function waitForServer(url: string): Promise<void> {
-  const expiresAt = Date.now() + 60_000
+  const expiresAt = Date.now() + 90_000 // 90s grace period for cold start / busy disk
   const cleanUrl = url.trim().replace(/\/+$/, "")
   const probeUrl = `${cleanUrl}/api/health`
+  const rootUrl = `${cleanUrl}/`
+  let healthOk = false
+
   while (Date.now() < expiresAt) {
     try {
-      const response = await fetch(probeUrl, {
-        signal: AbortSignal.timeout(8000),
-      })
-      if (response.status < 500) {
-        logMain(`Probe succeeded at ${probeUrl} with HTTP ${response.status}`)
+      if (!healthOk) {
+        const response = await fetch(probeUrl, {
+          signal: AbortSignal.timeout(4000),
+        })
+        if (response.status < 500) {
+          logMain(`Probe succeeded at ${probeUrl} with HTTP ${response.status}`)
+          healthOk = true
+        }
+      }
+      if (healthOk) {
+        // Pre-warm root page so that initial UI render is instantaneous
+        try {
+          const rootRes = await fetch(rootUrl, { signal: AbortSignal.timeout(6000) })
+          if (rootRes.status < 500) {
+            logMain(`Root page pre-warm succeeded with HTTP ${rootRes.status}`)
+            return
+          }
+        } catch (preWarmErr: any) {
+          logMain(`Root pre-warm attempt: ${preWarmErr?.message || preWarmErr}. Server is alive, proceeding to load URL.`)
+          return
+        }
         return
       }
     } catch (err: any) {
@@ -147,7 +179,7 @@ function buildApplicationMenu(): Menu {
       { role: "undo" }, { role: "redo" }, { type: "separator" }, { role: "cut" }, { role: "copy" }, { role: "paste" }, { role: "selectAll" },
     ] },
     { label: "View", submenu: [
-      { role: "reload" }, { role: "zoomIn" }, { role: "zoomOut" }, { role: "resetZoom" }, { type: "separator" }, { role: "togglefullscreen" },
+      { role: "reload" }, { role: "toggleDevTools", label: "Developer Tools", accelerator: "F12" }, { type: "separator" }, { role: "zoomIn" }, { role: "zoomOut" }, { role: "resetZoom" }, { type: "separator" }, { role: "togglefullscreen" },
     ] },
     { label: "Help", submenu: [{
       label: "About",
@@ -197,6 +229,12 @@ async function createMainWindow(): Promise<void> {
     }
   })
   mainWindow.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false))
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    logMain(`[Renderer Failed Load] code=${errorCode} error=${errorDescription} url=${validatedURL}`)
+  })
+  mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+    logMain(`[Renderer Console L${level}] ${message} (${sourceId}:${line})`)
+  })
   mainWindow.once("ready-to-show", () => {
     logMain(`Main window ready-to-show triggered`)
     mainWindow?.show()
@@ -243,7 +281,22 @@ if (handleSquirrelEvent()) {
       mainWindow.focus()
     }
   })
+function configureWindowsPrintPreferences(): void {
+  if (process.platform !== "win32") return
+  try {
+    // Windows 11 Modern Print Dialog displays "This app doesn't support print preview" for all Win32/Chromium apps.
+    // Setting PreferLaunchLegacyDialog ensures the native, responsive classic Windows Print Dialog opens instantly without preview errors.
+    spawn("reg", ["add", "HKCU\\Software\\Microsoft\\Print\\UnifiedPrintDialog", "/v", "PreferLaunchLegacyDialog", "/t", "REG_DWORD", "/d", "1", "/f"], {
+      windowsHide: true,
+      stdio: "ignore",
+    }).unref()
+  } catch (err: any) {
+    logMain(`Failed to configure Windows print preferences: ${err?.message || err}`)
+  }
+}
+
   app.whenReady().then(async () => {
+    configureWindowsPrintPreferences()
     logMain(`Electron app ready. Setting up menus and windows...`)
     Menu.setApplicationMenu(buildApplicationMenu())
     registerIpcHandlers({ getWindow: () => mainWindow, dataDirectory: path.join(app.getPath("userData"), "data") })

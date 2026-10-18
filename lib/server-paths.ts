@@ -10,13 +10,13 @@ import fs from "fs"
 export function getDataRoot(): string {
   if (typeof window !== "undefined") return ""
   if (process.env.DATABASE_PATH) return path.resolve(process.env.DATABASE_PATH)
+  if (process.env.SKY_DATA_DIR) return path.resolve(process.env.SKY_DATA_DIR)
   
   const root = process.cwd()
   // Backwards compatibility: if data already exists in root, use it.
   if (fs.existsSync && fs.existsSync(path.join(root, ".local-bols.json"))) {
     return root
   }
-  if (process.env.SKY_DATA_DIR) return path.resolve(process.env.SKY_DATA_DIR)
   return path.join(root, "data")
 }
 
@@ -31,15 +31,40 @@ export function getBackupRoot(): string {
     return tmpBackups
   }
 
-  // 2. Check primary data/backups location where existing production archives reside
+  // 2. Desktop production mode: prioritize writable user data folder (e.g. %APPDATA%\AQ COMPANIES\data\backups)
+  if (process.env.SKY_DATA_DIR) {
+    const skyBackups = path.join(path.resolve(process.env.SKY_DATA_DIR), "backups")
+    try {
+      fs.mkdirSync(skyBackups, { recursive: true })
+      // Auto-migrate any backups accidentally placed in os.tmpdir()/backups
+      const tmpBackups = path.join(os.tmpdir(), "backups")
+      if (fs.existsSync(tmpBackups)) {
+        try {
+          const files = fs.readdirSync(tmpBackups)
+          for (const file of files) {
+            if (file.endsWith(".json") || file.endsWith(".zip")) {
+              const src = path.join(tmpBackups, file)
+              const dest = path.join(skyBackups, file)
+              if (!fs.existsSync(dest)) {
+                fs.copyFileSync(src, dest)
+              }
+            }
+          }
+        } catch {}
+      }
+      return skyBackups
+    } catch {}
+  }
+
+  // 3. Check primary data/backups location where existing production archives reside
   const appDataBackups = path.join(process.cwd(), "data", "backups")
   if (fs.existsSync && fs.existsSync(appDataBackups)) return appDataBackups
 
-  // 3. Check getDataRoot()/backups
+  // 4. Check getDataRoot()/backups
   const dataRootBackups = path.join(getDataRoot(), "backups")
   if (fs.existsSync && fs.existsSync(dataRootBackups)) return dataRootBackups
 
-  // 4. Check workspace root backups
+  // 5. Check workspace root backups
   const cwdBackups = path.join(process.cwd(), "backups")
   if (fs.existsSync && fs.existsSync(cwdBackups)) return cwdBackups
 
@@ -56,6 +81,9 @@ export function getBackupRoot(): string {
 
 export function getDataPath(fileName: string): string {
   const base = path.basename(fileName)
+  if (process.env.SKY_DATA_DIR) {
+    return path.join(path.resolve(process.env.SKY_DATA_DIR), base)
+  }
   const root = process.cwd()
   if (fs.existsSync && fs.existsSync(path.join(/*turbopackIgnore: true*/ root, base))) {
     return path.join(/*turbopackIgnore: true*/ root, base)

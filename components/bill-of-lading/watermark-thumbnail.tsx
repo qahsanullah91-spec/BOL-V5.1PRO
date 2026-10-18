@@ -70,10 +70,9 @@ export function WatermarkThumbnail({
   // High-contrast mode enhances fine strokes and opacities for crisp browsing while preserving color fidelity.
   const filterStyle = highContrast
     ? isSvg
-      ? 'contrast(1.12) brightness(0.95) saturate(1.15)'
-      : 'contrast(1.1) brightness(0.96)'
+      ? 'contrast(1.32) brightness(0.92) saturate(1.4)'
+      : 'contrast(1.18) brightness(0.95) saturate(1.2)'
     : undefined
-
 
   const content = (
     <div className="relative h-full w-full flex items-center justify-center overflow-hidden">
@@ -87,7 +86,7 @@ export function WatermarkThumbnail({
           console.warn(`[WATERMARK PREVIEW ERROR] Failed to load watermark: ${url}`, e)
           setHasError(true)
         }}
-        className={`h-full w-full object-contain object-center transition-transform duration-200 ${imageClassName}`}
+        className={`h-full w-full object-contain p-0.5 transition-transform duration-300 group-hover:scale-[1.03] ${imageClassName}`}
         style={filterStyle ? { filter: filterStyle } : undefined}
       />
     </div>
@@ -99,14 +98,14 @@ export function WatermarkThumbnail({
 
   return (
     <div
-      className={`relative aspect-[210/297] h-full max-h-full mx-auto rounded-sm overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-center p-0.5 group-hover:border-blue-400 transition-colors ${className}`}
+      className={`relative aspect-[210/297] h-full max-h-full mx-auto rounded-md overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/80 shadow-xs flex items-center justify-center p-0.5 group-hover:border-blue-400 group-hover:shadow-md transition-all ${className}`}
       aria-label={`Watermark thumbnail for ${label}`}
     >
       {/* Subtle Paper Corner Marks to simulate authentic security document */}
-      <div className="absolute top-1 left-1 w-1.5 h-1.5 border-t border-l border-slate-300 dark:border-slate-600 pointer-events-none" />
-      <div className="absolute top-1 right-1 w-1.5 h-1.5 border-t border-r border-slate-300 dark:border-slate-600 pointer-events-none" />
-      <div className="absolute bottom-1 left-1 w-1.5 h-1.5 border-b border-l border-slate-300 dark:border-slate-600 pointer-events-none" />
-      <div className="absolute bottom-1 right-1 w-1.5 h-1.5 border-b border-r border-slate-300 dark:border-slate-600 pointer-events-none" />
+      <div className="absolute top-1 left-1 w-1.5 h-1.5 border-t border-l border-slate-300 dark:border-slate-600 pointer-events-none z-10" />
+      <div className="absolute top-1 right-1 w-1.5 h-1.5 border-t border-r border-slate-300 dark:border-slate-600 pointer-events-none z-10" />
+      <div className="absolute bottom-1 left-1 w-1.5 h-1.5 border-b border-l border-slate-300 dark:border-slate-600 pointer-events-none z-10" />
+      <div className="absolute bottom-1 right-1 w-1.5 h-1.5 border-b border-r border-slate-300 dark:border-slate-600 pointer-events-none z-10" />
 
       {content}
     </div>

@@ -195,8 +195,8 @@ export function CopyWhatsAppButton({ bol }: { bol: BillOfLadingFormData }) {
             </div>
             <div className="relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/30 transition-shadow">
               <textarea 
-                className="w-full h-[45vh] min-h-[300px] resize-y p-5 text-sm leading-relaxed text-slate-800 dark:text-slate-200 font-mono bg-transparent focus:outline-none placeholder:text-slate-400" 
-                dir="auto"
+                className="w-full h-[45vh] min-h-[300px] resize-y p-5 text-sm leading-relaxed text-slate-800 dark:text-slate-200 font-sans antialiased whitespace-pre-wrap bg-transparent focus:outline-none placeholder:text-slate-400" 
+                dir="ltr"
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
                 placeholder="Type your WhatsApp message here..."

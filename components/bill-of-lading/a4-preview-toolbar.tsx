@@ -13,7 +13,7 @@ import {
 import { DOCUMENT_BACKGROUNDS } from "@/lib/document-backgrounds"
 import { CopyWhatsAppButton } from "./copy-whatsapp-button"
 import { BillOfLadingFormData } from "@/lib/types/bill-of-lading"
-import { buildWhatsAppBOLMessage } from "@/lib/utils/bol-whatsapp-formatter"
+import { buildWhatsAppShipmentUpdate } from "@/lib/utils/bol-whatsapp-formatter"
 import { getStoredCompanyStampConfig, saveStoredCompanyStampConfig, type CompanyStampConfig } from "@/lib/company-stamp-data"
 import { toast } from "sonner"
 import {
@@ -74,6 +74,7 @@ export interface A4PreviewToolbarProps {
   onToggleStampSignature: () => void
   onDownloadPdf: (kind: "all" | "bol" | "packing-list" | "stickers") => void
   onDirectPrint: () => void
+  onOpenPrintDialog?: () => void
   onOpenDocumentCenter: () => void
   onOpenSavedDocuments: () => void
   onNewDocument: () => void
@@ -113,6 +114,7 @@ function A4PreviewToolbarBase({
   onToggleStampSignature,
   onDownloadPdf,
   onDirectPrint,
+  onOpenPrintDialog,
   onOpenDocumentCenter,
   onOpenSavedDocuments,
   onNewDocument,
@@ -501,18 +503,51 @@ function A4PreviewToolbarBase({
           </DropdownMenu>
         </div>
 
-        {/* Print Button */}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onDirectPrint}
-          className="h-7.5 px-2 sm:px-2.5 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer gap-1 flex items-center shrink-0"
-          title="Instant Print True A4 Document (Ctrl + P)"
-        >
-          <Printer className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" />
-          <span className="hidden sm:inline">Print</span>
-        </Button>
+        {/* Print Button Group */}
+        <div className="inline-flex rounded-lg shadow-2xs shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onDirectPrint}
+            className={`h-7.5 px-2 sm:px-2.5 ${onOpenPrintDialog ? "rounded-r-none" : "rounded-lg"} border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs cursor-pointer gap-1 flex items-center shrink-0`}
+            title="Instant Print Document (Ctrl + P)"
+          >
+            <Printer className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" />
+            <span className="hidden sm:inline">Print</span>
+          </Button>
+          {onOpenPrintDialog && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7.5 px-1.5 rounded-l-none border-l-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer"
+                  title="Print options & quality settings"
+                >
+                  <span className="text-[10px] opacity-70">▾</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5 shadow-xl dark:bg-slate-900 dark:border-slate-800">
+                <DropdownMenuItem
+                  onClick={onDirectPrint}
+                  className="gap-2 text-xs font-bold cursor-pointer"
+                >
+                  <Printer className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Direct Print (Default Printer)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={onOpenPrintDialog}
+                  className="gap-2 text-xs font-bold cursor-pointer"
+                >
+                  <Sliders className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Print Options & Quality</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
 
         {/* Fullscreen Toggle Button - Clean Icon Button */}
         <Button
@@ -590,7 +625,7 @@ function A4PreviewToolbarBase({
               <DropdownMenuItem
                 onClick={() => {
                   try {
-                    const msg = buildWhatsAppBOLMessage({ ...formData, bol_number: bolNumber, issue_date: issueDate })
+                    const msg = buildWhatsAppShipmentUpdate({ ...formData, bol_number: bolNumber, issue_date: issueDate })
                     if (navigator?.clipboard) {
                       void navigator.clipboard.writeText(msg)
                       toast.success("WhatsApp message copied to clipboard!")

@@ -8,7 +8,7 @@ import fsSync from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import crypto from "node:crypto"
-import { getDataPath, getBackupRoot } from "@/lib/server-paths"
+import { getDataPath, getBackupRoot, getDataRoot } from "@/lib/server-paths"
 import { createZipArchive, type ArchiveEntry, extractZipArchive } from "@/lib/google-drive/archive"
 import { readJsonFile, writeJsonFile } from "@/lib/services/blob-db"
 import { collectAllSystemData, computeSha256 } from "./backup-collector"
@@ -223,13 +223,29 @@ export async function listAllBackups(): Promise<BackupItem[]> {
   const catalog = await readJsonFile<BackupItem[]>(BACKUPS_CATALOG_FILE, [])
   const list = Array.isArray(catalog) ? catalog : []
 
-  // Verify file existence on disk
+  // Verify file existence on disk with fallback path resolution
   return list.map((item) => {
-    const exists = fsSync.existsSync(item.filePath)
+    let activePath = item.filePath
+    let exists = activePath ? fsSync.existsSync(activePath) : false
+    if (!exists) {
+      const candidates = [
+        path.join(getBackupRoot(), item.fileName),
+        path.join(getDataRoot(), "backups", item.fileName),
+        path.join(process.cwd(), "data", "backups", item.fileName),
+        path.join(os.tmpdir(), "backups", item.fileName),
+      ]
+      for (const cand of candidates) {
+        if (fsSync.existsSync(cand)) {
+          exists = true
+          activePath = cand
+          break
+        }
+      }
+    }
     if (!exists && item.status !== "DELETED") {
       return { ...item, status: "FAILED", verificationStatus: "FAILED", note: (item.note || "") + " (File missing on disk)" }
     }
-    return item
+    return { ...item, filePath: activePath }
   })
 }
 

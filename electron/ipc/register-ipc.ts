@@ -1,11 +1,81 @@
-import { BrowserWindow, dialog, ipcMain, shell, clipboard } from "electron"
+import { BrowserWindow, dialog, ipcMain, shell, clipboard, app } from "electron"
 import { readFile } from "node:fs/promises"
+import fs from "node:fs"
+import { spawn } from "node:child_process"
 import path from "node:path"
 import { atomicWriteFile } from "../services/atomic-file"
 import { createDataBackup, restoreDataBackup } from "../services/data"
 import { backendManager, type ConnectionMode, type NetworkConfig } from "../backend-manager"
 
 type SavePayload = { defaultName?: string; bytes: number[] }
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 Bytes"
+  const k = 1024
+  const sizes = ["Bytes", "KB", "MB", "GB"]
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+}
+
+function findInstallerPath(customCandidate?: string): { path: string; size: number; mtime: Date; sha256?: string; version?: string } | null {
+  const candidateDirs: string[] = []
+  if (customCandidate && fs.existsSync(customCandidate)) {
+    const stats = fs.statSync(customCandidate)
+    if (stats.isFile()) {
+      let sha256: string | undefined
+      const shaFile = `${customCandidate}.sha256`
+      if (fs.existsSync(shaFile)) {
+        try {
+          sha256 = fs.readFileSync(shaFile, "utf8").trim().split(" ")[0]
+        } catch {}
+      }
+      return { path: customCandidate, size: stats.size, mtime: stats.mtime, sha256 }
+    } else if (stats.isDirectory()) {
+      candidateDirs.push(customCandidate)
+    }
+  }
+
+  const rootDir = process.cwd()
+  candidateDirs.push(
+    path.join(rootDir, "release"),
+    path.join(rootDir, "..", "release"),
+    path.join(app.getAppPath(), "release"),
+    path.join(app.getAppPath(), "..", "release"),
+    path.join(process.resourcesPath || rootDir, "..", "..", "release"),
+    path.join(app.getPath("downloads")),
+    "D:\\SOFTWARES-APPS\\BOL-SOFTWARE-V5\\release"
+  )
+
+  for (const dir of candidateDirs) {
+    if (!fs.existsSync(dir)) continue
+    try {
+      const files = fs.readdirSync(dir)
+      const installerName = files.find(f => f.startsWith("AQ-COMPANIES-Setup") && f.endsWith(".exe"))
+      if (installerName) {
+        const fullPath = path.join(dir, installerName)
+        const stats = fs.statSync(fullPath)
+        let sha256: string | undefined
+        const shaFile = `${fullPath}.sha256`
+        if (fs.existsSync(shaFile)) {
+          try {
+            sha256 = fs.readFileSync(shaFile, "utf8").trim().split(" ")[0]
+          } catch {}
+        }
+        let version: string | undefined
+        const latestYml = path.join(dir, "latest.yml")
+        if (fs.existsSync(latestYml)) {
+          try {
+            const raw = fs.readFileSync(latestYml, "utf8")
+            const vm = raw.match(/version:\s*([^\s]+)/)
+            if (vm) version = vm[1]
+          } catch {}
+        }
+        return { path: fullPath, size: stats.size, mtime: stats.mtime, sha256, version }
+      }
+    } catch {}
+  }
+  return null
+}
 
 function safeName(value: unknown, fallback: string): string {
   if (typeof value !== "string") return fallback
@@ -152,5 +222,120 @@ export function registerIpcHandlers(options: {
     } catch {
       return false
     }
+  })
+
+  // Desktop Software Updater Handlers
+  ipcMain.handle("updater:check", async (_event, customCandidate?: string) => {
+    try {
+      const installer = findInstallerPath(customCandidate)
+      const currentVersion = app.getVersion() || "5.1.0"
+      if (!installer) {
+        return {
+          success: true,
+          hasUpdate: false,
+          installerPath: null,
+          installerName: null,
+          installerSize: 0,
+          installerFormattedSize: "0 MB",
+          installerModifiedTime: null,
+          version: currentVersion,
+          currentVersion,
+          sha256: null,
+          status: "not_found",
+        }
+      }
+
+      return {
+        success: true,
+        hasUpdate: true,
+        installerPath: installer.path,
+        installerName: path.basename(installer.path),
+        installerSize: installer.size,
+        installerFormattedSize: formatBytes(installer.size),
+        installerModifiedTime: installer.mtime.toISOString(),
+        version: installer.version || currentVersion,
+        currentVersion,
+        sha256: installer.sha256 || null,
+        status: "ready_to_install",
+      }
+    } catch (e: any) {
+      return {
+        success: false,
+        hasUpdate: false,
+        error: e?.message || "Failed to check for updates",
+      }
+    }
+  })
+
+  ipcMain.handle("updater:install", async (_event, targetPath?: string) => {
+    try {
+      const installer = findInstallerPath(targetPath)
+      if (!installer || !fs.existsSync(installer.path)) {
+        return { success: false, error: "Setup executable was not found. Please verify release directory." }
+      }
+
+      // Launch the installer detached so it continues after app exits
+      const child = spawn(installer.path, [], {
+        detached: true,
+        stdio: "ignore",
+        windowsHide: false,
+      })
+      child.unref()
+
+      // Gracefully exit the current application after 1500ms so files are not locked
+      setTimeout(() => {
+        try {
+          app.quit()
+        } catch {
+          process.exit(0)
+        }
+      }, 1500)
+
+      return {
+        success: true,
+        message: "Installer launched successfully. The application will close in a moment to complete setup.",
+        installerPath: installer.path,
+      }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to launch installer" }
+    }
+  })
+
+  ipcMain.handle("updater:open-folder", async (_event, targetDirOrFile?: string) => {
+    try {
+      let targetPath = targetDirOrFile
+      if (!targetPath) {
+        const installer = findInstallerPath()
+        targetPath = installer ? path.dirname(installer.path) : path.join(process.cwd(), "release")
+      }
+      if (fs.existsSync(targetPath)) {
+        const stats = fs.statSync(targetPath)
+        if (stats.isDirectory()) {
+          shell.openPath(targetPath)
+        } else {
+          shell.showItemInFolder(targetPath)
+        }
+        return { success: true }
+      }
+      return { success: false, error: "Path does not exist" }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to open directory" }
+    }
+  })
+
+  ipcMain.handle("updater:select-file", async () => {
+    const owner = getWindow()
+    const result = owner
+      ? await dialog.showOpenDialog(owner, {
+          title: "Select AQ COMPANIES Update Package (.exe)",
+          filters: [{ name: "Executable Installers (*.exe)", extensions: ["exe"] }],
+          properties: ["openFile"],
+        })
+      : await dialog.showOpenDialog({
+          title: "Select AQ COMPANIES Update Package (.exe)",
+          filters: [{ name: "Executable Installers (*.exe)", extensions: ["exe"] }],
+          properties: ["openFile"],
+        })
+    return result.canceled ? null : result.filePaths[0]
   })
 }

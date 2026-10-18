@@ -3,116 +3,303 @@
   <title>Cargo Convoy — Sky Ariana Logistics Security Watermark</title>
   <defs>
     <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feGaussianBlur stdDeviation="2" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
-    <linearGradient id="primary-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e40af" stop-opacity="0.85" />
-      <stop offset="100%" stop-color="#2563eb" stop-opacity="0.5" />
+    
+    <linearGradient id="cc-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#334155" />
     </linearGradient>
-    <linearGradient id="fade-down" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1e40af" stop-opacity="0.7" />
-      <stop offset="100%" stop-color="#2563eb" stop-opacity="0.1" />
-    </linearGradient>
+    
   </defs>
   
-  <!-- Security Document Outer Border & Fine Calibrated Grid -->
-  <g fill="none" stroke="#1e40af">
-    <!-- Primary Outer Frame -->
-    <rect x="24" y="24" width="852" height="1352" rx="4" stroke-width="1.5" opacity="0.65" />
-    <rect x="32" y="32" width="836" height="1336" rx="2" stroke-width="0.7" stroke-dasharray="5 3" opacity="0.5" />
-    <rect x="42" y="42" width="816" height="1316" stroke-width="0.5" opacity="0.3" />
+    <rect width="900" height="1400" fill="url(#cc-bg)" />
+
+    <!-- Multi-Vehicle Logistics Convoy in Elevation Profile -->
+    
+      <g transform="translate(180, 340) scale(0.7)">
+        <!-- Tractor Cab -->
+        <rect x="0" y="0" width="90" height="60" rx="4" fill="#ffffff" stroke="#38bdf8" stroke-width="2" />
+        <rect x="15" y="10" width="30" height="20" fill="#38bdf8" stroke="#1e40af" stroke-width="1.2" />
+        <circle cx="25" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <circle cx="65" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <!-- Headlight Beams -->
+        <polygon points="0,35 -140,0 -140,70 0,45" fill="#fef08a" fill-opacity="0.3" stroke="none" />
+        <!-- Trailer Box -->
+        <rect x="100" y="-15" width="280" height="75" rx="3" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <line x1="130" y1="-15" x2="130" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="160" y1="-15" x2="160" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="190" y1="-15" x2="190" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="220" y1="-15" x2="220" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="250" y1="-15" x2="250" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="280" y1="-15" x2="280" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="310" y1="-15" x2="310" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="340" y1="-15" x2="340" y2="60" stroke="#94a3b8" stroke-width="1" />
+        <!-- Trailer Wheels Tri-Axle -->
+        <circle cx="280" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <circle cx="315" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <circle cx="350" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <!-- Label -->
+        <text x="240" y="25" font-family="monospace" font-size="9" font-weight="900" fill="#0f172a" text-anchor="middle">SKY ARIANA FLEET · LEAD ESCORT #01</text>
+      </g>
+    
+
+      <g transform="translate(180, 560) scale(1)">
+        <!-- Tractor Cab -->
+        <rect x="0" y="0" width="90" height="60" rx="4" fill="#ffffff" stroke="#38bdf8" stroke-width="2" />
+        <rect x="15" y="10" width="30" height="20" fill="#38bdf8" stroke="#1e40af" stroke-width="1.2" />
+        <circle cx="25" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <circle cx="65" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <!-- Headlight Beams -->
+        <polygon points="0,35 -140,0 -140,70 0,45" fill="#fef08a" fill-opacity="0.3" stroke="none" />
+        <!-- Trailer Box -->
+        <rect x="100" y="-15" width="280" height="75" rx="3" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <line x1="130" y1="-15" x2="130" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="160" y1="-15" x2="160" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="190" y1="-15" x2="190" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="220" y1="-15" x2="220" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="250" y1="-15" x2="250" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="280" y1="-15" x2="280" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="310" y1="-15" x2="310" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="340" y1="-15" x2="340" y2="60" stroke="#94a3b8" stroke-width="1" />
+        <!-- Trailer Wheels Tri-Axle -->
+        <circle cx="280" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <circle cx="315" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <circle cx="350" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <!-- Label -->
+        <text x="240" y="25" font-family="monospace" font-size="9" font-weight="900" fill="#0f172a" text-anchor="middle">SKY ARIANA FLEET · PRIMARY FREIGHT #02</text>
+      </g>
+    
+
+      <g transform="translate(180, 840) scale(1.25)">
+        <!-- Tractor Cab -->
+        <rect x="0" y="0" width="90" height="60" rx="4" fill="#ffffff" stroke="#38bdf8" stroke-width="2" />
+        <rect x="15" y="10" width="30" height="20" fill="#38bdf8" stroke="#1e40af" stroke-width="1.2" />
+        <circle cx="25" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <circle cx="65" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <!-- Headlight Beams -->
+        <polygon points="0,35 -140,0 -140,70 0,45" fill="#fef08a" fill-opacity="0.3" stroke="none" />
+        <!-- Trailer Box -->
+        <rect x="100" y="-15" width="280" height="75" rx="3" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <line x1="130" y1="-15" x2="130" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="160" y1="-15" x2="160" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="190" y1="-15" x2="190" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="220" y1="-15" x2="220" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="250" y1="-15" x2="250" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="280" y1="-15" x2="280" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="310" y1="-15" x2="310" y2="60" stroke="#94a3b8" stroke-width="1" />
+<line x1="340" y1="-15" x2="340" y2="60" stroke="#94a3b8" stroke-width="1" />
+        <!-- Trailer Wheels Tri-Axle -->
+        <circle cx="280" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <circle cx="315" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <circle cx="350" cy="60" r="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2.5" />
+        <!-- Label -->
+        <text x="240" y="25" font-family="monospace" font-size="9" font-weight="900" fill="#0f172a" text-anchor="middle">SKY ARIANA FLEET · HEAVY HAUL TRAILER #03</text>
+      </g>
+    
+
+    <!-- Road Base & Guideway Lines -->
+    <line x1="40" y1="1100" x2="860" y2="1100" stroke="#38bdf8" stroke-width="3" />
+    <line x1="40" y1="1110" x2="860" y2="1110" stroke="#38bdf8" stroke-width="1" stroke-dasharray="12 6" />
+
+    <g fill="none" stroke="#38bdf8" opacity="0.4">
+  <path d="M 30,1211.8 L 45,1209.7 L 60,1209.1 L 75,1210.8 L 90,1212.2 L 105,1209.1 L 120,1199.1 L 135,1184 L 150,1169.2 L 165,1161.3 L 180,1164.1 L 195,1176.1 L 210,1191.9 L 225,1205 L 240,1211.5 L 255,1211.8 L 270,1209.7 L 285,1209.1 L 300,1210.8 L 315,1212.2 L 330,1209.1 L 345,1199.1 L 360,1184 L 375,1169.2 L 390,1161.3 L 405,1164.1 L 420,1176.1 L 435,1191.9 L 450,1205 L 465,1211.5 L 480,1211.8 L 495,1209.7 L 510,1209.1 L 525,1210.8 L 540,1212.2 L 555,1209.1 L 570,1199.1 L 585,1184 L 600,1169.2 L 615,1161.3 L 630,1164.1 L 645,1176.1 L 660,1191.9 L 675,1205 L 690,1211.5 L 705,1211.8 L 720,1209.7 L 735,1209.1 L 750,1210.8 L 765,1212.2 L 780,1209.1 L 795,1199.1 L 810,1184 L 825,1169.2 L 840,1161.3 L 855,1164.1 L 870,1176.1" stroke-width="1.2" />
+  <path d="M 30,1214.8 L 45,1213.7 L 60,1214.7 L 75,1217.6 L 90,1219 L 105,1214.8 L 120,1203.2 L 135,1187 L 150,1172.6 L 165,1166.1 L 180,1170.4 L 195,1183.1 L 210,1198.3 L 225,1209.8 L 240,1214.8 L 255,1214.8 L 270,1213.7 L 285,1214.7 L 300,1217.6 L 315,1219 L 330,1214.8 L 345,1203.2 L 360,1187 L 375,1172.6 L 390,1166.1 L 405,1170.4 L 420,1183.1 L 435,1198.3 L 450,1209.8 L 465,1214.8 L 480,1214.8 L 495,1213.7 L 510,1214.7 L 525,1217.6 L 540,1219 L 555,1214.8 L 570,1203.2 L 585,1187 L 600,1172.6 L 615,1166.1 L 630,1170.4 L 645,1183.1 L 660,1198.3 L 675,1209.8 L 690,1214.8 L 705,1214.8 L 720,1213.7 L 735,1214.7 L 750,1217.6 L 765,1219 L 780,1214.8 L 795,1203.2 L 810,1187 L 825,1172.6 L 840,1166.1 L 855,1170.4 L 870,1183.1" stroke-width="0.6" />
+  <path d="M 30,1218 L 45,1218.1 L 60,1220.7 L 75,1224.6 L 90,1225.7 L 105,1220 L 120,1206.8 L 135,1190 L 150,1176.2 L 165,1171.3 L 180,1177 L 195,1190.1 L 210,1204.3 L 225,1214.2 L 240,1218 L 255,1218 L 270,1218.1 L 285,1220.7 L 300,1224.6 L 315,1225.7 L 330,1220 L 345,1206.8 L 360,1190 L 375,1176.2 L 390,1171.3 L 405,1177 L 420,1190.1 L 435,1204.3 L 450,1214.2 L 465,1218 L 480,1218 L 495,1218.1 L 510,1220.7 L 525,1224.6 L 540,1225.7 L 555,1220 L 570,1206.8 L 585,1190 L 600,1176.2 L 615,1171.3 L 630,1177 L 645,1190.1 L 660,1204.3 L 675,1214.2 L 690,1218 L 705,1218 L 720,1218.1 L 735,1220.7 L 750,1224.6 L 765,1225.7 L 780,1220 L 795,1206.8 L 810,1190 L 825,1176.2 L 840,1171.3 L 855,1177 L 870,1190.1" stroke-width="0.6" />
+  <path d="M 30,1221.4 L 45,1222.8 L 60,1227 L 75,1231.5 L 90,1232 L 105,1224.8 L 120,1210.3 L 135,1193.1 L 150,1180.2 L 165,1176.9 L 180,1183.8 L 195,1196.9 L 210,1210 L 225,1218.3 L 240,1221.1 L 255,1221.4 L 270,1222.8 L 285,1227 L 300,1231.5 L 315,1232 L 330,1224.8 L 345,1210.3 L 360,1193.1 L 375,1180.2 L 390,1176.9 L 405,1183.8 L 420,1196.9 L 435,1210 L 450,1218.3 L 465,1221.1 L 480,1221.4 L 495,1222.8 L 510,1227 L 525,1231.5 L 540,1232 L 555,1224.8 L 570,1210.3 L 585,1193.1 L 600,1180.2 L 615,1176.9 L 630,1183.8 L 645,1196.9 L 660,1210 L 675,1218.3 L 690,1221.1 L 705,1221.4 L 720,1222.8 L 735,1227 L 750,1231.5 L 765,1232 L 780,1224.8 L 795,1210.3 L 810,1193.1 L 825,1180.2 L 840,1176.9 L 855,1183.8 L 870,1196.9" stroke-width="1.2" />
+  <path d="M 30,1225 L 45,1228 L 60,1233.5 L 75,1238.5 L 90,1238.1 L 105,1229.3 L 120,1213.5 L 135,1196.2 L 150,1184.5 L 165,1182.8 L 180,1190.8 L 195,1203.6 L 210,1215.2 L 225,1222 L 240,1224.1 L 255,1225 L 270,1228 L 285,1233.5 L 300,1238.5 L 315,1238.1 L 330,1229.3 L 345,1213.5 L 360,1196.2 L 375,1184.5 L 390,1182.8 L 405,1190.8 L 420,1203.6 L 435,1215.2 L 450,1222 L 465,1224.1 L 480,1225 L 495,1228 L 510,1233.5 L 525,1238.5 L 540,1238.1 L 555,1229.3 L 570,1213.5 L 585,1196.2 L 600,1184.5 L 615,1182.8 L 630,1190.8 L 645,1203.6 L 660,1215.2 L 675,1222 L 690,1224.1 L 705,1225 L 720,1228 L 735,1233.5 L 750,1238.5 L 765,1238.1 L 780,1229.3 L 795,1213.5 L 810,1196.2 L 825,1184.5 L 840,1182.8 L 855,1190.8 L 870,1203.6" stroke-width="0.6" />
+  <path d="M 30,1228.9 L 45,1233.5 L 60,1240.3 L 75,1245.4 L 90,1243.8 L 105,1233.3 L 120,1216.5 L 135,1199.6 L 150,1189.2 L 165,1189.1 L 180,1197.7 L 195,1210 L 210,1220.1 L 225,1225.4 L 240,1227.1 L 255,1228.9 L 270,1233.5 L 285,1240.3 L 300,1245.4 L 315,1243.8 L 330,1233.3 L 345,1216.5 L 360,1199.6 L 375,1189.2 L 390,1189.1 L 405,1197.7 L 420,1210 L 435,1220.1 L 450,1225.4 L 465,1227.1 L 480,1228.9 L 495,1233.5 L 510,1240.3 L 525,1245.4 L 540,1243.8 L 555,1233.3 L 570,1216.5 L 585,1199.6 L 600,1189.2 L 615,1189.1 L 630,1197.7 L 645,1210 L 660,1220.1 L 675,1225.4 L 690,1227.1 L 705,1228.9 L 720,1233.5 L 735,1240.3 L 750,1245.4 L 765,1243.8 L 780,1233.3 L 795,1216.5 L 810,1199.6 L 825,1189.2 L 840,1189.1 L 855,1197.7 L 870,1210" stroke-width="0.6" />
+  <path d="M 30,1233.2 L 45,1239.4 L 60,1247.3 L 75,1252 L 90,1249.1 L 105,1237.1 L 120,1219.5 L 135,1203.1 L 150,1194.3 L 165,1195.6 L 180,1204.7 L 195,1216.1 L 210,1224.6 L 225,1228.6 L 240,1230.3 L 255,1233.2 L 270,1239.4 L 285,1247.3 L 300,1252 L 315,1249.1 L 330,1237.1 L 345,1219.5 L 360,1203.1 L 375,1194.3 L 390,1195.6 L 405,1204.7 L 420,1216.1 L 435,1224.6 L 450,1228.6 L 465,1230.3 L 480,1233.2 L 495,1239.4 L 510,1247.3 L 525,1252 L 540,1249.1 L 555,1237.1 L 570,1219.5 L 585,1203.1 L 600,1194.3 L 615,1195.6 L 630,1204.7 L 645,1216.1 L 660,1224.6 L 675,1228.6 L 690,1230.3 L 705,1233.2 L 720,1239.4 L 735,1247.3 L 750,1252 L 765,1249.1 L 780,1237.1 L 795,1219.5 L 810,1203.1 L 825,1194.3 L 840,1195.6 L 855,1204.7 L 870,1216.1" stroke-width="1.2" />
+  <path d="M 30,1237.9 L 45,1245.7 L 60,1254.3 L 75,1258.5 L 90,1254 L 105,1240.6 L 120,1222.6 L 135,1207 L 150,1199.8 L 165,1202.4 L 180,1211.6 L 195,1221.8 L 210,1228.7 L 225,1231.7 L 240,1233.6 L 255,1237.9 L 270,1245.7 L 285,1254.3 L 300,1258.5 L 315,1254 L 330,1240.6 L 345,1222.6 L 360,1207 L 375,1199.8 L 390,1202.4 L 405,1211.6 L 420,1221.8 L 435,1228.7 L 450,1231.7 L 465,1233.6 L 480,1237.9 L 495,1245.7 L 510,1254.3 L 525,1258.5 L 540,1254 L 555,1240.6 L 570,1222.6 L 585,1207 L 600,1199.8 L 615,1202.4 L 630,1211.6 L 645,1221.8 L 660,1228.7 L 675,1231.7 L 690,1233.6 L 705,1237.9 L 720,1245.7 L 735,1254.3 L 750,1258.5 L 765,1254 L 780,1240.6 L 795,1222.6 L 810,1207 L 825,1199.8 L 840,1202.4 L 855,1211.6 L 870,1221.8" stroke-width="0.6" />
+  <path d="M 30,1242.9 L 45,1252.2 L 60,1261.2 L 75,1264.6 L 90,1258.5 L 105,1243.8 L 120,1225.7 L 135,1211.3 L 150,1205.7 L 165,1209.3 L 180,1218.3 L 195,1227.1 L 210,1232.5 L 225,1234.7 L 240,1237.1 L 255,1242.9 L 270,1252.2 L 285,1261.2 L 300,1264.6 L 315,1258.5 L 330,1243.8 L 345,1225.7 L 360,1211.3 L 375,1205.7 L 390,1209.3 L 405,1218.3 L 420,1227.1 L 435,1232.5 L 450,1234.7 L 465,1237.1 L 480,1242.9 L 495,1252.2 L 510,1261.2 L 525,1264.6 L 540,1258.5 L 555,1243.8 L 570,1225.7 L 585,1211.3 L 600,1205.7 L 615,1209.3 L 630,1218.3 L 645,1227.1 L 660,1232.5 L 675,1234.7 L 690,1237.1 L 705,1242.9 L 720,1252.2 L 735,1261.2 L 750,1264.6 L 765,1258.5 L 780,1243.8 L 795,1225.7 L 810,1211.3 L 825,1205.7 L 840,1209.3 L 855,1218.3 L 870,1227.1" stroke-width="0.6" />
+  <path d="M 30,1248.4 L 45,1258.9 L 60,1268.1 L 75,1270.4 L 90,1262.7 L 105,1246.9 L 120,1229 L 135,1215.9 L 150,1211.9 L 165,1216.3 L 180,1224.7 L 195,1232.1 L 210,1236 L 225,1237.7 L 240,1241 L 255,1248.4 L 270,1258.9 L 285,1268.1 L 300,1270.4 L 315,1262.7 L 330,1246.9 L 345,1229 L 360,1215.9 L 375,1211.9 L 390,1216.3 L 405,1224.7 L 420,1232.1 L 435,1236 L 450,1237.7 L 465,1241 L 480,1248.4 L 495,1258.9 L 510,1268.1 L 525,1270.4 L 540,1262.7 L 555,1246.9 L 570,1229 L 585,1215.9 L 600,1211.9 L 615,1216.3 L 630,1224.7 L 645,1232.1 L 660,1236 L 675,1237.7 L 690,1241 L 705,1248.4 L 720,1258.9 L 735,1268.1 L 750,1270.4 L 765,1262.7 L 780,1246.9 L 795,1229 L 810,1215.9 L 825,1211.9 L 840,1216.3 L 855,1224.7 L 870,1232.1" stroke-width="1.2" />
+</g>
+
+    
+  <!-- Full-Page Banknote Security Border -->
+  <g fill="none" stroke="#38bdf8">
+    <rect x="24" y="24" width="852" height="1352" rx="4" stroke-width="2.2" opacity="0.8" />
+    <rect x="32" y="32" width="836" height="1336" rx="2" stroke-width="0.8" stroke-dasharray="6 3" stroke="#0284c7" opacity="0.6" />
+    <rect x="42" y="42" width="816" height="1316" stroke-width="0.6" opacity="0.4" />
 
     <!-- Corner Alignment Crosshairs -->
-    <path d="M16,40 L16,16 L40,16" stroke-width="2" opacity="0.8" />
-    <path d="M884,40 L884,16 L860,16" stroke-width="2" opacity="0.8" />
-    <path d="M16,1360 L16,1384 L40,1384" stroke-width="2" opacity="0.8" />
-    <path d="M884,1360 L884,1384 L860,1384" stroke-width="2" opacity="0.8" />
+    <path d="M16,40 L16,16 L40,16" stroke-width="2.5" opacity="0.85" />
+    <path d="M884,40 L884,16 L860,16" stroke-width="2.5" opacity="0.85" />
+    <path d="M16,1360 L16,1384 L40,1384" stroke-width="2.5" opacity="0.85" />
+    <path d="M884,1360 L884,1384 L860,1384" stroke-width="2.5" opacity="0.85" />
 
     <!-- Top & Bottom Micro-Text Security Banners -->
-    <text x="450" y="20" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#1e40af" opacity="0.75">★ SKY ARIANA LOGISTICS · OFFICIAL MULTI-MODAL BILL OF LADING SECURITY SYSTEM ★</text>
-    <text x="450" y="1390" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#1e40af" opacity="0.75">★ AUTHENTIC SECURE CARGO WAYBILL · VERIFIED INTERNATIONAL TRANSIT NETWORK ★</text>
+    <text x="450" y="20" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#38bdf8" stroke="none" opacity="0.85">★ SKY ARIANA LOGISTICS · CARGO CONVOY · INTER-CITY FREIGHT SQUADRON ★</text>
+    <text x="450" y="1390" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#38bdf8" stroke="none" opacity="0.85">★ AUTHENTIC SECURE CARGO WAYBILL · VERIFIED INTERNATIONAL TRANSIT NETWORK ★</text>
 
     <!-- Side Margin Degree & Metric Ticks -->
-    <g opacity="0.4" stroke-width="0.6">
-      <line x1="20" y1="350" x2="28" y2="350" /><line x1="20" y1="700" x2="30" y2="700" stroke-width="1.2" /><line x1="20" y1="1050" x2="28" y2="1050" />
-      <line x1="872" y1="350" x2="880" y2="350" /><line x1="870" y1="700" x2="880" y2="700" stroke-width="1.2" /><line x1="872" y1="1050" x2="880" y2="1050" />
-      <line x1="225" y1="20" x2="225" y2="28" /><line x1="450" y1="18" x2="450" y2="30" stroke-width="1.2" /><line x1="675" y1="20" x2="675" y2="28" />
-      <line x1="225" y1="1372" x2="225" y2="1380" /><line x1="450" y1="1370" x2="450" y2="1382" stroke-width="1.2" /><line x1="675" y1="1372" x2="675" y2="1380" />
+    <g opacity="0.45" stroke-width="0.8">
+      <line x1="20" y1="350" x2="28" y2="350" /><line x1="20" y1="700" x2="32" y2="700" stroke-width="1.6" /><line x1="20" y1="1050" x2="28" y2="1050" />
+      <line x1="872" y1="350" x2="880" y2="350" /><line x1="868" y1="700" x2="880" y2="700" stroke-width="1.6" /><line x1="872" y1="1050" x2="880" y2="1050" />
+      <line x1="225" y1="20" x2="225" y2="28" /><line x1="450" y1="16" x2="450" y2="32" stroke-width="1.6" /><line x1="675" y1="20" x2="675" y2="28" />
+      <line x1="225" y1="1372" x2="225" y2="1380" /><line x1="450" y1="1368" x2="450" y2="1384" stroke-width="1.6" /><line x1="675" y1="1372" x2="675" y2="1380" />
     </g>
   </g>
-  <g transform="translate(75,75)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#1e40af" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#1e40af" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#1e40af" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#1e40af" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#2563eb" stroke-width="0.6" opacity="0.4" />
-    </g><g transform="translate(825,75)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#1e40af" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#1e40af" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#1e40af" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#1e40af" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#2563eb" stroke-width="0.6" opacity="0.4" />
-    </g><g transform="translate(75,1325)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#1e40af" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#1e40af" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#1e40af" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#1e40af" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#2563eb" stroke-width="0.6" opacity="0.4" />
-    </g><g transform="translate(825,1325)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#1e40af" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#1e40af" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#1e40af" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#1e40af" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#2563eb" stroke-width="0.6" opacity="0.4" />
-    </g>
 
+  <!-- 4 Corner Security Banknote Rosettes -->
+  <g transform="translate(75,75)" fill="none" stroke="#38bdf8" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#38bdf8" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
 
-  <!-- Heavy Logistics Road Freight Convoy in Tight Formation -->
-  <g fill="none" stroke="#1e40af">
-    <!-- Multi-Lane Modern Freight Highway Receding into Distance -->
-    <line x1="450" y1="460" x2="140" y2="1320" stroke="#1e40af" stroke-width="3" />
-    <line x1="450" y1="460" x2="760" y2="1320" stroke="#1e40af" stroke-width="3" />
-    <line x1="450" y1="460" x2="450" y2="1320" stroke="#2563eb" stroke-width="2" stroke-dasharray="16 12" />
+  <g transform="translate(825,75)" fill="none" stroke="#38bdf8" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#38bdf8" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
 
-    <!-- Three Heavy Logistics Semi-Trailers in Tight Convoy (Staggered Lanes) -->
-    <!-- Truck 1 (Lead Truck: Center-Right x = 520, y = 680) -->
-    <g transform="translate(520, 680) scale(0.9)" fill="#1e40af">
-      <rect x="-30" y="-50" width="60" height="48" rx="2" fill="#ffffff" stroke="#1e40af" stroke-width="2" />
-      <rect x="-24" y="-45" width="48" height="20" fill="#1e40af" fill-opacity="0.3" />
-      <circle cx="-18" cy="-10" r="4" fill="#d97706" />
-      <circle cx="18" cy="-10" r="4" fill="#d97706" />
-    </g>
+  <g transform="translate(75,1325)" fill="none" stroke="#38bdf8" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#38bdf8" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
 
-    <!-- Truck 2 (Second Truck: Center-Left x = 360, y = 840) -->
-    <g transform="translate(360, 840) scale(1.1)" fill="#1e40af">
-      <rect x="-32" y="-55" width="64" height="52" rx="3" fill="#ffffff" stroke="#1e40af" stroke-width="2.5" />
-      <rect x="-26" y="-50" width="52" height="22" fill="#2563eb" fill-opacity="0.3" />
-      <circle cx="-20" cy="-12" r="4.5" fill="#d97706" />
-      <circle cx="20" cy="-12" r="4.5" fill="#d97706" />
-      <!-- Headlight Beam Projections Forward -->
-      <polygon points="-20,-12 -80,-120 40,-120 20,-12" fill="#d97706" fill-opacity="0.08" stroke="none" />
-    </g>
+  <g transform="translate(825,1325)" fill="none" stroke="#38bdf8" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#38bdf8" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
 
-    <!-- Truck 3 (Third Truck: Center-Right x = 560, y = 1040) -->
-    <g transform="translate(560, 1040) scale(1.3)" fill="#1e40af">
-      <rect x="-35" y="-60" width="70" height="58" rx="3" fill="#ffffff" stroke="#1e40af" stroke-width="3" />
-      <rect x="-28" y="-54" width="56" height="25" fill="#1e40af" fill-opacity="0.3" />
-      <circle cx="-22" cy="-14" r="5" fill="#d97706" />
-      <circle cx="22" cy="-14" r="5" fill="#d97706" />
-      <text x="0" y="-36" font-family="Arial, sans-serif" font-size="8" font-weight="900" fill="#1e40af" text-anchor="middle">CONVOY 3</text>
-    </g>
-
-    <!-- Convoy Operations Control Seal -->
-    <g transform="translate(450, 280)">
-      <circle cx="0" cy="0" r="85" stroke="#1e40af" stroke-width="1.5" />
-      <text x="0" y="-12" font-family="Arial, sans-serif" font-size="9" font-weight="900" fill="#1e40af" text-anchor="middle">SECURE CARGO CONVOY</text>
-      <text x="0" y="6" font-family="Arial, sans-serif" font-size="12" font-weight="900" fill="#2563eb" text-anchor="middle">HIGHWAY ESCORT FLEET</text>
-      <text x="0" y="22" font-family="Courier, monospace" font-size="7" font-weight="bold" fill="#d97706" text-anchor="middle">GPS TRACKED · DISPATCH VERIFIED</text>
-    </g>
-  </g>
+  
+    
 </svg>

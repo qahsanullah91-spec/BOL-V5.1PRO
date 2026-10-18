@@ -1,71 +1,283 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1400" width="100%" height="100%">
+  <title>Overland Heavy Freight Blueprint — Sky Ariana Logistics</title>
   <defs>
-    <pattern id="gridPattern1" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1d4ed8" stroke-width="0.8" stroke-opacity="0.3" />
-      <path d="M 8 0 L 0 0 0 8" fill="none" stroke="#2563eb" stroke-width="0.4" stroke-opacity="0.2" />
+    <!-- Technical Blueprint Engineering Grid -->
+    <pattern id="cadGridMajor" width="100" height="100" patternUnits="userSpaceOnUse">
+      <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#2563eb" stroke-width="0.8" stroke-opacity="0.35" />
     </pattern>
-    <linearGradient id="blueprintGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+    <pattern id="cadGridMinor" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#3b82f6" stroke-width="0.35" stroke-opacity="0.2" />
+    </pattern>
+    <linearGradient id="blueprintBg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#eff6ff" />
-      <stop offset="50%" stop-color="#dbeafe" />
+      <stop offset="45%" stop-color="#dbeafe" />
       <stop offset="100%" stop-color="#bfdbfe" />
+    </linearGradient>
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#dbeafe" stop-opacity="0.9" />
     </linearGradient>
   </defs>
 
-  <rect width="1200" height="800" fill="url(#blueprintGrad1)" />
-  <rect width="1200" height="800" fill="url(#gridPattern1)" />
+  <!-- Technical Blueprint Background Paper & Multi-Scale Grid -->
+  <rect width="900" height="1400" fill="url(#blueprintBg)" />
+  <rect width="900" height="1400" fill="url(#cadGridMinor)" />
+  <rect width="900" height="1400" fill="url(#cadGridMajor)" />
 
-  <rect x="20" y="20" width="1160" height="760" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-opacity="0.6" />
-  <rect x="26" y="26" width="1148" height="748" fill="none" stroke="#2563eb" stroke-width="1.2" stroke-opacity="0.5" />
+  <!-- Perimeter Security & Architectural CAD Border -->
+  <g fill="none" stroke="#1e3a8a">
+    <rect x="24" y="24" width="852" height="1352" stroke-width="2" stroke-opacity="0.75" />
+    <rect x="34" y="34" width="832" height="1332" stroke-width="0.8" stroke-dasharray="6 3" stroke-opacity="0.5" />
+    <rect x="42" y="42" width="816" height="1316" stroke-width="0.5" stroke-opacity="0.3" />
 
-  <g transform="translate(820, 640)" stroke="#1e3a8a" stroke-width="1.2" fill="none" stroke-opacity="0.7">
-    <rect width="340" height="120" fill="#ffffff" fill-opacity="0.95" />
-    <line x1="0" y1="35" x2="340" y2="35" />
-    <line x1="0" y1="75" x2="340" y2="75" />
-    <line x1="170" y1="35" x2="170" y2="120" />
-    <text x="12" y="24" font-family="monospace" font-size="13" font-weight="black" fill="#1e3a8a" stroke="none">OVERLAND HIGHWAY BLUEPRINT</text>
-    <text x="12" y="58" font-family="monospace" font-size="11" font-weight="bold" fill="#1d4ed8" stroke="none">SCALE: 1:250,000</text>
-    <text x="182" y="58" font-family="monospace" font-size="11" font-weight="bold" fill="#1d4ed8" stroke="none">UNIT: HEAVY TRUCK</text>
-    <text x="12" y="100" font-family="monospace" font-size="11" font-weight="bold" fill="#1d4ed8" stroke="none">TRANS-ASIA CORRIDOR</text>
-    <text x="182" y="100" font-family="monospace" font-size="11" font-weight="bold" fill="#1d4ed8" stroke="none">REV: v5.1 PRO</text>
+    <!-- Corner Registration Crosshairs & Dimension Ticks -->
+    <path d="M16,40 L16,16 L40,16" stroke-width="2.5" stroke-opacity="0.8" />
+    <path d="M884,40 L884,16 L860,16" stroke-width="2.5" stroke-opacity="0.8" />
+    <path d="M16,1360 L16,1384 L40,1384" stroke-width="2.5" stroke-opacity="0.8" />
+    <path d="M884,1360 L884,1384 L860,1384" stroke-width="2.5" stroke-opacity="0.8" />
+
+    <!-- Axis Coordinate Calibrations -->
+    <text x="450" y="20" font-family="monospace" font-size="8" font-weight="bold" letter-spacing="3" text-anchor="middle" fill="#1e40af">SECURE CAD BLUEPRINT // TRANS-ASIA CORRIDOR // HEAVY OVERLAND TRANSIT</text>
+    <text x="450" y="1390" font-family="monospace" font-size="8" font-weight="bold" letter-spacing="3" text-anchor="middle" fill="#1e40af">SKY ARIANA MULTI-MODAL LOGISTICS NETWORK // FLEET SPECIFICATION SHEET</text>
   </g>
 
-  <g stroke="#1d4ed8" stroke-width="2" fill="none" stroke-opacity="0.6">
-    <path d="M 50 450 Q 200 250 400 380 T 800 220 T 1150 400" stroke-dasharray="8 4" />
-    <path d="M 100 380 Q 300 180 550 320 T 950 150 T 1180 350" stroke-width="2.5" />
-    <path d="M 0 520 Q 250 350 500 480 T 900 320 T 1200 500" stroke-dasharray="6 3" />
-
-    <path d="M 150 550 C 350 400, 650 650, 950 480" stroke="#1e3a8a" stroke-width="4" stroke-opacity="0.8" />
-    <path d="M 150 555 C 350 405, 650 655, 950 485" stroke="#3b82f6" stroke-width="1.8" stroke-dasharray="10 5" stroke-opacity="0.9" />
-
-    <line x1="300" y1="490" x2="300" y2="620" stroke-width="2.2" />
-    <line x1="450" y1="520" x2="450" y2="650" stroke-width="2.2" />
-    <line x1="600" y1="550" x2="600" y2="680" stroke-width="2.2" />
-    <line x1="750" y1="520" x2="750" y2="640" stroke-width="2.2" />
+  <!-- Top Section: Metric Coordinate Axis & Highway Elevation Topography -->
+  <g stroke="#2563eb" fill="none" stroke-opacity="0.55">
+    <!-- Mountain Highway Profile Contour -->
+    <path d="M 50 180 Q 200 110 380 150 T 680 100 T 850 160" stroke-width="1.8" />
+    <path d="M 50 200 Q 220 135 410 175 T 710 120 T 850 180" stroke-width="0.8" stroke-dasharray="4 4" />
+    
+    <!-- Top-Down Fleet Projection -->
+    <g transform="translate(180, 220)">
+      <text x="0" y="-12" font-family="monospace" font-size="9" font-weight="bold" fill="#1e40af" stroke="none">FIG. 01 — PLAN VIEW (OVERHEAD PROFILE)</text>
+      <!-- Cabin Overhead -->
+      <rect x="0" y="0" width="120" height="90" rx="6" fill="url(#metalGrad)" stroke="#1e3a8a" stroke-width="1.8" />
+      <path d="M 25 10 L 95 10 L 90 35 L 30 35 Z" fill="#93c5fd" fill-opacity="0.5" stroke="#1e40af" stroke-width="1.2" />
+      <!-- Cargo Trailer Overhead -->
+      <rect x="135" y="-5" width="400" height="100" rx="4" fill="url(#metalGrad)" stroke="#1e3a8a" stroke-width="2" />
+      <line x1="235" y1="-5" x2="235" y2="95" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 2" />
+      <line x1="335" y1="-5" x2="335" y2="95" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 2" />
+      <line x1="435" y1="-5" x2="435" y2="95" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 2" />
+      <!-- Dimensions Overhead -->
+      <line x1="0" y1="115" x2="535" y2="115" stroke="#1d4ed8" stroke-width="1" marker-end="url(#arrow)" />
+      <text x="260" y="128" font-family="monospace" font-size="8.5" font-weight="bold" fill="#1e40af" text-anchor="middle" stroke="none">OVERALL LENGTH: 16,500 mm</text>
+    </g>
   </g>
 
-  <g transform="translate(280, 290)" stroke="#1e3a8a" stroke-width="2.5" fill="none" stroke-opacity="0.85">
-    <path d="M 380 90 L 440 90 L 470 130 L 470 180 L 380 180 Z" fill="#ffffff" fill-opacity="0.9" />
-    <rect x="420" y="105" width="40" height="30" stroke-width="1.5" fill="#93c5fd" fill-opacity="0.6" />
-    <circle cx="445" cy="180" r="15" fill="#ffffff" stroke-width="2.5" />
-    <circle cx="445" cy="180" r="6" fill="#1e3a8a" />
+  <!-- Mid Section: Heavy Duty Tractor-Trailer Side Profile (FIG 02) -->
+  <g transform="translate(60, 430)">
+    <text x="15" y="-15" font-family="monospace" font-size="11" font-weight="bold" fill="#1e3a8a" stroke="none">FIG. 02 — SIDE ELEVATION &amp; CARGO COMPARTMENT ENVELOPE</text>
 
-    <rect x="60" y="50" width="310" height="130" rx="4" fill="#ffffff" fill-opacity="0.9" stroke-width="2.5" />
-    <line x1="60" y1="70" x2="370" y2="70" stroke-dasharray="6 3" stroke-width="1.5" />
-    <line x1="60" y1="160" x2="370" y2="160" stroke-dasharray="6 3" stroke-width="1.5" />
+    <!-- Cargo Trailer Body -->
+    <rect x="230" y="10" width="530" height="240" rx="4" fill="url(#metalGrad)" stroke="#1e3a8a" stroke-width="3" />
+    
+    <!-- Corrugated Wall Ribs & Structural Panels -->
+    <g stroke="#2563eb" stroke-width="1" stroke-opacity="0.45">
+      <line x1="280" y1="10" x2="280" y2="250" /><line x1="330" y1="10" x2="330" y2="250" />
+      <line x1="380" y1="10" x2="380" y2="250" /><line x1="430" y1="10" x2="430" y2="250" />
+      <line x1="480" y1="10" x2="480" y2="250" /><line x1="530" y1="10" x2="530" y2="250" />
+      <line x1="580" y1="10" x2="580" y2="250" /><line x1="630" y1="10" x2="630" y2="250" />
+      <line x1="680" y1="10" x2="680" y2="250" /><line x1="730" y1="10" x2="730" y2="250" />
+    </g>
 
-    <line x1="110" y1="50" x2="110" y2="180" stroke-width="1.2" stroke-opacity="0.6" />
-    <line x1="160" y1="50" x2="160" y2="180" stroke-width="1.2" stroke-opacity="0.6" />
-    <line x1="210" y1="50" x2="210" y2="180" stroke-width="1.2" stroke-opacity="0.6" />
-    <line x1="260" y1="50" x2="260" y2="180" stroke-width="1.2" stroke-opacity="0.6" />
-    <line x1="310" y1="50" x2="310" y2="180" stroke-width="1.2" stroke-opacity="0.6" />
+    <!-- Rear Door Latches & Corner Casings -->
+    <rect x="750" y="20" width="8" height="220" fill="#93c5fd" stroke="#1e3a8a" stroke-width="1.2" />
+    <line x1="230" y1="50" x2="760" y2="50" stroke="#1d4ed8" stroke-width="1" stroke-dasharray="8 4" />
+    <line x1="230" y1="210" x2="760" y2="210" stroke="#1d4ed8" stroke-width="1" stroke-dasharray="8 4" />
 
-    <circle cx="100" cy="180" r="15" fill="#ffffff" stroke-width="2.5" />
-    <circle cx="100" cy="180" r="6" fill="#1e3a8a" />
-    <circle cx="140" cy="180" r="15" fill="#ffffff" stroke-width="2.5" />
-    <circle cx="140" cy="180" r="6" fill="#1e3a8a" />
-    <circle cx="310" cy="180" r="15" fill="#ffffff" stroke-width="2.5" />
-    <circle cx="310" cy="180" r="6" fill="#1e3a8a" />
-    <circle cx="350" cy="180" r="15" fill="#ffffff" stroke-width="2.5" />
-    <circle cx="350" cy="180" r="6" fill="#1e3a8a" />
+    <!-- Trailer Subframe & Landing Gear Legs -->
+    <rect x="230" y="250" width="530" height="15" fill="#1e3a8a" fill-opacity="0.8" />
+    <g stroke="#1e3a8a" stroke-width="2.5" fill="none">
+      <path d="M 290 265 L 290 320 L 310 320" />
+      <path d="M 330 265 L 330 320 L 310 320" />
+      <circle cx="310" cy="320" r="5" fill="#2563eb" />
+    </g>
+
+    <!-- Tractor Unit (Cabin) -->
+    <!-- Aerodynamic Roof Fairing & Cab Shell -->
+    <path d="M 230 70 L 190 70 L 160 30 L 90 30 L 70 70 L 30 150 L 30 265 L 230 265 Z" fill="url(#metalGrad)" stroke="#1e3a8a" stroke-width="3" />
+    
+    <!-- Windshield & Side Windows -->
+    <path d="M 75 75 L 140 75 L 140 140 L 45 140 Z" fill="#93c5fd" fill-opacity="0.65" stroke="#1e40af" stroke-width="2" />
+    <path d="M 148 75 L 195 75 L 195 140 L 148 140 Z" fill="#bfdbfe" fill-opacity="0.75" stroke="#1e40af" stroke-width="1.8" />
+    <line x1="140" y1="75" x2="140" y2="140" stroke="#1e3a8a" stroke-width="2" />
+
+    <!-- Front Grille & Headlamps -->
+    <rect x="25" y="175" width="12" height="60" rx="3" fill="#1e3a8a" />
+    <circle cx="32" cy="245" r="7" fill="#fbbf24" stroke="#1e3a8a" stroke-width="1.5" />
+    
+    <!-- Fuel Tank & Battery Box -->
+    <rect x="135" y="272" width="75" height="35" rx="6" fill="#60a5fa" fill-opacity="0.5" stroke="#1e3a8a" stroke-width="2" />
+    <line x1="155" y1="272" x2="155" y2="307" stroke="#1e3a8a" stroke-width="1.5" />
+    <line x1="190" y1="272" x2="190" y2="307" stroke="#1e3a8a" stroke-width="1.5" />
+
+    <!-- Wheels (Tractor Front, Tractor Drive, Trailer Tri-Axle) -->
+    <!-- Tractor Steer Wheel -->
+    <g transform="translate(80, 290)">
+      <circle cx="0" cy="0" r="32" fill="#ffffff" stroke="#1e3a8a" stroke-width="3" />
+      <circle cx="0" cy="0" r="18" fill="#dbeafe" stroke="#2563eb" stroke-width="2" />
+      <circle cx="0" cy="0" r="7" fill="#1e3a8a" />
+    </g>
+    <!-- Tractor Drive Wheel -->
+    <g transform="translate(195, 290)">
+      <circle cx="0" cy="0" r="32" fill="#ffffff" stroke="#1e3a8a" stroke-width="3" />
+      <circle cx="0" cy="0" r="18" fill="#dbeafe" stroke="#2563eb" stroke-width="2" />
+      <circle cx="0" cy="0" r="7" fill="#1e3a8a" />
+    </g>
+    <!-- Trailer Tri-Axle Bogie -->
+    <g transform="translate(560, 290)">
+      <circle cx="0" cy="0" r="32" fill="#ffffff" stroke="#1e3a8a" stroke-width="3" />
+      <circle cx="0" cy="0" r="18" fill="#dbeafe" stroke="#2563eb" stroke-width="2" />
+      <circle cx="0" cy="0" r="7" fill="#1e3a8a" />
+    </g>
+    <g transform="translate(635, 290)">
+      <circle cx="0" cy="0" r="32" fill="#ffffff" stroke="#1e3a8a" stroke-width="3" />
+      <circle cx="0" cy="0" r="18" fill="#dbeafe" stroke="#2563eb" stroke-width="2" />
+      <circle cx="0" cy="0" r="7" fill="#1e3a8a" />
+    </g>
+    <g transform="translate(710, 290)">
+      <circle cx="0" cy="0" r="32" fill="#ffffff" stroke="#1e3a8a" stroke-width="3" />
+      <circle cx="0" cy="0" r="18" fill="#dbeafe" stroke="#2563eb" stroke-width="2" />
+      <circle cx="0" cy="0" r="7" fill="#1e3a8a" />
+    </g>
+
+    <!-- Dimension Callouts -->
+    <g stroke="#1d4ed8" stroke-width="1.2" fill="none">
+      <!-- Height Dimension -->
+      <line x1="15" y1="30" x2="15" y2="322" />
+      <line x1="8" y1="30" x2="22" y2="30" /><line x1="8" y1="322" x2="22" y2="322" />
+      <text x="-12" y="180" font-family="monospace" font-size="9" font-weight="bold" fill="#1e40af" transform="rotate(-90,-12,180)" stroke="none">HEIGHT: 4,000 mm</text>
+      
+      <!-- Length Dimension -->
+      <line x1="30" y1="345" x2="760" y2="345" />
+      <line x1="30" y1="338" x2="30" y2="352" /><line x1="760" y1="338" x2="760" y2="352" />
+      <text x="395" y="362" font-family="monospace" font-size="9" font-weight="bold" fill="#1e40af" text-anchor="middle" stroke="none">OVERALL LENGTH: 16,500 mm // WHEELBASE: 7,400 mm</text>
+    </g>
+  </g>
+
+  <!-- Lower Middle Section: Afghan Border Station Transit Schematic (FIG 03) -->
+  <g transform="translate(60, 860)">
+    <rect x="0" y="0" width="780" height="180" rx="4" fill="#ffffff" fill-opacity="0.85" stroke="#1e3a8a" stroke-width="1.5" />
+    <text x="15" y="24" font-family="monospace" font-size="11" font-weight="black" fill="#1e3a8a">FIG. 03 — MULTI-BORDER LOGISTICS ROUTING &amp; CHECKPOINT STATIONS</text>
+    
+    <!-- Transit Station Nodes -->
+    <g stroke="#1d4ed8" stroke-width="2" fill="none">
+      <path d="M 60 100 L 220 70 L 390 120 L 560 65 L 720 105" stroke-dasharray="6 3" />
+    </g>
+
+    <!-- Node 1: Islam Qala -->
+    <g transform="translate(60, 100)">
+      <circle cx="0" cy="0" r="12" fill="#dbeafe" stroke="#1e40af" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#1e40af" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#1e3a8a" text-anchor="middle">ISLAM QALA</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#2563eb" text-anchor="middle">BORDER STN #01</text>
+    </g>
+
+    <!-- Node 2: Torghundi -->
+    <g transform="translate(220, 70)">
+      <circle cx="0" cy="0" r="12" fill="#dbeafe" stroke="#1e40af" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#1e40af" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#1e3a8a" text-anchor="middle">TORGHUNDI</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#2563eb" text-anchor="middle">RAIL-ROAD HUB</text>
+    </g>
+
+    <!-- Node 3: Hairatan -->
+    <g transform="translate(390, 120)">
+      <circle cx="0" cy="0" r="12" fill="#dbeafe" stroke="#1e40af" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#1e40af" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#1e3a8a" text-anchor="middle">HAIRATAN</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#2563eb" text-anchor="middle">RIVER PORT BORDER</text>
+    </g>
+
+    <!-- Node 4: Spin Boldak -->
+    <g transform="translate(560, 65)">
+      <circle cx="0" cy="0" r="12" fill="#dbeafe" stroke="#1e40af" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#1e40af" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#1e3a8a" text-anchor="middle">SPIN BOLDAK</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#2563eb" text-anchor="middle">SOUTHERN GATEWAY</text>
+    </g>
+
+    <!-- Node 5: Kabul Hub -->
+    <g transform="translate(720, 105)">
+      <circle cx="0" cy="0" r="12" fill="#dbeafe" stroke="#1e40af" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#1e40af" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#1e3a8a" text-anchor="middle">KABUL DRY PORT</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#2563eb" text-anchor="middle">CENTRAL TERMINAL</text>
+    </g>
+
+    <line x1="0" y1="150" x2="780" y2="150" stroke="#dbeafe" stroke-width="1" />
+    <text x="390" y="168" font-family="monospace" font-size="8" font-weight="bold" fill="#1e40af" text-anchor="middle">ALL VEHICLES EQUIPPED WITH LIVE GPS TELEMATICS &amp; CARNET TIR SECURITY SEALS</text>
+  </g>
+
+  <!-- Bottom Section: Engineering Title Block & Legal Specifications (ISO 7200 / DIN Standard) -->
+  <g transform="translate(60, 1070)" stroke="#1e3a8a" stroke-width="1.5" fill="none">
+    <rect width="780" height="260" fill="#ffffff" fill-opacity="0.95" />
+    
+    <!-- Title Block Grid Lines -->
+    <line x1="0" y1="50" x2="780" y2="50" />
+    <line x1="0" y1="110" x2="780" y2="110" />
+    <line x1="0" y1="170" x2="780" y2="170" />
+    
+    <line x1="260" y1="50" x2="260" y2="260" />
+    <line x1="520" y1="50" x2="520" y2="260" />
+
+    <!-- Top Master Title Banner -->
+    <text x="20" y="34" font-family="monospace" font-size="16" font-weight="black" fill="#1e3a8a" stroke="none">SKY ARIANA MULTI-MODAL OVERLAND FREIGHT SYSTEM</text>
+    <text x="760" y="34" font-family="monospace" font-size="12" font-weight="bold" fill="#2563eb" text-anchor="end" stroke="none">DWG: BOL-TRK-900-V5</text>
+
+    <!-- Cell (1,1): General Parameters -->
+    <g transform="translate(15, 60)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">SYSTEM SPECIFICATION:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">HEAVY TRANSIT TRACTOR</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#3b82f6">TIR CARNET RECOGNIZED</text>
+    </g>
+
+    <!-- Cell (1,2): Payload Ratings -->
+    <g transform="translate(275, 60)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">GROSS COMBINATION WEIGHT:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">44,000 KG (MAX PERMIT)</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#3b82f6">NET CARGO: 28,500 KG</text>
+    </g>
+
+    <!-- Cell (1,3): Dimensions -->
+    <g transform="translate(535, 60)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">CARGO COMPARTMENT VOLUME:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">92.0 m³ // 33 EURO PALLETS</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#3b82f6">INT. HEIGHT: 2,700 mm</text>
+    </g>
+
+    <!-- Cell (2,1): Border Compliance -->
+    <g transform="translate(15, 120)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">BORDER TRANSIT CORRIDOR:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">ISLAM QALA — HAIRATAN</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#3b82f6">TRANSIT TIME: 48-72 HRS</text>
+    </g>
+
+    <!-- Cell (2,2): Security Verification -->
+    <g transform="translate(275, 120)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">SECURITY CLASSIFICATION:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">AUTHENTIC CARGO SECURITY</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#16a34a">VERIFIED &amp; COMPLIANT</text>
+    </g>
+
+    <!-- Cell (2,3): Scale & Standard -->
+    <g transform="translate(535, 120)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">ENGINEERING SCALE:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">1:50 ARCH / CAD REV 5</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#3b82f6">A4 PORTRAIT SPECIFICATION</text>
+    </g>
+
+    <!-- Cell (3, Full Row): Approval Seal & Sign-off -->
+    <g transform="translate(15, 180)" stroke="none">
+      <text x="0" y="22" font-family="monospace" font-size="9" font-weight="bold" fill="#64748b">AUTHORIZATION &amp; CARRIER STAMP:</text>
+      <text x="0" y="42" font-family="monospace" font-size="11" font-weight="black" fill="#1e3a8a">SKY ARIANA LOGISTICS CORP. — OFFICIAL WATERMARK ASSET</text>
+      <text x="0" y="58" font-family="monospace" font-size="8" fill="#475569">COPYRIGHT © 2026 SKY ARIANA. ALL RIGHTS RESERVED. FOR OFFICIAL BILL OF LADING CARRIER DISPATCH USE ONLY.</text>
+    </g>
+    <g transform="translate(680, 185)" stroke="none">
+      <circle cx="45" cy="35" r="30" fill="none" stroke="#dc2626" stroke-width="2" stroke-opacity="0.75" />
+      <text x="45" y="33" font-family="monospace" font-size="7.5" font-weight="bold" fill="#dc2626" text-anchor="middle">APPROVED</text>
+      <text x="45" y="44" font-family="monospace" font-size="6.5" font-weight="bold" fill="#dc2626" text-anchor="middle">CAD SEC-01</text>
+    </g>
   </g>
 </svg>

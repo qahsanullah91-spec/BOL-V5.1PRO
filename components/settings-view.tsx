@@ -75,6 +75,7 @@ import { BackupRecoveryView } from "@/components/backup/backup-recovery-view"
 import { AccountingPeriodsSettings } from "./settings/accounting-periods-settings"
 import { AIAssistantSettingsTab } from "./settings/ai-assistant-settings-tab"
 import { PerformanceDiagnosticsTab } from "./settings/performance-diagnostics-tab"
+import { SoftwareUpdateTab } from "./settings/software-update-tab"
 import {
   COMPANY_STAMP_SIGNATURE_SRC,
   DEFAULT_STAMP_CONFIG,
@@ -513,10 +514,10 @@ export function SettingsView() {
         },
         {
           id: "updates" as SettingsTab,
-          label: "System Build & Version",
-          labelFa: "نسخه و بروزرسانی",
-          icon: Smartphone,
-          desc: `Release ${CURRENT_SYSTEM_VERSION.version} (${CURRENT_SYSTEM_VERSION.buildNumber})`,
+          label: "Software Updates & Releases",
+          labelFa: "بروزرسانی نرم‌افزار و نسخه‌ها",
+          icon: DownloadCloud,
+          desc: `Release ${CURRENT_SYSTEM_VERSION.version} • 1-Click Upgrade System`,
         },
       ],
     },
@@ -545,9 +546,7 @@ export function SettingsView() {
     })).filter(cat => cat.items.length > 0)
   }, [SETTING_CATEGORIES, settingsSearch])
 
-  // System Update Check State
-  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
-  const [updateMsg, setUpdateMsg] = useState<string | null>(null)
+
   const [showScrollTop, setShowScrollTop] = useState(false)
 
   // Track scroll position on main workspace to display Quick Scroll-To-Top button
@@ -867,16 +866,6 @@ export function SettingsView() {
     }
   }
 
-  const handleCheckForUpdates = () => {
-    setIsCheckingUpdate(true)
-    setUpdateMsg(null)
-
-    setTimeout(() => {
-      setIsCheckingUpdate(false)
-      setUpdateMsg(`Your system is up to date! (${CURRENT_SYSTEM_VERSION.version} - ${CURRENT_SYSTEM_VERSION.buildNumber})`)
-      toast.success("System is up to date and fully synchronized!")
-    }, 1200)
-  }
 
   // Password strength calculator
   const getPasswordStrength = (pass: string) => {
@@ -2432,6 +2421,8 @@ export function SettingsView() {
       {/* ========================================================================= */}
       {/* TAB 6: APP & SYSTEM BUILD                                                 */}
       {/* ========================================================================= */}
+      {/* TAB 10: SOFTWARE UPDATES & RELEASES                                       */}
+      {/* ========================================================================= */}
       {(activeTab === "all" || activeTab === "updates") && (
         <div id="section-updates" className="bg-white/90 backdrop-blur-2xl rounded-3xl border border-slate-200/80 shadow-lg shadow-slate-200/50 p-5 sm:p-8 space-y-6 animate-in fade-in duration-300 scroll-mt-28">
           {activeTab === "all" && (
@@ -2442,12 +2433,12 @@ export function SettingsView() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-sm sm:text-base font-black text-white">10. Application & System Build Info</h2>
+                    <h2 className="text-sm sm:text-base font-black text-white">10. Software Updates & Release Deployment</h2>
                     <span className="text-xs text-emerald-300 font-[vazirmatn] font-bold" dir="rtl">
-                      اطلاعات نسخه و بیلد سیستم
+                      بروزرسانی نرم‌افزار و نسخه‌ها
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-300 hidden sm:block">Production release channels, offline support, and system health status</p>
+                  <p className="text-[11px] text-slate-300 hidden sm:block">Automated 1-click update installation, release package detection, and changelog verification</p>
                 </div>
               </div>
               <button
@@ -2464,12 +2455,12 @@ export function SettingsView() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-gradient-to-br from-indigo-900 to-purple-900 text-amber-400 shadow-md shadow-indigo-950/20">
-                <Smartphone className="w-6 h-6" />
+                <DownloadCloud className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Application Information & System Diagnostics</h3>
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Software Updates & System Deployment</h3>
                 <p className="text-xs text-slate-500 font-[vazirmatn] font-bold" dir="rtl">
-                  نصب برنامه روی گوشی و کامپیوتر، اطلاعات نسخه و سلامت سیستم
+                  نصب بروزرسانی ۱ کلیکه، بررسی بسته‌های ستاپ جدید و تاریخچه تغییرات
                 </p>
               </div>
             </div>
@@ -2477,66 +2468,7 @@ export function SettingsView() {
             <PWAInstallButton />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Version Card */}
-            <div className="p-5 rounded-3xl border border-blue-200/80 bg-blue-50/60 space-y-3">
-              <span className="text-xs font-black uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
-                <Server className="w-4 h-4 text-blue-600" />
-                Software Version & Engine
-              </span>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between gap-4 py-1 border-b border-blue-200/60 font-bold">
-                  <span className="text-slate-600">Application:</span>
-                  <span className="text-right text-blue-950 font-black">{CURRENT_SYSTEM_VERSION.applicationName}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-blue-200/60 font-bold">
-                  <span className="text-slate-600">Release Version:</span>
-                  <span className="text-blue-950 font-black">{CURRENT_SYSTEM_VERSION.version}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-blue-200/60 font-bold">
-                  <span className="text-slate-600">Build Number:</span>
-                  <span className="text-blue-950 font-mono">{CURRENT_SYSTEM_VERSION.buildNumber}</span>
-                </div>
-                <div className="flex justify-between py-1 font-bold">
-                  <span className="text-slate-600">Developer:</span>
-                  <span className="text-right text-blue-950 font-black">{CURRENT_SYSTEM_VERSION.developer}</span>
-                </div>
-                <div className="flex justify-between gap-4 py-1 border-t border-blue-200/60 font-bold">
-                  <span className="text-slate-600">Platform:</span>
-                  <span className="text-right text-emerald-700 font-black">{CURRENT_SYSTEM_VERSION.platform}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Check Updates */}
-            <div className="p-5 rounded-3xl border border-emerald-200/80 bg-emerald-50/60 space-y-3 flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
-                  <RefreshCw className="w-4 h-4 text-emerald-600" />
-                  System Synchronizer
-                </span>
-                <p className="text-xs text-slate-600 font-medium mt-1">
-                  Ensure all cache, database schemas, and PDF generators are fully synchronized with the cloud.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleCheckForUpdates}
-                disabled={isCheckingUpdate}
-                className="w-full h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md cursor-pointer flex items-center justify-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${isCheckingUpdate ? "animate-spin" : ""}`} />
-                <span>{isCheckingUpdate ? "Checking Cloud Status..." : "Verify System Health"}</span>
-              </button>
-            </div>
-          </div>
-
-          {updateMsg && (
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs font-bold text-emerald-900 flex items-center gap-2 animate-in zoom-in-95">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{updateMsg}</span>
-            </div>
-          )}
+          <SoftwareUpdateTab />
         </div>
       )}
 

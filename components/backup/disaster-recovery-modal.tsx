@@ -163,7 +163,10 @@ export function DisasterRecoveryModal({
                   </div>
                 </div>
 
-                <div className="font-mono text-xs text-primary font-medium truncate">
+                <div
+                  className="text-xs text-slate-800 dark:text-slate-100 font-semibold truncate tracking-normal select-all bg-slate-100 dark:bg-slate-900/70 px-3 py-2 rounded-md border border-slate-200 dark:border-slate-800"
+                  style={{ fontFamily: "Consolas, 'Cascadia Code', monospace" }}
+                >
                   {selectedBackup.fileName}
                 </div>
 
@@ -171,15 +174,19 @@ export function DisasterRecoveryModal({
                 <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t">
                   <div className="bg-background/80 p-2 rounded border">
                     <div className="text-[10px] text-muted-foreground uppercase font-semibold">BOLs</div>
-                    <div className="text-sm font-bold">{selectedBackup.recordCounts?.bols ?? 0}</div>
+                    <div className="text-sm font-bold text-foreground">{selectedBackup.recordCounts?.bols ?? 0}</div>
                   </div>
                   <div className="bg-background/80 p-2 rounded border">
                     <div className="text-[10px] text-muted-foreground uppercase font-semibold">Ledger Entries</div>
-                    <div className="text-sm font-bold">{selectedBackup.recordCounts?.ledgerEntries ?? 0}</div>
+                    <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                      {selectedBackup.recordCounts?.ledgerEntries || (selectedBackup.recordCounts as any)?.ledgers || 0}
+                    </div>
                   </div>
                   <div className="bg-background/80 p-2 rounded border">
                     <div className="text-[10px] text-muted-foreground uppercase font-semibold">Documents</div>
-                    <div className="text-sm font-bold">{selectedBackup.recordCounts?.documents ?? 0}</div>
+                    <div className="text-sm font-bold text-foreground">
+                      {selectedBackup.recordCounts?.documents ?? 0}
+                    </div>
                   </div>
                 </div>
 
@@ -209,9 +216,15 @@ export function DisasterRecoveryModal({
                       }`}
                     >
                       <div className="truncate mr-2">
-                        <span className="font-mono font-medium text-foreground">{bkp.fileName}</span>
+                        <span
+                          className="font-semibold text-foreground"
+                          style={{ fontFamily: "Consolas, 'Cascadia Code', monospace" }}
+                        >
+                          {bkp.fileName}
+                        </span>
                         <div className="text-[10px] text-muted-foreground">
                           {new Date(bkp.createdAt).toLocaleDateString()} · {bkp.recordCounts?.bols ?? 0} BOLs ·{" "}
+                          {bkp.recordCounts?.ledgerEntries || (bkp.recordCounts as any)?.ledgers || 0} Ledgers ·{" "}
                           {(bkp.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB
                         </div>
                       </div>

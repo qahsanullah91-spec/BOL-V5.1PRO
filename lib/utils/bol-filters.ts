@@ -46,17 +46,17 @@ export function isMeaningfulBOL(d: any): boolean {
   const q = (d.number_of_packages || "").trim().toLowerCase()
   const hasPkg = q !== "" && q !== "0" && q !== "0-ctns" && q !== "0 ctns"
 
-  const nw = (d.net_weight || "").trim()
-  const gw = (d.gross_weight || "").trim()
-  const val = (d.goods_value || "").trim()
-  const cName = (d.consignee_name || "").trim().toLowerCase()
+  const nw = String(d.net_weight ?? "").trim()
+  const gw = String(d.gross_weight ?? "").trim()
+  const val = String(d.goods_value ?? "").trim()
+  const cName = String(d.consignee_name ?? "").trim().toLowerCase()
   const hasConsignee = cName !== "" && cName !== "no consignee"
-  const hasDesc = (d.cargo_description || "").replace(/[^\w\s\u0600-\u06FF]/g, "").trim().length > 3
+  const hasDesc = String(d.cargo_description ?? "").replace(/[^\w\s\u0600-\u06FF]/g, "").trim().length > 3
   const hasDriver = Boolean(
-    (d.driver_name || "").trim() ||
-    (d.driver_rent || "").trim() ||
-    (d.driverFreight || "").trim() ||
-    (d.truck_number || "").trim()
+    String(d.driver_name ?? "").trim() ||
+    String(d.driver_rent ?? "").trim() ||
+    String(d.driverFreight ?? "").trim() ||
+    String(d.truck_number ?? "").trim()
   )
 
   return hasShipper || hasBol || hasPkg || nw !== "" || gw !== "" || val !== "" || hasConsignee || hasDesc || hasDriver
@@ -207,6 +207,59 @@ function parseUtcTimestamp(str?: any): number {
   return isNaN(t) ? 0 : t
 }
 
+export function formatCanonicalDriverRent(rawRent: any, fallbackRent?: any): string {
+  const rawStr = rawRent !== undefined && rawRent !== null ? String(rawRent).trim() : ""
+  const fbStr = fallbackRent !== undefined && fallbackRent !== null ? String(fallbackRent).trim() : ""
+
+  const isZeroOrEmpty = (s: string) =>
+    !s || s === "0" || s === "0.00" || s === "0.0000" || s === "null" || s === "undefined"
+
+  // Prefer fallback if raw is empty/zero or if raw is a bare number from SQLite while fallback has rich formatting
+  let candidate = rawStr
+  if (isZeroOrEmpty(rawStr) && !isZeroOrEmpty(fbStr)) {
+    candidate = fbStr
+  } else if (
+    !isZeroOrEmpty(fbStr) &&
+    /^[\d,.]+$/.test(rawStr) &&
+    (fbStr.includes("AFN") || fbStr.includes("کرایه") || fbStr.includes("USD") || fbStr.includes("$"))
+  ) {
+    // Only use fallback if its numeric part matches or rawStr came from SQLite decimal stripping
+    const rawNum = parseFloat(rawStr.replace(/,/g, ""))
+    const fbNumMatch = fbStr.match(/[\d,]+(?:\.\d+)?/)
+    const fbNum = fbNumMatch ? parseFloat(fbNumMatch[0].replace(/,/g, "")) : NaN
+    if (!isNaN(rawNum) && !isNaN(fbNum) && Math.abs(rawNum - fbNum) < 1) {
+      candidate = fbStr
+    }
+  }
+
+  if (isZeroOrEmpty(candidate)) return ""
+
+  // If candidate explicitly uses USD or $ AND is a plausible USD amount (< 30,000), preserve USD formatting
+  const numCheck = candidate.match(/[\d,]+(?:\.\d+)?/)
+  const parsedCheck = numCheck ? parseFloat(numCheck[0].replace(/,/g, "")) : NaN
+  if (/\bUSD\b|\$|دالر/i.test(candidate) && (isNaN(parsedCheck) || parsedCheck < 30000)) {
+    return candidate
+  }
+
+  // Check if candidate is an AFN rent (either bare number >= 5000, or >= 30000, or contains AFN / افغانی / کرایه واپسی)
+  const afnMatch = candidate.match(/^\s*([\d,]+(?:\.\d+)?)\s*(?:[-–—]?\s*(?:AFN|USD|افغانی))?(?:\s*[-–—:]\s*(.*))?$/i)
+  if (afnMatch) {
+    const numVal = parseFloat(afnMatch[1].replace(/,/g, ""))
+    const notePart = (afnMatch[2] || "").trim()
+    const hasAfnKeyword = /AFN|افغانی|کرایه/i.test(candidate)
+    if (!isNaN(numVal) && numVal > 0 && (numVal >= 5000 || hasAfnKeyword)) {
+      const formattedNum = Math.round(numVal).toLocaleString("en-US")
+      const suffix = notePart || "کرایه واپسی"
+      return `${formattedNum} AFN - ${suffix}`
+    }
+  }
+
+  // Normalize any "-AFN" or " - AFN" inside existing string
+  return candidate
+    .replace(/([\d,]+)\s*[-–—]\s*AFN/gi, "$1 AFN")
+    .replace(/AFN\s*[-–—]\s*کرایه واپسی/gi, "AFN - کرایه واپسی")
+}
+
 export function enrichBolWithLocal(item: any, localMap: Map<string, any>): any {
   if (!item) return item
   const num = item.bol_number ? String(item.bol_number).trim().toUpperCase() : ""
@@ -216,7 +269,15 @@ export function enrichBolWithLocal(item: any, localMap: Map<string, any>): any {
   const normalizedKey = num.replace(/[^A-Z0-9]/g, "")
 
   const local = localMap.get(num) || localMap.get(id) || (numKey ? localMap.get(numKey) : null) || (normalizedKey ? localMap.get(normalizedKey) : null)
-  if (!local) return item
+  if (!local) {
+    if (item.driver_rent !== undefined && item.driver_rent !== null) {
+      return {
+        ...item,
+        driver_rent: formatCanonicalDriverRent(item.driver_rent),
+      }
+    }
+    return item
+  }
 
   // Authoritative date fallback: if item date is missing or empty
   const issueDate = (item.issue_date && String(item.issue_date).trim() !== "" && String(item.issue_date) !== "null")
@@ -229,11 +290,8 @@ export function enrichBolWithLocal(item: any, localMap: Map<string, any>): any {
     : (local.truck_number || local.truckNumber || "")
 
   // Authoritative driver rent
-  const itemRent = item.driver_rent ? String(item.driver_rent).trim() : ""
-  const isItemRentZero = !itemRent || itemRent === "0" || itemRent === "0.00" || itemRent === "0.0000" || itemRent === "null"
-  const driverRent = (!isItemRentZero)
-    ? item.driver_rent
-    : (local.driver_rent || local.driverFreight || local.driverRent || "")
+  const localRentFallback = local.driver_rent || local.driverFreight || local.driverRent || ""
+  const driverRent = formatCanonicalDriverRent(item.driver_rent, localRentFallback)
 
   // Authoritative weights (if item net/gross weight is truncated to "23.0000" or similar)
   let netWeight = item.net_weight || (item.net_weight_kg ? String(item.net_weight_kg) : "")
@@ -418,9 +476,9 @@ export function normalizeBolRecord(doc: any, fallbackId = ""): any {
     driverFatherName: doc.driver_father_name ?? doc.driverFatherName ?? "",
     driver_contact: doc.driver_contact ?? doc.driverContact ?? doc.driver_phone ?? "",
     driverContact: doc.driver_contact ?? doc.driverContact ?? doc.driver_phone ?? "",
-    driver_rent: doc.driver_rent ?? doc.driverRent ?? doc.driverFreight ?? "",
-    driverRent: doc.driver_rent ?? doc.driverRent ?? doc.driverFreight ?? "",
-    driverFreight: doc.driver_rent ?? doc.driverRent ?? doc.driverFreight ?? "",
+    driver_rent: formatCanonicalDriverRent(doc.driver_rent, doc.driverRent ?? doc.driverFreight ?? ""),
+    driverRent: formatCanonicalDriverRent(doc.driver_rent, doc.driverRent ?? doc.driverFreight ?? ""),
+    driverFreight: formatCanonicalDriverRent(doc.driver_rent, doc.driverRent ?? doc.driverFreight ?? ""),
     routes: (Array.isArray(doc.routes) && doc.routes.length > 0) ? doc.routes : doc.routes,
     container_type: doc.container_type ?? doc.containerType ?? "",
     containerType: doc.container_type ?? doc.containerType ?? "",

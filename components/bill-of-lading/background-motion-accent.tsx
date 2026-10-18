@@ -130,26 +130,9 @@ function MotionVehicle({ kind }: { kind: MotionKind }) {
   )
 }
 
-export function BackgroundMotionAccent({
-  backgroundUrl,
-  pdfMode,
-}: {
-  backgroundUrl: string
-  pdfMode: boolean
+export function BackgroundMotionAccent(_props?: {
+  backgroundUrl?: string
+  pdfMode?: boolean
 }) {
-  if (!backgroundUrl) return null
-  const kind = resolveMotionKind(backgroundUrl)
-  if (!kind) return null
-
-  return (
-    <div
-      data-bol-motion-accent="true"
-      data-motion-kind={kind}
-      data-pdf-static={pdfMode ? 'true' : undefined}
-      className="pointer-events-none absolute left-0 top-0 z-0 h-[15mm] w-[28mm]"
-      aria-hidden="true"
-    >
-      <MotionVehicle kind={kind} />
-    </div>
-  )
+  return null
 }

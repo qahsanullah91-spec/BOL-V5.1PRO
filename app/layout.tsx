@@ -4,6 +4,8 @@ import { Analytics } from '@vercel/analytics/next'
 import { PWARegister } from '@/components/pwa-register'
 import { ChunkErrorHandler } from '@/components/chunk-error-handler'
 import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from '@/components/ui/sonner'
+import { GlobalContextMenu } from '@/components/global-context-menu'
 import './globals.css'
 import './liquid-workspace.css'
 
@@ -79,7 +81,7 @@ export default function RootLayout({
         <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
       </head>
       <body className="font-sans antialiased min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="light" storageKey="aq-theme-light-default" enableSystem={false} disableTransitionOnChange>
           <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
             <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-sky-200/50 dark:bg-blue-900/10 blur-3xl" />
             <div className="absolute top-1/2 -left-40 h-96 w-96 rounded-full bg-blue-200/40 dark:bg-indigo-900/10 blur-3xl" />
@@ -87,8 +89,10 @@ export default function RootLayout({
           </div>
           <PWARegister />
           <ChunkErrorHandler />
+          <GlobalContextMenu />
+          <Toaster richColors position="top-right" />
           {children}
-          {process.env.NODE_ENV === 'production' && <Analytics />}
+          {process.env.NODE_ENV === 'production' && process.env.VERCEL === '1' && !process.env.SKY_DESKTOP && <Analytics />}
         </ThemeProvider>
       </body>
     </html>

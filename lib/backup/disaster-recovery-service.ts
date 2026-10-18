@@ -16,6 +16,7 @@
 import fs from "node:fs/promises"
 import fsSync from "node:fs"
 import path from "node:path"
+import os from "node:os"
 import crypto from "node:crypto"
 import { getDataPath, getDataRoot, getBackupRoot } from "@/lib/server-paths"
 import { readJsonFile, writeJsonFile, atomicWriteFile } from "@/lib/services/blob-db"
@@ -170,52 +171,101 @@ export async function quarantineCorruptedDatabase(reason: string): Promise<strin
  * even when the catalog database is missing or destroyed.
  */
 export async function discoverBackupsOnDisk(customFolder?: string): Promise<DiscoveredBackupPoint[]> {
-  const backupDir = customFolder || getBackupRoot()
-  if (!fsSync.existsSync(/*turbopackIgnore: true*/ backupDir)) return []
+  const searchDirs = customFolder
+    ? [customFolder]
+    : Array.from(new Set([
+        getBackupRoot(),
+        path.join(getDataRoot(), "backups"),
+        path.join(process.cwd(), "data", "backups"),
+        path.join(os.tmpdir(), "backups"),
+      ]))
 
-  const files = await fs.readdir(/*turbopackIgnore: true*/ backupDir).catch(() => [])
   const discovered: DiscoveredBackupPoint[] = []
+  const seenBackupIds = new Set<string>()
+  const seenFileNames = new Set<string>()
 
-  for (const f of files) {
-    if (!f.endsWith(".json") && !f.endsWith(".zip")) continue
-    if (f.includes(".tmp.")) continue
+  for (const backupDir of searchDirs) {
+    if (!fsSync.existsSync(/*turbopackIgnore: true*/ backupDir)) continue
+    const files = await fs.readdir(/*turbopackIgnore: true*/ backupDir).catch(() => [])
 
-    const fullPath = path.join(/*turbopackIgnore: true*/ backupDir, f)
-    try {
-      const parsed = await parseBackupFileContent(fullPath)
-      const meta = parsed.rawParsed?.backupMetadata
-      if (!meta || !meta.backupId) continue
+    for (const f of files) {
+      if (!f.endsWith(".json") && !f.endsWith(".zip")) continue
+      if (f.includes(".tmp.")) continue
+      if (seenFileNames.has(f)) continue
 
-      const stats = await fs.stat(/*turbopackIgnore: true*/ fullPath)
-      const isRollback = f.includes("PRE_RESTORE") || meta.backupType === "snapshot"
-      const isGolden = Boolean(meta.isGoldenBackup || (meta.restoreTestStatus === "PASS" && meta.invarianceValid))
+      const fullPath = path.join(/*turbopackIgnore: true*/ backupDir, f)
+      try {
+        const parsed = await parseBackupFileContent(fullPath)
+        const meta = parsed.rawParsed?.backupMetadata
+        if (!meta || !meta.backupId) continue
+        if (seenBackupIds.has(meta.backupId)) continue
 
-      discovered.push({
-        backupId: meta.backupId,
-        fileName: f,
-        filePath: fullPath,
-        createdAt: meta.createdAt || stats.birthtime.toISOString(),
-        fileSizeBytes: stats.size,
-        backupType: meta.backupType || "full",
-        appVersion: meta.applicationVersion || "unknown",
-        recordCounts: meta.recordCounts || {
+        seenBackupIds.add(meta.backupId)
+        seenFileNames.add(f)
+
+        const stats = await fs.stat(/*turbopackIgnore: true*/ fullPath)
+        const isRollback = f.includes("PRE_RESTORE") || meta.backupType === "snapshot"
+        const isGolden = Boolean(meta.isGoldenBackup || (meta.restoreTestStatus === "PASS" && meta.invarianceValid))
+
+        const resolvedRecordCounts: BackupRecordCounts = meta.recordCounts ? { ...meta.recordCounts } : {
           bols: 0,
           companies: 0,
           accounts: 0,
           invoices: 0,
           ledgers: 0,
+          ledgerEntries: 0,
           documents: 0,
           containers: 0,
           shipments: 0,
-        },
-        checksum: meta.checksum || "",
-        checksumValid: true,
-        isGoldenBackup: isGolden,
-        restoreTestStatus: meta.restoreTestStatus || "UNTESTED",
-        isRollbackSnapshot: isRollback,
-      })
-    } catch {
-      // Skip unparseable files
+        }
+
+        // Derive accurate record counts from payload if reported as 0
+        const payloadData = parsed.rawParsed?.data
+        if (payloadData && typeof payloadData === "object") {
+          if (!resolvedRecordCounts.bols && Array.isArray(payloadData.bols)) {
+            resolvedRecordCounts.bols = payloadData.bols.length
+          }
+          if ((!resolvedRecordCounts.ledgerEntries || resolvedRecordCounts.ledgerEntries === 0) && (!(resolvedRecordCounts as any).ledgers || (resolvedRecordCounts as any).ledgers === 0)) {
+            let count = 0
+            const sub = payloadData.accountLedgers?.ledgerEntries || payloadData.bolAccountLedgers?.ledgerRecords || payloadData.accountLedgers
+            if (sub && typeof sub === "object") {
+              for (const k of Object.keys(sub)) {
+                if (Array.isArray(sub[k])) count += sub[k].length
+              }
+            }
+            if (Array.isArray(payloadData.ledgerSystem?.ledger_transactions)) {
+              count = Math.max(count, payloadData.ledgerSystem.ledger_transactions.length)
+            }
+            resolvedRecordCounts.ledgerEntries = count
+            ;(resolvedRecordCounts as any).ledgers = count
+          }
+          if (!resolvedRecordCounts.documents || resolvedRecordCounts.documents === 0) {
+            if (Array.isArray(payloadData.shipmentDocuments)) {
+              resolvedRecordCounts.documents = payloadData.shipmentDocuments.length
+            } else if (Array.isArray(payloadData.documents)) {
+              resolvedRecordCounts.documents = payloadData.documents.length
+            }
+          }
+        }
+
+        discovered.push({
+          backupId: meta.backupId,
+          fileName: f,
+          filePath: fullPath,
+          createdAt: meta.createdAt || stats.birthtime.toISOString(),
+          fileSizeBytes: stats.size,
+          backupType: meta.backupType || "full",
+          appVersion: meta.applicationVersion || "unknown",
+          recordCounts: resolvedRecordCounts,
+          checksum: meta.checksum || "",
+          checksumValid: true,
+          isGoldenBackup: isGolden,
+          restoreTestStatus: meta.restoreTestStatus || "UNTESTED",
+          isRollbackSnapshot: isRollback,
+        })
+      } catch {
+        // Skip unparseable files
+      }
     }
   }
 

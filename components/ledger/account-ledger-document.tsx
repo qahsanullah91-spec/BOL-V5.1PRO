@@ -72,11 +72,19 @@ export function calculateLedgerTotals(entries: LedgerEntry[]) {
     totalDebit += Number(entry.debit) || 0
     totalCredit += Number(entry.credit) || 0
 
-    const rentStr = String(entry.driverFreight || "")
-    if (rentStr.toUpperCase().includes("AFN")) {
-      const match = rentStr.replace(/,/g, "").match(/\d+/)
+    const rentStr = String(entry.driverFreight || "").trim()
+    if (rentStr) {
+      const cleanStr = rentStr.replace(/,/g, "")
+      const match = cleanStr.match(/(\d+(?:\.\d+)?)/)
       if (match) {
-        totalDriverRentAFN += parseInt(match[0], 10) || 0
+        const val = parseFloat(match[1])
+        if (!isNaN(val) && val > 0) {
+          if (/AFN|افغانی|هرات/i.test(rentStr) || (val >= 1000 && !/\$|USD/i.test(rentStr))) {
+            totalDriverRentAFN += val
+          } else {
+            totalDriverRentAFN += Math.round(val * 65)
+          }
+        }
       }
     }
   }

@@ -25,8 +25,8 @@ export const SYSTEM_RELEASE_LABEL = "v5.1pro" as const
 
 export const CURRENT_SYSTEM_VERSION = {
   version: SYSTEM_RELEASE_LABEL,
-  buildNumber: "2026.09.17-PRO",
-  releaseDate: "2026-09-17",
+  buildNumber: "2026.10.14-PRO",
+  releaseDate: "2026-10-14",
   edition: "AQ COMPANIES Enterprise Pro Edition",
   companyName: "AQ COMPANIES",
   applicationName: `AQ Companies BOL ${SYSTEM_RELEASE_LABEL}`,
@@ -36,6 +36,18 @@ export const CURRENT_SYSTEM_VERSION = {
   changelog: [
     {
       version: SYSTEM_RELEASE_LABEL,
+      date: "2026-10-14",
+      title: "1-Click Desktop Update Engine & Windows 11 Print System Upgrade",
+      changes: [
+        "Implemented 1-Click Desktop Update System in Settings with live installer detection and SHA-256 checksum verification.",
+        "Engineered automatic detached NSIS installer execution with graceful process teardown to prevent Windows file lock errors.",
+        "Added custom installer package browser allowing upgrades from USB drives, downloads, or network folders.",
+        "Integrated Windows 11 Unified Print Dialog registry auto-configuration to permanently fix print preview warnings.",
+        "Expanded photographic watermark library with high-resolution Afghan banknote crests, border crossings, and cargo planes.",
+      ],
+    },
+    {
+      version: "v5.1.0",
       date: "2026-09-17",
       title: "Executive Shipping Documents & Multi-Commodity Cargo Stacking",
       changes: [

@@ -21,6 +21,11 @@ contextBridge.exposeInMainWorld("skyDesktop", {
   // Desktop Clipboard Bridge
   readClipboardText: () => ipcRenderer.invoke("clipboard:read-text"),
   writeClipboardText: (text: string) => ipcRenderer.invoke("clipboard:write-text", text),
+  // Software Updater Bridge
+  checkForUpdates: (customPath?: string) => ipcRenderer.invoke("updater:check", customPath),
+  installUpdate: (installerPath?: string) => ipcRenderer.invoke("updater:install", installerPath),
+  openUpdateFolder: (targetPath?: string) => ipcRenderer.invoke("updater:open-folder", targetPath),
+  selectInstallerFile: () => ipcRenderer.invoke("updater:select-file"),
 })
 
 // Native Desktop Menu Event Bridge

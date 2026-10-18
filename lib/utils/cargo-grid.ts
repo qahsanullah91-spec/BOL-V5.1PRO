@@ -306,16 +306,16 @@ export function shouldSplitToPage2({
   hasShippingData?: boolean
   hasRouteNote?: boolean
 }): boolean {
-  if (cargoCount >= 8) return true
+  if (cargoCount >= 7) return true
 
-  let budgetScore = cargoCount * 1.5
+  let budgetScore = cargoCount * 1.6
   if (routeCount >= 5) budgetScore += 3
   else if (routeCount >= 3) budgetScore += 1.5
 
   if (descLineCount >= 6) budgetScore += 4
   else if (descLineCount >= 3) budgetScore += 2
 
-  if (hasShippingData) budgetScore += 2
+  if (hasShippingData) budgetScore += 2.5
   if (hasRouteNote) budgetScore += 2
 
   return budgetScore > 13
@@ -330,7 +330,7 @@ export function splitCargoForPages(
   }
 
   const page1Count = Math.min(
-    items.length >= 14 ? 8 : items.length >= 10 ? 6 : 5,
+    items.length >= 14 ? 8 : items.length >= 10 ? 6 : items.length >= 7 ? 4 : 3,
     items.length - 2
   )
 

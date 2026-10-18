@@ -420,13 +420,13 @@ export async function GET(request: Request) {
       const hasBol = Boolean(bol.bol_number && String(bol.bol_number).trim().length > 3)
       const q = (bol.number_of_packages || "").trim().toLowerCase()
       const hasPkg = q !== "" && q !== "0" && q !== "0-ctns" && q !== "0 ctns"
-      const nw = (bol.net_weight || "").trim()
-      const gw = (bol.gross_weight || "").trim()
-      const val = (bol.goods_value || "").trim()
-      const cName = (bol.consignee_name || "").trim().toLowerCase()
+      const nw = String(bol.net_weight ?? "").trim()
+      const gw = String(bol.gross_weight ?? "").trim()
+      const val = String(bol.goods_value ?? "").trim()
+      const cName = String(bol.consignee_name ?? "").trim().toLowerCase()
       const hasConsignee = cName !== "" && cName !== "no consignee"
-      const hasDesc = (bol.cargo_description || "").replace(/[^\w\s\u0600-\u06FF]/g, "").trim().length > 3
-      const hasDriver = Boolean((bol.driver_name || "").trim() || (bol.driver_rent || "").trim() || (bol.truck_number || "").trim())
+      const hasDesc = String(bol.cargo_description ?? "").replace(/[^\w\s\u0600-\u06FF]/g, "").trim().length > 3
+      const hasDriver = Boolean(String(bol.driver_name ?? "").trim() || String(bol.driver_rent ?? "").trim() || String(bol.truck_number ?? "").trim())
       return hasShipper || hasBol || hasPkg || nw !== "" || gw !== "" || val !== "" || hasConsignee || hasDesc || hasDriver
     }).sort((a, b) => {
       const dateA = new Date(a.created_at || a.updated_at || a.issue_date || 0).getTime()

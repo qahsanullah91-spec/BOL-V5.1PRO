@@ -3,162 +3,238 @@
   <title>Island Channel — Sky Ariana Logistics Security Watermark</title>
   <defs>
     <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feGaussianBlur stdDeviation="2" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
-    <linearGradient id="primary-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#172554" stop-opacity="0.85" />
-      <stop offset="100%" stop-color="#0891b2" stop-opacity="0.5" />
+    
+    <linearGradient id="ic-sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#eff6ff" />
+      <stop offset="50%" stop-color="#bae6fd" />
+      <stop offset="100%" stop-color="#0284c7" />
     </linearGradient>
-    <linearGradient id="fade-down" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#172554" stop-opacity="0.7" />
-      <stop offset="100%" stop-color="#0891b2" stop-opacity="0.1" />
-    </linearGradient>
+    
   </defs>
   
-  <!-- Security Document Outer Border & Fine Calibrated Grid -->
-  <g fill="none" stroke="#172554">
-    <!-- Primary Outer Frame -->
-    <rect x="24" y="24" width="852" height="1352" rx="4" stroke-width="1.5" opacity="0.65" />
-    <rect x="32" y="32" width="836" height="1336" rx="2" stroke-width="0.7" stroke-dasharray="5 3" opacity="0.5" />
-    <rect x="42" y="42" width="816" height="1316" stroke-width="0.5" opacity="0.3" />
+    <rect width="900" height="1400" fill="url(#ic-sky)" />
+
+    <!-- Strait Islands on Port & Starboard Sides -->
+    <path d="M 40,240 Q 240,420 180,780 T 40,1340 Z" fill="#0f766e" fill-opacity="0.25" stroke="#0f766e" stroke-width="3" />
+    <path d="M 860,240 Q 660,420 720,780 T 860,1340 Z" fill="#0f766e" fill-opacity="0.25" stroke="#0f766e" stroke-width="3" />
+
+    <!-- Central Traffic Separation Zone (TSS) -->
+    <line x1="450" y1="240" x2="450" y2="1340" stroke="#dc2626" stroke-width="5" stroke-dasharray="24 16" />
+    <text x="430" y="480" font-family="monospace" font-size="9" font-weight="900" fill="#dc2626" transform="rotate(-90,430,480)" text-anchor="middle">TRAFFIC SEPARATION SCHEME · NORTHBOUND LANE</text>
+    <text x="470" y="480" font-family="monospace" font-size="9" font-weight="900" fill="#0284c7" transform="rotate(90,470,480)" text-anchor="middle">TRAFFIC SEPARATION SCHEME · SOUTHBOUND LANE</text>
+
+    <!-- Navigational Leading Lights Alignment Line -->
+    <g fill="none" stroke="#0284c7" opacity="0.45">
+  <path d="M 30,741.2 L 45,740.3 L 60,738.7 L 75,738 L 90,738.7 L 105,740.3 L 120,741.2 L 135,739.5 L 150,734 L 165,724.7 L 180,713 L 195,701.5 L 210,693.1 L 225,690 L 240,693.1 L 255,701.5 L 270,713 L 285,724.7 L 300,734 L 315,739.5 L 330,741.2 L 345,740.3 L 360,738.7 L 375,738 L 390,738.7 L 405,740.3 L 420,741.2 L 435,739.5 L 450,734 L 465,724.7 L 480,713 L 495,701.5 L 510,693.1 L 525,690 L 540,693.1 L 555,701.5 L 570,713 L 585,724.7 L 600,734 L 615,739.5 L 630,741.2 L 645,740.3 L 660,738.7 L 675,738 L 690,738.7 L 705,740.3 L 720,741.2 L 735,739.5 L 750,734 L 765,724.7 L 780,713 L 795,701.5 L 810,693.1 L 825,690 L 840,693.1 L 855,701.5 L 870,713" stroke-width="1.2" />
+  <path d="M 30,743.2 L 45,742.5 L 60,741.7 L 75,742.2 L 90,744.1 L 105,746.3 L 120,747 L 135,744.5 L 150,737.8 L 165,727.3 L 180,715 L 195,703.7 L 210,696.1 L 225,694.2 L 240,698.4 L 255,707.4 L 270,718.8 L 285,729.7 L 300,737.8 L 315,742.2 L 330,743.2 L 345,742.5 L 360,741.7 L 375,742.2 L 390,744.1 L 405,746.3 L 420,747 L 435,744.5 L 450,737.8 L 465,727.3 L 480,715 L 495,703.7 L 510,696.1 L 525,694.2 L 540,698.4 L 555,707.4 L 570,718.8 L 585,729.7 L 600,737.8 L 615,742.2 L 630,743.2 L 645,742.5 L 660,741.7 L 675,742.2 L 690,744.1 L 705,746.3 L 720,747 L 735,744.5 L 750,737.8 L 765,727.3 L 780,715 L 795,703.7 L 810,696.1 L 825,694.2 L 840,698.4 L 855,707.4 L 870,718.8" stroke-width="0.6" />
+  <path d="M 30,745.2 L 45,744.9 L 60,745.1 L 75,746.8 L 90,749.7 L 105,752.3 L 120,752.7 L 135,749.2 L 150,741.2 L 165,729.7 L 180,717 L 195,706 L 210,699.4 L 225,698.8 L 240,704 L 255,713.4 L 270,724.4 L 285,734.3 L 300,741.2 L 315,744.6 L 330,745.2 L 345,744.9 L 360,745.1 L 375,746.8 L 390,749.7 L 405,752.3 L 420,752.7 L 435,749.2 L 450,741.2 L 465,729.7 L 480,717 L 495,706 L 510,699.4 L 525,698.8 L 540,704 L 555,713.4 L 570,724.4 L 585,734.3 L 600,741.2 L 615,744.6 L 630,745.2 L 645,744.9 L 660,745.1 L 675,746.8 L 690,749.7 L 705,752.3 L 720,752.7 L 735,749.2 L 750,741.2 L 765,729.7 L 780,717 L 795,706 L 810,699.4 L 825,698.8 L 840,704 L 855,713.4 L 870,724.4" stroke-width="0.6" />
+  <path d="M 30,747.3 L 45,747.5 L 60,748.8 L 75,751.7 L 90,755.5 L 105,758.2 L 120,758 L 135,753.4 L 150,744.3 L 165,731.9 L 180,719.1 L 195,708.7 L 210,703.2 L 225,703.7 L 240,709.8 L 255,719.4 L 270,729.8 L 285,738.6 L 300,744.3 L 315,746.8 L 330,747.3 L 345,747.5 L 360,748.8 L 375,751.7 L 390,755.5 L 405,758.2 L 420,758 L 435,753.4 L 450,744.3 L 465,731.9 L 480,719.1 L 495,708.7 L 510,703.2 L 525,703.7 L 540,709.8 L 555,719.4 L 570,729.8 L 585,738.6 L 600,744.3 L 615,746.8 L 630,747.3 L 645,747.5 L 660,748.8 L 675,751.7 L 690,755.5 L 705,758.2 L 720,758 L 735,753.4 L 750,744.3 L 765,731.9 L 780,719.1 L 795,708.7 L 810,703.2 L 825,703.7 L 840,709.8 L 855,719.4 L 870,729.8" stroke-width="1.2" />
+  <path d="M 30,749.4 L 45,750.4 L 60,753 L 75,757 L 90,761.4 L 105,764.1 L 120,763.1 L 135,757.3 L 150,747 L 165,734 L 180,721.2 L 195,711.6 L 210,707.3 L 225,709 L 240,715.8 L 255,725.3 L 270,734.9 L 285,742.4 L 300,747 L 315,748.8 L 330,749.4 L 345,750.4 L 360,753 L 375,757 L 390,761.4 L 405,764.1 L 420,763.1 L 435,757.3 L 450,747 L 465,734 L 480,721.2 L 495,711.6 L 510,707.3 L 525,709 L 540,715.8 L 555,725.3 L 570,734.9 L 585,742.4 L 600,747 L 615,748.8 L 630,749.4 L 645,750.4 L 660,753 L 675,757 L 690,761.4 L 705,764.1 L 720,763.1 L 735,757.3 L 750,747 L 765,734 L 780,721.2 L 795,711.6 L 810,707.3 L 825,709 L 840,715.8 L 855,725.3 L 870,734.9" stroke-width="0.6" />
+  <path d="M 30,751.8 L 45,753.7 L 60,757.5 L 75,762.6 L 90,767.4 L 105,769.7 L 120,767.8 L 135,760.7 L 150,749.4 L 165,736 L 180,723.6 L 195,714.9 L 210,711.9 L 225,714.6 L 240,721.7 L 255,730.9 L 270,739.6 L 285,745.9 L 300,749.4 L 315,750.8 L 330,751.8 L 345,753.7 L 360,757.5 L 375,762.6 L 390,767.4 L 405,769.7 L 420,767.8 L 435,760.7 L 450,749.4 L 465,736 L 480,723.6 L 495,714.9 L 510,711.9 L 525,714.6 L 540,721.7 L 555,730.9 L 570,739.6 L 585,745.9 L 600,749.4 L 615,750.8 L 630,751.8 L 645,753.7 L 660,757.5 L 675,762.6 L 690,767.4 L 705,769.7 L 720,767.8 L 735,760.7 L 750,749.4 L 765,736 L 780,723.6 L 795,714.9 L 810,711.9 L 825,714.6 L 840,721.7 L 855,730.9 L 870,739.6" stroke-width="0.6" />
+  <path d="M 30,754.4 L 45,757.4 L 60,762.4 L 75,768.4 L 90,773.4 L 105,775.2 L 120,772.1 L 135,763.8 L 150,751.6 L 165,738 L 180,726.1 L 195,718.6 L 210,716.8 L 225,720.4 L 240,727.7 L 255,736.3 L 270,743.9 L 285,749 L 300,751.6 L 315,752.9 L 330,754.4 L 345,757.4 L 360,762.4 L 375,768.4 L 390,773.4 L 405,775.2 L 420,772.1 L 435,763.8 L 450,751.6 L 465,738 L 480,726.1 L 495,718.6 L 510,716.8 L 525,720.4 L 540,727.7 L 555,736.3 L 570,743.9 L 585,749 L 600,751.6 L 615,752.9 L 630,754.4 L 645,757.4 L 660,762.4 L 675,768.4 L 690,773.4 L 705,775.2 L 720,772.1 L 735,763.8 L 750,751.6 L 765,738 L 780,726.1 L 795,718.6 L 810,716.8 L 825,720.4 L 840,727.7 L 855,736.3 L 870,743.9" stroke-width="1.2" />
+  <path d="M 30,757.3 L 45,761.5 L 60,767.7 L 75,774.3 L 90,779.2 L 105,780.3 L 120,776 L 135,766.6 L 150,753.7 L 165,740.2 L 180,729 L 195,722.7 L 210,722 L 225,726.3 L 240,733.6 L 255,741.4 L 270,747.8 L 285,751.8 L 300,753.7 L 315,755 L 330,757.3 L 345,761.5 L 360,767.7 L 375,774.3 L 390,779.2 L 405,780.3 L 420,776 L 435,766.6 L 450,753.7 L 465,740.2 L 480,729 L 495,722.7 L 510,722 L 525,726.3 L 540,733.6 L 555,741.4 L 570,747.8 L 585,751.8 L 600,753.7 L 615,755 L 630,757.3 L 645,761.5 L 660,767.7 L 675,774.3 L 690,779.2 L 705,780.3 L 720,776 L 735,766.6 L 750,753.7 L 765,740.2 L 780,729 L 795,722.7 L 810,722 L 825,726.3 L 840,733.6 L 855,741.4 L 870,747.8" stroke-width="0.6" />
+</g>
+
+    <g fill="none" stroke="#0f766e" opacity="0.4">
+  <path d="M 30,1175.6 L 45,1172.7 L 60,1169.1 L 75,1167.1 L 90,1166.6 L 105,1165.3 L 120,1160.6 L 135,1151.1 L 150,1138.5 L 165,1126.6 L 180,1120.6 L 195,1123.7 L 210,1136.4 L 225,1155 L 240,1173.6 L 255,1186.3 L 270,1189.4 L 285,1183.4 L 300,1171.5 L 315,1158.9 L 330,1149.4 L 345,1144.7 L 360,1143.4 L 375,1142.9 L 390,1140.9 L 405,1137.3 L 420,1134.4 L 435,1135.5 L 450,1143 L 465,1156.7 L 480,1173.1 L 495,1186.8 L 510,1192.6 L 525,1187.9 L 540,1174 L 555,1155.5 L 570,1138.6 L 585,1128.3 L 600,1126.5 L 615,1131.6 L 630,1140 L 645,1147.6 L 660,1152.5 L 675,1155 L 690,1157.5 L 705,1162.4 L 720,1170 L 735,1178.4 L 750,1183.5 L 765,1181.7 L 780,1171.4 L 795,1154.5 L 810,1136 L 825,1122.1 L 840,1117.4 L 855,1123.2 L 870,1136.9" stroke-width="1.2" />
+  <path d="M 30,1178.2 L 45,1175.9 L 60,1173.9 L 75,1173.5 L 90,1173.9 L 105,1172.4 L 120,1166.3 L 135,1155.2 L 150,1141.3 L 165,1129.4 L 180,1124.4 L 195,1129.2 L 210,1143.3 L 225,1162.4 L 240,1180.2 L 255,1191.3 L 270,1192.8 L 285,1186 L 300,1174.6 L 315,1163.4 L 330,1155.6 L 345,1152 L 360,1150.6 L 375,1148.9 L 390,1145.2 L 405,1140.3 L 420,1137.1 L 435,1139.1 L 450,1148.2 L 465,1163.4 L 480,1180.5 L 495,1193.6 L 510,1197.9 L 525,1191.5 L 540,1176.6 L 555,1158.4 L 570,1142.9 L 585,1134.3 L 600,1133.7 L 615,1138.9 L 630,1146.2 L 645,1152.1 L 660,1155.5 L 675,1157.6 L 690,1160.9 L 705,1167.4 L 720,1176.6 L 735,1185.7 L 750,1190.5 L 765,1187.2 L 780,1175.2 L 795,1157.2 L 810,1138.8 L 825,1126.1 L 840,1123.1 L 855,1130.3 L 870,1144.3" stroke-width="0.6" />
+  <path d="M 30,1180.8 L 45,1179.5 L 60,1179.1 L 75,1180.3 L 90,1181.3 L 105,1179.2 L 120,1171.6 L 135,1158.8 L 150,1144 L 165,1132.3 L 180,1128.6 L 195,1135.2 L 210,1150.5 L 225,1169.7 L 240,1186.4 L 255,1195.8 L 270,1195.9 L 285,1188.6 L 300,1177.9 L 315,1168.3 L 330,1162.2 L 345,1159.4 L 360,1157.6 L 375,1154.4 L 390,1149 L 405,1143 L 420,1139.9 L 435,1143.1 L 450,1153.9 L 465,1170.5 L 480,1187.8 L 495,1200 L 510,1202.6 L 525,1194.8 L 540,1179.3 L 555,1161.6 L 570,1147.6 L 585,1140.6 L 600,1141 L 615,1146 L 630,1152 L 645,1156.2 L 660,1158.3 L 675,1160.3 L 690,1164.7 L 705,1172.8 L 720,1183.5 L 735,1193.1 L 750,1197.1 L 765,1192.2 L 780,1178.6 L 795,1159.8 L 810,1141.9 L 825,1130.6 L 840,1129.3 L 855,1137.6 L 870,1151.5" stroke-width="0.6" />
+  <path d="M 30,1183.6 L 45,1183.4 L 60,1184.8 L 75,1187.3 L 90,1188.7 L 105,1185.6 L 120,1176.4 L 135,1162 L 150,1146.6 L 165,1135.5 L 180,1133.3 L 195,1141.5 L 210,1157.8 L 225,1176.8 L 240,1192.2 L 255,1199.9 L 270,1198.8 L 285,1191.3 L 300,1181.7 L 315,1173.8 L 330,1169.1 L 345,1166.8 L 360,1164.2 L 375,1159.4 L 390,1152.4 L 405,1145.6 L 420,1142.9 L 435,1147.5 L 450,1160.1 L 465,1177.7 L 480,1195 L 495,1206 L 510,1207 L 525,1197.7 L 540,1181.9 L 555,1165.2 L 570,1152.8 L 585,1147.4 L 600,1148.4 L 615,1152.8 L 630,1157.3 L 645,1159.8 L 660,1161 L 675,1163.2 L 690,1168.9 L 705,1178.8 L 720,1190.7 L 735,1200.4 L 750,1203.3 L 765,1196.8 L 780,1181.7 L 795,1162.4 L 810,1145.2 L 825,1135.5 L 840,1135.9 L 855,1144.9 L 870,1158.5" stroke-width="1.2" />
+  <path d="M 30,1186.6 L 45,1187.8 L 60,1190.9 L 75,1194.6 L 90,1195.9 L 105,1191.7 L 120,1180.7 L 135,1165 L 150,1149.2 L 165,1139 L 180,1138.4 L 195,1148.3 L 210,1165.2 L 225,1183.6 L 240,1197.6 L 255,1203.5 L 270,1201.4 L 285,1194.2 L 300,1185.9 L 315,1179.7 L 330,1176.3 L 345,1174.1 L 360,1170.5 L 375,1164 L 390,1155.5 L 405,1148.2 L 420,1146.2 L 435,1152.5 L 450,1166.6 L 465,1185.1 L 480,1202 L 495,1211.6 L 510,1210.8 L 525,1200.5 L 540,1184.7 L 555,1169.1 L 570,1158.5 L 585,1154.4 L 600,1155.8 L 615,1159.3 L 630,1162.1 L 645,1163.1 L 660,1163.6 L 675,1166.4 L 690,1173.6 L 705,1185.1 L 720,1198 L 735,1207.5 L 750,1209.2 L 765,1200.9 L 780,1184.5 L 795,1165.1 L 810,1148.9 L 825,1140.9 L 840,1142.8 L 855,1152.3 L 870,1165.1" stroke-width="0.6" />
+  <path d="M 30,1190 L 45,1192.7 L 60,1197.4 L 75,1202 L 90,1202.9 L 105,1197.3 L 120,1184.6 L 135,1167.8 L 150,1152 L 165,1142.9 L 180,1144.1 L 195,1155.3 L 210,1172.6 L 225,1190.1 L 240,1202.4 L 255,1206.8 L 270,1204 L 285,1197.3 L 300,1190.5 L 315,1186 L 330,1183.6 L 345,1181.2 L 360,1176.3 L 375,1168.1 L 390,1158.4 L 405,1150.9 L 420,1150 L 435,1157.8 L 450,1173.5 L 465,1192.5 L 480,1208.7 L 495,1216.7 L 510,1214.3 L 525,1203.1 L 540,1187.7 L 555,1173.5 L 570,1164.6 L 585,1161.7 L 600,1163 L 615,1165.4 L 630,1166.5 L 645,1166.1 L 660,1166.3 L 675,1169.9 L 690,1178.7 L 705,1191.8 L 720,1205.4 L 735,1214.4 L 750,1214.5 L 765,1204.6 L 780,1187.2 L 795,1168 L 810,1153.1 L 825,1146.8 L 840,1149.9 L 855,1159.6 L 870,1171.4" stroke-width="0.6" />
+  <path d="M 30,1193.7 L 45,1198.1 L 60,1204.3 L 75,1209.3 L 90,1209.6 L 105,1202.4 L 120,1188.1 L 135,1170.4 L 150,1155 L 165,1147.3 L 180,1150.2 L 195,1162.5 L 210,1179.8 L 225,1196.2 L 240,1206.8 L 255,1209.8 L 270,1206.7 L 285,1200.8 L 300,1195.7 L 315,1192.7 L 330,1191 L 345,1188 L 360,1181.7 L 375,1171.8 L 390,1161.1 L 405,1153.8 L 420,1154.1 L 435,1163.7 L 450,1180.7 L 465,1199.8 L 480,1215 L 495,1221.3 L 510,1217.4 L 525,1205.7 L 540,1191 L 555,1178.4 L 570,1171.1 L 585,1169 L 600,1170 L 615,1171 L 630,1170.4 L 645,1168.8 L 660,1169 L 675,1173.8 L 690,1184.4 L 705,1198.8 L 720,1212.8 L 735,1220.9 L 750,1219.4 L 765,1207.9 L 780,1189.8 L 795,1171.1 L 810,1157.7 L 825,1153.1 L 840,1157.2 L 855,1166.8 L 870,1177.3" stroke-width="1.2" />
+  <path d="M 30,1197.8 L 45,1204 L 60,1211.4 L 75,1216.7 L 90,1215.9 L 105,1207 L 120,1191.3 L 135,1173 L 150,1158.3 L 165,1152.2 L 180,1156.7 L 195,1169.9 L 210,1186.8 L 225,1201.8 L 240,1210.7 L 255,1212.6 L 270,1209.4 L 285,1204.7 L 300,1201.3 L 315,1199.7 L 330,1198.4 L 345,1194.6 L 360,1186.6 L 375,1175.2 L 390,1163.7 L 405,1156.9 L 420,1158.7 L 435,1170 L 450,1188 L 465,1207 L 480,1220.9 L 495,1225.5 L 510,1220.3 L 525,1208.4 L 540,1194.7 L 555,1183.8 L 570,1177.9 L 585,1176.4 L 600,1176.7 L 615,1176.1 L 630,1173.9 L 645,1171.5 L 660,1172 L 675,1178.2 L 690,1190.4 L 705,1206.1 L 720,1220 L 735,1227 L 750,1223.8 L 765,1210.9 L 780,1192.5 L 795,1174.6 L 810,1162.8 L 825,1159.8 L 840,1164.6 L 855,1173.6 L 870,1182.7" stroke-width="0.6" />
+  <path d="M 30,1202.4 L 45,1210.2 L 60,1218.7 L 75,1223.8 L 90,1221.8 L 105,1211.2 L 120,1194.2 L 135,1175.7 L 150,1161.9 L 165,1157.5 L 180,1163.5 L 195,1177.3 L 210,1193.6 L 225,1207 L 240,1214.3 L 255,1215.2 L 270,1212.4 L 285,1209.1 L 300,1207.3 L 315,1206.9 L 330,1205.6 L 345,1200.7 L 360,1191 L 375,1178.2 L 390,1166.3 L 405,1160.4 L 420,1163.8 L 435,1176.7 L 450,1195.4 L 465,1213.9 L 480,1226.3 L 495,1229.2 L 510,1223 L 525,1211.2 L 540,1198.8 L 555,1189.6 L 570,1185 L 585,1183.8 L 600,1183 L 615,1180.8 L 630,1177 L 645,1174.1 L 660,1175.3 L 675,1183 L 690,1196.9 L 705,1213.4 L 720,1227.1 L 735,1232.7 L 750,1227.7 L 765,1213.7 L 780,1195.2 L 795,1178.5 L 810,1168.4 L 825,1166.8 L 840,1172 L 855,1180.2 L 870,1187.6" stroke-width="0.6" />
+  <path d="M 30,1207.4 L 45,1216.9 L 60,1226.1 L 75,1230.7 L 90,1227.2 L 105,1215 L 120,1196.9 L 135,1178.5 L 150,1166 L 165,1163.3 L 180,1170.6 L 195,1184.6 L 210,1199.9 L 225,1211.7 L 240,1217.4 L 255,1217.8 L 270,1215.7 L 285,1213.9 L 300,1213.8 L 315,1214.3 L 330,1212.6 L 345,1206.4 L 360,1195 L 375,1181 L 390,1169 L 405,1164.2 L 420,1169.3 L 435,1183.6 L 450,1202.7 L 465,1220.4 L 480,1231.2 L 495,1232.6 L 510,1225.6 L 525,1214.3 L 540,1203.3 L 555,1195.8 L 570,1192.3 L 585,1190.9 L 600,1189 L 615,1185 L 630,1179.9 L 645,1176.7 L 660,1178.9 L 675,1188.3 L 690,1203.7 L 705,1220.8 L 720,1233.8 L 735,1237.9 L 750,1231.3 L 765,1216.3 L 780,1198.2 L 795,1182.8 L 810,1174.4 L 825,1174 L 840,1179.2 L 855,1186.3 L 870,1192" stroke-width="1.2" />
+</g>
+
+
+    
+  <!-- Full-Page Banknote Security Border -->
+  <g fill="none" stroke="#0f766e">
+    <rect x="24" y="24" width="852" height="1352" rx="4" stroke-width="2.2" opacity="0.8" />
+    <rect x="32" y="32" width="836" height="1336" rx="2" stroke-width="0.8" stroke-dasharray="6 3" stroke="#0284c7" opacity="0.6" />
+    <rect x="42" y="42" width="816" height="1316" stroke-width="0.6" opacity="0.4" />
 
     <!-- Corner Alignment Crosshairs -->
-    <path d="M16,40 L16,16 L40,16" stroke-width="2" opacity="0.8" />
-    <path d="M884,40 L884,16 L860,16" stroke-width="2" opacity="0.8" />
-    <path d="M16,1360 L16,1384 L40,1384" stroke-width="2" opacity="0.8" />
-    <path d="M884,1360 L884,1384 L860,1384" stroke-width="2" opacity="0.8" />
+    <path d="M16,40 L16,16 L40,16" stroke-width="2.5" opacity="0.85" />
+    <path d="M884,40 L884,16 L860,16" stroke-width="2.5" opacity="0.85" />
+    <path d="M16,1360 L16,1384 L40,1384" stroke-width="2.5" opacity="0.85" />
+    <path d="M884,1360 L884,1384 L860,1384" stroke-width="2.5" opacity="0.85" />
 
     <!-- Top & Bottom Micro-Text Security Banners -->
-    <text x="450" y="20" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#172554" opacity="0.75">★ SKY ARIANA LOGISTICS · OFFICIAL MULTI-MODAL BILL OF LADING SECURITY SYSTEM ★</text>
-    <text x="450" y="1390" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#172554" opacity="0.75">★ AUTHENTIC SECURE CARGO WAYBILL · VERIFIED INTERNATIONAL TRANSIT NETWORK ★</text>
+    <text x="450" y="20" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#0f766e" stroke="none" opacity="0.85">★ SKY ARIANA LOGISTICS · ISLAND CHANNEL · MARITIME STRAIT PASSAGE ★</text>
+    <text x="450" y="1390" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#0f766e" stroke="none" opacity="0.85">★ AUTHENTIC SECURE CARGO WAYBILL · VERIFIED INTERNATIONAL TRANSIT NETWORK ★</text>
 
     <!-- Side Margin Degree & Metric Ticks -->
-    <g opacity="0.4" stroke-width="0.6">
-      <line x1="20" y1="350" x2="28" y2="350" /><line x1="20" y1="700" x2="30" y2="700" stroke-width="1.2" /><line x1="20" y1="1050" x2="28" y2="1050" />
-      <line x1="872" y1="350" x2="880" y2="350" /><line x1="870" y1="700" x2="880" y2="700" stroke-width="1.2" /><line x1="872" y1="1050" x2="880" y2="1050" />
-      <line x1="225" y1="20" x2="225" y2="28" /><line x1="450" y1="18" x2="450" y2="30" stroke-width="1.2" /><line x1="675" y1="20" x2="675" y2="28" />
-      <line x1="225" y1="1372" x2="225" y2="1380" /><line x1="450" y1="1370" x2="450" y2="1382" stroke-width="1.2" /><line x1="675" y1="1372" x2="675" y2="1380" />
+    <g opacity="0.45" stroke-width="0.8">
+      <line x1="20" y1="350" x2="28" y2="350" /><line x1="20" y1="700" x2="32" y2="700" stroke-width="1.6" /><line x1="20" y1="1050" x2="28" y2="1050" />
+      <line x1="872" y1="350" x2="880" y2="350" /><line x1="868" y1="700" x2="880" y2="700" stroke-width="1.6" /><line x1="872" y1="1050" x2="880" y2="1050" />
+      <line x1="225" y1="20" x2="225" y2="28" /><line x1="450" y1="16" x2="450" y2="32" stroke-width="1.6" /><line x1="675" y1="20" x2="675" y2="28" />
+      <line x1="225" y1="1372" x2="225" y2="1380" /><line x1="450" y1="1368" x2="450" y2="1384" stroke-width="1.6" /><line x1="675" y1="1372" x2="675" y2="1380" />
     </g>
   </g>
-  <g transform="translate(75,75)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#172554" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#0891b2" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#172554" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#172554" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#172554" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#0891b2" stroke-width="0.6" opacity="0.4" />
-    </g><g transform="translate(825,75)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#172554" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#0891b2" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#172554" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#172554" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#172554" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#0891b2" stroke-width="0.6" opacity="0.4" />
-    </g><g transform="translate(75,1325)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#172554" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#0891b2" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#172554" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#172554" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#172554" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#0891b2" stroke-width="0.6" opacity="0.4" />
-    </g><g transform="translate(825,1325)">
-      <circle cx="0" cy="0" r="32" fill="none" stroke="#172554" stroke-width="1.2" opacity="0.6" />
-      <circle cx="0" cy="0" r="28" fill="none" stroke="#0891b2" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" />
-      <circle cx="0" cy="0" r="16" fill="none" stroke="#172554" stroke-width="0.9" opacity="0.6" />
-      <circle cx="0" cy="0" r="4" fill="#172554" opacity="0.75" />
-      <path d="M-36,0 L36,0 M0,-36 L0,36" stroke="#172554" stroke-width="0.6" opacity="0.4" />
-      <path d="M-24,-24 L24,24 M-24,24 L24,-24" stroke="#0891b2" stroke-width="0.6" opacity="0.4" />
-    </g>
 
+  <!-- 4 Corner Security Banknote Rosettes -->
+  <g transform="translate(75,75)" fill="none" stroke="#0f766e" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#0f766e" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
 
-  <!-- Nautical Chart Strait, Bathymetry & Fairway Channel -->
-  <g fill="none" stroke="#172554">
-    <!-- Archipelago Island Landmasses (Hachured Land Shading) -->
-    <!-- Island North-West -->
-    <path d="M 60,340 C 140,320 220,380 280,450 C 320,500 290,620 200,680 C 120,720 70,640 60,540 Z" fill="#172554" fill-opacity="0.1" stroke="#172554" stroke-width="2.5" />
-    <text x="160" y="520" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#172554">NORTH ISLAND</text>
+  <g transform="translate(825,75)" fill="none" stroke="#0f766e" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#0f766e" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
 
-    <!-- Island South-East -->
-    <path d="M 640,680 C 720,620 810,650 840,720 L 840,1080 C 780,1120 710,1060 660,980 C 600,900 580,750 640,680 Z" fill="#172554" fill-opacity="0.1" stroke="#172554" stroke-width="2.5" />
-    <text x="710" y="860" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#172554">SOUTH REEF</text>
+  <g transform="translate(75,1325)" fill="none" stroke="#0f766e" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#0f766e" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
 
-    <!-- Bathymetric Depth Sounding Contour Isolines -->
-    <g opacity="0.6">
-      <!-- 10m Depth Line -->
-      <path d="M 60,280 C 180,260 290,340 360,450 C 410,540 370,720 240,790 C 140,840 80,760 60,680" stroke="#0891b2" stroke-width="1.4" stroke-dasharray="8 4" />
-      <text x="320" y="420" font-family="Courier, monospace" font-size="8" font-weight="bold" fill="#0891b2">10 M</text>
+  <g transform="translate(825,1325)" fill="none" stroke="#0f766e" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#0f766e" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
 
-      <!-- 25m Depth Line -->
-      <path d="M 120,200 C 260,210 390,310 450,480 C 510,650 460,860 320,960 C 220,1020 120,950 60,860" stroke="#0891b2" stroke-width="1.8" />
-      <text x="430" y="460" font-family="Courier, monospace" font-size="8" font-weight="bold" fill="#0891b2">25 M</text>
-
-      <!-- 50m Deep Channel Trench -->
-      <path d="M 220,120 C 350,180 480,310 540,540 C 600,760 560,1020 420,1180" stroke="#172554" stroke-width="2.2" />
-      <text x="520" y="520" font-family="Courier, monospace" font-size="8" font-weight="bold" fill="#172554">50 M FAIRWAY</text>
-    </g>
-
-    <!-- Navigable Fairway Channel Navigation Route (Green Starboard & Red Port Markers) -->
-    <!-- Leading Line Centerline -->
-    <line x1="180" y1="180" x2="680" y2="1240" stroke="#172554" stroke-width="2.5" stroke-dasharray="14 8" />
-    <text x="480" y="790" font-family="Arial, sans-serif" font-size="8.5" font-weight="900" fill="#172554" transform="rotate(48 480 790)">BEARING 048° TRUE · DEEP DRAFT FAIRWAY</text>
-
-    <!-- Lateral Channel Marker Buoys along Fairway -->
-    <!-- Port Mark 1 (Red Can) -->
-    <g transform="translate(380, 540)">
-      <rect x="-10" y="-18" width="20" height="18" fill="#ef4444" stroke="#172554" stroke-width="1.2" />
-      <text x="14" y="-4" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" fill="#ef4444">Q.R 1s (PORT)</text>
-    </g>
-    <!-- Starboard Mark 1 (Green Conical) -->
-    <g transform="translate(490, 680)">
-      <polygon points="0,-22 12,0 -12,0" fill="#10b981" stroke="#172554" stroke-width="1.2" />
-      <text x="16" y="-4" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" fill="#10b981">Q.G 1s (STBD)</text>
-    </g>
-
-    <!-- Spot Soundings Numbers in Water Basin -->
+  
     
-      <text x="380" y="380" font-family="Courier, monospace" font-size="8.5" font-weight="bold" fill="#0891b2" opacity="0.8">32</text>
-    
-
-      <text x="420" y="440" font-family="Courier, monospace" font-size="8.5" font-weight="bold" fill="#0891b2" opacity="0.8">44</text>
-    
-
-      <text x="460" y="520" font-family="Courier, monospace" font-size="8.5" font-weight="bold" fill="#0891b2" opacity="0.8">52</text>
-    
-
-      <text x="520" y="640" font-family="Courier, monospace" font-size="8.5" font-weight="bold" fill="#0891b2" opacity="0.8">48</text>
-    
-
-      <text x="560" y="720" font-family="Courier, monospace" font-size="8.5" font-weight="bold" fill="#0891b2" opacity="0.8">38</text>
-    
-
-      <text x="420" y="680" font-family="Courier, monospace" font-size="8.5" font-weight="bold" fill="#0891b2" opacity="0.8">28</text>
-    
-
-      <text x="340" y="620" font-family="Courier, monospace" font-size="8.5" font-weight="bold" fill="#0891b2" opacity="0.8">19</text>
-    
-
-      <text x="580" y="840" font-family="Courier, monospace" font-size="8.5" font-weight="bold" fill="#0891b2" opacity="0.8">42</text>
-    
-
-      <text x="620" y="920" font-family="Courier, monospace" font-size="8.5" font-weight="bold" fill="#0891b2" opacity="0.8">54</text>
-    
-
-    <!-- Large Ornate Nautical Compass Rose in Lower Left -->
-    <g transform="translate(240, 1080)">
-      <circle cx="0" cy="0" r="110" stroke="#172554" stroke-width="1.5" />
-      <circle cx="0" cy="0" r="102" stroke="#0891b2" stroke-width="0.8" stroke-dasharray="3 3" />
-      <circle cx="0" cy="0" r="60" stroke="#172554" stroke-width="0.9" />
-      <!-- 8-Point Compass Star -->
-      <polygon points="0,0 -8,-15 0,-95 8,-15" fill="#172554" />
-      <polygon points="0,0 8,-15 0,-95" fill="#0891b2" />
-      <polygon points="0,0 15,-8 95,0 15,8" fill="#172554" />
-      <polygon points="0,0 -8,15 0,95 8,15" fill="#172554" />
-      <polygon points="0,0 -15,-8 -95,0 -15,8" fill="#172554" />
-      <text x="0" y="-105" font-family="Arial, sans-serif" font-size="14" font-weight="900" fill="#172554" text-anchor="middle">N</text>
-      <text x="112" y="5" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#172554">E</text>
-      <text x="0" y="118" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#172554" text-anchor="middle">S</text>
-      <text x="-120" y="5" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#172554">W</text>
-    </g>
-  </g>
 </svg>

@@ -2069,6 +2069,61 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
     }
   } catch {}
 
+  // Pre-load and inline images (logo, official stamp, signatures) as base64 Data URLs
+  // This guarantees 100% crisp rendering and prevents missing image assets in offline / Electron / file:// PDF exports
+  if (typeof window !== "undefined" && element) {
+    try {
+      const imgElements = Array.from(element.querySelectorAll("img"))
+      await Promise.all(
+        imgElements.map(async (img) => {
+          try {
+            if (!img.complete) {
+              await new Promise<void>((resolve) => {
+                img.onload = () => resolve()
+                img.onerror = () => resolve()
+                setTimeout(resolve, 1500)
+              })
+            }
+            if (img.decode) {
+              try {
+                await img.decode()
+              } catch {}
+            }
+            // If image is loaded and not yet a data: URL, inline it via canvas or fetch
+            if (img.src && !img.src.startsWith("data:")) {
+              let inlined = false
+              try {
+                const canvas = document.createElement("canvas")
+                const w = img.naturalWidth || img.width || 300
+                const h = img.naturalHeight || img.height || 150
+                if (w > 0 && h > 0) {
+                  canvas.width = w
+                  canvas.height = h
+                  const ctx = canvas.getContext("2d")
+                  if (ctx) {
+                    ctx.drawImage(img, 0, 0, w, h)
+                    const dataUrl = canvas.toDataURL("image/png")
+                    if (dataUrl && dataUrl.length > 100 && dataUrl.startsWith("data:image/png")) {
+                      img.src = dataUrl
+                      inlined = true
+                    }
+                  }
+                }
+              } catch {}
+
+              if (!inlined) {
+                const fetchedDataUrl = await imageUrlToDataUrl(img.src)
+                if (fetchedDataUrl) {
+                  img.src = fetchedDataUrl
+                }
+              }
+            }
+          } catch {}
+        })
+      )
+    } catch {}
+  }
+
   // Cooperative yield so the browser can paint progress indicators
   await new Promise((resolve) => setTimeout(resolve, 0))
 

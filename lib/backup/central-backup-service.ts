@@ -46,6 +46,7 @@ import {
 import { collectAllSystemData, BACKUP_DATABASE_FILES } from "./backup-collector"
 import { withBackupLock } from "./create-backup"
 import { getDisasterRecoveryConfig } from "./backup-retention-service"
+import { invalidateProtectionDashboardCache } from "./backup-protection-service"
 import type { BackupItem, BackupRecordCounts, CurrencyBalanceTotals } from "./backup-types"
 
 const BACKUPS_CATALOG_FILE = getDataPath(".local-backups-catalog.json")
@@ -532,6 +533,7 @@ export async function createAQBackup(options: CreateBackupServiceOptions = {}): 
     const currentCatalog = await readJsonFile<BackupItem[]>(BACKUPS_CATALOG_FILE, [])
     const updatedCatalog = [catalogItem, ...currentCatalog.filter((b) => b.id !== backupId)]
     await writeJsonFile(BACKUPS_CATALOG_FILE, updatedCatalog)
+    invalidateProtectionDashboardCache()
 
     return {
       success: true,

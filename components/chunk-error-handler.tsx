@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect } from "react"
 
@@ -14,11 +14,14 @@ export function ChunkErrorHandler() {
         errorMsg.includes("_next/static/chunks")
       ) {
         event.preventDefault()
-        const lastReload = Number(sessionStorage.getItem("sky_global_chunk_reload") || "0")
-        const now = Date.now()
-        if (now - lastReload > 12000) {
-          sessionStorage.setItem("sky_global_chunk_reload", String(now))
-          window.location.reload()
+        console.warn("[ChunkErrorHandler] Intercepted rejection:", errorMsg)
+        if (typeof window !== "undefined" && !(window as any).skyDesktop) {
+          const lastReload = Number(sessionStorage.getItem("sky_global_chunk_reload") || "0")
+          const now = Date.now()
+          if (now - lastReload > 12000) {
+            sessionStorage.setItem("sky_global_chunk_reload", String(now))
+            window.location.reload()
+          }
         }
       }
     }
@@ -32,11 +35,14 @@ export function ChunkErrorHandler() {
         errorMsg.includes("_next/static/chunks")
       ) {
         event.preventDefault()
-        const lastReload = Number(sessionStorage.getItem("sky_global_chunk_reload") || "0")
-        const now = Date.now()
-        if (now - lastReload > 12000) {
-          sessionStorage.setItem("sky_global_chunk_reload", String(now))
-          window.location.reload()
+        console.warn("[ChunkErrorHandler] Intercepted error:", errorMsg)
+        if (typeof window !== "undefined" && !(window as any).skyDesktop) {
+          const lastReload = Number(sessionStorage.getItem("sky_global_chunk_reload") || "0")
+          const now = Date.now()
+          if (now - lastReload > 12000) {
+            sessionStorage.setItem("sky_global_chunk_reload", String(now))
+            window.location.reload()
+          }
         }
       }
     }

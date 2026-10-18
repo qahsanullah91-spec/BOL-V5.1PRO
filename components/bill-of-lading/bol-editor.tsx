@@ -65,7 +65,7 @@ import { parseSyncedCargoItems, shouldSplitToPage2 } from "@/lib/utils/cargo-gri
 import { CopyWhatsAppButton } from "./copy-whatsapp-button"
 const PrintSafeBOL = dynamic(safeChunkDynamic(() => import("./print-safe-bol")), { ssr: false })
 import { BillOfLadingFormData, initialFormData, RouteStop, AFGHANISTAN_DOCUMENT_OPTIONS, DOCUMENT_CATEGORIES, AfghanistanDocumentDetail, type DocumentCategory, NOTE_THEMES, type NoteTheme, CARGO_ROUTE_NOTE_OPTIONS } from "@/lib/types/bill-of-lading"
-import { isUUID, cleanBolNumber, normalizeBolRecord, parseBolSeq } from "@/lib/utils/bol-filters"
+import { isUUID, cleanBolNumber, normalizeBolRecord, parseBolSeq, formatCanonicalDriverRent } from "@/lib/utils/bol-filters"
 import { ArrowLeft, Printer, Save, FileText, Eye, Plus, Loader2, Calendar, Truck, MapPin, Trash2, ArrowRight, Package, Edit3, ImageIcon, Upload, RotateCcw, ScrollText, Check, Download, Building2, Phone, Mail, Ship, Plane, Train, AlertCircle, User, Bell, Globe, Shield, Leaf, Heart, Scale, Bookmark, BookmarkPlus, X, IdCard, Car, Landmark, ShieldCheck, Receipt, List, ChevronDown, ChevronUp, Info, CheckCircle2, Circle, Sparkles, Copy, Box, ArrowLeftRight, Zap, Calculator, Sliders, SlidersHorizontal, Layers, Keyboard, Cloud, DownloadCloud, UploadCloud, RefreshCw, FileSpreadsheet, Coins, Hash, MoreHorizontal, Palette, ZoomIn, ZoomOut, Maximize2, Minimize2, FolderArchive, Search, Snowflake } from "lucide-react"
 import { formatPersianDate, getDualDates } from "@/lib/utils/persian-date"
 import {
@@ -352,36 +352,38 @@ function mergeSavedParties(seedParties: SavedParty[], storedParties: SavedParty[
 }
 
 function syncBolToAccountLedger(data: BillOfLadingFormData & { bol_number?: string }) {
-  const shipperName = data.shipper_name?.trim()
-  const bolNo = data.bol_number?.trim()
+  try {
+    const shipperName = data.shipper_name ? String(data.shipper_name).trim() : ""
+    const bolNo = data.bol_number ? String(data.bol_number).trim() : ""
 
-  if (!shipperName || !bolNo) return
+    if (!shipperName || !bolNo) return
 
-  const companyKey = accountCompanyKey(shipperName)
-  const storedCompanies = JSON.parse(
-    window.localStorage.getItem(ACCOUNT_CUSTOM_COMPANIES_STORAGE_KEY) ||
-    window.localStorage.getItem("skybol:account-custom-companies") ||
-    "[]"
-  ) as string[]
-  const hasCompany = storedCompanies.some((companyName) => accountCompanyKey(companyName) === companyKey)
+    const companyKey = accountCompanyKey(shipperName)
+    const storedCompanies = JSON.parse(
+      window.localStorage.getItem(ACCOUNT_CUSTOM_COMPANIES_STORAGE_KEY) ||
+      window.localStorage.getItem("skybol:account-custom-companies") ||
+      "[]"
+    ) as string[]
+    const hasCompany = storedCompanies.some((companyName) => accountCompanyKey(companyName) === companyKey)
 
-  const updatedCompanies = hasCompany ? storedCompanies : [...storedCompanies, shipperName]
-  if (!hasCompany) {
-    window.localStorage.setItem(ACCOUNT_CUSTOM_COMPANIES_STORAGE_KEY, JSON.stringify(updatedCompanies))
-    window.localStorage.setItem("skybol:account-custom-companies", JSON.stringify(updatedCompanies))
-    window.dispatchEvent(new CustomEvent("skybol:account-company-updated", { detail: { companyName: shipperName } }))
-  }
+    const updatedCompanies = hasCompany ? storedCompanies : [...storedCompanies, shipperName]
+    if (!hasCompany) {
+      window.localStorage.setItem(ACCOUNT_CUSTOM_COMPANIES_STORAGE_KEY, JSON.stringify(updatedCompanies))
+      window.localStorage.setItem("skybol:account-custom-companies", JSON.stringify(updatedCompanies))
+      window.dispatchEvent(new CustomEvent("skybol:account-company-updated", { detail: { companyName: shipperName } }))
+    }
 
-  const rawRecords = window.localStorage.getItem(ACCOUNT_LEDGER_STORAGE_KEY) || window.localStorage.getItem("skybol:account-ledgers") || "{}"
-  const records = JSON.parse(rawRecords) as AccountLedgerRecords
-  const existingRow = Object.values(records)
-    .flat()
-    .find((row) => (row.barnamehNo && row.barnamehNo.trim().toLowerCase() === bolNo.toLowerCase()) || (row.bolNo && row.bolNo.trim().toLowerCase() === bolNo.toLowerCase()))
-  
-  const financialsMap = getFinancialsMap()
-  const fin = bolNo ? financialsMap[bolNo.trim().toLowerCase()] : undefined
+    const rawRecords = window.localStorage.getItem(ACCOUNT_LEDGER_STORAGE_KEY) || window.localStorage.getItem("skybol:account-ledgers") || "{}"
+    const records = JSON.parse(rawRecords) as AccountLedgerRecords
+    const existingRow = Object.values(records)
+      .flat()
+      .find((row) => (row.barnamehNo && row.barnamehNo.trim().toLowerCase() === bolNo.toLowerCase()) || (row.bolNo && row.bolNo.trim().toLowerCase() === bolNo.toLowerCase()))
+    
+    const financialsMap = getFinancialsMap()
+    const fin = bolNo ? financialsMap[bolNo.trim().toLowerCase()] : undefined
 
-  const driverRentVal = fin?.driverFreight || data.driver_rent?.trim() || existingRow?.driverFreight || existingRow?.driverRent || ""
+    const rawDriverRent = data.driver_rent != null ? String(data.driver_rent).trim() : ""
+    const driverRentVal = fin?.driverFreight || rawDriverRent || existingRow?.driverFreight || existingRow?.driverRent || ""
   
   let debitVal = 0
   if (fin?.debit !== undefined && fin.debit > 0) {
@@ -479,6 +481,9 @@ function syncBolToAccountLedger(data: BillOfLadingFormData & { bol_number?: stri
       detail: { companyName: shipperName, bolNo },
     })
   )
+  } catch (syncErr) {
+    console.warn("syncBolToAccountLedger non-fatal error:", syncErr)
+  }
 }
 
 export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocumentLoaded, savedDocumentsPanel, accountLedgerPanel }: BOLEditorProps) {
@@ -1709,6 +1714,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         if (!merged.goodsValue) merged.goodsValue = merged.goods_value
         if (!merged.notes_1 && (cachedDoc?.notes_1 || initialData?.notes_1)) merged.notes_1 = cachedDoc?.notes_1 || initialData?.notes_1
         if (!merged.notes_2 && (cachedDoc?.notes_2 || initialData?.notes_2)) merged.notes_2 = cachedDoc?.notes_2 || initialData?.notes_2
+        merged.driver_rent = formatCanonicalDriverRent(doc?.driver_rent, cachedDoc?.driver_rent || initialData?.driver_rent || "")
 
         if (Array.isArray(doc.routes) && doc.routes.length > 0) {
           merged.routes = doc.routes
@@ -1920,13 +1926,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           draftData && (
             (draftData.shipper_name && draftData.shipper_name.trim().toLowerCase() !== "no shipper") ||
             (draftData.consignee_name && draftData.consignee_name.trim().toLowerCase() !== "no consignee") ||
-            (draftData.driver_name && draftData.driver_name.trim()) ||
-            (draftData.driver_rent && draftData.driver_rent.trim()) ||
-            (draftData.truck_number && draftData.truck_number.trim()) ||
-            (draftData.cargo_description && draftData.cargo_description.trim().length > 5) ||
-            (draftData.number_of_packages && draftData.number_of_packages.trim() !== "0") ||
-            (draftData.notes_1 && draftData.notes_1.trim()) ||
-            (draftData.notes_2 && draftData.notes_2.trim())
+            (draftData.driver_name && String(draftData.driver_name).trim()) ||
+            (draftData.driver_rent != null && String(draftData.driver_rent).trim() !== "") ||
+            (draftData.truck_number && String(draftData.truck_number).trim()) ||
+            (draftData.cargo_description && String(draftData.cargo_description).trim().length > 5) ||
+            (draftData.number_of_packages != null && String(draftData.number_of_packages).trim() !== "0") ||
+            (draftData.notes_1 && String(draftData.notes_1).trim()) ||
+            (draftData.notes_2 && String(draftData.notes_2).trim())
           )
         )
 
@@ -2328,6 +2334,46 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     toast.success("Applied saved option to Note 2")
   }
 
+  const applyBorderStationPreset = (
+    presetId: string,
+    defaultLabel: string,
+    defaultContent: string,
+    defaultTheme: NoteTheme
+  ) => {
+    const existing = savedNotes2.find(
+      (n) =>
+        n.id === presetId ||
+        n.label.trim().toLowerCase() === defaultLabel.trim().toLowerCase() ||
+        n.content.trim() === defaultContent.trim()
+    )
+
+    const finalLabel = existing ? existing.label : defaultLabel
+    const finalContent = existing ? existing.content : defaultContent
+    const finalTheme = (existing?.theme || defaultTheme) as NoteTheme
+    const finalId = existing ? existing.id : presetId
+
+    if (!existing) {
+      const newOption: SavedNoteOption = {
+        id: presetId,
+        label: defaultLabel,
+        content: defaultContent,
+        theme: defaultTheme,
+        savedAt: new Date().toISOString(),
+      }
+      const nextList = [newOption, ...savedNotes2.filter((n) => n.id !== presetId)]
+      persistSavedNotes(SAVED_NOTES_2_STORAGE_KEY, nextList, setSavedNotes2)
+    }
+
+    setSelectedNote2Id(finalId)
+    setFormData((prev) => ({
+      ...prev,
+      notes_2_label: finalLabel,
+      notes_2: finalContent,
+      notes_2_theme: finalTheme,
+    }))
+    toast.success(`Applied: ${finalLabel}`)
+  }
+
   const saveCurrentNote2 = (saveAsNew = false) => {
     const label = (formData.notes_2_label || "").trim() || "Note 2"
     const content = (formData.notes_2 || "").trim()
@@ -2336,11 +2382,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       return
     }
 
-    const normalizedLabel = label.toLocaleLowerCase()
+    const normalizedLabel = label.toLowerCase()
     const existingMatch = saveAsNew
       ? undefined
-      : savedNotes2.find((n) => n.id === selectedNote2Id)
-        || savedNotes2.find((n) => n.label.trim().toLocaleLowerCase() === normalizedLabel)
+      : (selectedNote2Id && selectedSavedNote2?.label.trim().toLowerCase() === normalizedLabel)
+        ? selectedSavedNote2
+        : savedNotes2.find((n) => n.label.trim().toLowerCase() === normalizedLabel)
+          || (selectedNote2Id ? savedNotes2.find((n) => n.id === selectedNote2Id) : undefined)
     const currentNote: SavedNoteOption = {
       id: existingMatch ? existingMatch.id : `n2-${Date.now()}`,
       label,
@@ -3223,12 +3271,14 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }, [bolNumber, getHighestKnownBolSequence])
 
   const handleClearNote1 = () => {
-    setFormData((prev) => ({ ...prev, notes_1: "" }))
+    setFormData((prev) => ({ ...prev, notes_1: "", notes_1_label: "" }))
+    setSelectedNote1Id("")
     toast.info("Note 1 cleared")
   }
 
   const handleClearNote2 = () => {
-    setFormData((prev) => ({ ...prev, notes_2: "" }))
+    setFormData((prev) => ({ ...prev, notes_2: "", notes_2_label: "" }))
+    setSelectedNote2Id("")
     toast.info("Note 2 cleared")
   }
 
@@ -4752,7 +4802,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           console.error("Auto-save party error:", err)
         }
 
-        syncBolToAccountLedger(updatedFormData)
+        try {
+          syncBolToAccountLedger(updatedFormData)
+        } catch (ledgerSyncErr) {
+          console.warn("Non-fatal account ledger sync error:", ledgerSyncErr)
+        }
         
         window.dispatchEvent(new CustomEvent("skybol:documents-updated", { detail: updatedFormData }))
 
@@ -5686,7 +5740,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+              className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <FileText className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
               <span className="hidden sm:inline">BOL Editor</span>
@@ -5700,7 +5754,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+              className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <Eye className="h-3.5 w-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" />
               <span className="hidden sm:inline">A4 Preview</span>
@@ -5714,7 +5768,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+              className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <Layers className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
               <span className="hidden sm:inline">Saved BOLs</span>
@@ -5728,7 +5782,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+              className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <FolderArchive className="h-3.5 w-3.5 shrink-0 text-cyan-600 dark:text-cyan-400" />
               <span className="hidden sm:inline">Files</span>
@@ -5742,7 +5796,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+              className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <Landmark className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span className="hidden sm:inline">Account Ledger</span>
@@ -5756,7 +5810,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   e.preventDefault()
                 }
               }}
-              className="shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+              className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
             >
               <Sliders className="h-3.5 w-3.5 shrink-0 text-slate-600 dark:text-slate-400" />
               <span className="hidden sm:inline">BOL Settings</span>
@@ -6127,18 +6181,24 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      {["AF-1234-KBL", "AF-5678-KDR", "IR-4421-THR", "IR-8890-BND"].map((plate, pIdx) => (
+                    <div className="flex flex-wrap items-center gap-1">
+                      {[
+                        { label: "46,000 AFN", value: "46,000 AFN - کرایه واپسی" },
+                        { label: "45,000 AFN", value: "45,000 AFN - کرایه واپسی" },
+                        { label: "53,000 AFN", value: "53,000 AFN - کرایه واپسی" },
+                        { label: "38,500 AFN", value: "38,500 AFN - کرایه واپسی" },
+                      ].map((preset, pIdx) => (
                         <button
-                          key={`plate-${plate}-${pIdx}`}
+                          key={`rent-preset-${preset.label}-${pIdx}`}
                           type="button"
                           onClick={() => {
-                            setFormData((prev) => ({ ...prev, truck_number: plate }))
-                            toast.success(`Set Truck No: ${plate}`)
+                            setFormData((prev) => ({ ...prev, driver_rent: preset.value }))
+                            setHasUnsavedChanges(true)
+                            toast.success(`Set Driver Rent: ${preset.value}`)
                           }}
-                          className="hidden sm:inline-flex rounded-lg border border-sky-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300 hover:bg-sky-600 hover:text-white dark:hover:bg-sky-600 dark:hover:text-white transition cursor-pointer"
+                          className="inline-flex rounded-lg border border-red-200 dark:border-red-900/60 bg-white/95 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-mono font-bold text-red-700 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white transition cursor-pointer"
                         >
-                          {plate}
+                          {preset.label} - کرایه واپسی
                         </button>
                       ))}
                     </div>
@@ -6225,7 +6285,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                     {/* 5. Driver Rent */}
                     <div>
-                      <label className="mb-1 text-xs font-black text-red-700 dark:text-red-400 flex items-center justify-between gap-1">
+                      <label className="mb-1 text-xs font-black text-slate-700 dark:text-slate-200 flex items-center justify-between gap-1">
                         <span className="flex items-center gap-1">
                           <Receipt className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                           <span>Driver Rent</span>
@@ -6234,10 +6294,17 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                       </label>
                       <Input
                         name="driver_rent"
+                        dir="ltr"
                         value={formData.driver_rent}
                         onChange={handleInputChange}
-                        placeholder="e.g., $500"
-                        className="rounded-xl h-8.5 sm:h-9 text-xs sm:text-sm font-black text-red-700 dark:text-red-400 bg-red-50/80 dark:bg-slate-950 border-red-200 dark:border-red-900/60 focus:bg-white dark:focus:bg-slate-950 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 shadow-2xs transition-all"
+                        onBlur={() => {
+                          const formatted = formatCanonicalDriverRent(formData.driver_rent)
+                          if (formatted && formatted !== formData.driver_rent) {
+                            setFormData((prev) => ({ ...prev, driver_rent: formatted }))
+                          }
+                        }}
+                        placeholder="46,000 AFN - کرایه واپسی"
+                        className="rounded-xl h-8.5 sm:h-9 text-xs sm:text-sm font-extrabold text-red-700 dark:text-red-400 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-950 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 shadow-inner transition-all"
                       />
                     </div>
                   </div>
@@ -6437,10 +6504,20 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         <div className="flex items-center justify-between text-[10px] px-1 font-semibold">
                           {selectedSavedNote1 ? (
                             isNote1PresetDirty ? (
-                              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                Unsaved preset edits — Click &quot;Update&quot; to apply permanently
-                              </span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                  Customized for this BOL (Base: {selectedSavedNote1.label})
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedNote1Id("")}
+                                  className="text-[9px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline cursor-pointer"
+                                  title="Detach from preset template"
+                                >
+                                  (Detach)
+                                </button>
+                              </div>
                             ) : (
                               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -6448,7 +6525,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               </span>
                             )
                           ) : (
-                            <span className="text-slate-600 dark:text-slate-400">Custom note entry (Title, content &amp; color save together)</span>
+                            <span className="text-slate-600 dark:text-slate-400">Custom note entry (Title, content &amp; color save with BOL)</span>
                           )}
                         </div>
                       </div>
@@ -6634,7 +6711,15 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             <button
                               key={`sug-title-2-${suggestedTitle}-${stIdx}`}
                               type="button"
-                              onClick={() => setFormData({ ...formData, notes_2_label: suggestedTitle })}
+                              onClick={() => {
+                                const matched = savedNotes2.find((n) => n.label.trim().toLowerCase() === suggestedTitle.trim().toLowerCase())
+                                if (matched) {
+                                  applySavedNote2(matched.id)
+                                } else {
+                                  if (selectedNote2Id) setSelectedNote2Id("")
+                                  setFormData((prev) => ({ ...prev, notes_2_label: suggestedTitle }))
+                                }
+                              }}
                               className={`text-[9.5pt] px-2 py-0.5 rounded-lg border font-medium cursor-pointer transition-all hover:scale-102 ${
                                 formData.notes_2_label === suggestedTitle
                                   ? "bg-indigo-600 text-white border-indigo-600 font-bold shadow-2xs"
@@ -6690,7 +6775,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               onClick={() => saveCurrentNote2()}
                               disabled={!formData.notes_2?.trim() || Boolean(selectedSavedNote2 && !isNote2PresetDirty)}
                               className="h-7.5 px-2.5 text-xs font-bold border-blue-200 bg-white hover:bg-blue-50 text-blue-700 dark:bg-slate-900 dark:border-blue-800 dark:text-blue-300 rounded-lg shadow-2xs cursor-pointer disabled:cursor-not-allowed"
-                              title={selectedSavedNote2 ? "Update the selected preset" : "Save current note as new preset"}
+                              title={selectedSavedNote2 ? "Update master preset template" : "Save current note as new preset"}
                             >
                               {selectedSavedNote2 ? <RefreshCw className="h-3 w-3 mr-1 text-blue-600" /> : <Save className="h-3 w-3 mr-1 text-blue-600" />}
                               {selectedSavedNote2 ? "Update" : "Save preset"}
@@ -6729,10 +6814,20 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         <div className="flex items-center justify-between text-[10px] px-1 font-semibold">
                           {selectedSavedNote2 ? (
                             isNote2PresetDirty ? (
-                              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                Unsaved preset edits — Click &quot;Update&quot; to apply permanently
-                              </span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                  Customized for this BOL (Base: {selectedSavedNote2.label})
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedNote2Id("")}
+                                  className="text-[9px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline cursor-pointer"
+                                  title="Detach from preset template"
+                                >
+                                  (Detach)
+                                </button>
+                              </div>
                             ) : (
                               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -6740,7 +6835,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               </span>
                             )
                           ) : (
-                            <span className="text-slate-600 dark:text-slate-400">Custom note entry (Title, content &amp; color save together)</span>
+                            <span className="text-slate-600 dark:text-slate-400">Custom note entry (Title, content &amp; color save with BOL)</span>
                           )}
                         </div>
                       </div>
@@ -6754,16 +6849,19 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         <div className="flex flex-wrap gap-1.5">
                           <button
                             type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                notes_2_label: "نماینده دوغارون و اسلام قلعه",
-                                notes_2: "عبدالوهاب ریگوال اسلام قلعه / نجیب الله حسین محمودی مقدم\n0796140001  0703130001\nنماینده دوغارون / شماره تماس : 09152091993",
-                                notes_2_theme: "blue",
-                              }))
-                              toast.success("Applied: نماینده دوغارون و اسلام قلعه")
-                            }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border border-blue-200/90 bg-white hover:bg-blue-50 text-blue-900 shadow-2xs hover:scale-102 transition cursor-pointer dark:bg-slate-900 dark:border-blue-800 dark:text-blue-200"
+                            onClick={() =>
+                              applyBorderStationPreset(
+                                "n2-dougharoun-islamqala",
+                                "نماینده دوغارون و اسلام قلعه",
+                                "عبدالوهاب ریگوال اسلام قلعه / نجیب الله حسین محمودی مقدم\n0796140001  0703130001\nنماینده دوغارون / شماره تماس : 09152091993",
+                                "blue"
+                              )
+                            }
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                              formData.notes_2?.includes("عبدالوهاب ریگوال") || selectedNote2Id === "n2-dougharoun-islamqala"
+                                ? "border-blue-500 bg-blue-100 text-blue-950 ring-2 ring-blue-400/40 shadow-xs dark:bg-blue-950 dark:border-blue-400 dark:text-blue-100"
+                                : "border-blue-200/90 bg-white hover:bg-blue-50 text-blue-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-blue-800 dark:text-blue-200"
+                            }`}
                           >
                             <span className="text-blue-600 font-mono text-[10px]">🛂</span>
                             <span>دوغارون و اسلام‌قلعه</span>
@@ -6771,16 +6869,19 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                           <button
                             type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                notes_2_label: "نماینده نمبرونه - نیمروز",
-                                notes_2: "نماینده نیمروز و میلک\n0711 263 528 │ 079 335 3246",
-                                notes_2_theme: "red",
-                              }))
-                              toast.success("Applied: نماینده نیمروز و میلک")
-                            }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border border-rose-200/90 bg-white hover:bg-rose-50 text-rose-900 shadow-2xs hover:scale-102 transition cursor-pointer dark:bg-slate-900 dark:border-rose-800 dark:text-rose-200"
+                            onClick={() =>
+                              applyBorderStationPreset(
+                                "n2-nimroz-milak",
+                                "نماینده نمبرونه - نیمروز",
+                                "نماینده نیمروز و میلک\n0711 263 528 │ 079 335 3246",
+                                "red"
+                              )
+                            }
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                              formData.notes_2?.includes("نیمروز و میلک") || selectedNote2Id === "n2-nimroz-milak"
+                                ? "border-rose-500 bg-rose-100 text-rose-950 ring-2 ring-rose-400/40 shadow-xs dark:bg-rose-950 dark:border-rose-400 dark:text-rose-100"
+                                : "border-rose-200/90 bg-white hover:bg-rose-50 text-rose-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-rose-800 dark:text-rose-200"
+                            }`}
                           >
                             <span className="text-rose-600 font-mono text-[10px]">🛂</span>
                             <span>نیمروز و میلک</span>
@@ -6788,16 +6889,19 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                           <button
                             type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                notes_2_label: "نماینده تورغندی و هرات",
-                                notes_2: "نماینده مرزی تورغندی و هرات\nحاجی معلم صاحب : 0799007371 │ عصمت الله : 0729807676 │ حکمت الله : 0794983011",
-                                notes_2_theme: "purple",
-                              }))
-                              toast.success("Applied: نماینده تورغندی و هرات")
-                            }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border border-purple-200/90 bg-white hover:bg-purple-50 text-purple-900 shadow-2xs hover:scale-102 transition cursor-pointer dark:bg-slate-900 dark:border-purple-800 dark:text-purple-200"
+                            onClick={() =>
+                              applyBorderStationPreset(
+                                "n2-torghundi",
+                                "نماینده تورغندی و هرات",
+                                "نماینده مرزی تورغندی و هرات\nحاجی معلم صاحب : 0799007371 │ عصمت الله : 0729807676 │ حکمت الله : 0794983011",
+                                "purple"
+                              )
+                            }
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                              formData.notes_2?.includes("تورغندی و هرات") || selectedNote2Id === "n2-torghundi"
+                                ? "border-purple-500 bg-purple-100 text-purple-950 ring-2 ring-purple-400/40 shadow-xs dark:bg-purple-950 dark:border-purple-400 dark:text-purple-100"
+                                : "border-purple-200/90 bg-white hover:bg-purple-50 text-purple-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-purple-800 dark:text-purple-200"
+                            }`}
                           >
                             <span className="text-purple-600 font-mono text-[10px]">🛂</span>
                             <span>تورغندی و هرات</span>
@@ -6805,16 +6909,19 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                           <button
                             type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                notes_2_label: "نماینده حیرتان و مزار شریف",
-                                notes_2: "نماینده مرزی حیرتان و بلخ\nدفتر بندر حیرتان : 0700939365 │ 0700203307",
-                                notes_2_theme: "green",
-                              }))
-                              toast.success("Applied: نماینده حیرتان و مزار شریف")
-                            }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border border-emerald-200/90 bg-white hover:bg-emerald-50 text-emerald-900 shadow-2xs hover:scale-102 transition cursor-pointer dark:bg-slate-900 dark:border-emerald-800 dark:text-emerald-200"
+                            onClick={() =>
+                              applyBorderStationPreset(
+                                "n2-hairatan",
+                                "نماینده حیرتان و مزار شریف",
+                                "نماینده مرزی حیرتان و بلخ\nدفتر بندر حیرتان : 0700939365 │ 0700203307",
+                                "green"
+                              )
+                            }
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                              formData.notes_2?.includes("حیرتان و بلخ") || selectedNote2Id === "n2-hairatan"
+                                ? "border-emerald-500 bg-emerald-100 text-emerald-950 ring-2 ring-emerald-400/40 shadow-xs dark:bg-emerald-950 dark:border-emerald-400 dark:text-emerald-100"
+                                : "border-emerald-200/90 bg-white hover:bg-emerald-50 text-emerald-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-emerald-800 dark:text-emerald-200"
+                            }`}
                           >
                             <span className="text-emerald-600 font-mono text-[10px]">🛂</span>
                             <span>حیرتان و مزار شریف</span>
@@ -6822,16 +6929,19 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                           <button
                             type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                notes_2_label: "نماینده اسپین بولدک - قندهار",
-                                notes_2: "نماینده مرزی اسپین بولدک و چمن\nدفتر بولدک : 0700203307 │ 0700939365",
-                                notes_2_theme: "orange",
-                              }))
-                              toast.success("Applied: نماینده اسپین بولدک")
-                            }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border border-amber-200/90 bg-white hover:bg-amber-50 text-amber-900 shadow-2xs hover:scale-102 transition cursor-pointer dark:bg-slate-900 dark:border-amber-800 dark:text-amber-200"
+                            onClick={() =>
+                              applyBorderStationPreset(
+                                "n2-spinboldak",
+                                "نماینده اسپین بولدک - قندهار",
+                                "نماینده مرزی اسپین بولدک و چمن\nدفتر بولدک : 0700203307 │ 0700939365",
+                                "orange"
+                              )
+                            }
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                              formData.notes_2?.includes("اسپین بولدک") || selectedNote2Id === "n2-spinboldak"
+                                ? "border-amber-500 bg-amber-100 text-amber-950 ring-2 ring-amber-400/40 shadow-xs dark:bg-amber-950 dark:border-amber-400 dark:text-amber-100"
+                                : "border-amber-200/90 bg-white hover:bg-amber-50 text-amber-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-amber-800 dark:text-amber-200"
+                            }`}
                           >
                             <span className="text-amber-600 font-mono text-[10px]">🛂</span>
                             <span>اسپین بولدک</span>
@@ -10674,7 +10784,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                 key={`doc-opt-${doc.id || 'doc'}-${docIdx}`}
                                 type="button"
                                 onClick={() => toggleAfghanistanDocument(doc.id)}
-                                className={`group relative flex items-start gap-3 p-3 rounded-xl border text-left transition-all duration-200 ${
+                                className={`group relative flex items-start gap-3 p-3 rounded-xl border text-left transition-all duration-200 overflow-hidden ${
                                   isSelected
                                     ? `border-${categoryColor}-400 dark:border-${categoryColor}-500/70 bg-linear-to-br from-${categoryColor}-50/80 to-white/60 dark:from-${categoryColor}-950/40 dark:to-slate-900/80 ring-1 ring-${categoryColor}-200/50 dark:ring-${categoryColor}-800/50 shadow-md`
                                     : "border-gray-200/60 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm hover:border-gray-300 dark:hover:border-slate-700 hover:bg-white/80 dark:hover:bg-slate-800/80 hover:shadow-sm"
@@ -10682,8 +10792,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               >
                                 {/* Required badge */}
                                 {doc.required && (
-                                  <div className="absolute -top-1.5 -right-1.5">
-                                    <Sparkles className="h-4 w-4 text-amber-500" />
+                                  <div className="absolute top-1.5 right-1.5 pointer-events-none">
+                                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                                   </div>
                                 )}
                                 
@@ -10956,6 +11066,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               onToggleStampSignature={() => setShowStampSignature((prev) => !prev)}
               onDownloadPdf={handleShippingDocumentsDownload}
               onDirectPrint={handleDirectPrint}
+              onOpenPrintDialog={() => setIsPrintDialogOpen(true)}
               onOpenDocumentCenter={() => setIsDocumentCenterOpen(true)}
               onOpenSavedDocuments={() => handleTabChange("saved-documents")}
               onNewDocument={handleNewDocument}

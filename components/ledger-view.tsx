@@ -219,7 +219,7 @@ export const LedgerView = memo(function LedgerView() {
       })
       if (res.ok) {
         const json = await res.json()
-        if (json.success && json.data && Array.isArray(json.data.items)) {
+        if (json.success && json.data && Array.isArray(json.data.items) && json.data.items.length > 0) {
           const d = json.data
           const mapped: LedgerEntry[] = d.items.map((item: any, idx: number) => ({
             id: item.id || `server-ledger-${idx}`,
@@ -257,6 +257,8 @@ export const LedgerView = memo(function LedgerView() {
       }
     } catch {}
     setIsServerLedgerMode(false)
+    setServerLedgerTotals(null)
+    setServerLedgerEntries([])
   }, [currentAccount, currentCompany, startDate, endDate, selectedCurrency])
 
   useEffect(() => {
@@ -1008,17 +1010,31 @@ export const LedgerView = memo(function LedgerView() {
   const displayEntries = isServerLedgerMode && serverLedgerEntries.length > 0 ? serverLedgerEntries : filteredEntries
 
   const { totalDebit, totalCredit, finalBalance } = useMemo(() => {
-    if (isServerLedgerMode && serverLedgerTotals) {
+    const dr = displayEntries.reduce((sum: number, e: LedgerEntry) => sum + (Number(e.debit) || 0), 0)
+    const cr = displayEntries.reduce((sum: number, e: LedgerEntry) => sum + (Number(e.credit) || 0), 0)
+
+    if (
+      isServerLedgerMode &&
+      serverLedgerTotals &&
+      serverLedgerEntries.length > 0 &&
+      !filterType &&
+      !deferredSearchTerm.trim() &&
+      (serverLedgerTotals.totalDebit > 0 || serverLedgerTotals.totalCredit > 0 || (dr === 0 && cr === 0))
+    ) {
+      const sDr = Number(serverLedgerTotals.totalDebit) || 0
+      const sCr = Number(serverLedgerTotals.totalCredit) || 0
+      const sBal = (Number(serverLedgerTotals.closingBalance) !== undefined && !isNaN(Number(serverLedgerTotals.closingBalance)))
+        ? Number(serverLedgerTotals.closingBalance)
+        : (sDr - sCr)
       return {
-        totalDebit: serverLedgerTotals.totalDebit,
-        totalCredit: serverLedgerTotals.totalCredit,
-        finalBalance: serverLedgerTotals.closingBalance,
+        totalDebit: sDr,
+        totalCredit: sCr,
+        finalBalance: sBal,
       }
     }
-    const dr = filteredEntries.reduce((sum: number, e: LedgerEntry) => sum + e.debit, 0)
-    const cr = filteredEntries.reduce((sum: number, e: LedgerEntry) => sum + e.credit, 0)
+
     return { totalDebit: dr, totalCredit: cr, finalBalance: dr - cr }
-  }, [isServerLedgerMode, serverLedgerTotals, filteredEntries])
+  }, [isServerLedgerMode, serverLedgerTotals, serverLedgerEntries, displayEntries, filterType, deferredSearchTerm])
 
   const parseDriverFreightAFN = (e: LedgerEntry): number => {
     const freightStr = e.driverFreight?.trim()
@@ -1038,10 +1054,12 @@ export const LedgerView = memo(function LedgerView() {
     return 0
   }
 
-  const totalDriverRentAFN = filteredEntries.reduce(
-    (sum: number, e: LedgerEntry) => sum + parseDriverFreightAFN(e),
-    0
-  )
+  const totalDriverRentAFN = useMemo(() => {
+    return displayEntries.reduce(
+      (sum: number, e: LedgerEntry) => sum + parseDriverFreightAFN(e),
+      0
+    )
+  }, [displayEntries])
 
   const printEntries = useMemo(() => {
     if (printTarget === 'full-ledger') {
@@ -1393,7 +1411,7 @@ export const LedgerView = memo(function LedgerView() {
   }
 
   const formatAFN = (amount: number) => {
-    return `${amount.toLocaleString('en-US')} AFN`
+    return `${(Number(amount) || 0).toLocaleString('en-US')} AFN`
   }
 
   const fieldLabels: Record<keyof ColumnMapping, { en: string; ps: string }> = {
@@ -2737,10 +2755,10 @@ export const LedgerView = memo(function LedgerView() {
                     {/* Totals Row */}
                     <tr className="bg-gradient-to-r from-blue-100/80 via-blue-50/60 to-white/60 font-semibold backdrop-blur-sm">
                       <td colSpan={10} className="border border-blue-200/60 px-1 py-1.5 text-right text-[10px] font-bold text-blue-900">TOTAL:</td>
-                      <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] text-amber-800 font-mono font-bold bg-amber-50/60">0 AFN</td>
-                      <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] text-blue-700 font-mono">$0</td>
-                      <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] text-blue-700 font-mono">$0</td>
-                      <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] text-blue-900 font-mono font-bold">$0</td>
+                      <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] text-amber-800 font-mono font-bold bg-amber-50/70">{formatAFN(totalDriverRentAFN)}</td>
+                      <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] font-mono text-red-600 font-bold">{formatCurrency(totalDebit)}</td>
+                      <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] font-mono text-emerald-600 font-bold">{formatCurrency(totalCredit)}</td>
+                      <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] font-mono text-blue-900 font-black">{formatCurrency(finalBalance)}</td>
                       <td className="border border-blue-200/60 px-1 py-1.5 bg-blue-50/30"></td>
                     </tr>
                   </>
@@ -2883,9 +2901,9 @@ export const LedgerView = memo(function LedgerView() {
                     );
                     })}
                     {/* Empty rows to fill to 17 */}
-                    {Array.from({ length: Math.max(0, 17 - currentCompany.ledgerEntries.length) }).map((_, idx) => (
+                    {Array.from({ length: Math.max(0, 17 - displayEntries.length) }).map((_, idx) => (
                       <tr key={`empty-${idx}`} className="bg-white/40 hover:bg-blue-50/40 transition-colors">
-                        <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] text-blue-800">{currentCompany.ledgerEntries.length + idx + 1}</td>
+                        <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px] text-blue-800">{displayEntries.length + idx + 1}</td>
                         <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px]"></td>
                         <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px]"></td>
                         <td className="border border-blue-200/60 px-1 py-1.5 text-center text-[10px]"></td>

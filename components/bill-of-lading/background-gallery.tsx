@@ -119,7 +119,7 @@ export function BackgroundGallery({
               {/* Background Watermark Layer */}
               {value && (
                 <div
-                  className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none transition-opacity duration-200"
+                  className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none transition-opacity duration-200"
                   style={{
                     backgroundImage: `url('${value}')`,
                     opacity: Math.max(0.04, Math.min(0.40, currentOpacity)),
@@ -350,7 +350,7 @@ export function BackgroundGallery({
               }`}
             >
               {/* High-Clarity Thumbnail Container - Generous & Balanced */}
-              <div className="relative h-40 sm:h-44 w-full overflow-hidden bg-slate-50/80 dark:bg-slate-950/40 p-2 flex items-center justify-center">
+              <div className="relative h-40 sm:h-44 w-full overflow-hidden bg-slate-100/70 dark:bg-slate-950/60 p-1.5 flex items-center justify-center">
                 <WatermarkThumbnail
                   url={item.url}
                   label={item.label}

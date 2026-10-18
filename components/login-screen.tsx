@@ -104,7 +104,29 @@ export function LoginScreen({ onLogin }: LoginScreenProps = {}) {
   const [showHelpModal, setShowHelpModal] = useState(false)
   const [currentBg, setCurrentBg] = useState(0)
 
-  useEffect(() => { setIsReady(true) }, [])
+  useEffect(() => {
+    setIsReady(true)
+    try {
+      let rawCreds = localStorage.getItem("skybol:remembered-credentials")
+      if (!rawCreds && typeof document !== "undefined") {
+        const match = document.cookie.match(/(?:^|;\s*)skybol_creds=([^;]*)/)
+        if (match?.[1]) {
+          rawCreds = decodeURIComponent(match[1])
+          localStorage.setItem("skybol:remembered-credentials", rawCreds)
+        }
+      }
+      if (rawCreds) {
+        const parsed = JSON.parse(rawCreds)
+        if (parsed && typeof parsed.username === "string") {
+          setUsername(parsed.username)
+          if (typeof parsed.password === "string") {
+            setPassword(parsed.password)
+          }
+          setRememberMe(parsed.rememberMe !== false)
+        }
+      }
+    } catch (_) {}
+  }, [])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -196,9 +218,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps = {}) {
               <div className="relative w-full flex flex-col items-center justify-center group/logo py-0.5">
                 <div className="absolute -inset-1 bg-gradient-to-b from-blue-500/10 via-amber-500/5 to-transparent rounded-2xl blur-lg pointer-events-none" />
                 <img 
-                  src="/images/aq-companies-login-logo.png" 
-                  alt="AQ COMPANIES - Global Logistics - Sky Ariana" 
-                  className="h-28 sm:h-32 w-auto max-w-[300px] object-contain drop-shadow-xs transition-transform duration-300 group-hover/logo:scale-[1.02] select-none"
+                  src="/images/aq-companies-logo.png" 
+                  alt="AQ COMPANIES - Ahsanullah Qureshi Companies" 
+                  className="h-32 sm:h-36 w-auto max-w-[300px] object-contain drop-shadow-xs transition-transform duration-300 group-hover/logo:scale-[1.02] select-none"
                 />
               </div>
 
@@ -454,8 +476,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps = {}) {
               ✕
             </button>
 
-            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-3 shadow-2xs">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="flex items-center justify-center mx-auto mb-2">
+              <img
+                src="/images/aq-companies-logo.png"
+                alt="AQ COMPANIES"
+                className="h-20 w-auto object-contain select-none"
+              />
             </div>
 
             <h3 className="text-lg font-black text-slate-900 mb-1">
@@ -466,6 +492,20 @@ export function LoginScreen({ onLogin }: LoginScreenProps = {}) {
             </p>
 
             <div className="space-y-2 text-left mb-4">
+              <a 
+                href="tel:+93711112762" 
+                className="p-2.5 bg-slate-50 hover:bg-blue-50/80 rounded-xl border border-slate-100 hover:border-blue-200 flex items-center gap-2.5 transition-all group"
+              >
+                <div className="w-7 h-7 rounded-lg bg-white shadow-2xs flex items-center justify-center text-slate-600 group-hover:text-blue-600">
+                  <Phone className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] font-bold text-slate-500 uppercase">AQ Companies Support</div>
+                  <div className="text-xs font-extrabold text-slate-900 group-hover:text-blue-700 font-mono">+93 711112762</div>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-blue-600" />
+              </a>
+
               <a 
                 href="tel:+93700939365" 
                 className="p-2.5 bg-slate-50 hover:bg-blue-50/80 rounded-xl border border-slate-100 hover:border-blue-200 flex items-center gap-2.5 transition-all group"
@@ -490,6 +530,20 @@ export function LoginScreen({ onLogin }: LoginScreenProps = {}) {
                 <div className="flex-1 min-w-0">
                   <div className="text-[9px] font-bold text-slate-500 uppercase">Iran Office</div>
                   <div className="text-xs font-extrabold text-slate-900 group-hover:text-blue-700 font-mono">+98 9172325086</div>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-blue-600" />
+              </a>
+
+              <a 
+                href="mailto:ahsanullahqureshi888@gmail.com" 
+                className="p-2.5 bg-slate-50 hover:bg-blue-50/80 rounded-xl border border-slate-100 hover:border-blue-200 flex items-center gap-2.5 transition-all group"
+              >
+                <div className="w-7 h-7 rounded-lg bg-white shadow-2xs flex items-center justify-center text-slate-600 group-hover:text-blue-600">
+                  <Mail className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] font-bold text-slate-500 uppercase">Direct Email Support</div>
+                  <div className="text-xs font-extrabold text-slate-900 group-hover:text-blue-700 font-mono truncate">ahsanullahqureshi888@gmail.com</div>
                 </div>
                 <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-blue-600" />
               </a>

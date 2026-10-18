@@ -6569,13 +6569,13 @@
   white-space: nowrap !important;
 }
 
-/* Background motion for BOL previews and fixed-position artwork for PDF export. */
+/* Background motion for BOL previews permanently removed */
 [data-bol-motion-accent="true"] {
-  color: #1d4ed8;
-  opacity: 0.38;
-  filter: drop-shadow(0 2px 4px rgb(30 64 175 / 0.18));
-  transform-origin: center;
-  will-change: transform;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  animation: none !important;
 }
 
 .motion-vehicle-fill {

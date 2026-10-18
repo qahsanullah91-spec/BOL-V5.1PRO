@@ -45,7 +45,6 @@ import {
 } from "@/lib/company-stamp-data"
 import { COMPANY_STAMP_SIGNATURE_DATA_URL } from "@/lib/company-stamp-fallback"
 import { AfghanTruckPlate } from "@/components/ui/afghan-truck-plate"
-import { BackgroundMotionAccent } from "./background-motion-accent"
 import { isPashtoOrArabic } from "@/lib/utils/pashto-bidi"
 import {
   type SyncedCargoItem,
@@ -1994,11 +1993,11 @@ function CargoRow({
   const isUltra = densityTier === "ultra"
   const isCompact = densityTier === "compact" || isUltra
 
-  const packageQtyFont = isUltra ? "text-[10.5pt]" : isCompact ? "text-[12.2pt]" : "text-[13.8pt]"
-  const qtyFont = isUltra ? "text-[9.5pt]" : isCompact ? "text-[11pt]" : "text-[12.4pt]"
-  const commFont = isUltra ? "text-[7.4pt]" : isCompact ? "text-[8.2pt]" : "text-[9pt]"
-  const valFont = isUltra ? "text-[7.8pt]" : isCompact ? "text-[8.6pt]" : "text-[9.4pt]"
-  const subLabelFont = isUltra ? "text-[5.2pt]" : "text-[5.8pt]"
+  const packageQtyFont = isUltra ? "text-[9.5pt]" : isCompact ? "text-[11.8pt]" : "text-[13.8pt]"
+  const qtyFont = isUltra ? "text-[8.5pt]" : isCompact ? "text-[10.5pt]" : "text-[12.4pt]"
+  const commFont = isUltra ? "text-[6.8pt]" : isCompact ? "text-[7.8pt]" : "text-[9pt]"
+  const valFont = isUltra ? "text-[7.2pt]" : isCompact ? "text-[8.2pt]" : "text-[9.4pt]"
+  const subLabelFont = isUltra ? "text-[4.8pt]" : isCompact ? "text-[5.5pt]" : "text-[5.8pt]"
 
   // Separate quantity from commodity in packageText
   const pkgClean = cleanText(item.packageText)
@@ -2010,9 +2009,13 @@ function CargoRow({
 
   const cellBoxStyle: CSSProperties = {
     backgroundColor: "#ffffff",
-    padding: isUltra ? "1.5px 2.5px" : isCompact ? "2px 3px" : "2.5px 4px",
+    padding: isUltra ? "1px 2px" : isCompact ? "1.8px 2.5px" : "2.5px 4px",
     boxSizing: "border-box",
   }
+
+  const cellMinHeight = isUltra ? "min-h-[20px]" : isCompact ? "min-h-[22px]" : "min-h-[24px]"
+  const innerSubRowPad = isUltra ? "px-1 py-[1px]" : "px-1.5 py-0.2"
+  const innerGap = isUltra ? "gap-[1px]" : "gap-0.3"
 
   return (
     <div
@@ -2022,14 +2025,14 @@ function CargoRow({
     >
       {/* 1. NO. OF PACKAGES */}
       <div
-        className="rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center text-center overflow-hidden min-h-[24px] shadow-2xs"
+        className={`rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center text-center overflow-hidden ${cellMinHeight} shadow-2xs`}
         style={cellBoxStyle}
       >
         {qtyPart || commPart ? (
-          <div className="flex flex-col items-center justify-center w-full leading-tight py-0.2">
+          <div className={`flex flex-col items-center justify-center w-full leading-tight ${isUltra ? "py-0" : "py-0.2"}`}>
             <div className="flex items-center justify-center gap-1 w-full">
               {showIndexBadge && (
-                <span className="text-[5pt] font-black text-blue-800 bg-blue-50 px-1 py-0.1 rounded border border-blue-200/70 shrink-0">
+                <span className="text-[4.8pt] font-black text-blue-800 bg-blue-50 px-1 py-0.1 rounded border border-blue-200/70 shrink-0">
                   #{itemNumber}
                 </span>
               )}
@@ -2038,7 +2041,7 @@ function CargoRow({
               </span>
             </div>
             {commPart && (
-              <span className={`font-bold ${commFont} text-blue-900 tracking-tight line-clamp-2 uppercase text-center mt-0.2 max-w-full break-words`}>
+              <span className={`font-bold ${commFont} text-blue-900 tracking-tight line-clamp-2 uppercase text-center ${isUltra ? "mt-0" : "mt-0.2"} max-w-full break-words leading-tight`}>
                 {commPart}
               </span>
             )}
@@ -2050,18 +2053,18 @@ function CargoRow({
 
       {/* 2. WT / CARTON */}
       <div
-        className="rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center overflow-hidden min-h-[24px] shadow-2xs"
+        className={`rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center overflow-hidden ${cellMinHeight} shadow-2xs`}
         style={cellBoxStyle}
       >
         {hasValue(item.netPerCarton) && hasValue(item.grossPerCarton) ? (
-          <div className="flex flex-col justify-center items-center w-full gap-0.3 my-auto">
-            <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-slate-50 border border-slate-200/80">
+          <div className={`flex flex-col justify-center items-center w-full ${innerGap} my-auto`}>
+            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80`}>
               <span className={`${subLabelFont} font-black uppercase text-blue-900 tracking-tight shrink-0`}>NET</span>
               <span className={`font-mono font-bold ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                 {item.netPerCarton}
               </span>
             </div>
-            <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-slate-50 border border-slate-200/80">
+            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80`}>
               <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>GROSS</span>
               <span className={`font-mono font-bold ${valFont} text-slate-800 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                 {item.grossPerCarton}
@@ -2069,7 +2072,7 @@ function CargoRow({
             </div>
           </div>
         ) : hasValue(item.netPerCarton) || hasValue(item.grossPerCarton) ? (
-          <div className="flex items-center justify-center w-full px-1.5 py-0.3 rounded bg-slate-50 border border-slate-200/80 my-auto">
+          <div className={`flex items-center justify-center w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80 my-auto`}>
             <span className={`font-mono font-bold ${qtyFont} text-slate-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
               {item.netPerCarton || item.grossPerCarton}
             </span>
@@ -2081,18 +2084,18 @@ function CargoRow({
 
       {/* 3. TOTAL WEIGHTS */}
       <div
-        className="rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center overflow-hidden min-h-[24px] shadow-2xs"
+        className={`rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center overflow-hidden ${cellMinHeight} shadow-2xs`}
         style={cellBoxStyle}
       >
         {hasValue(item.netWeight) && hasValue(item.grossWeight) ? (
-          <div className="flex flex-col justify-center items-center w-full gap-0.3 my-auto">
-            <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-blue-50/70 border border-blue-200/80">
+          <div className={`flex flex-col justify-center items-center w-full ${innerGap} my-auto`}>
+            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-blue-50/70 border border-blue-200/80`}>
               <span className={`${subLabelFont} font-black uppercase text-blue-900 tracking-tight shrink-0`}>NET WT</span>
               <span className={`font-mono font-black ${valFont} text-blue-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                 {item.netWeight}
               </span>
             </div>
-            <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-slate-50 border border-slate-200/80">
+            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80`}>
               <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>GROSS WT</span>
               <span className={`font-mono font-bold ${valFont} text-slate-800 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                 {item.grossWeight}
@@ -2100,7 +2103,7 @@ function CargoRow({
             </div>
           </div>
         ) : hasValue(item.netWeight) || hasValue(item.grossWeight) ? (
-          <div className="flex items-center justify-center w-full px-1.5 py-0.3 rounded bg-blue-50/70 border border-blue-200/80 my-auto">
+          <div className={`flex items-center justify-center w-full ${innerSubRowPad} rounded bg-blue-50/70 border border-blue-200/80 my-auto`}>
             <span className={`font-mono font-black ${qtyFont} text-blue-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
               {item.netWeight || item.grossWeight}
             </span>
@@ -2112,7 +2115,7 @@ function CargoRow({
 
       {/* 4. RATE & GOODS VALUE */}
       <div
-        className="rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center overflow-hidden min-h-[24px] shadow-2xs"
+        className={`rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center overflow-hidden ${cellMinHeight} shadow-2xs`}
         style={cellBoxStyle}
       >
         {(() => {
@@ -2128,14 +2131,14 @@ function CargoRow({
 
           if (hasRate && hasGoodsVal) {
             return (
-              <div className="flex flex-col justify-center items-center w-full gap-0.3 my-auto">
-                <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-slate-50 border border-slate-200/80">
+              <div className={`flex flex-col justify-center items-center w-full ${innerGap} my-auto`}>
+                <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80`}>
                   <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>RATE</span>
                   <span className={`font-mono font-bold ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                     {displayRate}
                   </span>
                 </div>
-                <div className="flex items-center justify-between w-full px-1.5 py-0.2 rounded bg-emerald-50/90 border border-emerald-200/90">
+                <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-emerald-50/90 border border-emerald-200/90`}>
                   <span className={`${subLabelFont} font-black uppercase text-emerald-800 tracking-tight shrink-0`}>VALUE</span>
                   <span className={`font-mono font-black ${valFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                     {item.goodsValue}
@@ -2147,7 +2150,7 @@ function CargoRow({
 
           if (hasGoodsVal) {
             return (
-              <div className="flex items-center justify-between w-full px-1.5 py-0.3 rounded bg-emerald-50/90 border border-emerald-200/90 my-auto">
+              <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-emerald-50/90 border border-emerald-200/90 my-auto`}>
                 <span className={`${subLabelFont} font-black uppercase text-emerald-800 tracking-tight shrink-0`}>VALUE</span>
                 <span className={`font-mono font-black ${qtyFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                   {item.goodsValue}
@@ -2158,7 +2161,7 @@ function CargoRow({
 
           if (hasRate) {
             return (
-              <div className="flex items-center justify-between w-full px-1.5 py-0.3 rounded bg-slate-50 border border-slate-200/80 my-auto">
+              <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80 my-auto`}>
                 <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>RATE</span>
                 <span className={`font-mono font-bold ${qtyFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                   {displayRate}
@@ -2186,15 +2189,15 @@ function CargoTotalsRow({
   const isUltra = densityTier === "ultra"
   const isCompact = densityTier === "compact" || isUltra
 
-  const totalValFont = isUltra ? "text-[9.5pt]" : isCompact ? "text-[11.2pt]" : "text-[12.5pt]"
-  const subLabelFont = isUltra ? "text-[5.6pt]" : isCompact ? "text-[6.2pt]" : "text-[6.8pt]"
+  const totalValFont = isUltra ? "text-[8.5pt]" : isCompact ? "text-[10.5pt]" : "text-[12.5pt]"
+  const subLabelFont = isUltra ? "text-[5pt]" : isCompact ? "text-[5.8pt]" : "text-[6.8pt]"
 
   return (
     <div
       className="grid grid-cols-[minmax(0,24fr)_minmax(0,23fr)_minmax(0,25fr)_minmax(0,28fr)] gap-1 items-center rounded-lg border-2 border-blue-400/90 bg-blue-50/95 shadow-2xs mt-0.5 break-inside-avoid page-break-inside-avoid w-full box-border"
       style={{
         backgroundColor: "#f0f7ff",
-        padding: isUltra ? "1.5px 3px" : "2px 5px",
+        padding: isUltra ? "1.2px 3px" : "2px 5px",
         boxSizing: "border-box",
       }}
     >
@@ -2207,13 +2210,13 @@ function CargoTotalsRow({
       </div>
 
       {/* Col 2: Cargo Item Count / Unit */}
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center min-w-0">
         {itemCount && itemCount > 1 ? (
-          <span className="font-mono text-[5.2pt] font-black uppercase text-blue-800 bg-white/90 border border-blue-200/90 px-1.2 py-0.1 rounded-full shadow-2xs">
+          <span className="font-mono text-[4.8pt] font-black uppercase text-blue-900 bg-white border border-blue-300 px-1.5 py-0.5 rounded-full shadow-2xs whitespace-nowrap keep-all text-center leading-none">
             {itemCount} COMMODITIES
           </span>
         ) : (
-          <span className="text-[5.2pt] font-black uppercase text-blue-800/60 tracking-wider">
+          <span className="text-[4.8pt] font-black uppercase text-blue-800/70 tracking-wider whitespace-nowrap text-center leading-none">
             WEIGHT TOTALS
           </span>
         )}
@@ -2221,10 +2224,10 @@ function CargoTotalsRow({
 
       {/* Col 3 Totals: Net & Gross */}
       <div className="flex flex-col items-center justify-center leading-tight">
-        <div className="inline-flex flex-col items-start gap-0.2">
+        <div className={`inline-flex flex-col items-start ${isUltra ? "gap-[0.5px]" : "gap-0.2"}`}>
           {totals.totalNetWeight > 0 && (
             <div className="flex items-center gap-1">
-              <span className={`${subLabelFont} font-black text-blue-900 uppercase min-w-[32px] text-left shrink-0`}>NET:</span>
+              <span className={`${subLabelFont} font-black text-blue-900 uppercase ${isUltra ? "min-w-[26px]" : "min-w-[32px]"} text-left shrink-0`}>NET:</span>
               <span className={`font-mono font-black ${totalValFont} text-blue-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                 {totals.totalNetWeight.toLocaleString()} {totals.weightUnit}
               </span>
@@ -2232,7 +2235,7 @@ function CargoTotalsRow({
           )}
           {totals.totalGrossWeight > 0 && (
             <div className="flex items-center gap-1">
-              <span className={`${subLabelFont} font-black text-slate-600 uppercase min-w-[32px] text-left shrink-0`}>GROSS:</span>
+              <span className={`${subLabelFont} font-black text-slate-600 uppercase ${isUltra ? "min-w-[26px]" : "min-w-[32px]"} text-left shrink-0`}>GROSS:</span>
               <span className={`font-mono font-black ${totalValFont} text-slate-800 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
                 {totals.totalGrossWeight.toLocaleString()} {totals.weightUnit}
               </span>
@@ -2288,15 +2291,15 @@ function UnifiedCargoGrid({
   const hasMeasurement = hasValue(formData.measurement)
 
   const titleClass = `${
-    isUltra ? "text-[6pt]" : isCompact ? "text-[6.5pt]" : "text-[7pt]"
+    isUltra ? "text-[5.8pt]" : isCompact ? "text-[6.5pt]" : "text-[7pt]"
   } font-black uppercase tracking-wider leading-tight text-center block w-full whitespace-nowrap overflow-hidden text-ellipsis`
   const faTitleClass = `cargo-header-fa font-[vazirmatn] ${
-    isUltra ? "text-[5.2pt] mt-0.1" : isCompact ? "text-[5.8pt] mt-0.2" : "text-[6.4pt] mt-0.2"
+    isUltra ? "text-[5pt] mt-0" : isCompact ? "text-[5.8pt] mt-0.2" : "text-[6.4pt] mt-0.2"
   } font-extrabold leading-tight text-center block w-full whitespace-nowrap overflow-hidden text-ellipsis`
 
   const headerCardStyle: CSSProperties = {
     backgroundColor: "#ffffff",
-    padding: isUltra ? "1.2mm 1.2mm 1mm 1.2mm" : isCompact ? "1.5mm 1.5mm 1.2mm 1.5mm" : "1.8mm 2mm 1.4mm 2mm",
+    padding: isUltra ? "1mm 1mm 0.8mm 1mm" : isCompact ? "1.4mm 1.5mm 1mm 1.5mm" : "1.8mm 2mm 1.4mm 2mm",
     boxSizing: "border-box",
   }
 
@@ -2307,7 +2310,7 @@ function UnifiedCargoGrid({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: isUltra ? "1.2px" : isCompact ? "1.8px" : "2.2px",
+        gap: isUltra ? "1px" : isCompact ? "1.6px" : "2.2px",
       }}
     >
       {/* Top Metadata Badges (Container, Seal, Measurement) - Only on initial section */}
@@ -2351,7 +2354,9 @@ function UnifiedCargoGrid({
       <div className="grid grid-cols-[minmax(0,24fr)_minmax(0,23fr)_minmax(0,25fr)_minmax(0,28fr)] gap-1 items-stretch w-full box-border">
         {/* 1. NO. OF PACKAGES */}
         <div
-          className="rounded-lg border-t-[2.5px] border-t-blue-700 border-x border-b border-blue-200/90 bg-linear-to-b from-blue-50/90 via-blue-50/50 to-white text-center flex flex-col justify-center items-center overflow-hidden min-h-[24px] shadow-2xs"
+          className={`rounded-lg border-t-[2.5px] border-t-blue-700 border-x border-b border-blue-200/90 bg-linear-to-b from-blue-50/90 via-blue-50/50 to-white text-center flex flex-col justify-center items-center overflow-hidden ${
+            isUltra ? "min-h-[19px]" : "min-h-[24px]"
+          } shadow-2xs`}
           style={headerCardStyle}
         >
           <div className={`${titleClass} text-blue-950`}>
@@ -2368,7 +2373,9 @@ function UnifiedCargoGrid({
 
         {/* 2. WT / CARTON */}
         <div
-          className="rounded-lg border-t-[2.5px] border-t-blue-700 border-x border-b border-blue-200/90 bg-linear-to-b from-blue-50/90 via-blue-50/50 to-white text-center flex flex-col justify-center items-center overflow-hidden min-h-[24px] shadow-2xs"
+          className={`rounded-lg border-t-[2.5px] border-t-blue-700 border-x border-b border-blue-200/90 bg-linear-to-b from-blue-50/90 via-blue-50/50 to-white text-center flex flex-col justify-center items-center overflow-hidden ${
+            isUltra ? "min-h-[19px]" : "min-h-[24px]"
+          } shadow-2xs`}
           style={headerCardStyle}
         >
           <div className={`${titleClass} text-blue-950`}>
@@ -2385,7 +2392,9 @@ function UnifiedCargoGrid({
 
         {/* 3. TOTAL WEIGHTS */}
         <div
-          className="rounded-lg border-t-[2.5px] border-t-blue-700 border-x border-b border-blue-200/90 bg-linear-to-b from-blue-50/90 via-blue-50/50 to-white text-center flex flex-col justify-center items-center overflow-hidden min-h-[24px] shadow-2xs"
+          className={`rounded-lg border-t-[2.5px] border-t-blue-700 border-x border-b border-blue-200/90 bg-linear-to-b from-blue-50/90 via-blue-50/50 to-white text-center flex flex-col justify-center items-center overflow-hidden ${
+            isUltra ? "min-h-[19px]" : "min-h-[24px]"
+          } shadow-2xs`}
           style={headerCardStyle}
         >
           <div className={`${titleClass} text-blue-950`}>
@@ -2402,7 +2411,9 @@ function UnifiedCargoGrid({
 
         {/* 4. RATE & GOODS VALUE */}
         <div
-          className="rounded-lg border-t-[2.5px] border-t-blue-700 border-x border-b border-blue-200/90 bg-linear-to-b from-blue-50/90 via-blue-50/50 to-white text-center flex flex-col justify-center items-center overflow-hidden min-h-[24px] shadow-2xs"
+          className={`rounded-lg border-t-[2.5px] border-t-blue-700 border-x border-b border-blue-200/90 bg-linear-to-b from-blue-50/90 via-blue-50/50 to-white text-center flex flex-col justify-center items-center overflow-hidden ${
+            isUltra ? "min-h-[19px]" : "min-h-[24px]"
+          } shadow-2xs`}
           style={headerCardStyle}
         >
           <div className={`${titleClass} text-blue-950`}>
@@ -2530,8 +2541,8 @@ export function AuthorizedSignatureBlock({
   return (
     <div
       data-authorized-signature="true"
-      className={`relative flex flex-col items-center justify-between w-[58mm] min-w-[52mm] max-w-[64mm] text-center rounded-xl border border-blue-900/15 bg-white/95 backdrop-blur-xs ${
-        isUltraCompact ? "p-1.5 pt-2 pb-1.5" : isCompact ? "p-1.8 pt-2.2 pb-1.8" : "p-2 pt-2.5 pb-2"
+      className={`relative flex flex-col items-center justify-between w-[58mm] min-w-[50mm] max-w-[64mm] text-center rounded-xl border border-blue-900/15 bg-white/95 backdrop-blur-xs ${
+        isUltraCompact ? "p-1 pt-1.2 pb-1" : isCompact ? "p-1.5 pt-1.8 pb-1.5" : "p-2 pt-2.5 pb-2"
       } shadow-xs overflow-visible select-none`}
     >
       {/* Interactive Size Controls (- / + / Reset) - Shown only on preview, omitted in print & PDF */}
@@ -2612,12 +2623,12 @@ export function AuthorizedSignatureBlock({
       {/* 1. Underlying Signatory Placeholder Chamber (always visible behind stamp or as manual signing area) */}
       <div
         className={`relative w-full ${
-          isUltraCompact ? "h-[12mm]" : isCompact ? "h-[14mm]" : "h-[16.5mm]"
+          isUltraCompact ? "h-[10.5mm]" : isCompact ? "h-[13mm]" : "h-[16.5mm]"
         } flex items-center justify-center`}
       >
         <span
           className="italic text-slate-400 font-medium tracking-tight select-none"
-          style={{ fontSize: isUltraCompact ? "4.8pt" : "5.4pt" }}
+          style={{ fontSize: isUltraCompact ? "4.4pt" : "5.4pt" }}
         >
           (Authorized Sign & Seal / محل مهر و امضای مجاز)
         </span>
@@ -2629,7 +2640,7 @@ export function AuthorizedSignatureBlock({
           data-signature-art="true"
           className="absolute inset-x-0 flex items-center justify-center pointer-events-none select-none z-10"
           style={{
-            top: isUltraCompact ? "-6mm" : isCompact ? "-8mm" : "-9.5mm",
+            top: isUltraCompact ? "0.5mm" : isCompact ? "1.5mm" : "2mm",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2639,10 +2650,10 @@ export function AuthorizedSignatureBlock({
             alt="Company Official Stamp & Signature"
             className="w-auto object-contain transition-transform duration-150"
             style={{
-              height: isUltraCompact ? "30mm" : isCompact ? "34mm" : "38mm",
-              maxWidth: "54mm",
-              transform: `scale(${currentScale}) rotate(${stampConfig.rotation ?? -1.5}deg)`,
-              transformOrigin: "center 42%",
+              height: isUltraCompact ? "16.5mm" : isCompact ? "20mm" : "26mm",
+              maxWidth: isUltraCompact ? "38mm" : isCompact ? "44mm" : "50mm",
+              transform: `scale(${currentScale * (isUltraCompact ? 0.75 : 0.85)}) rotate(${stampConfig.rotation ?? -1.5}deg)`,
+              transformOrigin: "center center",
               opacity: stampConfig.opacity ?? 1.0,
               filter: "drop-shadow(0 1px 2px rgba(0, 30, 80, 0.12))",
             }}
@@ -2658,17 +2669,17 @@ export function AuthorizedSignatureBlock({
       )}
 
       {/* 3. Professional Thin Divider Line */}
-      <div className="w-[88%] mx-auto mt-0.5 mb-0.8 border-b border-blue-900/20 shrink-0" />
+      <div className={`w-[88%] mx-auto ${isUltraCompact ? "mt-0.2 mb-0.4" : "mt-0.5 mb-0.8"} border-b border-blue-900/20 shrink-0`} />
 
       {/* 4. English Authorization Text (Centered & Balanced) */}
       <div
         className="font-black text-blue-950 uppercase tracking-tight leading-tight text-center w-full px-0.5 shrink-0"
-        style={{ fontSize: isUltraCompact ? "5.2pt" : isCompact ? "5.6pt" : "6.0pt" }}
+        style={{ fontSize: isUltraCompact ? "4.8pt" : isCompact ? "5.4pt" : "6.0pt" }}
       >
         {titleLine1 && titleLine2 ? (
           <>
             <span className="block">{titleLine1}</span>
-            <span className="block mt-0.2">{titleLine2}</span>
+            <span className={`block ${isUltraCompact ? "mt-0.1" : "mt-0.2"}`}>{titleLine2}</span>
           </>
         ) : (
           <span className="block">{fullSignatoryTitle}</span>
@@ -2677,7 +2688,7 @@ export function AuthorizedSignatureBlock({
 
       {/* 5. Persian / Dari Authorization Text (Balanced optical weight) */}
       <p
-        className="font-[vazirmatn] text-blue-900 font-extrabold leading-tight text-center w-full mt-0.4 shrink-0"
+        className={`font-[vazirmatn] text-blue-900 font-extrabold leading-tight text-center w-full ${isUltraCompact ? "mt-0.1" : "mt-0.4"} shrink-0`}
         dir="rtl"
         style={{
           fontSize: isUltraCompact ? "5.0pt" : isCompact ? "5.4pt" : "5.8pt",
@@ -2720,7 +2731,7 @@ export function BottomDocumentArea({
       data-no-break
       data-bottom-document-area="true"
       className={`relative mt-auto mb-1.5 sm:mb-2 flex shrink-0 items-end justify-end w-full px-0.5 ${
-        isUltraCompact ? "pt-0.5" : isCompact ? "pt-0.8" : "pt-1"
+        isUltraCompact ? "pt-0.2" : isCompact ? "pt-0.5" : "pt-1"
       }`}
     >
       <AuthorizedSignatureBlock
@@ -3135,11 +3146,13 @@ function CargoDescriptionBlock({
   pdfMode = false,
   densityTier = "normal",
   labels,
+  cargoItems = [],
 }: {
   cleanedCargoDesc: string
   pdfMode?: boolean
   densityTier?: "ultra" | "compact" | "normal"
   labels: Record<string, string>
+  cargoItems?: SyncedCargoItem[]
 }) {
   if (!cleanedCargoDesc) return null
 
@@ -3147,24 +3160,49 @@ function CargoDescriptionBlock({
   const isCompact = densityTier === "compact" || isUltra
   const { metaLines, itemLines } = parseCargoDescription(cleanedCargoDesc)
 
-  if (metaLines.length === 0 && itemLines.length === 0) return null
+  // Filter out redundant commodity items if they are already represented in the structured cargo grid
+  const displayItemLines = useMemo(() => {
+    if (!cargoItems || cargoItems.length === 0) return itemLines
+
+    return itemLines.filter((line) => {
+      const lineNorm = line.text.toLowerCase().replace(/[^a-z0-9]/g, "")
+      if (!lineNorm) return false
+
+      // Check if this line duplicates any structured cargo item
+      return !cargoItems.some((item) => {
+        const pkgNorm = (item.packageText || "").toLowerCase().replace(/[^a-z0-9]/g, "")
+        const pkgClean = cleanText(item.packageText)
+        const qtyMatch = pkgClean.match(
+          /^([\d,]+(?:\.\d+)?\s*(?:CTNS?|CARTONS?|BAGS?|PKGS?|BOXES|PCS|UNITS|ROLLS|DRUMS|KGS?|TONS?|LBS?)?)\s*(.*)$/i
+        )
+        const commNorm = (qtyMatch && qtyMatch[2] ? qtyMatch[2] : pkgClean).toLowerCase().replace(/[^a-z0-9]/g, "")
+
+        return (
+          (lineNorm.length >= 3 && pkgNorm.includes(lineNorm)) ||
+          (commNorm.length >= 3 && (lineNorm.includes(commNorm) || commNorm.includes(lineNorm)))
+        )
+      })
+    })
+  }, [itemLines, cargoItems])
+
+  if (metaLines.length === 0 && displayItemLines.length === 0) return null
 
   return (
     <div
       className={`rounded-lg border border-blue-200 shadow-sm ${
-        isUltra ? "mt-0.4 p-1" : isCompact ? "mt-0.6 p-1.2" : "mt-0.8 p-1.5"
+        isUltra ? "mt-0.3 p-0.8" : isCompact ? "mt-0.5 p-1" : "mt-0.8 p-1.5"
       } ${pdfMode ? "bg-white" : "bg-gradient-to-br from-blue-50/50 via-white to-white"}`}
     >
       {/* Header bar with balanced optical scaling */}
-      <div className="mb-1 flex items-center justify-between gap-1 text-blue-900 border-b border-blue-100 pb-0.5">
+      <div className={`mb-0.5 flex items-center justify-between gap-1 text-blue-900 border-b border-blue-100 ${isUltra ? "pb-0.2" : "pb-0.5"}`}>
         <div className="flex items-center gap-1">
-          <FileText className={`${isUltra ? "h-2.8 w-2.8" : "h-3.2 w-3.2"} text-blue-600 shrink-0`} />
-          <p className={`${isUltra ? "text-[6.8pt]" : isCompact ? "text-[7.4pt]" : "text-[8pt]"} font-black uppercase tracking-wider text-blue-950 leading-tight`}>
+          <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3.2 w-3.2"} text-blue-600 shrink-0`} />
+          <p className={`${isUltra ? "text-[6.2pt]" : isCompact ? "text-[7pt]" : "text-[8pt]"} font-black uppercase tracking-wider text-blue-950 leading-tight`}>
             Description of Goods
           </p>
         </div>
         <p
-          className={`font-[vazirmatn] ${isUltra ? "text-[6.2pt]" : isCompact ? "text-[6.8pt]" : "text-[7.4pt]"} font-black text-blue-900 leading-tight`}
+          className={`font-[vazirmatn] ${isUltra ? "text-[5.8pt]" : isCompact ? "text-[6.5pt]" : "text-[7.4pt]"} font-black text-blue-900 leading-tight`}
           dir="rtl"
           style={{ direction: "rtl", unicodeBidi: "isolate" }}
         >
@@ -3174,7 +3212,7 @@ function CargoDescriptionBlock({
 
       {/* Meta Chips Row */}
       {metaLines.length > 0 && (
-        <div className={`flex flex-wrap items-center gap-1.5 ${itemLines.length > 0 ? "mb-1 pt-0.2" : ""}`}>
+        <div className={`flex flex-wrap items-center ${isUltra ? "gap-1" : "gap-1.5"} ${displayItemLines.length > 0 ? "mb-0.8 pt-0.2" : ""}`}>
           {metaLines.map((meta, idx) => {
             const isTransitDate = meta.type === "transit_date" || /date/i.test(meta.label || "")
             const isInvoice = meta.type === "invoice" || /inv/i.test(meta.label || "")
@@ -3187,7 +3225,7 @@ function CargoDescriptionBlock({
                   bg: "bg-blue-50/95",
                   labelColor: "text-blue-700",
                   valColor: "text-blue-950",
-                  icon: <CalendarDays className="h-3 w-3 text-blue-600 shrink-0" />,
+                  icon: <CalendarDays className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-blue-600 shrink-0`} />,
                 }
               : isInvoice
               ? {
@@ -3195,7 +3233,7 @@ function CargoDescriptionBlock({
                   bg: "bg-emerald-50/95",
                   labelColor: "text-emerald-700",
                   valColor: "text-emerald-950",
-                  icon: <Receipt className="h-3 w-3 text-emerald-600 shrink-0" />,
+                  icon: <Receipt className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-emerald-600 shrink-0`} />,
                 }
               : isTc
               ? {
@@ -3203,7 +3241,7 @@ function CargoDescriptionBlock({
                   bg: "bg-purple-50/95",
                   labelColor: "text-purple-700",
                   valColor: "text-purple-950",
-                  icon: <ShieldCheck className="h-3 w-3 text-purple-600 shrink-0" />,
+                  icon: <ShieldCheck className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-purple-600 shrink-0`} />,
                 }
               : isHs
               ? {
@@ -3211,21 +3249,21 @@ function CargoDescriptionBlock({
                   bg: "bg-amber-50/95",
                   labelColor: "text-amber-700",
                   valColor: "text-amber-950",
-                  icon: <FileText className="h-3 w-3 text-amber-600 shrink-0" />,
+                  icon: <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-amber-600 shrink-0`} />,
                 }
               : {
                   border: "border-slate-200/90",
                   bg: "bg-slate-50/95",
                   labelColor: "text-slate-700",
                   valColor: "text-slate-950",
-                  icon: <FileText className="h-3 w-3 text-slate-500 shrink-0" />,
+                  icon: <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-slate-500 shrink-0`} />,
                 }
 
             return (
               <div
                 key={idx}
-                className={`inline-flex items-center gap-1.5 rounded-md border ${chipTheme.border} ${chipTheme.bg} ${
-                  isUltra ? "px-2 py-0.4" : isCompact ? "px-2.5 py-0.5" : "px-3 py-0.6"
+                className={`inline-flex items-center gap-1 rounded-md border ${chipTheme.border} ${chipTheme.bg} ${
+                  isUltra ? "px-1.5 py-0.2" : isCompact ? "px-2 py-0.4" : "px-3 py-0.6"
                 } leading-tight shadow-2xs`}
                 style={{
                   fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
@@ -3235,7 +3273,7 @@ function CargoDescriptionBlock({
                 {meta.label && (
                   <span
                     className={`${chipTheme.labelColor} font-black uppercase ${
-                      isUltra ? "text-[6.8pt]" : isCompact ? "text-[7.4pt]" : "text-[8pt]"
+                      isUltra ? "text-[6.2pt]" : isCompact ? "text-[7pt]" : "text-[8pt]"
                     } tracking-wider shrink-0`}
                   >
                     {meta.label}:
@@ -3243,7 +3281,7 @@ function CargoDescriptionBlock({
                 )}
                 <span
                   className={`font-black ${
-                    isUltra ? "text-[8pt]" : isCompact ? "text-[8.8pt]" : "text-[9.5pt]"
+                    isUltra ? "text-[7.4pt]" : isCompact ? "text-[8.4pt]" : "text-[9.5pt]"
                   } ${chipTheme.valColor} tracking-tight whitespace-nowrap direction-ltr unicode-isolate`}
                   dir="ltr"
                   style={{
@@ -3260,31 +3298,31 @@ function CargoDescriptionBlock({
         </div>
       )}
 
-      {/* Item Cards */}
-      {itemLines.length > 0 && (
+      {/* Item Cards (Only for additional non-commodity remarks or when no cargo grid exists) */}
+      {displayItemLines.length > 0 && (
         <div
           className={`grid ${
-            itemLines.length === 1
+            displayItemLines.length === 1
               ? "grid-cols-1"
-              : itemLines.length === 2
+              : displayItemLines.length === 2
               ? "grid-cols-2"
-              : itemLines.length === 3
+              : displayItemLines.length === 3
               ? "grid-cols-3"
-              : itemLines.length === 4
+              : displayItemLines.length === 4
               ? "grid-cols-2"
-              : itemLines.length <= 6
+              : displayItemLines.length <= 6
               ? "grid-cols-3"
               : "grid-cols-2"
-          } ${isUltra ? "gap-0.8" : "gap-1"}`}
+          } ${isUltra ? "gap-0.6" : "gap-1"}`}
         >
-          {itemLines.map((item, idx) => {
+          {displayItemLines.map((item, idx) => {
             const fontClass =
-              itemLines.length >= 8 || isUltra
-                ? "text-[7.6pt]"
-                : itemLines.length >= 5
-                ? "text-[8.4pt]"
+              displayItemLines.length >= 8 || isUltra
+                ? "text-[7.2pt]"
+                : displayItemLines.length >= 5
+                ? "text-[8.2pt]"
                 : isCompact
-                ? "text-[9pt]"
+                ? "text-[8.8pt]"
                 : "text-[9.8pt]"
 
             // Parse rate if present (e.g. "@ 3.50 $" or "@3.50$")
@@ -3296,17 +3334,17 @@ function CargoDescriptionBlock({
               <div
                 key={idx}
                 className={`rounded-lg bg-white/90 border border-blue-100/90 ${
-                  isUltra ? "px-2 py-0.6" : isCompact ? "px-2.5 py-0.8" : "px-3 py-1"
-                } flex items-center justify-between gap-2 shadow-2xs overflow-hidden`}
+                  isUltra ? "px-1.5 py-0.4" : isCompact ? "px-2 py-0.6" : "px-3 py-1"
+                } flex items-center justify-between gap-1.5 shadow-2xs overflow-hidden`}
               >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  {itemLines.length > 1 ? (
-                    <span className="text-[6.2pt] font-black text-blue-900 bg-blue-100/80 px-1.5 py-0.3 rounded border border-blue-200 shrink-0 shadow-2xs">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  {displayItemLines.length > 1 ? (
+                    <span className="text-[5.8pt] font-black text-blue-900 bg-blue-100/80 px-1.2 py-0.2 rounded border border-blue-200 shrink-0 shadow-2xs">
                       #{idx + 1}
                     </span>
                   ) : (
-                    <div className="w-5 h-5 rounded-md bg-blue-50 border border-blue-200/80 flex items-center justify-center shrink-0 shadow-2xs">
-                      <Package className="h-3 w-3 text-blue-600" />
+                    <div className="w-4 h-4 rounded bg-blue-50 border border-blue-200/80 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Package className="h-2.5 w-2.5 text-blue-600" />
                     </div>
                   )}
                   <span
@@ -3329,7 +3367,7 @@ function CargoDescriptionBlock({
                 </div>
                 {rateText && (
                   <span
-                    className="font-black text-emerald-900 bg-emerald-100/90 px-1.8 py-0.4 rounded border border-emerald-300/80 text-[6.8pt] shrink-0 whitespace-nowrap shadow-2xs"
+                    className="font-black text-emerald-900 bg-emerald-100/90 px-1.5 py-0.3 rounded border border-emerald-300/80 text-[6.2pt] shrink-0 whitespace-nowrap shadow-2xs"
                     style={{
                       fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
                     }}
@@ -3378,7 +3416,6 @@ function BackgroundWatermark({
         }}
         aria-hidden="true"
       />
-      <BackgroundMotionAccent backgroundUrl={backgroundImageUrl} pdfMode={pdfMode} />
     </>
   )
 }
@@ -3444,6 +3481,7 @@ function Page1Header({
             src={bolLogoSrc || "/images/sky-ariana-logo.png"}
             alt="Company logo"
             className="logo object-contain"
+            crossOrigin="anonymous"
             style={{
               ...logoImageStyle,
               filter: pdfMode ? "none" : "drop-shadow(0 1.5px 3.5px rgba(30, 58, 138, 0.16))",
@@ -3634,6 +3672,7 @@ function Page2Header({
             src={bolLogoSrc || "/images/sky-ariana-logo.png"}
             alt="Company logo"
             className="logo object-contain"
+            crossOrigin="anonymous"
             style={{
               ...logoImageStyle,
               filter: pdfMode ? "none" : "drop-shadow(0 1px 2.5px rgba(30, 58, 138, 0.14))",
@@ -4179,8 +4218,8 @@ function A4PreviewComponent({
   else if (descLineCount >= 3) densityScore += 3
   else if (descLineCount >= 2) densityScore += 1
 
-  if (syncedCargo.items.length >= 6) densityScore += 4
-  else if (syncedCargo.items.length >= 4) densityScore += 2
+  if (syncedCargo.items.length >= 6) densityScore += 5
+  else if (syncedCargo.items.length >= 4) densityScore += 3
   else if (syncedCargo.items.length >= 2) densityScore += 1
 
   if (hasShippingData) densityScore += 2
@@ -4188,8 +4227,8 @@ function A4PreviewComponent({
   if (hasNotify) densityScore += 1
   if (contactItems.length > 0) densityScore += 1
 
-  const isUltraCompact = densityScore >= 6
-  const isCompact = densityScore >= 3 && !isUltraCompact
+  const isUltraCompact = densityScore >= 5 || syncedCargo.items.length >= 5
+  const isCompact = (densityScore >= 3 || syncedCargo.items.length >= 4) && !isUltraCompact
   const densityTier: "ultra" | "compact" | "normal" = isUltraCompact ? "ultra" : isCompact ? "compact" : "normal"
 
   // Per-page density tiers in multi-page mode
@@ -4417,6 +4456,7 @@ function A4PreviewComponent({
                   pdfMode={pdfMode}
                   densityTier={page2Density}
                   labels={labels}
+                  cargoItems={syncedCargo.items}
                 />
               )}
             </Section>
@@ -4528,8 +4568,8 @@ function A4PreviewComponent({
           data-bol-content="true"
           data-density={densityTier}
           className={`mt-0 flex min-h-0 flex-1 flex-col ${
-            isUltraCompact ? "gap-[1.2mm]" : isCompact ? "gap-[1.6mm]" : "gap-[2.2mm]"
-          } print:gap-[1.2mm] justify-start overflow-hidden`}
+            isUltraCompact ? "gap-[0.8mm]" : isCompact ? "gap-[1.2mm]" : "gap-[1.8mm]"
+          } print:gap-[0.8mm] justify-start overflow-hidden`}
         >
           {hasShipmentData && (
             <Section
@@ -4601,6 +4641,7 @@ function A4PreviewComponent({
                   pdfMode={pdfMode}
                   densityTier={densityTier}
                   labels={labels}
+                  cargoItems={syncedCargo.items}
                 />
               )}
             </Section>

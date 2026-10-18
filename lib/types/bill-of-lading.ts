@@ -327,7 +327,7 @@ export const initialFormData: BillOfLadingFormData = {
   driver_name: "",
   driver_father_name: "",
   driver_contact: "",
-  driver_rent: "",
+  driver_rent: "46,000 AFN - کرایه واپسی",
   
   // Routes - default with origin and destination
   routes: [

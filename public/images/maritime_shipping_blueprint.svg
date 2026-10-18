@@ -1,69 +1,275 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1400" width="100%" height="100%">
+  <title>Maritime Ocean Freight Vessel Blueprint — Sky Ariana Logistics</title>
   <defs>
-    <pattern id="gridPattern2" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0284c7" stroke-width="0.8" stroke-opacity="0.3" />
-      <path d="M 8 0 L 0 0 0 8" fill="none" stroke="#38bdf8" stroke-width="0.4" stroke-opacity="0.2" />
+    <!-- Technical Blueprint Engineering Grid -->
+    <pattern id="cadGridMajorSea" width="100" height="100" patternUnits="userSpaceOnUse">
+      <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#0284c7" stroke-width="0.8" stroke-opacity="0.35" />
     </pattern>
-    <linearGradient id="blueprintGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e0f2fe" />
-      <stop offset="50%" stop-color="#bae6fd" />
-      <stop offset="100%" stop-color="#7dd3fc" />
+    <pattern id="cadGridMinorSea" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#38bdf8" stroke-width="0.35" stroke-opacity="0.2" />
+    </pattern>
+    <linearGradient id="blueprintBgSea" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0f9ff" />
+      <stop offset="50%" stop-color="#e0f2fe" />
+      <stop offset="100%" stop-color="#bae6fd" />
+    </linearGradient>
+    <linearGradient id="hullGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#bae6fd" stop-opacity="0.9" />
     </linearGradient>
   </defs>
 
-  <rect width="1200" height="800" fill="url(#blueprintGrad2)" />
-  <rect width="1200" height="800" fill="url(#gridPattern2)" />
+  <!-- Technical Blueprint Background Paper & Multi-Scale Grid -->
+  <rect width="900" height="1400" fill="url(#blueprintBgSea)" />
+  <rect width="900" height="1400" fill="url(#cadGridMinorSea)" />
+  <rect width="900" height="1400" fill="url(#cadGridMajorSea)" />
 
-  <rect x="20" y="20" width="1160" height="760" fill="none" stroke="#0369a1" stroke-width="2.5" stroke-opacity="0.6" />
-  <rect x="26" y="26" width="1148" height="748" fill="none" stroke="#0284c7" stroke-width="1.2" stroke-opacity="0.5" />
+  <!-- Perimeter Security & Architectural CAD Border -->
+  <g fill="none" stroke="#0369a1">
+    <rect x="24" y="24" width="852" height="1352" stroke-width="2" stroke-opacity="0.75" />
+    <rect x="34" y="34" width="832" height="1332" stroke-width="0.8" stroke-dasharray="6 3" stroke-opacity="0.5" />
+    <rect x="42" y="42" width="816" height="1316" stroke-width="0.5" stroke-opacity="0.3" />
 
-  <g transform="translate(820, 640)" stroke="#0369a1" stroke-width="1.2" fill="none" stroke-opacity="0.7">
-    <rect width="340" height="120" fill="#ffffff" fill-opacity="0.95" />
-    <line x1="0" y1="35" x2="340" y2="35" />
-    <line x1="0" y1="75" x2="340" y2="75" />
-    <line x1="170" y1="35" x2="170" y2="120" />
-    <text x="12" y="24" font-family="monospace" font-size="13" font-weight="black" fill="#0369a1" stroke="none">MARITIME VESSEL BLUEPRINT</text>
-    <text x="12" y="58" font-family="monospace" font-size="11" font-weight="bold" fill="#0284c7" stroke="none">SCALE: 1:500,000</text>
-    <text x="182" y="58" font-family="monospace" font-size="11" font-weight="bold" fill="#0284c7" stroke="none">UNIT: OCEAN SHIP</text>
-    <text x="12" y="100" font-family="monospace" font-size="11" font-weight="bold" fill="#0284c7" stroke="none">MARITIME CORRIDOR</text>
-    <text x="182" y="100" font-family="monospace" font-size="11" font-weight="bold" fill="#0284c7" stroke="none">REV: v5.1 PRO</text>
+    <!-- Corner Registration Crosshairs & Dimension Ticks -->
+    <path d="M16,40 L16,16 L40,16" stroke-width="2.5" stroke-opacity="0.8" />
+    <path d="M884,40 L884,16 L860,16" stroke-width="2.5" stroke-opacity="0.8" />
+    <path d="M16,1360 L16,1384 L40,1384" stroke-width="2.5" stroke-opacity="0.8" />
+    <path d="M884,1360 L884,1384 L860,1384" stroke-width="2.5" stroke-opacity="0.8" />
+
+    <!-- Axis Coordinate Calibrations -->
+    <text x="450" y="20" font-family="monospace" font-size="8" font-weight="bold" letter-spacing="3" text-anchor="middle" fill="#0369a1">SECURE NAVAL CAD BLUEPRINT // MARITIME SHIPPING &amp; MULTI-MODAL SEA CORRIDORS</text>
+    <text x="450" y="1390" font-family="monospace" font-size="8" font-weight="bold" letter-spacing="3" text-anchor="middle" fill="#0369a1">SKY ARIANA LOGISTICS // INTERNATIONAL OCEAN CARRIER SPECIFICATION SHEET</text>
   </g>
 
-  <g stroke="#0284c7" stroke-width="1.8" fill="none" stroke-opacity="0.5">
-    <path d="M 0 540 Q 150 520 300 540 T 600 540 T 900 540 T 1200 540" />
-    <path d="M 0 570 Q 150 550 300 570 T 600 570 T 900 570 T 1200 570" stroke-width="2.5" />
-    <path d="M 0 600 Q 150 580 300 600 T 600 600 T 900 600 T 1200 600" />
+  <!-- Top Section: Plan View Deck Arrangement (FIG 01) -->
+  <g transform="translate(60, 160)">
+    <text x="15" y="-12" font-family="monospace" font-size="9" font-weight="bold" fill="#0369a1" stroke="none">FIG. 01 — PLAN VIEW (WEATHER DECK &amp; CONTAINER CELL GUIDE LAYOUT)</text>
+    
+    <!-- Ship Hull Plan Projection -->
+    <path d="M 60 50 Q 180 5 450 5 L 700 5 Q 750 20 770 50 Q 750 80 700 95 L 450 95 Q 180 95 60 50 Z" fill="url(#hullGrad)" stroke="#0369a1" stroke-width="2" />
+    
+    <!-- Deck Hatch Bays -->
+    <g fill="#ffffff" stroke="#0284c7" stroke-width="1.2">
+      <rect x="130" y="18" width="45" height="64" />
+      <rect x="185" y="16" width="45" height="68" />
+      <rect x="240" y="15" width="45" height="70" />
+      <rect x="295" y="15" width="45" height="70" />
+      <rect x="350" y="15" width="45" height="70" />
+      <rect x="405" y="15" width="45" height="70" />
+      <rect x="460" y="15" width="45" height="70" />
+      <rect x="515" y="15" width="45" height="70" />
+      <rect x="570" y="15" width="45" height="70" />
+    </g>
+
+    <!-- Superstructure Bridge Island in Plan -->
+    <rect x="630" y="14" width="55" height="72" rx="3" fill="#e0f2fe" stroke="#0369a1" stroke-width="2" />
+    <circle cx="657" cy="50" r="12" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" />
+    <line x1="630" y1="50" x2="685" y2="50" stroke="#0369a1" stroke-width="1" stroke-dasharray="3 2" />
+
+    <!-- Dimension Plan Line -->
+    <line x1="60" y1="112" x2="770" y2="112" stroke="#0284c7" stroke-width="1" />
+    <line x1="60" y1="106" x2="60" y2="118" stroke="#0284c7" stroke-width="1" />
+    <line x1="770" y1="106" x2="770" y2="118" stroke="#0284c7" stroke-width="1" />
+    <text x="415" y="125" font-family="monospace" font-size="8.5" font-weight="bold" fill="#0369a1" text-anchor="middle">OVERALL LENGTH (LOA): 366.0 METERS // BEAM (B): 48.2 METERS</text>
   </g>
 
-  <g transform="translate(140, 220)" stroke="#0369a1" stroke-width="2.5" fill="none" stroke-opacity="0.9">
-    <path d="M 50 280 L 120 340 L 780 340 L 880 260 L 840 220 L 50 220 Z" fill="#ffffff" fill-opacity="0.9" stroke-width="3" />
-    <line x1="50" y1="260" x2="880" y2="260" stroke-dasharray="6 3" stroke-width="1.8" />
+  <!-- Mid Section: Container Vessel Elevation & Stack Architecture (FIG 02) -->
+  <g transform="translate(60, 370)">
+    <text x="15" y="-15" font-family="monospace" font-size="11" font-weight="bold" fill="#0369a1" stroke="none">FIG. 02 — SIDE PROFILE ELEVATION &amp; CONTAINER STACK ARRAY</text>
 
-    <rect x="700" y="100" width="100" height="120" rx="3" fill="#ffffff" fill-opacity="0.95" stroke-width="2.5" />
-    <rect x="710" y="115" width="80" height="25" fill="#38bdf8" fill-opacity="0.7" stroke-width="1.5" />
-    <line x1="750" y1="50" x2="750" y2="100" stroke-width="3" />
-    <circle cx="750" cy="45" r="7" fill="#0284c7" />
+    <!-- Ocean Wave Surface Baseline -->
+    <g stroke="#0284c7" stroke-width="1.5" fill="none" stroke-opacity="0.6">
+      <path d="M 0 310 Q 75 300 150 310 T 300 310 T 450 310 T 600 310 T 750 310 T 780 310" />
+      <path d="M 0 325 Q 75 315 150 325 T 300 325 T 450 325 T 600 325 T 750 325 T 780 325" stroke-dasharray="8 4" stroke-width="0.8" />
+    </g>
 
-    <g fill="#ffffff" stroke="#0284c7" stroke-width="1.8">
-      <rect x="80" y="180" width="80" height="40" />
-      <rect x="170" y="180" width="80" height="40" />
-      <rect x="260" y="180" width="80" height="40" />
-      <rect x="350" y="180" width="80" height="40" />
-      <rect x="440" y="180" width="80" height="40" />
-      <rect x="530" y="180" width="80" height="40" />
-      <rect x="620" y="180" width="70" height="40" />
+    <!-- Vessel Hull Profile with Bulbous Bow & Stern Transom -->
+    <path d="M 50 170 L 60 270 Q 70 340 100 350 L 140 350 L 680 350 L 730 330 L 770 230 L 760 170 Z" fill="url(#hullGrad)" stroke="#0369a1" stroke-width="3" />
+    
+    <!-- Bulbous Bow Contour Under Waterline -->
+    <path d="M 60 270 Q 25 290 35 325 Q 45 350 90 350" fill="#bae6fd" stroke="#0369a1" stroke-width="2" />
+    
+    <!-- Propeller & Rudder Assembly at Stern -->
+    <rect x="715" y="325" width="22" height="40" rx="3" fill="#ffffff" stroke="#0369a1" stroke-width="2" />
+    <circle cx="695" cy="345" r="14" fill="#0284c7" stroke="#0369a1" stroke-width="2" />
+    <line x1="685" y1="335" x2="705" y2="355" stroke="#ffffff" stroke-width="2.5" />
+    <line x1="685" y1="355" x2="705" y2="335" stroke="#ffffff" stroke-width="2.5" />
 
-      <rect x="100" y="135" width="80" height="40" />
-      <rect x="190" y="135" width="80" height="40" />
-      <rect x="280" y="135" width="80" height="40" />
-      <rect x="370" y="135" width="80" height="40" />
-      <rect x="460" y="135" width="80" height="40" />
-      <rect x="550" y="135" width="80" height="40" />
+    <!-- Hull Draft Markings (Plimsoll Disk & Summer Waterline) -->
+    <line x1="50" y1="280" x2="760" y2="280" stroke="#0284c7" stroke-width="1.2" stroke-dasharray="10 4" />
+    <g transform="translate(415, 280)">
+      <circle cx="0" cy="0" r="10" fill="none" stroke="#dc2626" stroke-width="2" />
+      <line x1="-16" y1="0" x2="16" y2="0" stroke="#dc2626" stroke-width="2" />
+      <text x="20" y="3" font-family="monospace" font-size="7" font-weight="bold" fill="#dc2626">LOAD LINE (PLIMSOLL)</text>
+    </g>
 
-      <rect x="190" y="90" width="80" height="40" />
-      <rect x="280" y="90" width="80" height="40" />
-      <rect x="370" y="90" width="80" height="40" />
-      <rect x="460" y="90" width="80" height="40" />
+    <!-- Cargo Container Stacks (Forward Bays) -->
+    <g fill="#ffffff" stroke="#0284c7" stroke-width="1.5">
+      <!-- Bay 1 (Tier 1..4) -->
+      <rect x="90" y="125" width="55" height="42" /><rect x="90" y="80" width="55" height="42" />
+      <!-- Bay 2 (Tier 1..5) -->
+      <rect x="150" y="125" width="55" height="42" /><rect x="150" y="80" width="55" height="42" /><rect x="150" y="35" width="55" height="42" />
+      <!-- Bay 3 (Tier 1..6) -->
+      <rect x="210" y="125" width="55" height="42" /><rect x="210" y="80" width="55" height="42" /><rect x="210" y="35" width="55" height="42" />
+      <!-- Bay 4 (Tier 1..6) -->
+      <rect x="270" y="125" width="55" height="42" /><rect x="270" y="80" width="55" height="42" /><rect x="270" y="35" width="55" height="42" />
+      <!-- Bay 5 (Tier 1..6) -->
+      <rect x="330" y="125" width="55" height="42" /><rect x="330" y="80" width="55" height="42" /><rect x="330" y="35" width="55" height="42" />
+      <!-- Bay 6 (Tier 1..6) -->
+      <rect x="390" y="125" width="55" height="42" /><rect x="390" y="80" width="55" height="42" /><rect x="390" y="35" width="55" height="42" />
+      <!-- Bay 7 (Tier 1..6) -->
+      <rect x="450" y="125" width="55" height="42" /><rect x="450" y="80" width="55" height="42" /><rect x="450" y="35" width="55" height="42" />
+      <!-- Bay 8 (Tier 1..5) -->
+      <rect x="510" y="125" width="55" height="42" /><rect x="510" y="80" width="55" height="42" /><rect x="510" y="35" width="55" height="42" />
+      
+      <!-- Container Corrugation Detailing Lines -->
+      <line x1="90" y1="102" x2="565" y2="102" stroke="#38bdf8" stroke-width="0.8" />
+      <line x1="150" y1="57" x2="565" y2="57" stroke="#38bdf8" stroke-width="0.8" />
+    </g>
+
+    <!-- Bridge Superstructure & Navigation Accommodation Block -->
+    <g transform="translate(585, 20)">
+      <rect x="0" y="40" width="85" height="110" rx="3" fill="#ffffff" stroke="#0369a1" stroke-width="2.5" />
+      <!-- Wheelhouse Windows -->
+      <rect x="8" y="50" width="70" height="18" fill="#38bdf8" stroke="#0369a1" stroke-width="1.5" />
+      <!-- Radar Mast & Satcom Dome -->
+      <line x1="42" y1="0" x2="42" y2="40" stroke="#0369a1" stroke-width="2.5" />
+      <circle cx="42" cy="0" r="6" fill="#0284c7" />
+      <line x1="25" y1="15" x2="60" y2="15" stroke="#0369a1" stroke-width="1.8" />
+      <!-- Funnel Exhaust Stack -->
+      <path d="M 60 55 L 75 25 L 88 25 L 85 55 Z" fill="#e0f2fe" stroke="#0369a1" stroke-width="2" />
+      <rect x="75" y="22" width="13" height="4" fill="#0284c7" />
+    </g>
+
+    <!-- Stern Aft Stacks -->
+    <g fill="#ffffff" stroke="#0284c7" stroke-width="1.5">
+      <rect x="680" y="125" width="55" height="42" />
+      <rect x="680" y="80" width="55" height="42" />
+    </g>
+
+    <!-- Dimension Callouts -->
+    <g stroke="#0284c7" stroke-width="1.2" fill="none">
+      <line x1="40" y1="380" x2="770" y2="380" />
+      <line x1="40" y1="372" x2="40" y2="388" /><line x1="770" y1="372" x2="770" y2="388" />
+      <text x="405" y="398" font-family="monospace" font-size="9" font-weight="bold" fill="#0369a1" text-anchor="middle">TOTAL CAPACITY: 14,500 TEU // DESIGN DRAFT: 15.5 METERS</text>
+    </g>
+  </g>
+
+  <!-- Lower Section: Ocean Seaport Transit Corridors (FIG 03) -->
+  <g transform="translate(60, 860)">
+    <rect x="0" y="0" width="780" height="180" rx="4" fill="#ffffff" fill-opacity="0.85" stroke="#0369a1" stroke-width="1.5" />
+    <text x="15" y="24" font-family="monospace" font-size="11" font-weight="black" fill="#0369a1">FIG. 03 — MARITIME GATEWAY PORTS &amp; HINTERLAND FEEDER CONNECTIVITY</text>
+    
+    <g stroke="#0284c7" stroke-width="2" fill="none">
+      <path d="M 70 95 L 230 75 L 390 115 L 560 70 L 710 100" stroke-dasharray="6 3" />
+    </g>
+
+    <g transform="translate(70, 95)">
+      <circle cx="0" cy="0" r="12" fill="#bae6fd" stroke="#0369a1" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#0369a1" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#0369a1" text-anchor="middle">CHABAHAR PORT</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#0284c7" text-anchor="middle">OCEAN BERTH #01</text>
+    </g>
+
+    <g transform="translate(230, 75)">
+      <circle cx="0" cy="0" r="12" fill="#bae6fd" stroke="#0369a1" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#0369a1" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#0369a1" text-anchor="middle">BANDAR ABBAS</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#0284c7" text-anchor="middle">CONTAINER TERM</text>
+    </g>
+
+    <g transform="translate(390, 115)">
+      <circle cx="0" cy="0" r="12" fill="#bae6fd" stroke="#0369a1" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#0369a1" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#0369a1" text-anchor="middle">KARACHI / QASIM</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#0284c7" text-anchor="middle">INTERMODAL DOCK</text>
+    </g>
+
+    <g transform="translate(560, 70)">
+      <circle cx="0" cy="0" r="12" fill="#bae6fd" stroke="#0369a1" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#0369a1" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#0369a1" text-anchor="middle">TORGHUNDI RAIL</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#0284c7" text-anchor="middle">TRANS-SHIP HUB</text>
+    </g>
+
+    <g transform="translate(710, 100)">
+      <circle cx="0" cy="0" r="12" fill="#bae6fd" stroke="#0369a1" stroke-width="2" />
+      <circle cx="0" cy="0" r="5" fill="#0369a1" />
+      <text x="0" y="26" font-family="monospace" font-size="8.5" font-weight="bold" fill="#0369a1" text-anchor="middle">KABUL INLAND</text>
+      <text x="0" y="38" font-family="monospace" font-size="7" fill="#0284c7" text-anchor="middle">CUSTOMS DEPOT</text>
+    </g>
+
+    <line x1="0" y1="150" x2="780" y2="150" stroke="#bae6fd" stroke-width="1" />
+    <text x="390" y="168" font-family="monospace" font-size="8" font-weight="bold" fill="#0369a1" text-anchor="middle">SEALED TEU FREIGHT // BILL OF LADING MULTI-MODAL OCEAN CARGO MANIFEST</text>
+  </g>
+
+  <!-- Bottom Section: Engineering Title Block (ISO Standard) -->
+  <g transform="translate(60, 1070)" stroke="#0369a1" stroke-width="1.5" fill="none">
+    <rect width="780" height="260" fill="#ffffff" fill-opacity="0.95" />
+    
+    <line x1="0" y1="50" x2="780" y2="50" />
+    <line x1="0" y1="110" x2="780" y2="110" />
+    <line x1="0" y1="170" x2="780" y2="170" />
+    
+    <line x1="260" y1="50" x2="260" y2="260" />
+    <line x1="520" y1="50" x2="520" y2="260" />
+
+    <text x="20" y="34" font-family="monospace" font-size="16" font-weight="black" fill="#0369a1" stroke="none">SKY ARIANA MARITIME OCEAN VESSEL SYSTEM</text>
+    <text x="760" y="34" font-family="monospace" font-size="12" font-weight="bold" fill="#0284c7" text-anchor="end" stroke="none">DWG: BOL-SEA-900-V5</text>
+
+    <!-- Cell (1,1) -->
+    <g transform="translate(15, 60)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">VESSEL CATEGORY:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">POST-PANAMAX CARRIER</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#0284c7">IMO CERTIFIED CLASSIFICATION</text>
+    </g>
+
+    <!-- Cell (1,2) -->
+    <g transform="translate(275, 60)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">DEADWEIGHT TONNAGE (DWT):</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">165,000 METRIC TONS</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#0284c7">DISPLACEMENT: 210,000 MT</text>
+    </g>
+
+    <!-- Cell (1,3) -->
+    <g transform="translate(535, 60)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">REEFER PLUG CAPACITY:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">1,200 TEU REEFER UNITS</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#0284c7">INTEGRATED POWER BUS</text>
+    </g>
+
+    <!-- Cell (2,1) -->
+    <g transform="translate(15, 120)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">INTERNATIONAL VOYAGE:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">GULF — PERSIAN PORTS</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#0284c7">OCEAN TRANSIT PROTOCOL</text>
+    </g>
+
+    <!-- Cell (2,2) -->
+    <g transform="translate(275, 120)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">SECURITY CLASSIFICATION:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">ISPS CODE LEVEL 1 SECURE</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#16a34a">VERIFIED &amp; COMPLIANT</text>
+    </g>
+
+    <!-- Cell (2,3) -->
+    <g transform="translate(535, 120)" stroke="none">
+      <text x="0" y="16" font-family="monospace" font-size="8.5" font-weight="bold" fill="#64748b">NAVAL ARCHITECTURE SCALE:</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">1:500 ARCH / CAD REV 5</text>
+      <text x="0" y="44" font-family="monospace" font-size="9" fill="#0284c7">A4 PORTRAIT SPECIFICATION</text>
+    </g>
+
+    <!-- Cell (3) -->
+    <g transform="translate(15, 180)" stroke="none">
+      <text x="0" y="22" font-family="monospace" font-size="9" font-weight="bold" fill="#64748b">AUTHORIZATION &amp; MASTER STAMP:</text>
+      <text x="0" y="42" font-family="monospace" font-size="11" font-weight="black" fill="#0369a1">SKY ARIANA MARITIME SHIPPING — OFFICIAL WATERMARK ASSET</text>
+      <text x="0" y="58" font-family="monospace" font-size="8" fill="#475569">COPYRIGHT © 2026 SKY ARIANA. ALL RIGHTS RESERVED. FOR OFFICIAL OCEAN BILL OF LADING USE ONLY.</text>
+    </g>
+    <g transform="translate(680, 185)" stroke="none">
+      <circle cx="45" cy="35" r="30" fill="none" stroke="#dc2626" stroke-width="2" stroke-opacity="0.75" />
+      <text x="45" y="33" font-family="monospace" font-size="7.5" font-weight="bold" fill="#dc2626" text-anchor="middle">APPROVED</text>
+      <text x="45" y="44" font-family="monospace" font-size="6.5" font-weight="bold" fill="#dc2626" text-anchor="middle">CAD MAR-02</text>
     </g>
   </g>
 </svg>
