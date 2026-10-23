@@ -116,7 +116,7 @@ export function ReportPrintPreviewModal({
   // Query native desktop printers if in Electron environment
   useEffect(() => {
     if (typeof window !== "undefined" && window.skyDesktop?.getPrinters) {
-      window.skyDesktop.getPrinters().then((printers) => {
+      window.skyDesktop.getPrinters().then((printers: any) => {
         if (Array.isArray(printers) && printers.length > 0) {
           setAvailablePrinters(printers)
           const def = printers.find((p) => p.isDefault) || printers[0]

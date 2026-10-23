@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils"
 import { extractBolRoute } from "@/lib/reports/parsers"
 import { cleanBolNumber } from "@/lib/utils/bol-filters"
+import { cleanCommodityName } from "./recent-bol-card"
 
 export function getCleanBolNumber(doc: any): string {
   const raw = String(doc?.bol_number || doc?.billOfLadingNumber || doc?.bolNo || doc?.id || "").trim()
@@ -273,12 +274,13 @@ export function parseCardCargoSummary(doc: SavedDocumentData): {
       if (numMatch) {
         total += parseInt(numMatch[1].replace(/,/g, ""), 10) || 0
       }
-      const comm = p.replace(/^\s*\d+[\d,.]*\s*(?:CTNS?|CARTONS?|BAGS?|PKGS?|BOXES|PCS)?\s*/i, "").trim()
+      const comm = cleanCommodityName(p)
       if (comm && !commodities.includes(comm)) commodities.push(comm)
     }
+    const finalComm = commodities.join(" / ") || cleanCommodityName(rawDesc) || "CARGO"
     return {
       packages: total > 0 ? `${total.toLocaleString()} CTNS` : pkgStr,
-      commodity: commodities.join(" / ").toUpperCase() || "CARGO",
+      commodity: finalComm.toUpperCase(),
       isMulti: true,
       tooltip: pkgStr,
     }
@@ -293,10 +295,13 @@ export function parseCardCargoSummary(doc: SavedDocumentData): {
         packagesDisplay = `${num.toLocaleString()} CTNS`
       }
     }
-    const comm = pkgStr.replace(/^\s*\d+[\d,.]*\s*(?:CTNS?|CARTONS?|BAGS?|PKGS?|BOXES|PCS)?\s*/i, "").trim()
+    let comm = cleanCommodityName(pkgStr)
+    if (!comm) {
+      comm = cleanCommodityName(rawDesc)
+    }
     return {
       packages: packagesDisplay,
-      commodity: (comm || rawDesc || "CARGO").toUpperCase(),
+      commodity: (comm || "CARGO").toUpperCase(),
       isMulti: false,
       tooltip: pkgStr,
     }
@@ -304,7 +309,7 @@ export function parseCardCargoSummary(doc: SavedDocumentData): {
 
   return {
     packages: "—",
-    commodity: (rawDesc || "CARGO").toUpperCase(),
+    commodity: (cleanCommodityName(rawDesc) || "CARGO").toUpperCase(),
     isMulti: false,
     tooltip: rawDesc,
   }

@@ -5,11 +5,30 @@ const assert = require('node:assert/strict');
 
 function cleanCommodityName(text) {
   if (!text) return '';
-  return text
+  const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean);
+  const candidate =
+    lines.find((l) => {
+      const u = l.toUpperCase();
+      return (
+        !u.startsWith('CONTAINER & CARGO') &&
+        !u.startsWith('CARGO PARTICULARS') &&
+        !u.startsWith('DOCUMENT & SHIPPING') &&
+        !u.startsWith('SHIPPING DETAILS') &&
+        !u.startsWith('TRANSIT DATE:') &&
+        !u.startsWith('BORDER:') &&
+        !u.startsWith('INVOICE NO:')
+      );
+    }) || text;
+
+  let cleaned = candidate
+    .replace(/^(?:CONTAINER\s*&\s*CARGO\s*PARTICULARS|CARGO\s*PARTICULARS|DESCRIPTION\s*OF\s*GOODS|DOCUMENT\s*&\s*SHIPPING|SHIPPING\s*DETAILS|CARGO\s*DESCRIPTION|COMMODITY)\s*[:•\-│\s]*/gi, '')
+    .replace(/^[•*·\-🥬📦│\s]*(?:DESCRIPTION\s*OF\s*GOODS|DESCRIPTION|CARGO|COMMODITY)?\s*[:•\-│\s]*/gi, '')
     .replace(/\bRAISNIS\b/gi, 'RAISINS')
-    .replace(/^\s*\d+[\d,.]*\s*(?:CTNS?|CARTONS?|CNTS?|BAGS?|PKGS?|BOXES|PCS|UNITS)?\s*/i, '')
+    .replace(/^\s*\d+[\d,.]*\s*(?:CTNS?|CARTONS?|CNTS?|BAGS?|PKGS?|BOXES|PCS|UNITS)?\s*(?:OF\s*)?/i, '')
     .replace(/\s*[-–—]\s*(?:KGS?|KG|TONS?|USD|AFN|@).*$/i, '')
     .trim();
+
+  return cleaned || '';
 }
 
 function parseCargoSummaryDetails(doc) {
@@ -130,22 +149,25 @@ function parseTruckDetails(doc) {
   const rawDriver = (doc.driver_name || '').trim();
 
   if (!rawTruck && !rawDriver) {
-    return { display: '—', tooltip: 'No truck or driver assigned' };
+    return { plateNumber: '', city: '', driver: '', display: '—', tooltip: 'No truck or driver assigned' };
   }
 
   if (rawTruck) {
-    const match = rawTruck.match(/^([0-9]+)\s*([\u0600-\u06FF\w\s]+)?$/);
+    const digitMatch = rawTruck.match(/[0-9\u0660-\u0669\u06F0-\u06F9]+(?:-[0-9\u0660-\u0669\u06F0-\u06F9]+)?/);
+    const plateNumber = digitMatch ? digitMatch[0].trim() : '';
+    const cleanCity = rawTruck.replace(plateNumber, '').replace(/[-_#:\s]+/g, ' ').trim();
     let display = rawTruck;
-    if (match) {
-      const num = match[1];
-      const city = (match[2] || '').trim();
-      display = city ? `${num} ${city}` : num;
+    if (cleanCity && plateNumber) {
+      display = rawTruck.trim().match(/^[0-9\u0660-\u0669\u06F0-\u06F9]/)
+        ? `${plateNumber} ${cleanCity}`
+        : `${cleanCity} ${plateNumber}`;
     }
     const tooltip = rawDriver ? `Truck: ${display} | Driver: ${rawDriver}` : `Truck: ${display}`;
-    return { display, tooltip };
+
+    return { plateNumber, city: cleanCity, driver: rawDriver, display, tooltip };
   }
 
-  return { display: rawDriver, tooltip: `Driver: ${rawDriver}` };
+  return { plateNumber: '', city: '', driver: rawDriver, display: rawDriver, tooltip: `Driver: ${rawDriver}` };
 }
 
 function parseRentDetails(doc) {
@@ -194,6 +216,17 @@ test('1. Cargo Parser: Formats single commodity and fixes typos', () => {
   const parsed = parseCargoSummaryDetails(doc);
   assert.equal(parsed.packages, '1,454 CTNS');
   assert.equal(parsed.commodity, 'BLACK RAISINS');
+  assert.equal(parsed.itemCount, 1);
+});
+
+test('1b. Cargo Parser: Strips boilerplate headers like CONTAINER & CARGO PARTICULARS', () => {
+  const doc = {
+    number_of_packages: '1454 CTNS',
+    cargo_description: 'CONTAINER & CARGO PARTICULARS: • DESCRIPTION OF GOODS: 1454 CTNS RAISINS'
+  };
+  const parsed = parseCargoSummaryDetails(doc);
+  assert.equal(parsed.packages, '1,454 CTNS');
+  assert.equal(parsed.commodity, 'RAISINS');
   assert.equal(parsed.itemCount, 1);
 });
 

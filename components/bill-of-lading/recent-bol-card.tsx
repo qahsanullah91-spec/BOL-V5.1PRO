@@ -5,6 +5,7 @@ import { Clock, ArrowRight, Boxes, Truck, Pencil, FolderArchive, FileDown, Loade
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { cleanBolNumber, isUUID } from "@/lib/utils/bol-filters"
+import { extractCleanCommodity, isRtlText } from "@/lib/reports/parsers"
 
 export interface SavedDocumentData {
   id: string
@@ -55,11 +56,41 @@ export interface RecentBolCardProps {
  */
 export function cleanCommodityName(text: string): string {
   if (!text) return ""
-  return text
+
+  // 1. If text has multiple lines or contains particulars header, find the content line
+  const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean)
+  const candidate =
+    lines.find((l) => {
+      const u = l.toUpperCase()
+      return (
+        !u.startsWith("CONTAINER & CARGO") &&
+        !u.startsWith("CARGO PARTICULARS") &&
+        !u.startsWith("DOCUMENT & SHIPPING") &&
+        !u.startsWith("SHIPPING DETAILS") &&
+        !u.startsWith("TRANSIT DATE:") &&
+        !u.startsWith("BORDER:") &&
+        !u.startsWith("INVOICE NO:")
+      )
+    }) || text
+
+  // 2. Strip section headers, description bullets, and carton counts
+  let cleaned = candidate
+    .replace(/^(?:CONTAINER\s*&\s*CARGO\s*PARTICULARS|CARGO\s*PARTICULARS|DESCRIPTION\s*OF\s*GOODS|DOCUMENT\s*&\s*SHIPPING|SHIPPING\s*DETAILS|CARGO\s*DESCRIPTION|COMMODITY)\s*[:•\-│\s]*/gi, "")
+    .replace(/^[•*·\-🥬📦│\s]*(?:DESCRIPTION\s*OF\s*GOODS|DESCRIPTION|CARGO|COMMODITY)?\s*[:•\-│\s]*/gi, "")
     .replace(/\bRAISNIS\b/gi, "RAISINS")
-    .replace(/^\s*\d+[\d,.]*\s*(?:CTNS?|CARTONS?|CNTS?|BAGS?|PKGS?|BOXES|PCS|UNITS)?\s*/i, "")
+    .replace(/^\s*\d+[\d,.]*\s*(?:CTNS?|CARTONS?|CNTS?|BAGS?|PKGS?|BOXES|PCS|UNITS)?\s*(?:OF\s*)?/i, "")
     .replace(/\s*[-–—]\s*(?:KGS?|KG|TONS?|USD|AFN|@).*$/i, "")
     .trim()
+
+  // 3. If empty or still contains header remnants, use extractCleanCommodity
+  if (!cleaned || cleaned.toUpperCase().includes("CONTAINER & CARGO") || cleaned.toUpperCase().includes("PARTICULARS")) {
+    const extracted = extractCleanCommodity(text)
+    if (extracted && extracted !== "General Cargo") {
+      cleaned = extracted
+    }
+  }
+
+  return cleaned
 }
 
 /**
@@ -197,6 +228,9 @@ export function parseWeightDetails(doc: SavedDocumentData): {
  * Formats truck plate cleanly, separating digits and Persian/Pashto city names
  */
 export function parseTruckDetails(doc: SavedDocumentData): {
+  plateNumber: string
+  city: string
+  driver: string
   display: string
   tooltip: string
 } {
@@ -204,23 +238,26 @@ export function parseTruckDetails(doc: SavedDocumentData): {
   const rawDriver = (doc.driver_name || "").trim()
 
   if (!rawTruck && !rawDriver) {
-    return { display: "—", tooltip: "No truck or driver assigned" }
+    return { plateNumber: "", city: "", driver: "", display: "—", tooltip: "No truck or driver assigned" }
   }
 
   if (rawTruck) {
-    // Separate digits at start from Persian/English city/words (e.g., "54846هرات" -> "54846 هرات")
-    const match = rawTruck.match(/^([0-9]+)\s*([\u0600-\u06FF\w\s]+)?$/)
+    // Match numeric digits (either Western 0-9 or Eastern Arabic/Persian ۰-۹)
+    const digitMatch = rawTruck.match(/[0-9\u0660-\u0669\u06F0-\u06F9]+(?:-[0-9\u0660-\u0669\u06F0-\u06F9]+)?/)
+    const plateNumber = digitMatch ? digitMatch[0].trim() : ""
+    const cleanCity = rawTruck.replace(plateNumber, "").replace(/[-_#:\s]+/g, " ").trim()
     let display = rawTruck
-    if (match) {
-      const num = match[1]
-      const city = (match[2] || "").trim()
-      display = city ? `${num} ${city}` : num
+    if (cleanCity && plateNumber) {
+      display = rawTruck.trim().match(/^[0-9\u0660-\u0669\u06F0-\u06F9]/)
+        ? `${plateNumber} ${cleanCity}`
+        : `${cleanCity} ${plateNumber}`
     }
     const tooltip = rawDriver ? `Truck: ${display} | Driver: ${rawDriver}` : `Truck: ${display}`
-    return { display, tooltip }
+
+    return { plateNumber, city: cleanCity, driver: rawDriver, display, tooltip }
   }
 
-  return { display: rawDriver, tooltip: `Driver: ${rawDriver}` }
+  return { plateNumber: "", city: "", driver: rawDriver, display: rawDriver, tooltip: `Driver: ${rawDriver}` }
 }
 
 /**
@@ -298,6 +335,8 @@ export const RecentBolCard = memo(function RecentBolCard({
   const dateDisplay = formatCardDate(doc)
   const shipper = (doc.shipper_name || "").trim()
   const consignee = (doc.consignee_name || "").trim()
+  const isShipperRtl = isRtlText(shipper)
+  const isConsigneeRtl = isRtlText(consignee)
 
   const cargo = parseCargoSummaryDetails(doc)
   const weights = parseWeightDetails(doc)
@@ -332,8 +371,8 @@ export const RecentBolCard = memo(function RecentBolCard({
       onKeyDown={handleKeyDown}
       className={cn(
         "group relative rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800",
-        "p-3.5 sm:p-4 shadow-xs hover:shadow-md hover:border-amber-400/90 dark:hover:border-amber-500/80 transition-all duration-200",
-        "flex flex-col justify-between h-full min-w-[250px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
+        "p-3.5 sm:p-4 shadow-xs hover:shadow-lg hover:shadow-blue-500/5 hover:border-blue-400/80 dark:hover:border-blue-500/80 transition-all duration-200",
+        "flex flex-col justify-between h-full min-w-[250px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:-translate-y-0.5",
         isSelected && "ring-2 ring-blue-500 border-blue-500/60 shadow-blue-500/10",
         className
       )}
@@ -344,7 +383,7 @@ export const RecentBolCard = memo(function RecentBolCard({
           {/* Header Row: BOL Number + Date */}
           <div className="flex items-center justify-between gap-1.5 mb-2.5">
             <span
-              className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-900 dark:bg-slate-800 text-amber-400 dark:text-amber-300 font-mono font-bold text-[12px] tracking-tight border border-slate-700/60 shadow-2xs select-all truncate max-w-[170px]"
+              className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-950 dark:bg-slate-900 text-amber-400 dark:text-amber-300 font-mono font-bold text-xs tracking-tight border border-slate-800 shadow-2xs select-all truncate max-w-[170px]"
               title={`Official BOL: ${bolNumber}`}
             >
               {bolNumber}
@@ -362,17 +401,26 @@ export const RecentBolCard = memo(function RecentBolCard({
           {/* Shipper & Consignee */}
           <div className="mb-2.5 space-y-1">
             <div
-              className="text-[13px] font-black text-slate-950 dark:text-slate-100 leading-tight line-clamp-2"
+              className={cn(
+                "text-[13px] font-black text-slate-950 dark:text-slate-100 leading-snug line-clamp-2",
+                isShipperRtl && "font-['Vazirmatn',sans-serif] text-right"
+              )}
+              dir={isShipperRtl ? "rtl" : "ltr"}
               title={shipper || "No Shipper Specified"}
             >
               {shipper || "No Shipper Specified"}
             </div>
             <div
-              className="text-[11.5px] font-semibold text-slate-600 dark:text-slate-400 flex items-start gap-1 leading-tight"
+              className={cn(
+                "text-[11.5px] font-semibold text-slate-600 dark:text-slate-400 flex items-start gap-1 leading-snug",
+                isConsigneeRtl && "font-['Vazirmatn',sans-serif]"
+              )}
               title={consignee || "No Consignee Specified"}
             >
               <ArrowRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
-              <span className="line-clamp-2">{consignee || "No Consignee Specified"}</span>
+              <span className="line-clamp-2" dir={isConsigneeRtl ? "rtl" : "ltr"}>
+                {consignee || "No Consignee Specified"}
+              </span>
             </div>
           </div>
         </div>
@@ -418,14 +466,33 @@ export const RecentBolCard = memo(function RecentBolCard({
           {/* Logistics Row: Truck & Driver Rent */}
           <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800/70 flex items-center justify-between gap-2 text-[10.5px]">
             <div
-              className="flex items-center gap-1 min-w-0 text-slate-700 dark:text-slate-300"
+              className="flex items-center gap-1.5 min-w-0 text-slate-700 dark:text-slate-300"
               title={truck.tooltip}
             >
-              <Truck className="w-3 h-3 text-amber-600 shrink-0" />
-              <span className="text-slate-500 dark:text-slate-400 font-medium shrink-0">Truck:</span>
-              <bdi className="font-mono font-bold text-slate-900 dark:text-slate-100 truncate" dir="auto">
-                {truck.display}
-              </bdi>
+              <Truck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 shrink-0" />
+              <span className="text-slate-500 dark:text-slate-400 font-medium text-[10.5px] shrink-0">Truck:</span>
+              <div className="flex items-center gap-1 min-w-0 truncate">
+                {truck.city && (
+                  <bdi
+                    dir="auto"
+                    className={cn(
+                      "px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 bg-slate-200/80 dark:bg-slate-800 text-slate-800 dark:text-slate-200",
+                      isRtlText(truck.city) && "font-['Vazirmatn',sans-serif]"
+                    )}
+                  >
+                    {truck.city}
+                  </bdi>
+                )}
+                {truck.plateNumber ? (
+                  <bdi dir="ltr" className="font-mono font-bold text-slate-900 dark:text-slate-100 text-[11px] truncate">
+                    {truck.plateNumber}
+                  </bdi>
+                ) : (
+                  !truck.city && (
+                    <span className="text-slate-400 text-[10.5px]">—</span>
+                  )
+                )}
+              </div>
             </div>
 
             {rent.display && (
@@ -434,7 +501,7 @@ export const RecentBolCard = memo(function RecentBolCard({
                 title={rent.tooltip}
               >
                 <span className="text-slate-500 dark:text-slate-400 text-[10px] font-medium">Rent:</span>
-                <span className="font-bold text-amber-950 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/70 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/60 text-[10px]">
+                <span className="font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60 text-[10px]">
                   {rent.display}
                 </span>
               </div>
@@ -443,92 +510,115 @@ export const RecentBolCard = memo(function RecentBolCard({
         </div>
       </div>
 
-      {/* Action Buttons (Strictly aligned bottom row) */}
-      <div className="mt-auto pt-2.5 border-t border-slate-100 dark:border-slate-800/70 grid grid-cols-4 gap-1 sm:gap-1.5">
-        <Button
-          type="button"
-          size="sm"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            startTransition(() => {
-              onEdit()
-            })
-          }}
-          className="h-8.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-[11px] sm:text-xs cursor-pointer shadow-xs transition-[color,background-color,border-color,transform] flex items-center justify-center px-1"
-          title="Edit Bill of Lading"
-        >
-          <Pencil className="w-3 h-3 mr-0.5 sm:mr-1 shrink-0" />
-          <span className="truncate">Edit</span>
-        </Button>
+      {/* Action Buttons: 2-Tier Balanced Grid (Zero Button Truncation) */}
+      <div className="mt-auto pt-2.5 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5">
+        {/* Tier 1: Primary Actions (Edit & Preview) */}
+        <div className="grid grid-cols-2 gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              startTransition(() => {
+                onEdit()
+              })
+            }}
+            className="h-8.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs cursor-pointer shadow-xs transition-all flex items-center justify-center gap-1.5 px-2 w-full"
+            title="Edit Bill of Lading"
+          >
+            <Pencil className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Edit</span>
+          </Button>
 
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            startTransition(() => {
-              if (onPreview) {
-                onPreview()
-              } else if (onCardClick) {
-                onCardClick()
-              }
-            })
-          }}
-          className="h-8.5 rounded-xl border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-900 dark:text-blue-300 font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-[color,background-color,border-color,transform] flex items-center justify-center px-1"
-          title="Preview A4 Document"
-        >
-          <Eye className="w-3 h-3 mr-0.5 sm:mr-1 text-blue-700 dark:text-blue-400 shrink-0" />
-          <span className="truncate">Preview</span>
-        </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              startTransition(() => {
+                if (onPreview) {
+                  onPreview()
+                } else if (onCardClick) {
+                  onCardClick()
+                }
+              })
+            }}
+            className="h-8.5 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/80 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-900 dark:text-blue-300 font-bold text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-1.5 px-2 w-full"
+            title="Preview A4 Document"
+          >
+            <Eye className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400 shrink-0" />
+            <span className="truncate">Preview</span>
+          </Button>
+        </div>
 
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation()
-            startTransition(() => {
-              onFiles()
-            })
-          }}
-          className="h-8.5 rounded-xl border-cyan-300 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/40 hover:bg-cyan-100 text-cyan-900 dark:text-cyan-300 font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-[color,background-color,border-color,transform] flex items-center justify-center px-1"
-          title="Digital Shipment Files & Attachments"
-        >
-          <FolderArchive className="w-3 h-3 mr-0.5 sm:mr-1 text-cyan-700 dark:text-cyan-400 shrink-0" />
-          <span className="truncate">Files</span>
-        </Button>
+        {/* Tier 2: Document Files & PDF Output */}
+        <div className="grid grid-cols-2 gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation()
+              startTransition(() => {
+                onFiles()
+              })
+            }}
+            className="h-7.5 rounded-xl border border-cyan-200/90 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 text-cyan-900 dark:text-cyan-300 font-bold text-[11px] cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-1.5 px-2 w-full"
+            title="Digital Shipment Files & Attachments"
+          >
+            <FolderArchive className="w-3 h-3 text-cyan-700 dark:text-cyan-400 shrink-0" />
+            <span className="truncate">Files</span>
+          </Button>
 
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={isDownloadingPdf}
-          onClick={(e) => {
-            e.stopPropagation()
-            startTransition(() => {
-              onPdf()
-            })
-          }}
-          className={cn(
-            "h-8.5 rounded-xl border font-bold text-[11px] sm:text-xs cursor-pointer active:scale-95 transition-[color,background-color,border-color,transform] flex items-center justify-center px-1",
-            doc.pdf_status === "missing"
-              ? "border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-900 dark:text-rose-300 shadow-2xs"
-              : doc.pdf_status === "outdated"
-              ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 text-amber-900 dark:text-amber-300 shadow-2xs"
-              : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
-          )}
-          title={doc.pdf_status === "missing" ? "Physical PDF missing — Click to Regenerate" : doc.pdf_status === "outdated" ? "Document updated since PDF generation — PDF Outdated" : "Download or Print BOL PDF"}
-        >
-          {isDownloadingPdf ? (
-            <Loader2 className="w-3 h-3 mr-0.5 sm:mr-1 animate-spin text-slate-600" />
-          ) : (
-            <FileDown className={cn("w-3 h-3 mr-0.5 sm:mr-1 shrink-0", doc.pdf_status === "missing" ? "text-rose-600 dark:text-rose-400" : doc.pdf_status === "outdated" ? "text-amber-600 dark:text-amber-400" : "text-slate-700 dark:text-slate-300")} />
-          )}
-          <span className="truncate">{doc.pdf_status === "missing" ? "Missing" : doc.pdf_status === "outdated" ? "Outdated" : "PDF"}</span>
-        </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={isDownloadingPdf}
+            onClick={(e) => {
+              e.stopPropagation()
+              startTransition(() => {
+                onPdf()
+              })
+            }}
+            className={cn(
+              "h-7.5 rounded-xl border font-bold text-[11px] cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-1.5 px-2 w-full",
+              doc.pdf_status === "missing"
+                ? "border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-900 dark:text-rose-300 shadow-2xs"
+                : doc.pdf_status === "outdated"
+                ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 text-amber-900 dark:text-amber-300 shadow-2xs"
+                : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
+            )}
+            title={
+              doc.pdf_status === "missing"
+                ? "Physical PDF missing — Click to Regenerate"
+                : doc.pdf_status === "outdated"
+                ? "Document updated since PDF generation — PDF Outdated"
+                : "Download or Print BOL PDF"
+            }
+          >
+            {isDownloadingPdf ? (
+              <Loader2 className="w-3 h-3 animate-spin text-slate-600" />
+            ) : (
+              <FileDown
+                className={cn(
+                  "w-3 h-3 shrink-0",
+                  doc.pdf_status === "missing"
+                    ? "text-rose-600 dark:text-rose-400"
+                    : doc.pdf_status === "outdated"
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-slate-700 dark:text-slate-300"
+                )}
+              />
+            )}
+            <span className="truncate">
+              {doc.pdf_status === "missing" ? "Missing" : doc.pdf_status === "outdated" ? "Outdated" : "PDF"}
+            </span>
+          </Button>
+        </div>
       </div>
     </div>
   )
