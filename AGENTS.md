@@ -28,6 +28,12 @@ trigger: always_on
 ## 6. Data Integrity & Persistence
 - **Atomic Operations**: Always write local JSON snapshots (`.local-*.json`) atomically to prevent file corruption during concurrent operations or background syncs.
 
+## 7. Python Virtual Environment & Dependency Standards
+- **Explicit Virtual Environment**: All scripts, tests, background services, and CLI tools must execute strictly via `.venv\Scripts\python.exe` (Windows) or `.venv/bin/python` (Unix). Never invoke global `python` or `python3`.
+- **Prohibited Global Pip**: Global `pip install` is strictly prohibited. All packages must be installed directly through `.venv\Scripts\pip.exe`.
+- **State Preservation**: Whenever dependencies are installed, updated, or removed, `.venv\Scripts\pip.exe freeze` must update `requirements.txt` to guarantee reproducible builds.
+- **Reactive Probing**: Environment probing is performed only when resolving missing packages (`ModuleNotFoundError`) or upon explicit request.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

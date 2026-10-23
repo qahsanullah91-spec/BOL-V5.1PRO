@@ -52,6 +52,13 @@ last_mapped_at: 2026-10-23
 - **Typed Channels**: IPC messages must match typed definitions in `electron/desktop-api.d.ts`.
 - **No Direct Shell Execution from Renderer**: All privileged OS operations (printing, setup execution, registry tweaks) must remain encapsulated in the Electron main process.
 
+## Python Virtual Environment & Dependency Standards
+
+- **Explicit Virtual Environment**: All scripts, tests, background services, and CLI tools must execute strictly via `.venv\Scripts\python.exe` (Windows) or `.venv/bin/python` (Unix). Never invoke global `python` or `python3`.
+- **Prohibited Global Pip**: Global `pip install` is strictly prohibited. All packages must be installed directly through `.venv\Scripts\pip.exe`.
+- **State Preservation**: Whenever dependencies are installed, updated, or removed, `.venv\Scripts\pip.exe freeze` must update `requirements.txt` to guarantee reproducible builds.
+- **Reactive Probing**: Environment and package availability probing is performed only when resolving missing packages (`ModuleNotFoundError`) or upon explicit request — never proactively before writing code.
+
 ---
 
 *Conventions analysis: 2026-10-23*
