@@ -63,10 +63,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu'
 
 interface HeaderProps {
@@ -1018,133 +1014,8 @@ export function Header({ title, subtitle }: HeaderProps) {
             </DropdownMenu>
 
             {/* ------------------------------------------------------------- */}
-            {/* 2. ADAPTIVE SUITES DROPDOWN (VISIBLE ON SCREENS < 1024px)     */}
-            {/* Guarantees full dropdown access even on narrow/split screens! */}
-            {/* ------------------------------------------------------------- */}
-            <div className="lg:hidden flex items-center">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-slate-100/90 hover:bg-slate-200/90 dark:bg-slate-800/90 dark:hover:bg-slate-700/90 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0 whitespace-nowrap"
-                    title="Suites Navigation Dropdown"
-                  >
-                    <Layers className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                    <span>Suites</span>
-                    <ChevronDown className="h-3 w-3 opacity-60 shrink-0" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 p-1 text-xs rounded-xl shadow-xl z-50">
-                  <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Operations & Finance Suites
-                  </DropdownMenuLabel>
-                  
-                  {/* Operations Submenu */}
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer gap-2 py-2 font-medium">
-                      <Truck className="h-3.5 w-3.5 text-blue-600" />
-                      <span>Operations (11)</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-60 p-1 text-xs rounded-xl shadow-xl z-50">
-                      {ENTERPRISE_MODULES.filter(m => m.category === 'ops').map(mod => {
-                        const Icon = mod.icon
-                        const isActive = view === mod.id
-                        return (
-                          <DropdownMenuItem
-                            key={mod.id}
-                            onClick={() => handleNavigate(mod.id)}
-                            className={`cursor-pointer gap-2 py-1.5 ${isActive ? 'bg-blue-600 text-white font-bold' : ''}`}
-                          >
-                            <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : mod.color}`} />
-                            <span className="truncate">{mod.title}</span>
-                            {isActive && <Check className="h-3 w-3 text-white ml-auto" />}
-                          </DropdownMenuItem>
-                        )
-                      })}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-
-                  {/* Finance Submenu */}
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer gap-2 py-2 font-medium">
-                      <Landmark className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>Finance & Ledger (7)</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-60 p-1 text-xs rounded-xl shadow-xl z-50">
-                      {ENTERPRISE_MODULES.filter(m => m.category === 'finance').map(mod => {
-                        const Icon = mod.icon
-                        const isActive = view === mod.id
-                        return (
-                          <DropdownMenuItem
-                            key={mod.id}
-                            onClick={() => handleNavigate(mod.id)}
-                            className={`cursor-pointer gap-2 py-1.5 ${isActive ? 'bg-emerald-600 text-white font-bold' : ''}`}
-                          >
-                            <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : mod.color}`} />
-                            <span className="truncate">{mod.title}</span>
-                            {isActive && <Check className="h-3 w-3 text-white ml-auto" />}
-                          </DropdownMenuItem>
-                        )
-                      })}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-
-                  {/* Sales & CRM Submenu */}
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer gap-2 py-2 font-medium">
-                      <Tag className="h-3.5 w-3.5 text-amber-600" />
-                      <span>Sales & CRM (5)</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-60 p-1 text-xs rounded-xl shadow-xl z-50">
-                      {ENTERPRISE_MODULES.filter(m => m.category === 'commercial').map(mod => {
-                        const Icon = mod.icon
-                        const isActive = view === mod.id
-                        return (
-                          <DropdownMenuItem
-                            key={mod.id}
-                            onClick={() => handleNavigate(mod.id)}
-                            className={`cursor-pointer gap-2 py-1.5 ${isActive ? 'bg-amber-600 text-white font-bold' : ''}`}
-                          >
-                            <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : mod.color}`} />
-                            <span className="truncate">{mod.title}</span>
-                            {isActive && <Check className="h-3 w-3 text-white ml-auto" />}
-                          </DropdownMenuItem>
-                        )
-                      })}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-
-                  {/* Compliance & System Tools Submenu */}
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer gap-2 py-2 font-medium">
-                      <ShieldCheck className="h-3.5 w-3.5 text-purple-600" />
-                      <span>Docs & Tools (10)</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-60 p-1 text-xs rounded-xl shadow-xl z-50">
-                      {ENTERPRISE_MODULES.filter(m => m.category === 'system').map(mod => {
-                        const Icon = mod.icon
-                        const isActive = view === mod.id
-                        return (
-                          <DropdownMenuItem
-                            key={mod.id}
-                            onClick={() => handleNavigate(mod.id)}
-                            className={`cursor-pointer gap-2 py-1.5 ${isActive ? 'bg-purple-700 text-white font-bold' : ''}`}
-                          >
-                            <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : mod.color}`} />
-                            <span className="truncate">{mod.title}</span>
-                            {isActive && <Check className="h-3 w-3 text-white ml-auto" />}
-                          </DropdownMenuItem>
-                        )
-                      })}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* ------------------------------------------------------------- */}
-            {/* 2. DESKTOP SUITE DROPDOWNS & MORE ▾ — all suites visible from lg up; the */}
-            {/*    nav scrolls horizontally instead of clipping when space runs out.     */}
+            {/* 2. DESKTOP SUITE DROPDOWNS & MORE ▾ — all suites visible from lg up;  */}
+            {/*    the nav scrolls horizontally instead of clipping when space runs out */}
             {/* ------------------------------------------------------------- */}
             <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 min-w-0 shrink-0">
               
@@ -1247,8 +1118,8 @@ export function Header({ title, subtitle }: HeaderProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Sales & CRM Dropdown (Visible on >= 1280px / xl, otherwise in More Suites) */}
-              <div className="hidden xl:flex items-center">
+              {/* Sales & CRM Dropdown */}
+              <div className="flex items-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -1300,8 +1171,8 @@ export function Header({ title, subtitle }: HeaderProps) {
                 </DropdownMenu>
               </div>
 
-              {/* Docs & Tools Dropdown (Visible on >= 1280px / xl, otherwise in More Suites) */}
-              <div className="hidden xl:flex items-center">
+              {/* Docs & Tools Dropdown */}
+              <div className="flex items-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -1357,7 +1228,7 @@ export function Header({ title, subtitle }: HeaderProps) {
               <button
                 type="button"
                 onClick={() => handleNavigate('ai-assistant')}
-                className={`hidden xl:flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                   view === 'ai-assistant'
                     ? 'bg-purple-700 text-white shadow-xs shadow-purple-500/30'
                     : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60 dark:hover:bg-purple-900/50'
@@ -1368,8 +1239,8 @@ export function Header({ title, subtitle }: HeaderProps) {
                 <span className="font-extrabold">Ask AI</span>
               </button>
 
-              {/* More Suites ▾ Dropdown (Responsive Fallback for screens < 1280px) */}
-              <div className="flex xl:hidden items-center">
+              {/* More Suites ▾ Dropdown (Compact fallback for tablet widths; desktop shows every suite directly) */}
+              <div className="flex lg:hidden items-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -1614,8 +1485,8 @@ export function Header({ title, subtitle }: HeaderProps) {
               <ServerStatusPill onOpenSettings={() => handleNavigate('settings')} />
             </div>
 
-            {/* Data Protection Pill */}
-            <div className="hidden sm:block shrink-0">
+            {/* Data Protection Pill (2xl+, matching the Server Status pill — preserves menu space on laptops) */}
+            <div className="hidden 2xl:block shrink-0">
               <HeaderProtectionPill onOpenBackupCenter={() => handleNavigate('data-protection')} />
             </div>
 
