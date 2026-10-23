@@ -69,6 +69,15 @@ function MainContent() {
 
   useEffect(() => {
     setMounted(true)
+    scheduleIdlePreloads([
+      { key: 'bol-editor', importer: () => import('@/components/bill-of-lading/bol-editor') },
+      { key: 'ledger-view', importer: () => import('@/components/ledger-view') },
+      { key: 'accounts-view', importer: () => import('@/components/accounts-view') },
+      { key: 'invoice-view', importer: () => import('@/components/invoice-view') },
+      { key: 'reports-view', importer: () => import('@/components/reports-view') },
+      { key: 'companies-view', importer: () => import('@/components/companies-view') },
+      { key: 'treasury-workspace', importer: () => import('@/components/accounting/treasury/treasury-workspace') },
+    ])
   }, [])
 
   useEffect(() => {
@@ -255,17 +264,20 @@ function MainContent() {
             }
           } catch (e) {}
         }
-        void autoHydrateAllDevices()
+        const timer = setTimeout(() => {
+          void autoHydrateAllDevices()
+        }, 1500)
+        return () => clearTimeout(timer)
       }
     }
   }, [isAuthenticated])
 
   if (!mounted) {
     return (
-      <div className="fixed inset-0 bg-[#020617] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-slate-400">
-          <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-          <p className="text-xs font-mono">Initializing workspace...</p>
+      <div className="fixed inset-0 bg-slate-50 dark:bg-slate-950 flex items-center justify-center transition-colors duration-150">
+        <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
+          <div className="w-8 h-8 rounded-full border-2 border-sky-500 border-t-transparent animate-spin" />
+          <p className="text-xs font-mono tracking-wider">Initializing workspace...</p>
         </div>
       </div>
     )

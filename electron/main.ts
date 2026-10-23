@@ -67,37 +67,26 @@ async function waitForServer(url: string): Promise<void> {
   const cleanUrl = url.trim().replace(/\/+$/, "")
   const probeUrl = `${cleanUrl}/api/health`
   const rootUrl = `${cleanUrl}/`
-  let healthOk = false
+  let attempts = 0
 
   while (Date.now() < expiresAt) {
     try {
-      if (!healthOk) {
-        const response = await fetch(probeUrl, {
-          signal: AbortSignal.timeout(4000),
-        })
-        if (response.status < 500) {
-          logMain(`Probe succeeded at ${probeUrl} with HTTP ${response.status}`)
-          healthOk = true
-        }
-      }
-      if (healthOk) {
-        // Pre-warm root page so that initial UI render is instantaneous
-        try {
-          const rootRes = await fetch(rootUrl, { signal: AbortSignal.timeout(6000) })
-          if (rootRes.status < 500) {
-            logMain(`Root page pre-warm succeeded with HTTP ${rootRes.status}`)
-            return
-          }
-        } catch (preWarmErr: any) {
-          logMain(`Root pre-warm attempt: ${preWarmErr?.message || preWarmErr}. Server is alive, proceeding to load URL.`)
-          return
-        }
+      const response = await fetch(probeUrl, {
+        signal: AbortSignal.timeout(2500),
+      })
+      if (response.status < 500) {
+        logMain(`Probe succeeded at ${probeUrl} with HTTP ${response.status}`)
+        // Warm up root page in background asynchronously without delaying window URL transition
+        void fetch(rootUrl, { signal: AbortSignal.timeout(4000) }).catch(() => {})
         return
       }
     } catch (err: any) {
-      logMain(`Probe failed at ${probeUrl}: ${err?.stack || err?.message || err}`)
+      // Server warming up
     }
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    attempts++
+    // Adaptive fast polling: 80ms for first 25 attempts (~2s), then 200ms
+    const pollDelay = attempts < 25 ? 80 : 200
+    await new Promise((resolve) => setTimeout(resolve, pollDelay))
   }
   throw new Error("The bundled application server did not start in time")
 }
@@ -188,6 +177,229 @@ function buildApplicationMenu(): Menu {
   ])
 }
 
+function getSplashHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AQ COMPANIES</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: radial-gradient(circle at 50% 25%, #0f172a 0%, #020617 100%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      overflow: hidden;
+      cursor: default;
+    }
+    .ambient-1 {
+      position: absolute;
+      top: 15%;
+      left: 28%;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(14, 165, 233, 0.16) 0%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(60px);
+      pointer-events: none;
+      animation: floatA 6s ease-in-out infinite alternate;
+    }
+    .ambient-2 {
+      position: absolute;
+      bottom: 18%;
+      right: 28%;
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.14) 0%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(60px);
+      pointer-events: none;
+      animation: floatB 7s ease-in-out infinite alternate;
+    }
+    .card {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 44px 52px;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      text-align: center;
+      max-width: 480px;
+      width: 90%;
+    }
+    .emblem-wrapper {
+      position: relative;
+      margin-bottom: 22px;
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .emblem-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(16, 185, 129, 0.35));
+      filter: blur(8px);
+      animation: pulse 2.2s infinite ease-in-out;
+    }
+    .emblem-box {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    .title {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ffffff 40%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+    .track {
+      width: 260px;
+      height: 4px;
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 16px;
+    }
+    .bar {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 45%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #38bdf8, #2563eb, #10b981);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+      animation: barAnimation 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .status-msg {
+      font-size: 11.5px;
+      color: #94a3b8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: blink 1.2s infinite ease-in-out;
+    }
+    .badge {
+      margin-top: 24px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 9.5px;
+      color: #64748b;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      letter-spacing: 1px;
+    }
+    @keyframes barAnimation {
+      0% { left: -45%; width: 35%; }
+      50% { left: 25%; width: 55%; }
+      100% { left: 100%; width: 45%; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(0.96); }
+      50% { opacity: 0.9; transform: scale(1.06); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+    @keyframes floatA {
+      0% { transform: translateY(0px) scale(1); }
+      100% { transform: translateY(-16px) scale(1.08); }
+    }
+    @keyframes floatB {
+      0% { transform: translateY(0px) scale(1); }
+      100% { transform: translateY(16px) scale(1.06); }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-1"></div>
+  <div class="ambient-2"></div>
+  <div class="card">
+    <div class="emblem-wrapper">
+      <div class="emblem-pulse"></div>
+      <div class="emblem-box">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+          <line x1="2" y1="20" x2="2.01" y2="20"></line>
+        </svg>
+      </div>
+    </div>
+    <div class="title">AQ COMPANIES</div>
+    <div class="subtitle">Logistics & Bill of Lading Platform</div>
+    <div class="track">
+      <div class="bar"></div>
+    </div>
+    <div class="status-msg">
+      <span class="status-dot"></span>
+      <span id="txt">Starting core engine...</span>
+    </div>
+    <div class="badge">AQ-SYSTEM v5.1.2 PRO • ULTRA PERFORMANCE RUNTIME</div>
+  </div>
+  <script>
+    const steps = [
+      "Starting core logistics engine...",
+      "Initializing local database...",
+      "Warming up financial ledger cache...",
+      "Opening workspace..."
+    ];
+    let i = 0;
+    setInterval(() => {
+      i = (i + 1) % steps.length;
+      const el = document.getElementById("txt");
+      if (el) el.textContent = steps[i];
+    }, 600);
+  </script>
+</body>
+</html>`
+}
+
 async function createMainWindow(): Promise<void> {
   const isDev = !app.isPackaged
   const userData = app.getPath("userData")
@@ -198,7 +410,12 @@ async function createMainWindow(): Promise<void> {
   const seedDirectory = app.isPackaged ? path.join(process.resourcesPath, "seed-data") : process.cwd()
   await initializeDataDirectory(dataDirectory, seedDirectory)
   process.env.SKY_DATA_DIR = dataDirectory
+
+  // Start background services in parallel with window preparation
   void backendManager.start(dataDirectory).catch((err) => console.error("Python backend start warning:", err))
+  logMain(`Initiating application server concurrently...`)
+  const serverPromise = startApplicationServer(dataDirectory)
+
   const state = await readWindowState(statePath)
   const icon = nativeImage.createFromPath(
     app.isPackaged ? path.join(process.resourcesPath, "app-icon.png") : path.join(process.cwd(), "public", "icon-512x512.png"),
@@ -216,14 +433,14 @@ async function createMainWindow(): Promise<void> {
       webSecurity: true,
     },
   })
-  if (state.maximized) mainWindow.maximize()
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("blob:") || url.startsWith(applicationUrl)) return { action: "allow" }
+    if (url.startsWith("blob:") || (applicationUrl && url.startsWith(applicationUrl))) return { action: "allow" }
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
     return { action: "deny" }
   })
   mainWindow.webContents.on("will-navigate", (event, url) => {
-    if (!url.startsWith(applicationUrl)) {
+    if (applicationUrl && !url.startsWith(applicationUrl)) {
       event.preventDefault()
       if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
     }
@@ -235,10 +452,16 @@ async function createMainWindow(): Promise<void> {
   mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
     logMain(`[Renderer Console L${level}] ${message} (${sourceId}:${line})`)
   })
+
+  // Show window smoothly once the initial splash layout has rendered
   mainWindow.once("ready-to-show", () => {
     logMain(`Main window ready-to-show triggered`)
     mainWindow?.show()
+    if (state.maximized) {
+      mainWindow?.maximize()
+    }
   })
+
   mainWindow.on("close", () => {
     if (!mainWindow) return
     const bounds = mainWindow.getNormalBounds()
@@ -248,8 +471,13 @@ async function createMainWindow(): Promise<void> {
     logMain(`Main window closed event fired`)
     mainWindow = null
   })
-  logMain(`Starting application server before loading URL...`)
-  const targetUrl = await startApplicationServer(dataDirectory)
+
+  // Load instant branded splash screen into window immediately
+  const splashDataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(getSplashHtml())}`
+  await mainWindow.loadURL(splashDataUrl)
+
+  // Await the application server (which has been booting in parallel)
+  const targetUrl = await serverPromise
   logMain(`Loading application URL: ${targetUrl}`)
   await mainWindow.loadURL(targetUrl)
   logMain(`Main window URL load completed successfully`)
