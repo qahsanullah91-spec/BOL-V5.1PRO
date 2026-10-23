@@ -89,4 +89,26 @@ test('Afghan Vehicle Plate UI: Component implements exact same-to-same white fla
   assert.ok(code.includes('data.letterEn'), 'Must support Latin category letter')
   assert.ok(code.includes('tabular-nums'), 'Must use tabular numerals for digit alignment')
   assert.ok(code.includes('unicodeBidi: "isolate"'), 'Must isolate numbers to prevent digit reversal')
+  assert.ok(code.includes('digitsFa.map'), 'Must map individual Persian digits to prevent ligature collision')
+  assert.ok(code.includes('digitsEn.map'), 'Must map individual Latin digits for 1:1 column alignment')
 })
+
+test('Afghan Vehicle Plate UI: Compound inputs like 2142نیمروز and Pashto spellings resolve accurately', () => {
+  const nimrozPlate = parseAfghanPlate('2142نیمروز')
+  assert.equal(nimrozPlate.plateNumber, '2142')
+  assert.equal(nimrozPlate.plateNumberFa, '۲۱۴۲')
+  assert.equal(nimrozPlate.provinceFa, 'نیمروز')
+  assert.equal(nimrozPlate.provinceCode, 'NRZ')
+  assert.equal(nimrozPlate.provinceEn, 'Nimroz')
+
+  const wardakPlate = parseAfghanPlate('3214وردګ')
+  assert.equal(wardakPlate.plateNumber, '3214')
+  assert.equal(wardakPlate.plateNumberFa, '۳۲۱۴')
+  assert.equal(wardakPlate.provinceFa, 'وردک')
+  assert.equal(wardakPlate.provinceCode, 'WDK')
+
+  const nangarharPlate = parseAfghanPlate('5512 ننګرهار')
+  assert.equal(nangarharPlate.plateNumber, '5512')
+  assert.equal(nangarharPlate.provinceCode, 'NGR')
+})
+

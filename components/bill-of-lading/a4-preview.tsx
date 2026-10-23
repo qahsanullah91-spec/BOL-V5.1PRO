@@ -1585,10 +1585,10 @@ function ShipmentOverview({
 
   const cardPaddingClass = hasTruck
     ? isUltra
-      ? "px-1 py-0.8 min-h-[22mm]"
+      ? "px-1 py-1 min-h-[24mm]"
       : isCompact
-      ? "px-1.5 py-1 min-h-[25mm]"
-      : "px-2 py-1.2 min-h-[27mm]"
+      ? "px-1.5 py-1.2 min-h-[27mm]"
+      : "px-2 py-1.5 min-h-[29mm]"
     : isUltra
     ? "px-1 py-0.8 min-h-[9mm]"
     : isCompact
@@ -1680,7 +1680,7 @@ function ShipmentOverview({
             pdfMode ? "border-blue-200 bg-white" : "border-blue-200/90 bg-white/95 shadow-xs"
           } min-w-0`}
         >
-          <div className="flex flex-col items-center justify-center text-center w-full">
+          <div className="flex flex-col items-center justify-center text-center w-full shrink-0 pt-0.5">
             <div className={labelEnClass} style={{ textAlign: "center" }}>
               TRUCK NUMBER
             </div>
@@ -1688,7 +1688,7 @@ function ShipmentOverview({
               شماره کامیون / موټر
             </div>
           </div>
-          <div className="flex-1 flex items-center justify-center w-full mt-0.5 min-w-0 py-0.5">
+          <div className="flex-1 flex items-center justify-center w-full my-auto min-w-0 py-1">
             <AfghanTruckPlate value={formData.truck_number} size={isUltra ? "sm" : "compact"} className="max-w-full h-auto" />
           </div>
         </div>

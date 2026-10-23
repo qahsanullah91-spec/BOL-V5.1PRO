@@ -324,19 +324,21 @@ export function AfghanVehiclePlate({
           {/* Top Center: Persian Numerals (e.g. ۱۲۳۴۶ / ۲۱۴۲) */}
           <div className="flex items-center justify-center w-full h-1/2 min-w-0 pt-[1%] overflow-hidden">
             <div
-              className="flex items-center justify-center min-w-0"
+              className="flex items-center justify-center min-w-0 tabular-nums"
               style={{
                 gap: sizeStyles.digitGapFa,
                 direction: "ltr",
+                unicodeBidi: "isolate",
               }}
               dir="ltr"
             >
               {digitsFa.map((digit, idx) => (
                 <span
                   key={idx}
-                  className={`font-black text-black text-center select-text ${sizeStyles.numFa}`}
+                  className={`font-black text-black text-center tabular-nums select-text ${sizeStyles.numFa}`}
                   style={{
                     direction: "ltr",
+                    unicodeBidi: "isolate",
                     fontFamily: persianFontFamily,
                     fontWeight: 900,
                     lineHeight: 1,
@@ -353,19 +355,21 @@ export function AfghanVehiclePlate({
           {/* Bottom Center: Latin Numerals (e.g. 12346 / 2142) */}
           <div className="flex items-center justify-center w-full h-1/2 min-w-0 pb-[1%] overflow-hidden">
             <div
-              className="flex items-center justify-center min-w-0"
+              className="flex items-center justify-center min-w-0 tabular-nums"
               style={{
                 gap: sizeStyles.digitGapEn,
                 direction: "ltr",
+                unicodeBidi: "isolate",
               }}
               dir="ltr"
             >
               {digitsEn.map((digit, idx) => (
                 <span
                   key={idx}
-                  className={`font-black text-black text-center select-text ${sizeStyles.numEn}`}
+                  className={`font-black text-black text-center tabular-nums select-text ${sizeStyles.numEn}`}
                   style={{
                     direction: "ltr",
+                    unicodeBidi: "isolate",
                     fontFamily: latinFontFamily,
                     fontWeight: 900,
                     lineHeight: 1,
