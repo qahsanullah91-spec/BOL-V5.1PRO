@@ -492,6 +492,26 @@ function syncBolToAccountLedger(data: BillOfLadingFormData & { bol_number?: stri
   }
 }
 
+/**
+ * Yields execution to the browser's paint pipeline so user interactions
+ * (pointer clicks, active button CSS states, focus rings) paint in < 16ms
+ * before any heavy React state transitions or component mounts run.
+ */
+function yieldToPaint(): Promise<void> {
+  if (typeof window !== "undefined" && "scheduler" in window && typeof (window as any).scheduler?.yield === "function") {
+    return (window as any).scheduler.yield()
+  }
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== "undefined") {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0)
+      })
+    } else {
+      setTimeout(resolve, 0)
+    }
+  })
+}
+
 export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocumentLoaded, savedDocumentsPanel, accountLedgerPanel }: BOLEditorProps) {
   const [formData, setFormData] = useState<BillOfLadingFormData>(initialFormData)
   const deferredFormData = useDeferredValue(formData)
@@ -532,6 +552,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }, [])
 
   const [activeTab, setActiveTab] = useState<string>("form")
+  const [pendingTab, setPendingTab] = useState<string | null>(null)
   const activeTabRef = useRef<string>("form")
   activeTabRef.current = activeTab
   const [isHydrating, setIsHydrating] = useState(false)
@@ -633,6 +654,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   const handleTabChange = useCallback((newTab: string) => {
     if (newTab === activeTab || newTab === pendingTabRef.current) return
     pendingTabRef.current = newTab
+    setPendingTab(newTab)
 
     if (typeof performance !== "undefined" && performance.mark) {
       performance.mark(`bol:tab-click-${newTab}`)
@@ -650,36 +672,40 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           const newUrlStr = url.pathname + url.search + url.hash
           window.history.replaceState(window.history.state, "", newUrlStr)
         } catch (_) {}
-      }, 80)
+      }, 120)
 
       // Defer draft serialization and LocalStorage write off the critical render path
       const deferDraft = "requestIdleCallback" in window
-        ? (cb: () => void) => (window as any).requestIdleCallback(cb, { timeout: 1500 })
-        : (cb: () => void) => setTimeout(cb, 200)
+        ? (cb: () => void) => (window as any).requestIdleCallback(cb, { timeout: 2000 })
+        : (cb: () => void) => setTimeout(cb, 300)
 
       deferDraft(() => {
         flushDraftRef.current?.(true)
       })
     }
 
-    // Break out of synchronous event loop to guarantee < 16ms INP
-    setTimeout(() => {
+    // Break out of synchronous event loop and yield to browser's paint engine.
+    // This guarantees the button click/press visual state paints in < 16ms,
+    // completely eliminating the INP blocking issue on tab triggers.
+    yieldToPaint().then(() => {
       pendingTabRef.current = null
       startTransition(() => {
+        setPendingTab(null)
         setActiveTab(newTab)
       })
-    }, 0)
+    })
   }, [activeTab, bolNumber])
 
   useEffect(() => {
     pendingTabRef.current = null
+    setPendingTab(null)
     const mainWorkspace = document.querySelector('[data-main-workspace="true"]') as HTMLElement | null
     if (activeTab === "preview") {
       if (mainWorkspace) {
         mainWorkspace.dataset.previewActive = "true"
       }
       requestAnimationFrame(() => {
-        if (mainWorkspace) {
+        if (mainWorkspace && (mainWorkspace.scrollTop !== 0 || mainWorkspace.scrollLeft !== 0)) {
           mainWorkspace.scrollTop = 0
           mainWorkspace.scrollLeft = 0
         }
@@ -3027,18 +3053,21 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     const grossCalc = packageCount && gross ? `${formatWeightValue(packageCount * gross)} KG` : ""
     const valCalc = rate && packageCount && kgs ? formatUsdValue(rate * packageCount * kgs) : ""
 
-    setFormData((prev) => ({
-      ...prev,
-      cargo_description: preset.description,
-      number_of_packages: preset.packages,
-      kgs_per_carton: preset.kgsPerCarton,
-      gross_weight_per_carton: preset.grossPerCarton,
-      rate_per_kgs: preset.rate,
-      net_weight: netCalc || prev.net_weight,
-      gross_weight: grossCalc || prev.gross_weight,
-      goods_value: valCalc || prev.goods_value,
-      measurement: preset.cbm || prev.measurement,
-    }))
+    startTransition(() => {
+      setFormData((prev) => ({
+        ...prev,
+        cargo_description: preset.description,
+        number_of_packages: preset.packages,
+        kgs_per_carton: preset.kgsPerCarton,
+        gross_weight_per_carton: preset.grossPerCarton,
+        rate_per_kgs: preset.rate,
+        net_weight: netCalc || prev.net_weight,
+        gross_weight: grossCalc || prev.gross_weight,
+        goods_value: valCalc || prev.goods_value,
+        measurement: preset.cbm || prev.measurement,
+      }))
+      setHasUnsavedChanges(true)
+    })
 
     toast.success(`Applied Preset: ${preset.name}`, {
       description: "Updated description, packages, weights and rate values.",
@@ -3679,11 +3708,14 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       id: crypto.randomUUID(),
       stopOrder: i + 1,
     }))
-    setFormData((prev) => ({
-      ...prev,
-      routes: clonedRoutes,
-    }))
-    setActiveRouteIndex(0)
+    startTransition(() => {
+      setFormData((prev) => ({
+        ...prev,
+        routes: clonedRoutes,
+      }))
+      setActiveRouteIndex(0)
+      setHasUnsavedChanges(true)
+    })
     toast.success(`Applied Route: ${preset.title}`, {
       description: `مسیر «${preset.title}» (${clonedRoutes.length} توقفگاه) با موفقیت اعمال شد`,
     })
@@ -5794,9 +5826,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="form"
               data-tab="form"
+              data-state={(pendingTab || activeTab) === "form" ? "active" : "inactive"}
+              aria-selected={(pendingTab || activeTab) === "form"}
               onPointerDown={(e) => {
-                if (activeTab === "form") {
+                if (activeTab === "form" || pendingTab === "form") {
                   e.preventDefault()
+                } else {
+                  setPendingTab("form")
                 }
               }}
               className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
@@ -5808,9 +5844,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="preview"
               data-tab="preview"
+              data-state={(pendingTab || activeTab) === "preview" ? "active" : "inactive"}
+              aria-selected={(pendingTab || activeTab) === "preview"}
               onPointerDown={(e) => {
-                if (activeTab === "preview") {
+                if (activeTab === "preview" || pendingTab === "preview") {
                   e.preventDefault()
+                } else {
+                  setPendingTab("preview")
                 }
               }}
               className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
@@ -5822,9 +5862,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="saved-documents"
               data-tab="saved-documents"
+              data-state={(pendingTab || activeTab) === "saved-documents" ? "active" : "inactive"}
+              aria-selected={(pendingTab || activeTab) === "saved-documents"}
               onPointerDown={(e) => {
-                if (activeTab === "saved-documents") {
+                if (activeTab === "saved-documents" || pendingTab === "saved-documents") {
                   e.preventDefault()
+                } else {
+                  setPendingTab("saved-documents")
                 }
               }}
               className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
@@ -5836,9 +5880,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="attachments"
               data-tab="attachments"
+              data-state={(pendingTab || activeTab) === "attachments" ? "active" : "inactive"}
+              aria-selected={(pendingTab || activeTab) === "attachments"}
               onPointerDown={(e) => {
-                if (activeTab === "attachments") {
+                if (activeTab === "attachments" || pendingTab === "attachments") {
                   e.preventDefault()
+                } else {
+                  setPendingTab("attachments")
                 }
               }}
               className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
@@ -5850,9 +5898,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="account"
               data-tab="account"
+              data-state={(pendingTab || activeTab) === "account" ? "active" : "inactive"}
+              aria-selected={(pendingTab || activeTab) === "account"}
               onPointerDown={(e) => {
-                if (activeTab === "account") {
+                if (activeTab === "account" || pendingTab === "account") {
                   e.preventDefault()
+                } else {
+                  setPendingTab("account")
                 }
               }}
               className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
@@ -5864,9 +5916,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             <TabsTrigger
               value="pdf-settings"
               data-tab="pdf-settings"
+              data-state={(pendingTab || activeTab) === "pdf-settings" ? "active" : "inactive"}
+              aria-selected={(pendingTab || activeTab) === "pdf-settings"}
               onPointerDown={(e) => {
-                if (activeTab === "pdf-settings") {
+                if (activeTab === "pdf-settings" || pendingTab === "pdf-settings") {
                   e.preventDefault()
+                } else {
+                  setPendingTab("pdf-settings")
                 }
               }}
               className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
@@ -5957,7 +6013,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                       key={`top-cargo-preset-${preset.name}-${pIdx}`}
                       type="button"
                       onClick={() => handleApplyCargoPreset(preset)}
-                      className="rounded-lg border border-purple-200/80 dark:border-purple-800 bg-purple-50/70 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 px-2 py-0.5 text-[10.5px] font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                      className="rounded-lg border border-purple-200/80 dark:border-purple-800 bg-purple-50/70 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-300 px-2 py-0.5 text-[10.5px] font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 [&_*]:pointer-events-none"
                       title={`Fill cargo specification with ${preset.name}`}
                     >
                       {preset.name}
@@ -6251,11 +6307,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           key={`rent-preset-${preset.label}-${pIdx}`}
                           type="button"
                           onClick={() => {
-                            setFormData((prev) => ({ ...prev, driver_rent: preset.value }))
-                            setHasUnsavedChanges(true)
+                            startTransition(() => {
+                              setFormData((prev) => ({ ...prev, driver_rent: preset.value }))
+                              setHasUnsavedChanges(true)
+                            })
                             toast.success(`Set Driver Rent: ${preset.value}`)
                           }}
-                          className="inline-flex rounded-lg border border-red-200 dark:border-red-900/60 bg-white/95 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-mono font-bold text-red-700 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white transition cursor-pointer"
+                          className="inline-flex rounded-lg border border-red-200 dark:border-red-900/60 bg-white/95 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-mono font-bold text-red-700 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white transition cursor-pointer [&_*]:pointer-events-none"
                         >
                           {preset.label} - کرایه واپسی
                         </button>
@@ -8259,11 +8317,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         key={`main-cargo-preset-${preset.name}-${pIdx}`}
                         type="button"
                         onClick={() => handleApplyCargoPreset(preset)}
-                        className="rounded-xl border border-purple-200 dark:border-purple-800/80 bg-white dark:bg-slate-900 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-purple-500 text-slate-800 dark:text-slate-200 px-2.5 py-1 text-[11px] font-black whitespace-nowrap transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 flex items-center gap-1"
-                        title={`Apply ${preset.name} (${preset.packages}, ${preset.kgsPerCarton} kg/ctn, $${preset.rate}/kg)`}
+                        className="rounded-xl border border-purple-200 dark:border-purple-800/80 bg-white dark:bg-slate-900 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-purple-500 text-slate-800 dark:text-slate-200 px-2.5 py-1 text-[11px] font-black whitespace-nowrap transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 flex items-center gap-1 [&_*]:pointer-events-none"
+                        title={`Apply ${preset.name} (${preset.packages}, ${preset.kgsPerCarton} kg/ctn, ${preset.rate}/kg)`}
                       >
-                        <span>{preset.name}</span>
-                        <span className="text-[9.5px] opacity-75 font-mono">({preset.packages})</span>
+                        <span className="pointer-events-none">{preset.name}</span>
+                        <span className="text-[9.5px] opacity-75 font-mono pointer-events-none">({preset.packages})</span>
                       </button>
                     ))}
                   </div>
@@ -9124,9 +9182,9 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           className="h-7.5 rounded-lg border border-amber-300 bg-linear-to-r from-amber-50 to-orange-50/80 pr-6 pl-2.5 text-[11px] font-black text-amber-950 shadow-2xs hover:border-amber-400 hover:from-amber-100 hover:to-orange-100 cursor-pointer transition-all gap-1.5"
                           title={`Click to apply ${preset.title} (${preset.routes.length} stops)`}
                         >
-                          <span>{preset.icon || "⭐"}</span>
-                          <span className="max-w-[150px] truncate">{preset.title}</span>
-                          <span className="rounded-full bg-amber-200/90 px-1.5 py-0.2 text-[9px] font-black text-amber-900">
+                          <span className="pointer-events-none">{preset.icon || "⭐"}</span>
+                          <span className="max-w-[150px] truncate pointer-events-none">{preset.title}</span>
+                          <span className="rounded-full bg-amber-200/90 px-1.5 py-0.2 text-[9px] font-black text-amber-900 pointer-events-none">
                             {preset.routes.length}
                           </span>
                         </Button>
@@ -11219,7 +11277,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         issueDate={issueDate}
                         persianDate={persianDate}
                         persianDateNumeric={persianDateNumeric}
-                        formData={formData}
+                        formData={deferredFormData}
                         logoUrl={logoUrl}
                         companyName={companyName}
                         companyNamePersian={companyNamePersian}
@@ -11466,7 +11524,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             issueDate={issueDate}
             persianDate={persianDate}
             persianDateNumeric={persianDateNumeric}
-            formData={formData}
+            formData={deferredFormData}
             logoUrl={logoUrl}
             companyName={companyName}
             companyNamePersian={companyNamePersian}

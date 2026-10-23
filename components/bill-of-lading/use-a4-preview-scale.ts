@@ -23,12 +23,14 @@ const SESSION_STORAGE_KEY = "aq_bol_preview_mode_pref_v2"
  */
 export function resetAllParentScrolls(viewportEl?: HTMLElement | null) {
   if (typeof window === "undefined") return
-  window.scrollTo({ top: 0, left: 0, behavior: "instant" })
-  if (document.documentElement) {
+  if (typeof window.scrollTo === "function" && (window.scrollX !== 0 || window.scrollY !== 0)) {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+  }
+  if (document.documentElement && (document.documentElement.scrollTop !== 0 || document.documentElement.scrollLeft !== 0)) {
     document.documentElement.scrollTop = 0
     document.documentElement.scrollLeft = 0
   }
-  if (document.body) {
+  if (document.body && (document.body.scrollTop !== 0 || document.body.scrollLeft !== 0)) {
     document.body.scrollTop = 0
     document.body.scrollLeft = 0
   }
@@ -43,7 +45,7 @@ export function resetAllParentScrolls(viewportEl?: HTMLElement | null) {
 
   // Ensure main workspace explicitly resets scroll
   const mainWorkspace = document.querySelector('[data-main-workspace="true"]') as HTMLElement | null
-  if (mainWorkspace && mainWorkspace.scrollTop !== 0) {
+  if (mainWorkspace && (mainWorkspace.scrollTop !== 0 || mainWorkspace.scrollLeft !== 0)) {
     mainWorkspace.scrollTop = 0
     mainWorkspace.scrollLeft = 0
   }
@@ -161,14 +163,14 @@ export function useA4PreviewScale(active: boolean, pageCount: number = 1) {
       : 8
     setVerticalPadding((prev) => (prev === vertPadding ? prev : vertPadding))
 
-    // Measure document top/bottom relative to viewport for diagnostics (Section 32)
-    const viewerRect = viewer.getBoundingClientRect()
-    const stageEl = viewer.querySelector("[data-a4-stage='true']") as HTMLElement | null
-    const stageRect = stageEl ? stageEl.getBoundingClientRect() : null
-    const docTopRel = stageRect ? stageRect.top - viewerRect.top : 0
-    const docBottomRel = stageRect ? stageRect.bottom - viewerRect.top : 0
-
+    // Measure document top/bottom relative to viewport ONLY when diagnostics are enabled (avoids forced layout reflows)
     if (showDiagnostics) {
+      const viewerRect = viewer.getBoundingClientRect()
+      const stageEl = viewer.querySelector("[data-a4-stage='true']") as HTMLElement | null
+      const stageRect = stageEl ? stageEl.getBoundingClientRect() : null
+      const docTopRel = stageRect ? stageRect.top - viewerRect.top : 0
+      const docBottomRel = stageRect ? stageRect.bottom - viewerRect.top : 0
+
       setDebugMetrics((prev) => {
         if (
           prev.viewportW === viewer.clientWidth &&
@@ -191,40 +193,40 @@ export function useA4PreviewScale(active: boolean, pageCount: number = 1) {
           docBottomRel: Math.round(docBottomRel * 10) / 10,
         }
       })
-    }
 
-    // Development Diagnostics & Invariance Assertions (Section 32, 33, 34)
-    if (process.env.NODE_ENV !== "production" && showDiagnostics) {
-      console.debug(
-        `[A4 PREVIEW DEBUG]\n` +
-        `Mode: ${previewMode}\n` +
-        `Viewport width: ${viewer.clientWidth}px\n` +
-        `Viewport height: ${viewer.clientHeight}px\n` +
-        `Base A4 width: ${A4_WIDTH_PX.toFixed(2)}px\n` +
-        `Base A4 height: ${A4_HEIGHT_PX.toFixed(2)}px\n` +
-        `Preview scale: ${(activeComputedScale * 100).toFixed(1)}%\n` +
-        `Scaled width: ${scaledW}px\n` +
-        `Scaled height: ${scaledH}px\n` +
-        `Stage width: ${scaledW}px\n` +
-        `Stage height: ${scaledH}px\n` +
-        `Viewport scrollTop: ${viewer.scrollTop}\n` +
-        `Viewport scrollHeight: ${viewer.scrollHeight}\n` +
-        `Viewport clientHeight: ${viewer.clientHeight}\n` +
-        `Transform: scale(${activeComputedScale})\n` +
-        `Transform origin: top left\n` +
-        `Document top relative to viewport: ${docTopRel.toFixed(1)}px\n` +
-        `Document bottom relative to viewport: ${docBottomRel.toFixed(1)}px`
-      )
+      // Development Diagnostics & Invariance Assertions (Section 32, 33, 34)
+      if (process.env.NODE_ENV !== "production") {
+        console.debug(
+          `[A4 PREVIEW DEBUG]\n` +
+          `Mode: ${previewMode}\n` +
+          `Viewport width: ${viewer.clientWidth}px\n` +
+          `Viewport height: ${viewer.clientHeight}px\n` +
+          `Base A4 width: ${A4_WIDTH_PX.toFixed(2)}px\n` +
+          `Base A4 height: ${A4_HEIGHT_PX.toFixed(2)}px\n` +
+          `Preview scale: ${(activeComputedScale * 100).toFixed(1)}%\n` +
+          `Scaled width: ${scaledW}px\n` +
+          `Scaled height: ${scaledH}px\n` +
+          `Stage width: ${scaledW}px\n` +
+          `Stage height: ${scaledH}px\n` +
+          `Viewport scrollTop: ${viewer.scrollTop}\n` +
+          `Viewport scrollHeight: ${viewer.scrollHeight}\n` +
+          `Viewport clientHeight: ${viewer.clientHeight}\n` +
+          `Transform: scale(${activeComputedScale})\n` +
+          `Transform origin: top left\n` +
+          `Document top relative to viewport: ${docTopRel.toFixed(1)}px\n` +
+          `Document bottom relative to viewport: ${docBottomRel.toFixed(1)}px`
+        )
 
-      if (previewMode === "page" && stageRect) {
-        if (docTopRel < -1) {
-          console.error(`[A4 PREVIEW ASSERTION ERROR] A4 PAGE ABOVE VIEWPORT: docTopRel=${docTopRel.toFixed(1)}px`)
-        }
-        if (docBottomRel > viewerRect.height + 2) {
-          console.error(`[A4 PREVIEW ASSERTION ERROR] A4 PAGE BELOW VIEWPORT: docBottomRel=${docBottomRel.toFixed(1)}px, viewerH=${viewerRect.height}px`)
-        }
-        if (viewer.scrollHeight > viewer.clientHeight + 4) {
-          console.warn(`[A4 PREVIEW ASSERTION WARNING] FIT PAGE HAS UNEXPECTED SCROLL: scrollHeight=${viewer.scrollHeight}, clientHeight=${viewer.clientHeight}`)
+        if (previewMode === "page" && stageRect) {
+          if (docTopRel < -1) {
+            console.error(`[A4 PREVIEW ASSERTION ERROR] A4 PAGE ABOVE VIEWPORT: docTopRel=${docTopRel.toFixed(1)}px`)
+          }
+          if (docBottomRel > viewerRect.height + 2) {
+            console.error(`[A4 PREVIEW ASSERTION ERROR] A4 PAGE BELOW VIEWPORT: docBottomRel=${docBottomRel.toFixed(1)}px, viewerH=${viewerRect.height}px`)
+          }
+          if (viewer.scrollHeight > viewer.clientHeight + 4) {
+            console.warn(`[A4 PREVIEW ASSERTION WARNING] FIT PAGE HAS UNEXPECTED SCROLL: scrollHeight=${viewer.scrollHeight}, clientHeight=${viewer.clientHeight}`)
+          }
         }
       }
     }
@@ -311,13 +313,10 @@ export function useA4PreviewScale(active: boolean, pageCount: number = 1) {
       })
     })
 
-    // Immediate calibration bursts to ensure accurate scaling after tab transitions
-    const timer = setInterval(() => {
+    // Single deferred calibration check after layout settles (avoids CPU/reflow thrashing)
+    const timer = setTimeout(() => {
       calculateScalesRef.current()
-    }, 140)
-    const timeout = setTimeout(() => {
-      clearInterval(timer)
-    }, 560)
+    }, 160)
 
     if (typeof document !== "undefined" && document.fonts) {
       void document.fonts.ready.then(() => {
@@ -349,8 +348,7 @@ export function useA4PreviewScale(active: boolean, pageCount: number = 1) {
     return () => {
       cancelAnimationFrame(raf1)
       cancelAnimationFrame(raf2)
-      clearInterval(timer)
-      clearTimeout(timeout)
+      clearTimeout(timer)
       if (rafResize !== null) cancelAnimationFrame(rafResize)
       if (observer) observer.disconnect()
       window.removeEventListener("resize", handleWindowResize)

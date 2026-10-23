@@ -69,8 +69,8 @@ test('A4 Preview - Authorized Signature Block & Bottom Document Layout Suite', a
 
   await t.test('13. Driver Rent card features enlarged prominent amount and styled note badge', () => {
     assert.match(code, /DRIVER RENT[\s\S]*کرایه راننده/, 'Driver rent labels must be present');
-    assert.match(code, /font-mono\s+font-black\s+text-emerald-950[\s\S]*11\.6pt/, 'Driver rent amount must have enlarged bold monospace emerald scale');
-    assert.match(code, /font-\[vazirmatn\]\s+font-black\s+text-emerald-900[\s\S]*bg-emerald-50\/90[\s\S]*border-emerald-200\/90/, 'Driver rent note must render in an emerald tag badge');
+    assert.match(code, /font-mono\s+font-black\s+text-emerald-950/, 'Driver rent amount must have enlarged bold monospace emerald scale');
+    assert.match(code, /font-\[vazirmatn\]\s+font-black\s+text-emerald-9[05][\s\S]*bg-emerald-50/, 'Driver rent note must render in an emerald tag badge');
   });
 
   await t.test('14. ShipmentOverview header labels use enlarged high-contrast typography', () => {

@@ -1583,9 +1583,9 @@ function ShipmentOverview({
   const activeCardsCount = [hasIssueDate, hasTruck, hasDriverOrContact, hasRent].filter(Boolean).length
   if (activeCardsCount === 0) return null
 
-  const cardPaddingClass = isUltra ? "px-1 py-0.8 min-h-[8.5mm]" : isCompact ? "px-1.5 py-1 min-h-[10mm]" : "px-2 py-1.2 min-h-[11.5mm]"
-  const labelEnClass = `${isUltra ? "text-[6.4pt]" : isCompact ? "text-[7.0pt]" : "text-[7.6pt]"} font-black uppercase tracking-wider text-blue-800 leading-tight text-center block w-full`
-  const labelFaClass = `font-[vazirmatn] ${isUltra ? "text-[6.0pt] mt-0.2" : isCompact ? "text-[6.6pt] mt-0.3" : "text-[7.2pt] mt-0.4"} font-bold text-blue-600 leading-tight text-center block w-full`
+  const cardPaddingClass = isUltra ? "px-1 py-0.8 min-h-[9mm]" : isCompact ? "px-1.5 py-1 min-h-[10.5mm]" : "px-2 py-1.2 min-h-[12mm]"
+  const labelEnClass = `${isUltra ? "text-[7.2pt]" : isCompact ? "text-[8.0pt]" : "text-[8.8pt]"} font-black uppercase tracking-wider text-blue-900 leading-tight text-center block w-full`
+  const labelFaClass = `font-[vazirmatn] ${isUltra ? "text-[7.0pt] mt-0.3" : isCompact ? "text-[7.8pt] mt-0.4" : "text-[8.6pt] mt-0.5"} font-black text-blue-700 leading-tight text-center block w-full`
   const valMarginClass = isUltra ? "mt-0.8 text-center" : "mt-1.2 text-center"
 
   return (
@@ -1730,24 +1730,58 @@ function ShipmentOverview({
             </div>
           </div>
           <div className={`flex-1 flex flex-col items-center justify-center ${valMarginClass} w-full`}>
-            <div
-              className={`font-mono font-black text-emerald-950 ${
-                isUltra ? "text-[9.4pt]" : isCompact ? "text-[10.5pt]" : "text-[11.6pt]"
-              } leading-tight whitespace-nowrap keep-all text-center direction-ltr unicode-isolate inline-block`}
-              dir="ltr"
-              style={{ direction: "ltr", unicodeBidi: "isolate", textAlign: "center" }}
-            >
-              {rentInfo.amount || formData.driver_rent}
-            </div>
+            {(() => {
+              const rawAmt = (rentInfo.amount || formData.driver_rent || "").trim()
+              const match = rawAmt.match(/^([0-9,.]+)\s*(.*)$/)
+              if (match) {
+                const numPart = match[1]
+                const currPart = match[2]
+                return (
+                  <div
+                    className="flex items-baseline justify-center gap-1.5 leading-none whitespace-nowrap keep-all text-center"
+                    dir="ltr"
+                    style={{ direction: "ltr", unicodeBidi: "isolate", textAlign: "center" }}
+                  >
+                    <span
+                      className={`font-mono font-black text-emerald-950 tracking-tight ${
+                        isUltra ? "text-[12.5pt]" : isCompact ? "text-[14.2pt]" : "text-[16pt]"
+                      }`}
+                    >
+                      {numPart}
+                    </span>
+                    {currPart && (
+                      <span
+                        className={`font-sans font-black uppercase text-emerald-800 ${
+                          isUltra ? "text-[8.5pt]" : isCompact ? "text-[9.5pt]" : "text-[10.5pt]"
+                        } tracking-wider`}
+                      >
+                        {currPart}
+                      </span>
+                    )}
+                  </div>
+                )
+              }
+              return (
+                <div
+                  className={`font-mono font-black text-emerald-950 ${
+                    isUltra ? "text-[12.5pt]" : isCompact ? "text-[14.2pt]" : "text-[16pt]"
+                  } leading-tight whitespace-nowrap keep-all text-center direction-ltr unicode-isolate inline-block`}
+                  dir="ltr"
+                  style={{ direction: "ltr", unicodeBidi: "isolate", textAlign: "center" }}
+                >
+                  {rawAmt}
+                </div>
+              )
+            })()}
             {rentInfo.note && (
-              <div className="flex items-center justify-center w-full mt-0.8">
+              <div className="flex items-center justify-center w-full mt-1">
                 <span
-                  className={`inline-flex items-center justify-center font-[vazirmatn] font-black text-emerald-900 bg-emerald-50/90 border border-emerald-200/90 rounded-md shadow-2xs ${
+                  className={`inline-flex items-center justify-center font-[vazirmatn] font-black text-emerald-950 bg-emerald-50/95 border border-emerald-300 rounded-full shadow-2xs ${
                     isUltra
-                      ? "text-[8.0pt] px-1.5 py-0.2"
+                      ? "text-[9.2pt] px-2.5 py-0.4"
                       : isCompact
-                      ? "text-[8.8pt] px-2 py-0.4"
-                      : "text-[9.6pt] px-2.5 py-0.5"
+                      ? "text-[10.2pt] px-3 py-0.5"
+                      : "text-[11.2pt] px-3.5 py-0.6"
                   } leading-tight whitespace-nowrap text-center`}
                   dir="rtl"
                   style={{ textAlign: "center", direction: "rtl" }}
