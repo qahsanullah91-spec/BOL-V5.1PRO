@@ -84,9 +84,11 @@ export async function POST(request: Request) {
       const rollbackName = `rollback-before-restore-${new Date().toISOString().replace(/[:.]/g, "-")}.json`
       fs.writeFileSync(path.join(BACKUP_DIR, rollbackName), JSON.stringify(current, null, 2))
 
-      // Save restored database
-      await saveLedgerSystemDb(payloadToRestore)
-      await syncToLegacyStorage(payloadToRestore)
+      // Save restored database concurrently
+      await Promise.all([
+        saveLedgerSystemDb(payloadToRestore),
+        syncToLegacyStorage(payloadToRestore),
+      ])
 
       return NextResponse.json({
         success: true,

@@ -121,42 +121,45 @@ export async function POST(request: NextRequest) {
       pdfUrl = await storePDFLocally(buffer, bolNumber, fileName)
     }
 
-    // Update the BOL record in database with PDF URL
+    // Update the BOL record in database and local storage concurrently (eliminating waterfalls)
     let updated = null
     let updateError = null
-    try {
-      const result = await supabase
+    const nowIso = new Date().toISOString()
+    const localMeta = {
+      pdf_url: pdfUrl,
+      pdf_uploaded_at: nowIso,
+      pdf_status: "ready" as const,
+    }
+
+    const [supabaseResult] = await Promise.all([
+      supabase
         .from("bill_of_lading")
         .update({
           pdf_url: pdfUrl,
-          pdf_uploaded_at: new Date().toISOString(),
+          pdf_uploaded_at: nowIso,
         })
         .eq("id", bolId)
         .select()
         .single()
+        .then((res: any) => ({ data: res.data, error: res.error }))
+        .catch((supabaseErr: any) => {
+          const err = supabaseErr instanceof Error ? supabaseErr.message : String(supabaseErr)
+          console.error("Supabase error updating BOL with PDF URL:", err)
+          return { data: null, error: err }
+        }),
+      localStorage.updateLocalBOL(bolId, localMeta).catch((localError) => {
+        console.error("Failed to update local BOL with PDF metadata:", localError)
+      }),
+      bolNumber && bolNumber !== bolId
+        ? localStorage.updateLocalBOL(bolNumber, localMeta).catch((localError) => {
+            console.error("Failed to update local BOL by number with PDF metadata:", localError)
+          })
+        : Promise.resolve(),
+    ])
 
-      updated = result.data
-      updateError = result.error
-    } catch (supabaseErr) {
-      updateError = supabaseErr instanceof Error ? supabaseErr.message : String(supabaseErr)
-      console.error("Supabase error updating BOL with PDF URL:", updateError)
-    }
-
-    try {
-      await localStorage.updateLocalBOL(bolId, {
-        pdf_url: pdfUrl,
-        pdf_uploaded_at: new Date().toISOString(),
-        pdf_status: "ready",
-      })
-      if (bolNumber && bolNumber !== bolId) {
-        await localStorage.updateLocalBOL(bolNumber, {
-          pdf_url: pdfUrl,
-          pdf_uploaded_at: new Date().toISOString(),
-          pdf_status: "ready",
-        })
-      }
-    } catch (localError) {
-      console.error("Failed to update local BOL with PDF metadata:", localError)
+    if (supabaseResult) {
+      updated = supabaseResult.data
+      updateError = supabaseResult.error
     }
 
     void logBolLifecycleAudit({
@@ -389,24 +392,26 @@ export async function DELETE(request: NextRequest) {
       await del(pdfUrl, { token: blobToken })
     }
 
-    // Clear the PDF URL from database
-    await supabase
-      .from("bill_of_lading")
-      .update({
-        pdf_url: null,
-        pdf_uploaded_at: null,
-      })
-      .eq("id", bolId)
-
-    try {
-      await localStorage.updateLocalBOL(bolId, {
+    // Clear the PDF URL from database and local storage concurrently
+    await Promise.all([
+      supabase
+        .from("bill_of_lading")
+        .update({
+          pdf_url: null,
+          pdf_uploaded_at: null,
+        })
+        .eq("id", bolId)
+        .catch((err: any) => {
+          console.error("Supabase clear PDF error:", err)
+        }),
+      localStorage.updateLocalBOL(bolId, {
         pdf_url: null,
         pdf_uploaded_at: null,
         pdf_status: "none",
-      })
-    } catch (localUpdateError) {
-      console.error("Failed to clear local PDF metadata:", localUpdateError)
-    }
+      }).catch((localUpdateError) => {
+        console.error("Failed to clear local PDF metadata:", localUpdateError)
+      }),
+    ])
 
     void logBolLifecycleAudit({
       action: "FILE_DELETED",

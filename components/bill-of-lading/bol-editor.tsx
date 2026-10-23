@@ -119,7 +119,11 @@ const BolFilesAttachmentsTab = dynamic(
 )
 import { getFinancialsMap, saveFinancialsForEntry } from "@/lib/services/ledger-sync-utils"
 import { findDuplicatePartyCandidates } from "@/lib/utils/duplicate-prevention"
-import { PrintOptionsDialog, type PrintOptions } from "@/components/print-options-dialog"
+import type { PrintOptions } from "@/components/print-options-dialog"
+const PrintOptionsDialog = dynamic(
+  safeChunkDynamic(() => import("@/components/print-options-dialog").then((m) => m.PrintOptionsDialog)),
+  { ssr: false }
+)
 import { BolSettingsSkeleton } from "./settings/bol-settings-skeleton"
 const BackgroundGallery = dynamic(safeChunkDynamic(() => import("./background-gallery").then((m) => m.BackgroundGallery)), { ssr: false })
 const BolSettingsCenter = dynamic(
@@ -2164,7 +2168,20 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return matches.map((m) => parseFloat(m)).filter((n) => !isNaN(n) && n > 0)
   }
 
-  const calculateMultiCargo = (
+  const formatWeightValue = (value: number): string => {
+    return Number.isInteger(value)
+      ? value.toLocaleString("en-US")
+      : value.toLocaleString("en-US", { maximumFractionDigits: 2 })
+  }
+
+  const formatUsdValue = (value: number): string => {
+    return `${value.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} USD`
+  }
+
+  const calculateMultiCargo = useCallback((
     packagesStr: string,
     netPerCartonStr: string,
     grossPerCartonStr: string,
@@ -2244,20 +2261,22 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       formattedGrossWeight,
       formattedGoodsValue,
     }
-  }
+  }, [])
 
-  const formatWeightValue = (value: number): string => {
-    return Number.isInteger(value)
-      ? value.toLocaleString("en-US")
-      : value.toLocaleString("en-US", { maximumFractionDigits: 2 })
-  }
-
-  const formatUsdValue = (value: number): string => {
-    return `${value.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })} USD`
-  }
+  const liveCargoCalc = useMemo(() => {
+    return calculateMultiCargo(
+      formData.number_of_packages || "",
+      formData.kgs_per_carton || "",
+      formData.gross_weight_per_carton || "",
+      formData.rate_per_kgs || ""
+    )
+  }, [
+    calculateMultiCargo,
+    formData.number_of_packages,
+    formData.kgs_per_carton,
+    formData.gross_weight_per_carton,
+    formData.rate_per_kgs,
+  ])
 
   const persistSavedParties = (
     storageKey: string,
@@ -8252,12 +8271,6 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                 {/* Live Weights & Calculation Metrics KPI Cards */}
                 {(() => {
-                  const liveCargoCalc = calculateMultiCargo(
-                    formData.number_of_packages || "",
-                    formData.kgs_per_carton || "",
-                    formData.gross_weight_per_carton || "",
-                    formData.rate_per_kgs || ""
-                  )
                   const isMulti = liveCargoCalc.isMultiItem && liveCargoCalc.items.length > 1
                   const hasPackageInput = liveCargoCalc.totalPackages > 0
                   const hasWeightInput = liveCargoCalc.items.some((item) => item.netPerCarton > 0 || item.grossPerCarton > 0)
