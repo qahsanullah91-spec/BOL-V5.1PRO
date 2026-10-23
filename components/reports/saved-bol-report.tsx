@@ -3205,7 +3205,7 @@ export function SavedBolReport({
         // Cooperative yield so React finishes updating DOM for pageSize='all'
         await new Promise((resolve) => setTimeout(resolve, 50))
 
-        const { toCanvas } = await import("html-to-image")
+        const { toSvg } = await import("html-to-image")
         const { jsPDF } = await import("jspdf")
 
         const isLandscape = pdfOrientation === "landscape"
@@ -3217,9 +3217,12 @@ export function SavedBolReport({
         // Cooperative yield before heavy canvas capture
         await new Promise((resolve) => setTimeout(resolve, 0))
 
-        const canvas = await toCanvas(element as HTMLElement, {
-          pixelRatio: 3,
-          quality: 1.0,
+        // html-to-image's toCanvas resolves via requestAnimationFrame, which
+        // never fires while the window is hidden/minimized — hanging the PDF
+        // export forever. toSvg performs the same clone/embed work but stops
+        // before that fragile step; we rasterize the image ourselves.
+        const captureElement = element as HTMLElement
+        const svgDataUrl = await toSvg(captureElement, {
           cacheBust: false,
           skipFonts: true,
           backgroundColor: "#ffffff",
@@ -3245,6 +3248,56 @@ export function SavedBolReport({
             return true
           },
         })
+
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const image = new Image()
+          const timer = window.setTimeout(
+            () => reject(new Error("Timed out rasterizing the report. Please try again.")),
+            45000
+          )
+          image.onload = () => {
+            window.clearTimeout(timer)
+            resolve(image)
+          }
+          image.onerror = () => {
+            window.clearTimeout(timer)
+            reject(new Error("Failed to rasterize the report. Please try again."))
+          }
+          image.crossOrigin = "anonymous"
+          image.decoding = "async"
+          image.src = svgDataUrl
+        })
+
+        const MAX_CANVAS = 16384
+        const ratio = 3
+        let canvasWidth = captureElement.offsetWidth * ratio
+        let canvasHeight = captureElement.offsetHeight * ratio
+        if (canvasWidth > MAX_CANVAS || canvasHeight > MAX_CANVAS) {
+          if (canvasWidth > MAX_CANVAS && canvasHeight > MAX_CANVAS) {
+            if (canvasWidth > canvasHeight) {
+              canvasHeight *= MAX_CANVAS / canvasWidth
+              canvasWidth = MAX_CANVAS
+            } else {
+              canvasWidth *= MAX_CANVAS / canvasHeight
+              canvasHeight = MAX_CANVAS
+            }
+          } else if (canvasWidth > MAX_CANVAS) {
+            canvasHeight *= MAX_CANVAS / canvasWidth
+            canvasWidth = MAX_CANVAS
+          } else {
+            canvasWidth *= MAX_CANVAS / canvasHeight
+            canvasHeight = MAX_CANVAS
+          }
+        }
+
+        const canvas = document.createElement("canvas")
+        canvas.width = Math.round(canvasWidth)
+        canvas.height = Math.round(canvasHeight)
+        const ctx = canvas.getContext("2d")
+        if (!ctx) throw new Error("Canvas rendering is not available in this environment.")
+        ctx.fillStyle = "#ffffff"
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
         const imgData = canvas.toDataURL("image/jpeg", 0.99)
         if (!imgData || imgData === "data:,") {
