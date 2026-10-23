@@ -13,17 +13,19 @@ const {
   parseAfghanPlate,
 } = loadTypescript('lib/utils/afghan-plate.ts')
 
-test('Afghan Truck Plate UI: Reference Plate (3292 هلمند) matches authentic Afghan registration standards', () => {
-  const plate = parseAfghanPlate('3292 هلمند')
-  assert.equal(plate.plateNumber, '3292')
-  assert.equal(plate.plateNumberFa, '۳۲۹۲')
-  assert.equal(plate.provinceFa, 'هلمند')
-  assert.equal(plate.provinceCode, 'HLM')
-  assert.equal(plate.provinceEn, 'Helmand')
-  assert.equal(plate.hasLetter, false)
+test('Afghan Vehicle Plate UI: Reference Plate (12346 کابل ل) matches authentic Afghan registration standards', () => {
+  const plate = parseAfghanPlate('12346 کابل ل')
+  assert.equal(plate.plateNumber, '12346')
+  assert.equal(plate.plateNumberFa, '۱۲۳۴۶')
+  assert.equal(plate.provinceFa, 'کابل')
+  assert.equal(plate.provinceCode, 'KBL')
+  assert.equal(plate.provinceEn, 'Kabul')
+  assert.equal(plate.hasLetter, true)
+  assert.equal(plate.plateLetterFa, 'ل')
+  assert.equal(plate.plateLetterEn, 'L')
 })
 
-test('Afghan Truck Plate UI: Reverse-order and Latin inputs resolve accurately', () => {
+test('Afghan Vehicle Plate UI: Reverse-order and Latin inputs resolve accurately', () => {
   // Province first in Persian: هلمند 3292
   const faFirst = parseAfghanPlate('هلمند 3292')
   assert.equal(faFirst.plateNumber, '3292')
@@ -45,7 +47,7 @@ test('Afghan Truck Plate UI: Reverse-order and Latin inputs resolve accurately',
   assert.equal(engName.provinceFa, 'هلمند')
 })
 
-test('Afghan Truck Plate UI: Commercial vehicle classification letters (e.g. ل / L for Lorri/Truck)', () => {
+test('Afghan Vehicle Plate UI: Commercial vehicle classification letters (e.g. ل / L for Lorri/Truck)', () => {
   const truckPlate = parseAfghanPlate('24345 کابل ل')
   assert.equal(truckPlate.plateNumber, '24345')
   assert.equal(truckPlate.plateNumberFa, '۲۴۳۴۵')
@@ -55,28 +57,36 @@ test('Afghan Truck Plate UI: Commercial vehicle classification letters (e.g. ل 
   assert.equal(truckPlate.plateLetterEn, 'L')
 })
 
-test('Afghan Truck Plate UI: Component source file implements authentic physical metal styling and layout', () => {
-  const componentPath = path.resolve(__dirname, '..', 'components', 'ui', 'afghan-truck-plate.tsx')
-  assert.ok(fs.existsSync(componentPath), 'afghan-truck-plate.tsx must exist')
+test('Afghan Vehicle Plate UI: Component implements exact same-to-same white flat plate layout & landmark', () => {
+  const vehicleComponentPath = path.resolve(__dirname, '..', 'components', 'ui', 'afghan-vehicle-plate.tsx')
+  const truckComponentPath = path.resolve(__dirname, '..', 'components', 'ui', 'afghan-truck-plate.tsx')
 
-  const code = fs.readFileSync(componentPath, 'utf8')
+  assert.ok(fs.existsSync(vehicleComponentPath), 'afghan-vehicle-plate.tsx must exist')
+  assert.ok(fs.existsSync(truckComponentPath), 'afghan-truck-plate.tsx must exist')
 
-  // 1. Authentic plate materials & borders
+  const code = fs.readFileSync(vehicleComponentPath, 'utf8')
+
+  // 1. Exact plate structure: pure white background & thin solid black outer border
   assert.ok(code.includes('data-afghan-plate="true"'), 'Must have data attribute')
-  assert.ok(code.includes('border-[#161616]'), 'Must have dark black metal outer frame')
-  assert.ok(code.includes('insetRim') && code.includes('border-slate-400/50'), 'Must have inner stamped debossed rim line')
-  assert.ok(code.includes('PlateMountingBolt'), 'Must have realistic stamped mounting bolts')
-  assert.ok(code.includes('AfghanNationalPlateEmblem'), 'Must have official Afghanistan emblem silhouette')
+  assert.ok(code.includes('bg-white') && code.includes('#ffffff'), 'Must have pure white background')
+  assert.ok(code.includes('border-black'), 'Must have thin solid black border')
 
-  // 2. Proportions and Typography
-  assert.ok(code.includes('Times New Roman') || code.includes('font-serif'), 'Must use serif font for Latin letters and numbers')
+  // 2. No screws, metallic effects, gradients, shadows, or fake bolt heads
+  assert.ok(!code.includes('PlateMountingBolt'), 'Must NOT have screws or mounting bolt heads')
+  assert.ok(!code.includes('from-[#fdfcf9]'), 'Must NOT have metallic gradients')
+  assert.ok(!code.includes('insetRim'), 'Must NOT have fake debossed rims')
+
+  // 3. Landmark illustration
+  assert.ok(code.includes('KABUL_LANDMARK_DATA_URI'), 'Must include authentic Kabul landmark asset')
+
+  // 4. Typography & Proportions
   assert.ok(code.includes('vazirmatn') || code.includes('Noto Naskh Arabic'), 'Must use authentic Dari/Persian typeface')
-  assert.ok(code.includes('tracking-[0.2em]') || code.includes('tracking-[0.22em]'), 'Must use authentic wide letter-spacing for Persian numerals')
-
-  // 3. Row & Column Alignment
-  assert.ok(code.includes('data.provinceFa'), 'Must render Dari province on top row')
-  assert.ok(code.includes('data.numberFa'), 'Must render Persian numerals on top row')
-  assert.ok(code.includes('data.provinceCode'), 'Must render Latin province code on bottom row')
-  assert.ok(code.includes('data.number'), 'Must render Latin numerals on bottom row')
-  assert.ok(code.includes('tabular-nums'), 'Must use tabular numerals for perfect digit alignment')
+  assert.ok(code.includes('data.provinceFa'), 'Must render Dari province')
+  assert.ok(code.includes('data.numberFa'), 'Must render Persian numerals')
+  assert.ok(code.includes('data.provinceCode'), 'Must render Latin province code')
+  assert.ok(code.includes('data.number'), 'Must render Latin numerals')
+  assert.ok(code.includes('data.letterFa'), 'Must support Dari category letter')
+  assert.ok(code.includes('data.letterEn'), 'Must support Latin category letter')
+  assert.ok(code.includes('tabular-nums'), 'Must use tabular numerals for digit alignment')
+  assert.ok(code.includes('unicodeBidi: "isolate"'), 'Must isolate numbers to prevent digit reversal')
 })
