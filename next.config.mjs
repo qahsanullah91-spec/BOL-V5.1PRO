@@ -67,6 +67,7 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
+    agentUpgrade: "security",
     optimizePackageImports: [
       'lucide-react',
       'date-fns',

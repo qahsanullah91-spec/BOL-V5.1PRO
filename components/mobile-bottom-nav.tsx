@@ -9,6 +9,7 @@ import {
   Users,
   LayoutGrid,
   Sparkles,
+  Layers,
 } from "lucide-react"
 import { MobileNavDrawer } from "@/components/mobile-nav-drawer"
 
@@ -81,20 +82,20 @@ export function MobileBottomNav() {
       ]
     : [
         {
+          id: "dashboard",
+          label: "Dashboard",
+          icon: LayoutGrid,
+          isActive: view === "dashboard",
+          color: "text-sky-600 dark:text-sky-400",
+          onClick: () => setView("dashboard"),
+        },
+        {
           id: "bol",
           label: "BOL",
           icon: FileText,
           isActive: isBolActive,
           color: "text-blue-600 dark:text-blue-400",
           onClick: () => setView("bol"),
-        },
-        {
-          id: "shipments",
-          label: "Ops",
-          icon: Activity,
-          isActive: isOpsActive && !isBolActive,
-          color: "text-emerald-600 dark:text-emerald-400",
-          onClick: () => setView("shipments"),
         },
         {
           id: "ledger",
@@ -105,18 +106,18 @@ export function MobileBottomNav() {
           onClick: () => setView("ledger"),
         },
         {
-          id: "crm-sales",
-          label: "CRM",
-          icon: Users,
-          isActive: isCrmActive,
-          color: "text-purple-600 dark:text-purple-400",
-          onClick: () => setView("crm-sales"),
+          id: "shipments",
+          label: "Ops",
+          icon: Activity,
+          isActive: isOpsActive && !isBolActive,
+          color: "text-emerald-600 dark:text-emerald-400",
+          onClick: () => setView("shipments"),
         },
         {
           id: "menu",
           label: "Suites",
-          icon: LayoutGrid,
-          isActive: isDrawerOpen || (!isBolActive && !isOpsActive && !isFinanceActive && !isCrmActive),
+          icon: Layers,
+          isActive: isDrawerOpen || (!isBolActive && !isOpsActive && !isFinanceActive && !isCrmActive && (view as string) !== "dashboard"),
           color: "text-indigo-600 dark:text-indigo-400",
           onClick: () => setIsDrawerOpen(true),
         },

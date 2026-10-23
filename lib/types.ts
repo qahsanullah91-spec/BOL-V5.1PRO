@@ -7,6 +7,7 @@ export interface LedgerEntry {
   dateOfShip: string
   barnamehNo?: string
   driverFreight?: string
+  driverRent?: string
   driverFreightCurrency?: "USD" | "AFN"
   driverFreightUSD?: number
   shippingCost?: number

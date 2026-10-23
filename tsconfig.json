@@ -34,8 +34,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
     ".next-production/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
     ".next-production/dev/types/**/*.ts"
   ],
   "exclude": [
@@ -43,8 +43,8 @@
     "bol-ledger",
     "awesome-claude-code-subagents",
     "scripts/fleet",
+    "dist-electron",
     "release",
-    "release-desktop",
-    ".desktop-package"
+    "build"
   ]
 }
