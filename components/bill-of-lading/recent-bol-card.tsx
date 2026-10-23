@@ -500,8 +500,8 @@ export const RecentBolCard = memo(function RecentBolCard({
                 className="flex items-center gap-1 shrink-0 font-mono"
                 title={rent.tooltip}
               >
-                <span className="text-slate-500 dark:text-slate-400 text-[10px] font-medium">Rent:</span>
-                <span className="font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60 text-[10px]">
+                <span className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold">Rent:</span>
+                <span className="font-extrabold text-emerald-900 dark:text-emerald-200 bg-emerald-50/95 dark:bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-300/80 dark:border-emerald-700/80 text-[11px] tracking-tight shadow-2xs">
                   {rent.display}
                 </span>
               </div>

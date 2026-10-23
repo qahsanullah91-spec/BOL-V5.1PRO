@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, startTransition } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -223,11 +223,13 @@ export function DescriptionPresetSelector({
   }
 
   const handleSelectOption = (option: string) => {
-    if (appendMode && value.trim()) {
-      onChange(`${value.trim()} - ${option}`)
-    } else {
-      onChange(option)
-    }
+    startTransition(() => {
+      if (appendMode && value.trim()) {
+        onChange(`${value.trim()} - ${option}`)
+      } else {
+        onChange(option)
+      }
+    })
     setOpen(false)
   }
 
@@ -490,11 +492,11 @@ export function DescriptionPresetSelector({
               key={chip.label}
               type="button"
               onClick={() => handleSelectOption(chip.label)}
-              className="inline-flex items-center gap-1 text-[8.5px] font-bold bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-900 border border-blue-200 px-2 py-0.5 rounded-md cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] shadow-2xs whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-1 text-[8.5px] font-bold bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-900 border border-blue-200 px-2 py-0.5 rounded-md cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] shadow-2xs whitespace-nowrap shrink-0 [&_*]:pointer-events-none"
               title={`Click to fill: ${chip.label}`}
             >
-              <span className="text-[9px]">{chip.icon}</span>
-              <span>{chip.short}</span>
+              <span className="text-[9px] pointer-events-none">{chip.icon}</span>
+              <span className="pointer-events-none">{chip.short}</span>
             </button>
           ))}
         </div>

@@ -82,9 +82,9 @@ export const DashboardRecentBols = memo(function DashboardRecentBols({
         </div>
       </div>
 
-      {/* Responsive Card Grid: 1 col (mobile), 2 cols (tablet), 3 cols (laptop), 4 cols (desktop), 6 cols (large desktop) */}
-      <div className="grid gap-3.5 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-[1600px]:grid-cols-6 relative z-10 items-stretch">
-        {bols.slice(0, 6).map((doc) => (
+      {/* Responsive Card Grid: 1 col (mobile), 2 cols (tablet), 3 cols (laptop), 4 cols (desktop — 8 cards in 2 clean rows) */}
+      <div className="grid gap-3.5 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 relative z-10 items-stretch">
+        {bols.slice(0, 8).map((doc) => (
           <RecentBolCard
             key={`dash-recent-${doc.id || doc.bol_number}`}
             doc={doc}

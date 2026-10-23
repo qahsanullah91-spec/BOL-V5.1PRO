@@ -79,7 +79,7 @@ export function DashboardView() {
           const docs: SavedDocumentData[] = JSON.parse(raw)
           if (Array.isArray(docs) && docs.length > 0) {
             const active = docs.filter((d: any) => !d.isArchived && d.status !== "archived")
-            setRecentBols(active.slice(0, 6))
+            setRecentBols(active.slice(0, 8))
             let pkgs = 0
             let wt = 0
             for (const d of active) {
@@ -106,7 +106,7 @@ export function DashboardView() {
     try {
       const [sumRes, recRes] = await Promise.allSettled([
         fetch("/api/bol/summary", { cache: "no-store" }),
-        fetch("/api/bol/recent?limit=6", { cache: "no-store" }),
+        fetch("/api/bol/recent?limit=8", { cache: "no-store" }),
       ])
 
       if (sumRes.status === "fulfilled" && sumRes.value.ok) {

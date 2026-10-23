@@ -178,7 +178,35 @@ function buildApplicationMenu(): Menu {
   ])
 }
 
+function getAqEmblemBase64(): string {
+  try {
+    const candidatePaths = [
+      path.join(process.cwd(), "public", "images", "aq-companies-emblem.png"),
+      path.join(process.cwd(), "public", "images", "aq-companies-logo.png"),
+      path.join(process.resourcesPath, "app-server", "public", "images", "aq-companies-emblem.png"),
+      path.join(process.resourcesPath, "app-server", "public", "images", "aq-companies-logo.png"),
+      path.join(process.resourcesPath, "app-icon.png"),
+      path.join(process.cwd(), "public", "icon-512x512.png"),
+    ]
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        return `data:image/png;base64,${fs.readFileSync(p).toString("base64")}`
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load AQ Companies logo for loading splash:", err)
+  }
+  return ""
+}
+
 function getSplashHtml(): string {
+  const logoDataUrl = getAqEmblemBase64()
+  const emblemContent = logoDataUrl
+    ? `<img class="emblem-img" src="${logoDataUrl}" alt="AQ Companies" />`
+    : `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+        <line x1="2" y1="20" x2="2.01" y2="20"></line>
+      </svg>`
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -243,8 +271,8 @@ function getSplashHtml(): string {
     .emblem-wrapper {
       position: relative;
       margin-bottom: 22px;
-      width: 72px;
-      height: 72px;
+      width: 96px;
+      height: 76px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -253,21 +281,30 @@ function getSplashHtml(): string {
       position: absolute;
       inset: -6px;
       border-radius: 22px;
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(16, 185, 129, 0.35));
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.4), rgba(56, 189, 248, 0.35));
       filter: blur(8px);
       animation: pulse 2.2s infinite ease-in-out;
     }
     .emblem-box {
       position: relative;
-      width: 72px;
-      height: 72px;
+      width: 96px;
+      height: 76px;
       border-radius: 20px;
       background: linear-gradient(135deg, #1e293b, #0f172a);
-      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      border: 1.5px solid rgba(56, 189, 248, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      padding: 6px 10px;
+    }
+    .emblem-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+      user-select: none;
+      -webkit-user-drag: none;
     }
     .title {
       font-size: 22px;
@@ -304,7 +341,7 @@ function getSplashHtml(): string {
       left: 0;
       width: 45%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #38bdf8, #2563eb, #10b981);
+      background: linear-gradient(90deg, #38bdf8, #f59e0b, #10b981);
       box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
       animation: barAnimation 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -366,10 +403,7 @@ function getSplashHtml(): string {
     <div class="emblem-wrapper">
       <div class="emblem-pulse"></div>
       <div class="emblem-box">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
-          <line x1="2" y1="20" x2="2.01" y2="20"></line>
-        </svg>
+        ${emblemContent}
       </div>
     </div>
     <div class="title">AQ COMPANIES</div>

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, startTransition } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -1574,10 +1574,12 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
                       key={option.text}
                       type="button"
                       onClick={() => {
-                        onChange(option.text)
+                        startTransition(() => {
+                          onChange(option.text)
+                        })
                         toast.success(`مسیر "${option.text}" انتخاب شد`)
                       }}
-                      className={`group/btn relative rounded-xl border p-3 font-[vazirmatn] text-xs font-bold leading-relaxed transition-all cursor-pointer text-right flex flex-col justify-between gap-2 shadow-2xs ${
+                      className={`group/btn relative rounded-xl border p-3 font-[vazirmatn] text-xs font-bold leading-relaxed transition-all cursor-pointer text-right flex flex-col justify-between gap-2 shadow-2xs [&_*]:pointer-events-none ${
                         isActive
                           ? group.pillActiveColor
                           : group.pillHoverColor

@@ -396,7 +396,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
 
   const fetchRecentBols = useCallback(async () => {
     try {
-      const res = await fetch("/api/bol/recent?limit=6")
+      const res = await fetch("/api/bol/recent?limit=8")
       if (res.ok) {
         const json = await res.json()
         if (json.success && Array.isArray(json.data)) {
@@ -1012,7 +1012,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
     }
   }, [filteredDocuments, documents.length, apiSummaryStats, deferredQuery, activeCategory, dateFilter, statusFilter])
 
-  // Get Top 6 Latest BOLs for the Top Feature Banner (from dedicated recent API with canonical deduplication)
+  // Get Top 8 Latest BOLs for the Top Feature Banner (from dedicated recent API with canonical deduplication)
   const latestTopBOLs = useMemo(() => {
     // Map existing documents by clean BOL number and ID to always use the fresher in-memory record
     const docMap = new Map<string, SavedDocument>()
@@ -1051,7 +1051,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
         seen.add(key)
         deduplicated.push(d)
       }
-      if (deduplicated.length >= 6) break
+      if (deduplicated.length >= 8) break
     }
     return deduplicated
   }, [documents, apiLatestTopBOLs, deferredQuery, activeCategory])
@@ -2425,6 +2425,9 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                 <div>
                   <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 tracking-tight">
                     LATEST BOL CREATIONS
+                    <span className="text-[10px] font-bold text-slate-400 font-['Vazirmatn',sans-serif]" dir="rtl">
+                      آخرین بارنامه‌های ثبت شده
+                    </span>
                     <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 text-[10px] font-black">
                       {latestTopBOLs.length} RECENT
                     </span>
@@ -2436,8 +2439,8 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               </div>
             </div>
 
-            {/* Responsive Card Grid: 1 col (mobile), 2 cols (tablet), 3 cols (laptop), 4 cols (desktop), 6 cols (large desktop) */}
-            <div className="grid gap-3.5 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-[1600px]:grid-cols-6 relative z-10 items-stretch">
+            {/* Responsive Card Grid: 1 col (mobile), 2 cols (tablet), 3 cols (laptop), 4 cols (desktop — 8 cards in 2 clean rows) */}
+            <div className="grid gap-3.5 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 relative z-10 items-stretch">
               {latestTopBOLs.map((doc) => (
                 <RecentBolCard
                   key={`latest-${doc.id || doc.bol_number}`}
