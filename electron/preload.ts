@@ -26,10 +26,21 @@ contextBridge.exposeInMainWorld("skyDesktop", {
   writeClipboardText: (text: string) => ipcRenderer.invoke("clipboard:write-text", text),
   // Software Updater Bridge
   checkForUpdates: (customPath?: string) => ipcRenderer.invoke("updater:check", customPath),
-  installUpdate: (options?: string | { targetPath?: string; silent?: boolean }) => ipcRenderer.invoke("updater:install", options),
+  installUpdate: (options?: string | { targetPath?: string; silent?: boolean; isRepair?: boolean }) => ipcRenderer.invoke("updater:install", options),
+  diagnoseUpdate: () => ipcRenderer.invoke("updater:diagnose"),
+  prepareUpdate: () => ipcRenderer.invoke("updater:prepare"),
+  createUpdateBackup: () => ipcRenderer.invoke("updater:backup-now"),
+  getUpdateHistory: () => ipcRenderer.invoke("updater:get-history"),
+  getUpdateSettings: () => ipcRenderer.invoke("updater:get-settings"),
+  saveUpdateSettings: (settings: any) => ipcRenderer.invoke("updater:save-settings", settings),
   killProcesses: () => ipcRenderer.invoke("updater:kill-processes"),
   openUpdateFolder: (targetPath?: string) => ipcRenderer.invoke("updater:open-folder", targetPath),
   selectInstallerFile: () => ipcRenderer.invoke("updater:select-file"),
+  onReleaseDetected: (callback: (data: any) => void) => {
+    const handler = (_event: any, data: any) => callback(data)
+    ipcRenderer.on("updater:release-detected", handler)
+    return () => ipcRenderer.removeListener("updater:release-detected", handler)
+  },
 })
 
 // Native Desktop Menu Event Bridge

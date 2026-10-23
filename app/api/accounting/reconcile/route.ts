@@ -8,12 +8,13 @@ import { generateReconciliationReport } from "@/lib/services/ledger-reconciliati
 
 export async function GET() {
   try {
-    const p1 = "C:\\Users\\Ahsanullah Qureshi\\Desktop\\ALL-COMPANIES.xlsx"
+    const userProfile = process.env.USERPROFILE || ""
+    const p1 = userProfile ? path.join(userProfile, "Desktop", "ALL-COMPANIES.xlsx") : ""
     const p2 = path.join(process.cwd(), "data", "uploads", "ALL-COMPANIES.xlsx")
     const p3 = path.join(process.cwd(), "public", "uploads", "ALL-COMPANIES.xlsx")
 
     let excelPath = ""
-    if (fs.existsSync(p1)) excelPath = p1
+    if (p1 && fs.existsSync(p1)) excelPath = p1
     else if (fs.existsSync(p2)) excelPath = p2
     else if (fs.existsSync(p3)) excelPath = p3
 

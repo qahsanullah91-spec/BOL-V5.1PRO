@@ -53,10 +53,52 @@ if (!fs.existsSync(backendExe)) {
 const backendStats = fs.statSync(backendExe)
 console.log(`  -> Verified aq-backend.exe (${formatBytes(backendStats.size)})`)
 
+function checkFrontendSourcesChanged(serverFile) {
+  if (!fs.existsSync(serverFile)) return true
+  const serverMtime = fs.statSync(serverFile).mtimeMs
+  const scanDirs = [
+    path.join(rootDir, "app"),
+    path.join(rootDir, "components"),
+    path.join(rootDir, "lib"),
+  ]
+  for (const dir of scanDirs) {
+    if (!fs.existsSync(dir)) continue
+    const queue = [dir]
+    while (queue.length > 0) {
+      const current = queue.pop()
+      const entries = fs.readdirSync(current, { withFileTypes: true })
+      for (const entry of entries) {
+        if (entry.name.startsWith(".")) continue
+        const full = path.join(current, entry.name)
+        if (entry.isDirectory()) {
+          queue.push(full)
+        } else if (entry.isFile() && /\.(tsx?|jsx?|css|json)$/i.test(entry.name)) {
+          const fileMtime = fs.statSync(full).mtimeMs
+          if (fileMtime > serverMtime) {
+            return true
+          }
+        }
+      }
+    }
+  }
+  return false
+}
+
 // Step 2: Build Next.js Production Frontend
 console.log("\n[2/5] Checking / Building Next.js Standalone Frontend...")
 const standaloneServer = path.join(nextProductionDir, "standalone", "server.js")
-if (!fs.existsSync(standaloneServer) || !skipFrontend) {
+let shouldBuildFrontend = !fs.existsSync(standaloneServer) || !skipFrontend
+if (skipFrontend && fs.existsSync(standaloneServer)) {
+  const sourcesChanged = checkFrontendSourcesChanged(standaloneServer)
+  if (sourcesChanged && !process.argv.includes("--force-skip-frontend")) {
+    console.log("  -> Notice: Frontend source code has changed since last build. Rebuilding frontend...")
+    shouldBuildFrontend = true
+  } else if (!sourcesChanged) {
+    console.log("  -> Frontend sources unchanged. Safely reusing existing standalone build.")
+  }
+}
+
+if (shouldBuildFrontend) {
   const localProdScript = path.join(__dirname, "local-production.cjs")
   execSync(`node "${localProdScript}" build`, { cwd: rootDir, stdio: "inherit" })
 }
@@ -120,7 +162,7 @@ execSync(`node "${electronBuilderBin}" --win nsis --x64`, {
   env: { ...process.env, CSC_IDENTITY_AUTO_DISCOVERY: "false" }
 })
 
-// Step 5: Validate Installer and Generate SHA-256 Checksum
+// Step 5: Validate Installer, Generate SHA-256 Checksum, and Publish release-manifest.json
 console.log("\n[5/5] Generating Checksums and Validating Release Artifacts...")
 let installerFile = path.join(releaseDir, "AQ-COMPANIES-Setup.exe")
 if (!fs.existsSync(installerFile)) {
@@ -139,6 +181,10 @@ const installerStats = fs.statSync(installerFile)
 const installerHash = computeSha256(installerFile)
 const sha256File = `${installerFile}.sha256`
 fs.writeFileSync(sha256File, `${installerHash} *${path.basename(installerFile)}\n`, "utf8")
+
+// Generate release-manifest.json
+const { generateReleaseManifest } = require("./generate-release-manifest.cjs")
+const releaseManifest = generateReleaseManifest(releaseDir)
 
 const duration = ((Date.now() - startTime) / 1000).toFixed(1)
 

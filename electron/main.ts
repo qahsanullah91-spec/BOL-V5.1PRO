@@ -1,3 +1,4 @@
+import fs from "node:fs"
 import { app, BrowserWindow, Menu, nativeImage, shell } from "electron"
 import { spawn, type ChildProcess } from "node:child_process"
 import { createServer } from "node:net"
@@ -509,6 +510,39 @@ if (handleSquirrelEvent()) {
       mainWindow.focus()
     }
   })
+function startReleaseFolderWatcher(windowGetter: () => BrowserWindow | null): void {
+  const candidateDirs = [
+    path.join(process.cwd(), "release"),
+    "D:\\SOFTWARES-APPS\\BOL-SOFTWARE-V5\\release",
+  ]
+  for (const dir of candidateDirs) {
+    if (fs.existsSync(dir)) {
+      try {
+        let debounceTimer: NodeJS.Timeout | null = null
+        fs.watch(dir, (_eventType: string, filename: string | null) => {
+          if (!filename || filename.includes(".tmp")) return
+          if (debounceTimer) clearTimeout(debounceTimer)
+          debounceTimer = setTimeout(() => {
+            const win = windowGetter()
+            if (win && !win.isDestroyed()) {
+              logMain(`[Release Watcher] Detected release artifact change: ${filename}`)
+              win.webContents.send("updater:release-detected", {
+                directory: dir,
+                filename,
+                timestamp: Date.now(),
+              })
+            }
+          }, 600)
+        })
+        logMain(`[Release Watcher] Actively monitoring directory: ${dir}`)
+        break
+      } catch (err: any) {
+        logMain(`[Release Watcher] Error: ${err?.message}`)
+      }
+    }
+  }
+}
+
 function configureWindowsPrintPreferences(): void {
   if (process.platform !== "win32") return
   try {
@@ -533,6 +567,7 @@ function configureWindowsPrintPreferences(): void {
     Menu.setApplicationMenu(buildApplicationMenu())
     registerIpcHandlers({ getWindow: () => mainWindow, dataDirectory: path.join(app.getPath("userData"), "data") })
     await createMainWindow()
+    startReleaseFolderWatcher(() => mainWindow)
   }).catch((error) => {
     logMain(`[App Error on Startup] ${error instanceof Error ? (error.stack || error.message) : String(error)}`)
     console.error(error)

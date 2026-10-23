@@ -3,100 +3,23 @@ import fs from "node:fs"
 import path from "node:path"
 import { spawn } from "node:child_process"
 import { CURRENT_SYSTEM_VERSION } from "@/lib/config/system-version"
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 Bytes"
-  const k = 1024
-  const sizes = ["Bytes", "KB", "MB", "GB"]
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-}
-
-function findInstaller(customCandidate?: string | null): { path: string; size: number; mtime: Date; sha256?: string; version?: string } | null {
-  const candidateDirs: string[] = []
-  if (customCandidate && fs.existsSync(customCandidate)) {
-    const stats = fs.statSync(customCandidate)
-    if (stats.isFile()) {
-      let sha256: string | undefined
-      const shaFile = `${customCandidate}.sha256`
-      if (fs.existsSync(shaFile)) {
-        try {
-          sha256 = fs.readFileSync(shaFile, "utf8").trim().split(" ")[0]
-        } catch {}
-      }
-      return { path: customCandidate, size: stats.size, mtime: stats.mtime, sha256 }
-    } else if (stats.isDirectory()) {
-      candidateDirs.push(customCandidate)
-    }
-  }
-
-  const rootDir = process.cwd()
-  candidateDirs.push(
-    path.join(rootDir, "release"),
-    path.join(rootDir, "..", "release"),
-    path.join(process.resourcesPath || rootDir, "..", "..", "release"),
-    path.join(process.env.USERPROFILE || "", "Downloads"),
-    path.join(process.env.USERPROFILE || "", "Downloads", "release"),
-    "D:\\SOFTWARES-APPS\\BOL-SOFTWARE-V5\\release"
-  )
-
-  for (const dir of candidateDirs) {
-    if (!fs.existsSync(dir)) continue
-    try {
-      const files = fs.readdirSync(dir)
-      const installerName = files.find(f => f.startsWith("AQ-COMPANIES-Setup") && f.endsWith(".exe"))
-      if (installerName) {
-        const fullPath = path.join(dir, installerName)
-        const stats = fs.statSync(fullPath)
-        let sha256: string | undefined
-        const shaFile = `${fullPath}.sha256`
-        if (fs.existsSync(shaFile)) {
-          try {
-            const content = fs.readFileSync(shaFile, "utf8").trim()
-            sha256 = content.split(" ")[0]
-          } catch {}
-        }
-        let version: string | undefined
-        const latestYmlPath = path.join(dir, "latest.yml")
-        if (fs.existsSync(latestYmlPath)) {
-          try {
-            const raw = fs.readFileSync(latestYmlPath, "utf8")
-            const vm = raw.match(/version:\s*([^\s]+)/)
-            if (vm) version = vm[1]
-          } catch {}
-        }
-        return { path: fullPath, size: stats.size, mtime: stats.mtime, sha256, version }
-      }
-    } catch {}
-  }
-  return null
-}
+import {
+  evaluateSystemUpdate,
+  runSystemDiagnostics,
+  createPreUpdateBackup,
+  prepareAndExecuteUpdate,
+  getUpdateHistory,
+  getUpdateSettings,
+  saveUpdateSettings,
+} from "@/lib/services/system-update-service"
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const customPath = searchParams.get("customPath")
-    const installer = findInstaller(customPath)
-    const rootDir = process.cwd()
-    let latestYmlVersion = installer?.version || "5.1.0"
-    let latestYmlDate = ""
-
-    const installerDir = installer ? path.dirname(installer.path) : path.join(rootDir, "release")
-    const latestYmlPath = path.join(installerDir, "latest.yml")
-    if (fs.existsSync(latestYmlPath)) {
-      try {
-        const raw = fs.readFileSync(latestYmlPath, "utf8")
-        const versionMatch = raw.match(/version:\s*([^\s]+)/)
-        const dateMatch = raw.match(/releaseDate:\s*['"]?([^'"\n]+)/)
-        if (versionMatch) latestYmlVersion = versionMatch[1]
-        if (dateMatch) latestYmlDate = dateMatch[1]
-      } catch {}
-    }
-
-    const hasInstaller = Boolean(installer)
-    // If installer was created recently (or exists), it can be installed
-    const installerMtime = installer ? installer.mtime.toISOString() : null
-    const isNewer = Boolean(installer)
+    const updateInfo = await evaluateSystemUpdate(customPath)
+    const settings = getUpdateSettings()
+    const history = getUpdateHistory().slice(0, 5)
 
     return NextResponse.json({
       success: true,
@@ -104,19 +27,27 @@ export async function GET(request: Request) {
       currentBuild: CURRENT_SYSTEM_VERSION.buildNumber,
       releaseDate: CURRENT_SYSTEM_VERSION.releaseDate,
       platform: process.platform,
-      updateChannel: CURRENT_SYSTEM_VERSION.updateChannel,
+      updateChannel: settings.releaseChannel || CURRENT_SYSTEM_VERSION.updateChannel,
       availableUpdate: {
-        hasUpdate: isNewer,
-        version: latestYmlVersion,
-        installerName: installer ? path.basename(installer.path) : "AQ-COMPANIES-Setup.exe",
-        installerPath: installer ? installer.path : null,
-        installerSize: installer ? installer.size : 0,
-        installerFormattedSize: installer ? formatBytes(installer.size) : "0 MB",
-        installerModifiedTime: installerMtime,
-        releaseDate: latestYmlDate || installerMtime || CURRENT_SYSTEM_VERSION.releaseDate,
-        sha256: installer?.sha256 || null,
-        status: hasInstaller ? "ready_to_install" : "up_to_date",
+        hasUpdate: updateInfo.hasUpdate,
+        status: updateInfo.status,
+        isRepairOrReinstall: updateInfo.isRepairOrReinstall,
+        version: updateInfo.availableVersion,
+        build: updateInfo.availableBuild,
+        installerName: updateInfo.installerName,
+        installerPath: updateInfo.installerPath,
+        installerSize: updateInfo.installerSize,
+        installerFormattedSize: updateInfo.installerFormattedSize,
+        installerModifiedTime: updateInfo.installerModifiedTime,
+        releaseDate: updateInfo.releaseDate,
+        sha256: updateInfo.sha256,
+        manifestSha256: updateInfo.manifestSha256,
+        isHashVerified: updateInfo.isHashVerified,
+        channel: updateInfo.channel,
+        diagnosticMessage: updateInfo.diagnosticMessage,
       },
+      settings,
+      recentHistory: history,
       changelog: CURRENT_SYSTEM_VERSION.changelog,
     })
   } catch (error: any) {
@@ -132,57 +63,80 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}))
     const action = body.action || "check"
 
-    if (action === "kill-processes") {
+    if (action === "check") {
+      const updateInfo = await evaluateSystemUpdate(body.customPath)
+      return NextResponse.json({ success: true, updateInfo })
+    }
+
+    if (action === "diagnose") {
+      const diagnostics = await runSystemDiagnostics()
+      return NextResponse.json({ success: true, diagnostics })
+    }
+
+    if (action === "prepare-system" || action === "kill-processes") {
       try {
         spawn("taskkill", ["/F", "/T", "/IM", "aq-backend.exe"], { windowsHide: true, stdio: "ignore" })
       } catch {}
-      return NextResponse.json({ success: true, message: "Lingering background processes terminated." })
+      const diagnostics = await runSystemDiagnostics()
+      return NextResponse.json({
+        success: true,
+        message: "Background microservice workers closed and memory handles flushed.",
+        diagnostics,
+      })
+    }
+
+    if (action === "backup-now") {
+      const backupResult = await createPreUpdateBackup()
+      return NextResponse.json({ success: backupResult.success, backupResult })
     }
 
     if (action === "install") {
       const targetPath = body.installerPath || body.customPath
-      const isSilent = body.silent === true
-      const installer = findInstaller(targetPath)
-      if (!installer || !fs.existsSync(installer.path)) {
-        return NextResponse.json(
-          { success: false, error: "Installer executable (AQ-COMPANIES-Setup.exe) was not found in release directory." },
-          { status: 404 }
-        )
-      }
-
-      // Pre-emptively terminate background Python backend to release database locks
-      try {
-        spawn("taskkill", ["/F", "/T", "/IM", "aq-backend.exe"], { windowsHide: true, stdio: "ignore" })
-      } catch {}
-
-      // Launch installer detached with --updated flag to auto-upgrade
-      const args = isSilent ? ["/S", "--updated"] : ["--updated"]
-      const child = spawn(installer.path, args, {
-        detached: true,
-        stdio: "ignore",
-        windowsHide: false,
+      const result = await prepareAndExecuteUpdate({
+        installerPath: targetPath,
+        silent: body.silent === true,
+        isRepair: body.isRepair === true,
       })
-      child.unref()
-
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: result.message }, { status: 400 })
+      }
       return NextResponse.json({
         success: true,
-        message: "Installer launched successfully. Follow the on-screen setup prompts to complete the installation.",
-        installerPath: installer.path,
+        message: result.message,
+        backupPath: result.backupPath,
+        runnerPath: result.runnerPath,
       })
     }
 
     if (action === "open-folder") {
       const targetPath = body.installerPath || body.customPath
-      const installer = findInstaller(targetPath)
-      const targetDir = installer ? path.dirname(installer.path) : path.join(process.cwd(), "release")
-      if (fs.existsSync(targetDir)) {
-        spawn("explorer.exe", [targetDir], { detached: true, stdio: "ignore" }).unref()
+      const candidateDir = targetPath && fs.existsSync(targetPath)
+        ? (fs.statSync(targetPath).isDirectory() ? targetPath : path.dirname(targetPath))
+        : path.join(process.cwd(), "release")
+
+      if (fs.existsSync(candidateDir)) {
+        spawn("explorer.exe", [candidateDir], { detached: true, stdio: "ignore" }).unref()
         return NextResponse.json({ success: true, message: "Opened release directory in File Explorer." })
       }
       return NextResponse.json({ success: false, error: "Directory does not exist." }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true, message: "Unknown action" })
+    if (action === "get-history") {
+      const history = getUpdateHistory()
+      return NextResponse.json({ success: true, history })
+    }
+
+    if (action === "get-settings") {
+      const settings = getUpdateSettings()
+      return NextResponse.json({ success: true, settings })
+    }
+
+    if (action === "save-settings") {
+      const updated = saveUpdateSettings(body.settings || {})
+      return NextResponse.json({ success: true, settings: updated })
+    }
+
+    return NextResponse.json({ success: true, message: `Action '${action}' processed.` })
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error?.message || "Failed to process update action" },

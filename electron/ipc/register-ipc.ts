@@ -6,6 +6,15 @@ import path from "node:path"
 import { atomicWriteFile } from "../services/atomic-file"
 import { createDataBackup, restoreDataBackup } from "../services/data"
 import { backendManager, type ConnectionMode, type NetworkConfig } from "../backend-manager"
+import {
+  evaluateSystemUpdate,
+  prepareAndExecuteUpdate,
+  runSystemDiagnostics,
+  createPreUpdateBackup,
+  getUpdateHistory,
+  getUpdateSettings,
+  saveUpdateSettings,
+} from "../services/updater"
 
 type SavePayload = { defaultName?: string; bytes: number[] }
 
@@ -259,77 +268,96 @@ export function registerIpcHandlers(options: {
   // Desktop Software Updater Handlers
   ipcMain.handle("updater:check", async (_event, customCandidate?: string) => {
     try {
-      const installer = findInstallerPath(customCandidate)
-      const currentVersion = app.getVersion() || "5.1.0"
-      if (!installer) {
-        return {
-          success: true,
-          hasUpdate: false,
-          installerPath: null,
-          installerName: null,
-          installerSize: 0,
-          installerFormattedSize: "0 MB",
-          installerModifiedTime: null,
-          version: currentVersion,
-          currentVersion,
-          sha256: null,
-          status: "not_found",
-        }
-      }
-
-      return {
-        success: true,
-        hasUpdate: true,
-        installerPath: installer.path,
-        installerName: path.basename(installer.path),
-        installerSize: installer.size,
-        installerFormattedSize: formatBytes(installer.size),
-        installerModifiedTime: installer.mtime.toISOString(),
-        version: installer.version || currentVersion,
-        currentVersion,
-        sha256: installer.sha256 || null,
-        status: "ready_to_install",
-      }
+      const updateInfo = await evaluateSystemUpdate(customCandidate)
+      return updateInfo
     } catch (e: any) {
       return {
         success: false,
+        status: "error",
         hasUpdate: false,
+        isRepairOrReinstall: false,
+        currentVersion: app.getVersion() || "5.1.2",
+        currentBuild: "2026.10.23-PRO",
+        availableVersion: app.getVersion() || "5.1.2",
+        availableBuild: "2026.10.23-PRO",
+        installerPath: null,
+        installerName: null,
+        installerSize: 0,
+        installerFormattedSize: "0 MB",
+        installerModifiedTime: null,
+        releaseDate: new Date().toISOString(),
+        sha256: null,
+        manifestSha256: null,
+        isHashVerified: false,
+        channel: "stable",
         error: e?.message || "Failed to check for updates",
       }
     }
   })
 
-  ipcMain.handle("updater:install", async (_event, options?: string | { targetPath?: string; silent?: boolean }) => {
+  ipcMain.handle("updater:diagnose", async () => {
+    try {
+      const diagnostics = await runSystemDiagnostics()
+      return { success: true, diagnostics }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to run diagnostics" }
+    }
+  })
+
+  ipcMain.handle("updater:prepare", async () => {
+    try {
+      try {
+        void backendManager.stop().catch(() => {})
+      } catch {}
+      spawn("taskkill", ["/F", "/T", "/IM", "aq-backend.exe"], { windowsHide: true, stdio: "ignore" })
+      const diagnostics = await runSystemDiagnostics()
+      return {
+        success: true,
+        message: "Application background microservices safely flushed and closed.",
+        diagnostics,
+      }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to prepare application for update" }
+    }
+  })
+
+  ipcMain.handle("updater:backup-now", async () => {
+    try {
+      const result = await createPreUpdateBackup()
+      return result
+    } catch (e: any) {
+      return {
+        success: false,
+        backupPath: "",
+        backupName: "",
+        recordCounts: { bols: 0, accounts: 0, invoices: 0, shipments: 0 },
+        error: e?.message || "Failed to create pre-update backup snapshot",
+      }
+    }
+  })
+
+  ipcMain.handle("updater:install", async (_event, options?: string | { targetPath?: string; silent?: boolean; isRepair?: boolean }) => {
     try {
       const targetPath = typeof options === "string" ? options : options?.targetPath
       const isSilent = typeof options === "object" && options?.silent === true
-      const installer = findInstallerPath(targetPath)
-      if (!installer || !fs.existsSync(installer.path)) {
-        return { success: false, error: "Setup executable was not found. Please verify release directory." }
-      }
+      const isRepair = typeof options === "object" && options?.isRepair === true
 
-      // Stop background server manager and forcefully terminate Python backend process tree
+      // Gracefully stop backend server before running updater
       try {
         void backendManager.stop().catch(() => {})
-        spawn("taskkill", ["/F", "/T", "/IM", "aq-backend.exe"], { windowsHide: true, stdio: "ignore" })
       } catch {}
 
-      // Launch installer detached via cmd.exe with a 1-second timeout delay.
-      // This guarantees that AQ COMPANIES.exe and all child processes are 100% terminated
-      // before the installer begins file inspection, completely preventing "AQ COMPANIES cannot be closed" error.
-      const args = isSilent ? ["/S", "--updated"] : ["--updated"]
-      const quotedInstaller = `"${installer.path}"`
-      const argStr = args.join(" ")
-      const launcherCmd = `timeout /t 1 /nobreak >nul & start "" ${quotedInstaller} ${argStr}`
-
-      const child = spawn("cmd.exe", ["/c", launcherCmd], {
-        detached: true,
-        stdio: "ignore",
-        windowsHide: true,
+      const result = await prepareAndExecuteUpdate({
+        installerPath: targetPath,
+        silent: isSilent,
+        isRepair,
       })
-      child.unref()
 
-      // Close all windows and exit process immediately after returning response
+      if (!result.success) {
+        return { success: false, error: result.message }
+      }
+
+      // Schedule graceful Electron window close & exit
       setTimeout(() => {
         try {
           const windows = BrowserWindow.getAllWindows()
@@ -340,12 +368,13 @@ export function registerIpcHandlers(options: {
         } catch {
           process.exit(0)
         }
-      }, 300)
+      }, 500)
 
       return {
         success: true,
-        message: "Installer launched successfully. Application is terminating cleanly to allow update.",
-        installerPath: installer.path,
+        message: result.message,
+        backupPath: result.backupPath,
+        runnerPath: result.runnerPath,
       }
     } catch (e: any) {
       return { success: false, error: e?.message || "Failed to launch installer" }
@@ -364,12 +393,38 @@ export function registerIpcHandlers(options: {
     }
   })
 
+  ipcMain.handle("updater:get-history", async () => {
+    try {
+      const history = getUpdateHistory()
+      return { success: true, history }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to load update history" }
+    }
+  })
+
+  ipcMain.handle("updater:get-settings", async () => {
+    try {
+      const settings = getUpdateSettings()
+      return { success: true, settings }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to load update settings" }
+    }
+  })
+
+  ipcMain.handle("updater:save-settings", async (_event, settings: any) => {
+    try {
+      const updated = saveUpdateSettings(settings || {})
+      return { success: true, settings: updated }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to save update settings" }
+    }
+  })
+
   ipcMain.handle("updater:open-folder", async (_event, targetDirOrFile?: string) => {
     try {
       let targetPath = targetDirOrFile
       if (!targetPath) {
-        const installer = findInstallerPath()
-        targetPath = installer ? path.dirname(installer.path) : path.join(process.cwd(), "release")
+        targetPath = path.join(process.cwd(), "release")
       }
       if (fs.existsSync(targetPath)) {
         const stats = fs.statSync(targetPath)

@@ -80,7 +80,7 @@ export function SoftwareUpdateTab() {
           setUpdateData({
             success: true,
             hasUpdate: res.hasUpdate,
-            version: res.version || CURRENT_SYSTEM_VERSION.version,
+            version: (res as any).availableVersion || (res as any).version || CURRENT_SYSTEM_VERSION.version,
             currentVersion: res.currentVersion || CURRENT_SYSTEM_VERSION.version,
             installerName: res.installerName,
             installerPath: res.installerPath,
