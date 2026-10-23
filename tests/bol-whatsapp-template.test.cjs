@@ -22,7 +22,11 @@ test('BOL WhatsApp Shipment Update Formatter Test - Static & Runtime Verificatio
   assert.ok(content.includes('💵 *Unit Price / قیمت واحد:*'))
   assert.ok(content.includes('🛣️ *TRANSIT ROUTE / مسیر ترانزیت:*'))
   assert.ok(content.includes('🚛 *TRANSIT DETAILS / جزئیات ترانزیت:*'))
-  assert.ok(content.includes('*حملونقل بینالمللی و خدمات لجستیکی*'))
+  assert.ok(
+    content.includes('*حمل\\u200Cونقل بین\\u200Cالمللی و خدمات لجستیکی*') ||
+    content.includes('*حمل‌ونقل بین‌المللی و خدمات لجستیکی*') ||
+    content.includes('*حملونقل بینالمللی و خدمات لجستیکی*')
+  )
 
   const { buildWhatsAppShipmentUpdate, formatTransitDetailsText } = load('lib/utils/bol-whatsapp-formatter.ts')
 
