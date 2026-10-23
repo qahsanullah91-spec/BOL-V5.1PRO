@@ -1583,26 +1583,56 @@ function ShipmentOverview({
   const activeCardsCount = [hasIssueDate, hasTruck, hasDriverOrContact, hasRent].filter(Boolean).length
   if (activeCardsCount === 0) return null
 
-  const cardPaddingClass = isUltra ? "px-1 py-0.8 min-h-[9mm]" : isCompact ? "px-1.5 py-1 min-h-[10.5mm]" : "px-2 py-1.2 min-h-[12mm]"
+  const cardPaddingClass = hasTruck
+    ? isUltra
+      ? "px-1 py-0.8 min-h-[22mm]"
+      : isCompact
+      ? "px-1.5 py-1 min-h-[25mm]"
+      : "px-2 py-1.2 min-h-[27mm]"
+    : isUltra
+    ? "px-1 py-0.8 min-h-[9mm]"
+    : isCompact
+    ? "px-1.5 py-1 min-h-[10.5mm]"
+    : "px-2 py-1.2 min-h-[12mm]"
   const labelEnClass = `${isUltra ? "text-[7.2pt]" : isCompact ? "text-[8.0pt]" : "text-[8.8pt]"} font-black uppercase tracking-wider text-blue-900 leading-tight text-center block w-full`
   const labelFaClass = `font-[vazirmatn] ${isUltra ? "text-[7.0pt] mt-0.3" : isCompact ? "text-[7.8pt] mt-0.4" : "text-[8.6pt] mt-0.5"} font-black text-blue-700 leading-tight text-center block w-full`
   const valMarginClass = isUltra ? "mt-0.8 text-center" : "mt-1.2 text-center"
 
+  const gridColsClass = activeCardsCount === 1
+    ? "flex justify-start w-full"
+    : activeCardsCount >= 4
+    ? "grid-cols-[minmax(0,16fr)_minmax(0,34fr)_minmax(0,34fr)_minmax(0,16fr)]"
+    : activeCardsCount === 3
+    ? hasIssueDate && hasTruck
+      ? "grid-cols-[minmax(0,18fr)_minmax(0,44fr)_minmax(0,38fr)]"
+      : hasIssueDate
+      ? "grid-cols-[minmax(0,20fr)_minmax(0,55fr)_minmax(0,25fr)]"
+      : hasTruck
+      ? "grid-cols-[minmax(0,44fr)_minmax(0,38fr)_minmax(0,18fr)]"
+      : "grid-cols-3"
+    : activeCardsCount === 2
+    ? hasIssueDate && hasTruck
+      ? "grid-cols-[minmax(0,22fr)_minmax(0,78fr)]"
+      : hasIssueDate
+      ? "grid-cols-[minmax(0,25fr)_minmax(0,75fr)]"
+      : hasTruck
+      ? "grid-cols-[minmax(0,55fr)_minmax(0,45fr)]"
+      : "grid-cols-2"
+    : "grid-cols-1"
+
   return (
     <div
-      className={`grid gap-1.5 ${
-        activeCardsCount >= 4 ? "grid-cols-4" :
-        activeCardsCount === 3 ? "grid-cols-3" :
-        activeCardsCount === 2 ? "grid-cols-2" : "grid-cols-1"
-      }`}
+      className={activeCardsCount === 1 ? gridColsClass : `grid gap-1.5 ${gridColsClass}`}
       dir="ltr"
     >
       {/* 1. ISSUE DATE */}
       {hasIssueDate && (
         <div
           className={`rounded-xl border text-center flex flex-col justify-between overflow-visible ${cardPaddingClass} ${
-            pdfMode ? "border-blue-200 bg-white" : "border-blue-200/90 bg-white/95 shadow-xs"
-          }`}
+            pdfMode
+              ? "border-blue-200 bg-white"
+              : "border-blue-200/90 bg-gradient-to-b from-blue-50/40 via-white to-blue-50/20 shadow-xs"
+          } ${activeCardsCount === 1 ? "w-full max-w-[42mm]" : "w-full max-w-[38mm] justify-self-start"}`}
         >
           <div className="flex flex-col items-center justify-center text-center w-full">
             <div className={labelEnClass} style={{ textAlign: "center" }}>
@@ -1616,8 +1646,8 @@ function ShipmentOverview({
             {hasValue(issueDate) && (
               <div
                 className={`font-mono font-black text-slate-950 ${
-                  isUltra ? "text-[10.2pt]" : isCompact ? "text-[11.4pt]" : "text-[12.6pt]"
-                } leading-tight whitespace-nowrap keep-all text-center`}
+                  isUltra ? "text-[9.4pt]" : isCompact ? "text-[10.4pt]" : "text-[11.4pt]"
+                } leading-tight whitespace-nowrap keep-all text-center tracking-tight`}
                 dir="ltr"
                 style={{ direction: "ltr", unicodeBidi: "isolate", textAlign: "center" }}
               >
@@ -1626,11 +1656,13 @@ function ShipmentOverview({
             )}
             {hasValue(persianDateNumeric) && (
               <div
-                className={`font-[vazirmatn] font-extrabold text-blue-900 ${
-                  isUltra ? "text-[9.0pt]" : isCompact ? "text-[10.2pt]" : "text-[11.4pt]"
-                } leading-tight whitespace-nowrap keep-all text-center ${
-                  hasValue(issueDate) ? (isUltra ? "mt-0.4" : "mt-0.6") : ""
-                }`}
+                className={`font-[vazirmatn] font-extrabold text-blue-900 bg-blue-50/90 border border-blue-200/90 rounded-md shadow-2xs ${
+                  isUltra
+                    ? "text-[8.0pt] px-1.5 py-0.2 mt-0.3"
+                    : isCompact
+                    ? "text-[8.8pt] px-2 py-0.3 mt-0.4"
+                    : "text-[9.6pt] px-2.5 py-0.4 mt-0.5"
+                } leading-tight whitespace-nowrap keep-all text-center inline-flex items-center justify-center`}
                 dir="rtl"
                 style={{ direction: "rtl", textAlign: "center" }}
               >
@@ -1646,7 +1678,7 @@ function ShipmentOverview({
         <div
           className={`rounded-xl border text-center flex flex-col justify-between overflow-visible ${cardPaddingClass} ${
             pdfMode ? "border-blue-200 bg-white" : "border-blue-200/90 bg-white/95 shadow-xs"
-          }`}
+          } min-w-0`}
         >
           <div className="flex flex-col items-center justify-center text-center w-full">
             <div className={labelEnClass} style={{ textAlign: "center" }}>
@@ -1656,8 +1688,8 @@ function ShipmentOverview({
               شماره کامیون / موټر
             </div>
           </div>
-          <div className="flex-1 flex items-center justify-center w-full mt-0.5">
-            <AfghanTruckPlate value={formData.truck_number} size="compact" />
+          <div className="flex-1 flex items-center justify-center w-full mt-0.5 min-w-0 py-0.5">
+            <AfghanTruckPlate value={formData.truck_number} size={isUltra ? "sm" : "compact"} className="max-w-full h-auto" />
           </div>
         </div>
       )}

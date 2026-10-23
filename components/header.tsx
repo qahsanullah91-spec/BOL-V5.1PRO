@@ -420,6 +420,10 @@ export function Header({ title, subtitle }: HeaderProps) {
     return ENTERPRISE_MODULES.filter((m) => m.category === 'ops').some((m) => m.id === view)
   }, [view])
 
+  // The Dashboard has its own dedicated quick pill in the nav — never relight
+  // the Ops suite button as a second highlighted "Dashboard" on that view.
+  const isOpsSuiteActive = isOpsActive && view !== 'dashboard'
+
   const isFinanceActive = useMemo(() => {
     return ENTERPRISE_MODULES.filter((m) => m.category === 'finance').some((m) => m.id === view)
   }, [view])
@@ -652,13 +656,14 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* CENTER: Comprehensive Topside Navigation & All Dropdown Menus     */}
         {/* ================================================================= */}
         {currentUser && currentUser.role !== 'shipper' && (
-          <nav className="hidden md:flex items-center gap-0.5 xl:gap-1 shrink-0 min-w-0">
+          <nav className="hidden md:flex items-center gap-0.5 xl:gap-1 min-w-0 flex-1 overflow-x-auto no-scrollbar">
 
-            {/* Direct Dashboard Quick Pill */}
+            {/* Direct Dashboard Quick Pill (>= 1500px; below that the logo, workspace
+                switcher and Operations menu all provide one-click Dashboard access) */}
             <button
               type="button"
               onClick={() => handleNavigate('dashboard')}
-              className={`flex items-center gap-1.5 h-7.5 px-2.5 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              className={`hidden min-[1500px]:flex items-center gap-1.5 h-7.5 px-2.5 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                 view === 'dashboard'
                   ? 'bg-sky-600 text-white shadow-xs shadow-sky-500/30'
                   : 'bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 shadow-2xs'
@@ -1138,9 +1143,10 @@ export function Header({ title, subtitle }: HeaderProps) {
             </div>
 
             {/* ------------------------------------------------------------- */}
-            {/* 3. DESKTOP SUITE DROPDOWNS & MORE ▾ COLLAPSIBLE ADAPTIVE SUITE */}
+            {/* 2. DESKTOP SUITE DROPDOWNS & MORE ▾ — all suites visible from lg up; the */}
+            {/*    nav scrolls horizontally instead of clipping when space runs out.     */}
             {/* ------------------------------------------------------------- */}
-            <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink-0 min-w-0">
+            <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 min-w-0 shrink-0">
               
               {/* Operations Dropdown (Primary - Always visible on desktop) */}
               <DropdownMenu>
@@ -1154,9 +1160,9 @@ export function Header({ title, subtitle }: HeaderProps) {
                     }`}
                     title="Freight & Transport Operations Suite"
                   >
-                    <Truck className={`h-3.5 w-3.5 shrink-0 ${isOpsActive ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
+                    <Truck className={`h-3.5 w-3.5 shrink-0 ${isOpsSuiteActive ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
                     <span>
-                      {isOpsActive && currentModule?.category === 'ops' ? (
+                      {isOpsSuiteActive && currentModule?.category === 'ops' ? (
                         currentModule.shortLabel
                       ) : (
                         <>
@@ -1347,7 +1353,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                 </DropdownMenu>
               </div>
 
-              {/* Direct Ask AI Pill Button (Visible on >= 1280px / xl, otherwise in More Suites) */}
+              {/* Direct Ask AI Pill Button */}
               <button
                 type="button"
                 onClick={() => handleNavigate('ai-assistant')}
@@ -1506,7 +1512,7 @@ export function Header({ title, subtitle }: HeaderProps) {
             
             {/* Global Omni Search */}
             <div className="shrink min-w-0">
-              <GlobalSearch className="hidden sm:flex items-center gap-1.5 px-2 py-1 text-xs text-slate-500 bg-slate-100/90 hover:bg-slate-200/90 dark:bg-slate-800/90 dark:text-slate-400 dark:hover:bg-slate-700/90 transition-all rounded-lg border border-slate-200/90 dark:border-slate-700/90 w-24 md:w-28 lg:w-32 xl:w-36 2xl:w-44 focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs group shrink" />
+              <GlobalSearch className="hidden sm:flex items-center gap-1.5 px-2 py-1 text-xs text-slate-500 bg-slate-100/90 hover:bg-slate-200/90 dark:bg-slate-800/90 dark:text-slate-400 dark:hover:bg-slate-700/90 transition-all rounded-lg border border-slate-200/90 dark:border-slate-700/90 w-24 md:w-28 lg:w-32 xl:w-32 2xl:w-44 focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs group shrink" />
               <div className="sm:hidden">
                 <GlobalSearch mobileIconOnly />
               </div>

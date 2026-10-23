@@ -45,6 +45,7 @@
     "scripts/fleet",
     "dist-electron",
     "release",
-    "build"
+    "build",
+    "release-desktop"
   ]
 }
