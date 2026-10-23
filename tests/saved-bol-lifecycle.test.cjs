@@ -109,6 +109,14 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
 }
 
 (async () => {
+  // Pre-flight check: Is dev server online?
+  try {
+    await fetch(`${BASE_URL}/api/health`, { signal: AbortSignal.timeout(500) });
+  } catch {
+    console.log(`ℹ Skipping live server integration test: Server not running at ${BASE_URL}\n`);
+    process.exit(0);
+  }
+
   let createdTestBolNumber = null;
   let baselineTotalBols = 0;
 

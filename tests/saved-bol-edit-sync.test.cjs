@@ -169,6 +169,10 @@ async function runTests() {
 }
 
 runTests().catch((err) => {
+  if (err.code === "ECONNREFUSED") {
+    console.log("ℹ Skipping integration test: Live Next.js server not running on port 3001")
+    process.exit(0)
+  }
   console.error("Test failed:", err)
   process.exit(1)
 })

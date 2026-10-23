@@ -41,7 +41,20 @@ export function StatementPrintModal({
   }
   const closingBalance = Math.round((account.opening_balance + periodDebit - periodCredit) * 100) / 100
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    if (typeof window !== "undefined" && window.skyDesktop?.print) {
+      try {
+        await window.skyDesktop.print({
+          silent: false,
+          printBackground: true,
+          pageSize: "A4",
+          landscape: false,
+        })
+        return
+      } catch (err) {
+        console.warn("Desktop print fallback to browser print:", err)
+      }
+    }
     window.print()
   }
 

@@ -110,6 +110,7 @@ export interface AccountRecord {
 const invoicesFile = getDataPath(".local-invoices.json")
 const accountsFile = getDataPath(".local-accounts.json")
 const invoiceCounterFile = getDataPath(".invoice-counter")
+const fullSnapshotFile = getDataPath(".local-full-snapshot.json")
 
 import { mutateJsonFile, readJsonFile } from "./blob-db"
 
@@ -231,15 +232,35 @@ export async function saveInvoice(data: Partial<InvoiceRecord>) {
 
   await mutateJsonFile<InvoiceRecord[]>(invoicesFile, [], (current) => {
     const invoices = Array.isArray(current) ? current : []
-    return [invoice, ...invoices.filter((item) => item.id !== invoice.id && item.invoice_number !== invoice.invoice_number)]
+    const updated = [invoice, ...invoices.filter((item) => item.id !== invoice.id && item.invoice_number !== invoice.invoice_number)]
+    void mutateJsonFile<Record<string, any>>(fullSnapshotFile, {}, (snapshot) => ({
+      ...(snapshot && typeof snapshot === "object" ? snapshot : {}),
+      invoices: updated,
+      updated_at: new Date().toISOString(),
+    })).catch(() => {})
+    return updated
   })
+  try {
+    const { enqueueChange } = await import("@/lib/sync/sync-queue")
+    enqueueChange(invoice.invoice_number, "invoice", "update", invoice)
+  } catch (_) {}
   return invoice
 }
 
 export async function deleteInvoice(id: string) {
-  await mutateJsonFile<InvoiceRecord[]>(invoicesFile, [], (current) =>
-    (Array.isArray(current) ? current : []).filter((invoice) => invoice.id !== id && invoice.invoice_number !== id)
-  )
+  await mutateJsonFile<InvoiceRecord[]>(invoicesFile, [], (current) => {
+    const filtered = (Array.isArray(current) ? current : []).filter((invoice) => invoice.id !== id && invoice.invoice_number !== id)
+    void mutateJsonFile<Record<string, any>>(fullSnapshotFile, {}, (snapshot) => ({
+      ...(snapshot && typeof snapshot === "object" ? snapshot : {}),
+      invoices: filtered,
+      updated_at: new Date().toISOString(),
+    })).catch(() => {})
+    return filtered
+  })
+  try {
+    const { enqueueChange } = await import("@/lib/sync/sync-queue")
+    enqueueChange(id, "invoice", "delete", { id })
+  } catch (_) {}
 }
 
 export async function getAllAccounts() {

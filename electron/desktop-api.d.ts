@@ -24,7 +24,10 @@ declare global {
       saveFile(defaultName: string, bytes: number[]): Promise<string | null>
       openFile(filePath: string): Promise<string>
       revealFile(filePath: string): Promise<void>
-      print(): Promise<boolean>
+      print(options?: { silent?: boolean; printBackground?: boolean; landscape?: boolean; margins?: any; pageSize?: any; deviceName?: string }): Promise<boolean>
+      getPrinters(): Promise<Array<{ name: string; displayName: string; isDefault: boolean; status: number }>>
+      getPreviewPdf(options?: { landscape?: boolean; pageSize?: any }): Promise<number[] | null>
+      getPreviewPDF(options?: { landscape?: boolean; pageSize?: any }): Promise<number[] | null>
       exportPageToPdf(defaultName: string): Promise<string | null>
       exportBackup(): Promise<string | null>
       restoreBackup(): Promise<number | null>
@@ -37,7 +40,8 @@ declare global {
       readClipboardText(): Promise<string>
       writeClipboardText(text: string): Promise<boolean>
       checkForUpdates(customPath?: string): Promise<DesktopUpdateInfo>
-      installUpdate(installerPath?: string): Promise<{ success: boolean; message: string; error?: string }>
+      installUpdate(options?: string | { targetPath?: string; silent?: boolean }): Promise<{ success: boolean; message: string; error?: string }>
+      killProcesses(): Promise<{ success: boolean; message: string; error?: string }>
       openUpdateFolder(targetPath?: string): Promise<{ success: boolean; error?: string }>
       selectInstallerFile(): Promise<string | null>
     }

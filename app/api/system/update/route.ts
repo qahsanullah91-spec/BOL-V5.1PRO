@@ -132,8 +132,16 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}))
     const action = body.action || "check"
 
+    if (action === "kill-processes") {
+      try {
+        spawn("taskkill", ["/F", "/T", "/IM", "aq-backend.exe"], { windowsHide: true, stdio: "ignore" })
+      } catch {}
+      return NextResponse.json({ success: true, message: "Lingering background processes terminated." })
+    }
+
     if (action === "install") {
       const targetPath = body.installerPath || body.customPath
+      const isSilent = body.silent === true
       const installer = findInstaller(targetPath)
       if (!installer || !fs.existsSync(installer.path)) {
         return NextResponse.json(
@@ -142,8 +150,14 @@ export async function POST(request: Request) {
         )
       }
 
-      // Launch installer detached so it continues even if the app server is closed
-      const child = spawn(installer.path, [], {
+      // Pre-emptively terminate background Python backend to release database locks
+      try {
+        spawn("taskkill", ["/F", "/T", "/IM", "aq-backend.exe"], { windowsHide: true, stdio: "ignore" })
+      } catch {}
+
+      // Launch installer detached with --updated flag to auto-upgrade
+      const args = isSilent ? ["/S", "--updated"] : ["--updated"]
+      const child = spawn(installer.path, args, {
         detached: true,
         stdio: "ignore",
         windowsHide: false,

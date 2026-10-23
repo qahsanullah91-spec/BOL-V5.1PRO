@@ -128,12 +128,44 @@ export function registerIpcHandlers(options: {
     if (typeof filePath !== "string" || !path.isAbsolute(filePath)) throw new Error("Invalid file path")
     shell.showItemInFolder(filePath)
   })
-  ipcMain.handle("print:page", async () => {
+  ipcMain.handle("print:page", async (_event, options?: { silent?: boolean; printBackground?: boolean; landscape?: boolean; margins?: any; pageSize?: any; deviceName?: string }) => {
     const window = getWindow()
     if (!window) return false
     return new Promise<boolean>((resolve) => {
-      window.webContents.print({ silent: false, printBackground: true }, (success) => resolve(success))
+      const printOpts: Electron.WebContentsPrintOptions = {
+        silent: options?.silent ?? false,
+        printBackground: options?.printBackground ?? true,
+        landscape: options?.landscape ?? false,
+        pageSize: options?.pageSize ?? "A4",
+        ...(options?.deviceName ? { deviceName: options.deviceName } : {}),
+        ...(options?.margins ? { margins: options.margins } : {}),
+      }
+      window.webContents.print(printOpts, (success) => resolve(success))
     })
+  })
+  ipcMain.handle("print:get-printers", async () => {
+    const window = getWindow()
+    if (!window) return []
+    try {
+      return await window.webContents.getPrintersAsync()
+    } catch {
+      return []
+    }
+  })
+  ipcMain.handle("print:get-preview-pdf", async (_event, options?: { landscape?: boolean; pageSize?: any }) => {
+    const window = getWindow()
+    if (!window) return null
+    try {
+      const pdfBuffer = await window.webContents.printToPDF({
+        pageSize: options?.pageSize || "A4",
+        landscape: options?.landscape ?? false,
+        printBackground: true,
+        preferCSSPageSize: true,
+      })
+      return Array.from(pdfBuffer)
+    } catch {
+      return null
+    }
   })
   ipcMain.handle("print:pdf", async (_event, defaultName?: unknown) => {
     const window = getWindow()
@@ -267,37 +299,68 @@ export function registerIpcHandlers(options: {
     }
   })
 
-  ipcMain.handle("updater:install", async (_event, targetPath?: string) => {
+  ipcMain.handle("updater:install", async (_event, options?: string | { targetPath?: string; silent?: boolean }) => {
     try {
+      const targetPath = typeof options === "string" ? options : options?.targetPath
+      const isSilent = typeof options === "object" && options?.silent === true
       const installer = findInstallerPath(targetPath)
       if (!installer || !fs.existsSync(installer.path)) {
         return { success: false, error: "Setup executable was not found. Please verify release directory." }
       }
 
-      // Launch the installer detached so it continues after app exits
-      const child = spawn(installer.path, [], {
+      // Stop background server manager and forcefully terminate Python backend process tree
+      try {
+        void backendManager.stop().catch(() => {})
+        spawn("taskkill", ["/F", "/T", "/IM", "aq-backend.exe"], { windowsHide: true, stdio: "ignore" })
+      } catch {}
+
+      // Launch installer detached via cmd.exe with a 1-second timeout delay.
+      // This guarantees that AQ COMPANIES.exe and all child processes are 100% terminated
+      // before the installer begins file inspection, completely preventing "AQ COMPANIES cannot be closed" error.
+      const args = isSilent ? ["/S", "--updated"] : ["--updated"]
+      const quotedInstaller = `"${installer.path}"`
+      const argStr = args.join(" ")
+      const launcherCmd = `timeout /t 1 /nobreak >nul & start "" ${quotedInstaller} ${argStr}`
+
+      const child = spawn("cmd.exe", ["/c", launcherCmd], {
         detached: true,
         stdio: "ignore",
-        windowsHide: false,
+        windowsHide: true,
       })
       child.unref()
 
-      // Gracefully exit the current application after 1500ms so files are not locked
+      // Close all windows and exit process immediately after returning response
       setTimeout(() => {
         try {
-          app.quit()
+          const windows = BrowserWindow.getAllWindows()
+          for (const win of windows) {
+            try { win.destroy() } catch {}
+          }
+          app.exit(0)
         } catch {
           process.exit(0)
         }
-      }, 1500)
+      }, 300)
 
       return {
         success: true,
-        message: "Installer launched successfully. The application will close in a moment to complete setup.",
+        message: "Installer launched successfully. Application is terminating cleanly to allow update.",
         installerPath: installer.path,
       }
     } catch (e: any) {
       return { success: false, error: e?.message || "Failed to launch installer" }
+    }
+  })
+
+  ipcMain.handle("updater:kill-processes", async () => {
+    try {
+      try {
+        void backendManager.stop().catch(() => {})
+      } catch {}
+      spawn("taskkill", ["/F", "/T", "/IM", "aq-backend.exe"], { windowsHide: true, stdio: "ignore" })
+      return { success: true, message: "Lingering background processes terminated." }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to terminate background processes" }
     }
   })
 

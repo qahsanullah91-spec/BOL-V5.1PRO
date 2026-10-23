@@ -78,6 +78,7 @@ import { buildManagementSummary } from "@/lib/whatsapp/bulk-message"
 import { normalizeToWhatsAppShipment } from "@/lib/whatsapp/normalized-shipment"
 import { Button } from "@/components/ui/button"
 import { AQ_COMPANIES_LOGO_SRC } from "@/lib/reports/report-logo"
+import { ReportPrintPreviewModal } from "./report-print-preview-modal"
 
 import {
   DropdownMenu,
@@ -300,6 +301,7 @@ export function SavedBolReport({
   const [isFitScreen, setIsFitScreen] = useState(false)
   const [tableDensity, setTableDensity] = useState<"compact" | "normal">("compact")
   const [reportCompanyName, setReportCompanyName] = useState<string>("AQ COMPANIES")
+  const [isPrintPreviewModalOpen, setIsPrintPreviewModalOpen] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
 
   // Preset & History Storage
@@ -336,40 +338,70 @@ export function SavedBolReport({
     toast.success("Set as default Report Center view")
   }
 
-  // Full Dataset State: Ensure reports always display the entire database of BOLs
+  // Full Dataset State: Ensure reports always display the entire database of BOLs and listen for live updates
   const [fullDataset, setFullDataset] = useState<SavedDocument[] | null>(null)
   const [isLoadingFullDataset, setIsLoadingFullDataset] = useState(false)
 
-  useEffect(() => {
-    let isMounted = true
-    const loadAllBols = async () => {
-      try {
-        setIsLoadingFullDataset(true)
-        const res = await fetch("/api/bol?all=true")
-        if (res.ok) {
-          const json = await res.json()
-          if (isMounted && json?.data && Array.isArray(json.data) && json.data.length > 0) {
-            setFullDataset(json.data)
+  const loadAllBols = useCallback(async (notifySuccess = false) => {
+    try {
+      setIsLoadingFullDataset(true)
+      const res = await fetch(`/api/bol?all=true&_t=${Date.now()}`)
+      if (res.ok) {
+        const json = await res.json()
+        if (json?.data && Array.isArray(json.data) && json.data.length > 0) {
+          setFullDataset(json.data)
+          if (notifySuccess) {
+            toast.success(`Updated: ${json.data.length} latest BOL records loaded`)
           }
         }
-      } catch (err) {
-        console.warn("[SavedBolReport] Failed to fetch full BOL dataset:", err)
-      } finally {
-        if (isMounted) setIsLoadingFullDataset(false)
       }
-    }
-    void loadAllBols()
-    return () => {
-      isMounted = false
+    } catch (err) {
+      console.warn("[SavedBolReport] Failed to fetch full BOL dataset:", err)
+      if (notifySuccess) {
+        toast.error("Could not refresh BOL records")
+      }
+    } finally {
+      setIsLoadingFullDataset(false)
     }
   }, [])
 
-  // 1. Resolve Active Dataset based on full fetched dataset or passed documents
+  useEffect(() => {
+    void loadAllBols(false)
+
+    const handleDataUpdated = () => {
+      void loadAllBols(false)
+    }
+
+    window.addEventListener("skybol:documents-updated", handleDataUpdated)
+    window.addEventListener("skybol:cloud-synced", handleDataUpdated)
+    window.addEventListener("skybol:online-sync-complete", handleDataUpdated)
+
+    return () => {
+      window.removeEventListener("skybol:documents-updated", handleDataUpdated)
+      window.removeEventListener("skybol:cloud-synced", handleDataUpdated)
+      window.removeEventListener("skybol:online-sync-complete", handleDataUpdated)
+    }
+  }, [loadAllBols])
+
+  // 1. Resolve Active Dataset based on full fetched dataset merged with latest passed documents
   const baseData = useMemo(() => {
     if (fullDataset && fullDataset.length > 0) {
-      return fullDataset
+      const docMap = new Map<string, SavedDocument>()
+      // Start with records from the server/snapshot
+      for (const item of fullDataset) {
+        const key = item.id || item.bol_number || ""
+        if (key) docMap.set(key, item)
+      }
+      // Overlay latest in-memory documents prop (recent edits/creations take precedence)
+      if (Array.isArray(documents)) {
+        for (const item of documents) {
+          const key = item.id || item.bol_number || ""
+          if (key) docMap.set(key, item)
+        }
+      }
+      return Array.from(docMap.values())
     }
-    return documents
+    return documents || []
   }, [fullDataset, documents])
 
   // Extract unique options for quick dropdown filters
@@ -2700,8 +2732,8 @@ export function SavedBolReport({
     clone.id = "sky-reports-cloned-print-canvas"
     clone.className = `reports-print-document font-sans text-slate-900 bg-white w-full p-0 m-0 border-none shadow-none`
 
-    // Remove interactive elements
-    clone.querySelectorAll("button, input, select, textarea, .no-print, [data-no-print='true'], [role='button']").forEach((el) => {
+    // Remove interactive elements and print-hidden elements
+    clone.querySelectorAll("button, input, select, textarea, .no-print, [data-no-print='true'], [role='button'], .print\\:hidden, th.print\\:hidden, td.print\\:hidden").forEach((el) => {
       el.remove()
     })
 
@@ -2712,26 +2744,6 @@ export function SavedBolReport({
       }
     })
 
-    // In Detailed Report, optimize print table layout & strip interactive PDF column
-    if (activeTab === "detailed") {
-      clone.querySelectorAll("th.print\\:hidden, td.print\\:hidden").forEach((el) => el.remove())
-      clone.querySelectorAll("table").forEach((tbl) => {
-        const headerRow = tbl.querySelector("thead tr")
-        if (headerRow && headerRow.lastElementChild?.textContent?.trim() === "PDF") {
-          headerRow.lastElementChild.remove()
-          tbl.querySelectorAll("tbody tr").forEach((tr) => {
-            if (tr.children.length >= 11) {
-              tr.lastElementChild?.remove()
-            }
-          })
-          const footerRow = tbl.querySelector("tfoot tr")
-          if (footerRow && footerRow.lastElementChild) {
-            footerRow.lastElementChild.remove()
-          }
-        }
-      })
-    }
-
     // Remove scroll/overflow limits
     clone.querySelectorAll(".overflow-y-auto, .overflow-x-auto, [class*='max-h-'], .scrollbar-thin").forEach((el) => {
       const htmlEl = el as HTMLElement
@@ -2741,13 +2753,23 @@ export function SavedBolReport({
       htmlEl.style.height = "auto"
     })
 
-    // Remove ellipsis truncation
+    // Remove ellipsis truncation and force clean line wrapping, but preserve nowrap on code/numbers/status
     clone.querySelectorAll(".truncate, [class*='max-w-']").forEach((el) => {
       const htmlEl = el as HTMLElement
       htmlEl.classList.remove("truncate")
-      htmlEl.style.whiteSpace = "normal"
-      htmlEl.style.wordBreak = "break-word"
       htmlEl.style.maxWidth = "none"
+
+      const closestCol = htmlEl.closest("[data-col-id]")?.getAttribute("data-col-id")
+      const isNowrapCol = closestCol && ["bolNo", "date", "status", "idx", "invoice", "packages", "netWt", "grossWt", "rate", "value", "container", "seal"].includes(closestCol)
+      const hasNowrapClass = htmlEl.classList.contains("whitespace-nowrap") || Boolean(htmlEl.closest(".whitespace-nowrap"))
+
+      if (isNowrapCol || hasNowrapClass) {
+        htmlEl.style.whiteSpace = "nowrap"
+        htmlEl.style.wordBreak = "keep-all"
+      } else {
+        htmlEl.style.whiteSpace = "normal"
+        htmlEl.style.wordBreak = "break-word"
+      }
     })
 
     // Remove sticky headers for print
@@ -2757,11 +2779,67 @@ export function SavedBolReport({
       htmlEl.style.position = "static"
     })
 
-    // Proportional column widths for print table
+    // Column Weights Map for calibrated A4 landscape printing (summing to ~100%)
+    const PRINT_COLUMN_WEIGHTS: Record<string, number> = {
+      idx: 2.0,
+      bolNo: 11.5,
+      date: 6.5,
+      truckDriver: 11.0,
+      invoice: 5.0,
+      shipper: 11.0,
+      consignee: 11.0,
+      notify: 7.0,
+      cargo: 13.5,
+      route: 8.5,
+      packages: 6.0,
+      netWt: 5.5,
+      grossWt: 5.5,
+      rate: 4.5,
+      value: 6.5,
+      container: 4.0,
+      seal: 3.5,
+      status: 6.0,
+    }
+
+        // Prune empty container/seal columns if neither is used across any record in the active data set
+    const hasAnyContainer = activeReportData.some((d) => Boolean((d.container_numbers || (d as any).container_number || "").trim()))
+    const hasAnySeal = activeReportData.some((d) => Boolean((d.seal_numbers || "").trim()))
+    if (!hasAnyContainer) {
+      clone.querySelectorAll("[data-col-id='container']").forEach((el) => el.remove())
+    }
+    if (!hasAnySeal) {
+      clone.querySelectorAll("[data-col-id='seal']").forEach((el) => el.remove())
+    }
+
+    // Configure proportional column widths via explicit <colgroup>
     clone.querySelectorAll("table").forEach((tbl) => {
+      tbl.classList.remove("min-w-[1450px]", "min-w-[1850px]")
       tbl.classList.add("w-full", "border-collapse")
       tbl.style.width = "100%"
+      tbl.style.minWidth = "0px"
       tbl.style.tableLayout = "fixed"
+
+      const headerThs = Array.from(tbl.querySelectorAll("thead tr th"))
+      if (headerThs.length > 0) {
+        tbl.querySelectorAll("colgroup").forEach((cg) => cg.remove())
+
+        let totalWeight = 0
+        const weights = headerThs.map((th) => {
+          const colId = th.getAttribute("data-col-id") || ""
+          const w = PRINT_COLUMN_WEIGHTS[colId] || 5.0
+          totalWeight += w
+          return w
+        })
+
+        const colgroup = document.createElement("colgroup")
+        weights.forEach((w) => {
+          const pct = ((w / totalWeight) * 100).toFixed(2)
+          const col = document.createElement("col")
+          col.style.width = `${pct}%`
+          colgroup.appendChild(col)
+        })
+        tbl.insertBefore(colgroup, tbl.firstChild)
+      }
     })
 
     // Remove duplicate on-screen header from clone since executive letterhead banner is prepended
@@ -2769,11 +2847,11 @@ export function SavedBolReport({
 
     // Prepend executive letterhead banner to print root
     const printLetterhead = document.createElement("div")
-    printLetterhead.className = "print-letterhead-banner mb-3 border-b-2 border-slate-900 pb-2.5"
+    printLetterhead.className = "print-letterhead-banner mb-2 border-b-2 border-slate-900 pb-2"
     printLetterhead.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 7px; border-bottom: 2px solid #0f172a;">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <div style="width: 58px; height: 58px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; padding: 2px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); flex-shrink: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 5px; border-bottom: 2px solid #0f172a;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 52px; height: 52px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; padding: 2px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); flex-shrink: 0;">
             <img
               src="${AQ_COMPANIES_LOGO_SRC}"
               alt="AQ COMPANIES"
@@ -2782,60 +2860,61 @@ export function SavedBolReport({
           </div>
           <div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <h1 style="font-size: 20px; font-weight: 900; color: #0a2540; text-transform: uppercase; margin: 0; letter-spacing: -0.5px; line-height: 1.1;">${reportCompanyName || "AQ COMPANIES"}</h1>
-              <span style="font-size: 8.5px; font-weight: 800; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 1.5px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.6px;">${activeTab.replace("_", " ").toUpperCase()} REPORT</span>
+              <h1 style="font-size: 18px; font-weight: 900; color: #0a2540; text-transform: uppercase; margin: 0; letter-spacing: -0.5px; line-height: 1.1;">${reportCompanyName || "AQ COMPANIES"}</h1>
+              <span style="font-size: 8px; font-weight: 800; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 1px 5px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${activeTab.replace("_", " ").toUpperCase()} REPORT</span>
             </div>
-            <p style="font-size: 9px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 2px 0 0 0; letter-spacing: 0.8px;">SKY ARIANA • INTERNATIONAL FREIGHT & MULTI-MODAL LOGISTICS MANAGEMENT</p>
-            <p style="font-size: 10.5px; font-weight: 800; color: #1e3a8a; margin: 2px 0 0 0; text-transform: uppercase; letter-spacing: 0.2px;">MASTER BILL OF LADING AUDIT & SHIPMENT MANIFEST (گزارش جامع بارنامه‌ها)</p>
+            <p style="font-size: 8.5px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 2px 0 0 0; letter-spacing: 0.7px;">SKY ARIANA • INTERNATIONAL FREIGHT & MULTI-MODAL LOGISTICS MANAGEMENT</p>
+            <p style="font-size: 9.5px; font-weight: 800; color: #1e3a8a; margin: 2px 0 0 0; text-transform: uppercase; letter-spacing: 0.2px;">MASTER BILL OF LADING AUDIT & SHIPMENT MANIFEST (گزارش جامع بارنامه‌ها)</p>
           </div>
         </div>
-        <div style="text-align: right; font-size: 8.5px; font-weight: 600; color: #475569; line-height: 1.45; border-left: 2px solid #e2e8f0; padding-left: 12px;">
+        <div style="text-align: right; font-size: 8px; font-weight: 600; color: #475569; line-height: 1.4; border-left: 2px solid #e2e8f0; padding-left: 10px;">
           <p style="margin: 0;"><span style="color: #64748b;">Audit Date:</span> <strong style="color: #0f172a; font-family: monospace;">${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString()}</strong></p>
           <p style="margin: 0;"><span style="color: #64748b;">Audited Records:</span> <strong style="color: #0f172a; font-family: monospace;">${activeReportData.length} Bills of Lading</strong></p>
           <p style="margin: 0;"><span style="color: #64748b;">Verification:</span> <strong style="color: #059669; font-weight: 800;">Verified Operations Record</strong></p>
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 5px; padding: 6px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 4px; padding: 4px 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px;">
         <div style="border-right: 1px solid #e2e8f0; padding-right: 6px;">
-          <span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;">Total BOLs</span>
-          <p style="font-size: 13px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${activeReportData.length}</p>
+          <span style="font-size: 7px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;">Total BOLs</span>
+          <p style="font-size: 11px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${activeReportData.length}</p>
         </div>
         <div style="border-right: 1px solid #e2e8f0; padding-right: 6px;">
-          <span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;">Total Packages</span>
-          <p style="font-size: 11.5px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${Object.keys(overviewKpis.packageUnitsBreakdown || {}).length > 0 ? Object.entries(overviewKpis.packageUnitsBreakdown || {}).map(([unit, cnt]) => `${cnt.toLocaleString()} ${unit}`).join(" / ") : `${overviewKpis.totalPackages.toLocaleString()} PKGS`}</p>
+          <span style="font-size: 7px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;">Total Packages</span>
+          <p style="font-size: 10.5px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${Object.keys(overviewKpis.packageUnitsBreakdown || {}).length > 0 ? Object.entries(overviewKpis.packageUnitsBreakdown || {}).map(([unit, cnt]) => `${cnt.toLocaleString()} ${unit}`).join(" / ") : `${overviewKpis.totalPackages.toLocaleString()} PKGS`}</p>
         </div>
         <div style="border-right: 1px solid #e2e8f0; padding-right: 6px;">
-          <span style="font-size: 7.5px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;">Gross / Net Weight</span>
-          <p style="font-size: 12px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${overviewKpis.totalGrossWeightKg.toLocaleString()} / ${overviewKpis.totalNetWeightKg.toLocaleString()} KG</p>
+          <span style="font-size: 7px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;">Gross / Net Weight</span>
+          <p style="font-size: 10.5px; font-weight: 900; color: #0f172a; margin: 0; font-family: monospace;">${overviewKpis.totalGrossWeightKg.toLocaleString()} / ${overviewKpis.totalNetWeightKg.toLocaleString()} KG</p>
         </div>
         <div>
-          <span style="font-size: 7.5px; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 0.4px;">Total Goods Value</span>
-          <p style="font-size: 12.5px; font-weight: 900; color: #059669; margin: 0; font-family: monospace;">$${(overviewKpis.currencyTotals.find(c => c.currency === "USD")?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <span style="font-size: 7px; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 0.4px;">Total Goods Value</span>
+          <p style="font-size: 11px; font-weight: 900; color: #059669; margin: 0; font-family: monospace;">$${(overviewKpis.currencyTotals.find(c => c.currency === "USD")?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
       </div>
     `
     clone.prepend(printLetterhead)
 
-    // Append official sign-off block
+    // Append official compact sign-off block (designed to fit on the final page without triggering page gaps)
     const signOffBlock = document.createElement("div")
-    signOffBlock.className = "print-audit-signoff mt-5 pt-3 border-t border-slate-300"
+    signOffBlock.className = "print-audit-signoff mt-3 pt-2 border-t border-slate-300"
     signOffBlock.style.pageBreakInside = "avoid"
+    signOffBlock.style.breakInside = "avoid"
     signOffBlock.innerHTML = `
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 10px; font-size: 9px;">
-        <div style="border-top: 1px dashed #94a3b8; padding-top: 4px;">
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 4px; font-size: 7.5px;">
+        <div style="border-top: 1px dashed #94a3b8; padding-top: 2px;">
           <p style="font-weight: 800; color: #0f172a; margin: 0;">Prepared By (Logistics Officer):</p>
-          <p style="color: #64748b; margin: 2px 0 0 0;">Signature & Date: ____________________</p>
+          <p style="color: #64748b; margin: 1px 0 0 0;">Signature & Date: ____________________</p>
         </div>
-        <div style="border-top: 1px dashed #94a3b8; padding-top: 4px;">
+        <div style="border-top: 1px dashed #94a3b8; padding-top: 2px;">
           <p style="font-weight: 800; color: #0f172a; margin: 0;">Audited By (Operations Controller):</p>
-          <p style="color: #64748b; margin: 2px 0 0 0;">Signature & Date: ____________________</p>
+          <p style="color: #64748b; margin: 1px 0 0 0;">Signature & Date: ____________________</p>
         </div>
-        <div style="border: 1px dashed #94a3b8; border-radius: 4px; padding: 4px 6px; text-align: center;">
+        <div style="border: 1px dashed #94a3b8; border-radius: 4px; padding: 2px 4px; text-align: center;">
           <p style="font-weight: 800; color: #0f172a; margin: 0;">Management Approval & Official Stamp</p>
-          <p style="color: #94a3b8; font-size: 8px; margin: 10px 0 0 0;">Official Seal / مهر و امضاء رسمی شرکت</p>
+          <p style="color: #94a3b8; font-size: 7px; margin: 4px 0 0 0;">Official Seal / مهر و امضاء رسمی شرکت</p>
         </div>
       </div>
-      <div style="margin-top: 8px; text-align: center; font-size: 7.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">
+      <div style="margin-top: 4px; text-align: center; font-size: 6.8px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">
         CONFIDENTIAL & OFFICIAL OPERATIONAL RECORD • SKY ARIANA BOL MANAGEMENT SYSTEM
       </div>
     `
@@ -2853,12 +2932,12 @@ export function SavedBolReport({
     styleEl.innerHTML = `
       @page {
         size: ${isLandscape ? "A4 landscape" : "A4 portrait"} !important;
-        margin: 5mm 6mm !important;
+        margin: 4mm 5mm !important;
       }
       @media print {
         @page {
           size: ${isLandscape ? "A4 landscape" : "A4 portrait"} !important;
-          margin: 5mm 6mm !important;
+          margin: 4mm 5mm !important;
         }
         html, body {
           background: #ffffff !important;
@@ -2889,9 +2968,10 @@ export function SavedBolReport({
         .reports-print-document table {
           display: table !important;
           width: 100% !important;
+          min-width: 0 !important;
           table-layout: fixed !important;
           border-collapse: collapse !important;
-          font-size: 8.5px !important;
+          font-size: 7.8px !important;
         }
         .reports-print-document thead {
           display: table-header-group !important;
@@ -2901,15 +2981,6 @@ export function SavedBolReport({
           color: #ffffff !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
-        }
-        .reports-print-document thead th {
-          background: #0a2540 !important;
-          color: #ffffff !important;
-          border: 1px solid #334155 !important;
-          padding: 3px 4px !important;
-          font-size: 8.5px !important;
-          font-weight: 800 !important;
-          text-transform: uppercase !important;
         }
         .reports-print-document tbody tr {
           page-break-inside: avoid !important;
@@ -2922,10 +2993,11 @@ export function SavedBolReport({
         }
         .reports-print-document tbody td {
           border: 1px solid #cbd5e1 !important;
-          padding: 2.5px 4px !important;
-          font-size: 8.5px !important;
-          line-height: 1.25 !important;
-          vertical-align: middle !important;
+          padding: 2px 2.5px !important;
+          font-size: 7.8px !important;
+          line-height: 1.15 !important;
+          vertical-align: top !important;
+          word-break: normal !important;
         }
         .reports-print-document tfoot {
           display: table-footer-group !important;
@@ -2938,10 +3010,68 @@ export function SavedBolReport({
         }
         .reports-print-document tfoot td {
           border: 1px solid #334155 !important;
-          padding: 3.5px 4px !important;
+          padding: 2.5px 3px !important;
           font-weight: 900 !important;
-          font-size: 9px !important;
+          font-size: 8px !important;
           color: #ffffff !important;
+        }
+        .reports-print-document svg {
+          display: none !important;
+        }
+        .reports-print-document thead th {
+          background: #0a2540 !important;
+          color: #ffffff !important;
+          border: 1px solid #334155 !important;
+          padding: 2.5px 3px !important;
+          font-size: 8px !important;
+          font-weight: 800 !important;
+          text-transform: uppercase !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+          word-break: keep-all !important;
+        }
+        .reports-print-document thead th[data-col-id="bolNo"],
+        .reports-print-document thead th[data-col-id="date"],
+        .reports-print-document thead th[data-col-id="status"],
+        .reports-print-document thead th[data-col-id="packages"],
+        .reports-print-document thead th[data-col-id="netWt"],
+        .reports-print-document thead th[data-col-id="grossWt"] {
+          white-space: nowrap !important;
+          word-break: keep-all !important;
+        }
+        .reports-print-document tbody td[data-col-id="bolNo"],
+        .reports-print-document tbody td[data-col-id="date"],
+        .reports-print-document tbody td[data-col-id="status"],
+        .reports-print-document tbody td[data-col-id="packages"],
+        .reports-print-document tbody td[data-col-id="netWt"],
+        .reports-print-document tbody td[data-col-id="grossWt"],
+        .reports-print-document tbody td[data-col-id="rate"],
+        .reports-print-document tbody td[data-col-id="value"] {
+          white-space: nowrap !important;
+          word-break: keep-all !important;
+        }
+        .reports-print-document tbody td[data-col-id="bolNo"] span,
+        .reports-print-document tbody td[data-col-id="status"] span {
+          white-space: nowrap !important;
+          word-break: keep-all !important;
+          display: inline-block !important;
+        }
+        .reports-print-document tbody td[data-col-id="status"] {
+          text-align: center !important;
+        }
+        .reports-print-document tbody td[data-col-id="status"] span {
+          padding: 1px 5px !important;
+          font-size: 7.5px !important;
+          font-weight: 900 !important;
+          letter-spacing: 0.3px !important;
+        }
+        .reports-print-document td[data-col-id="shipper"],
+        .reports-print-document td[data-col-id="consignee"],
+        .reports-print-document td[data-col-id="notify"],
+        .reports-print-document td[data-col-id="cargo"],
+        .reports-print-document td[data-col-id="route"] {
+          white-space: normal !important;
+          word-break: break-word !important;
         }
         .no-print, [data-no-print="true"], .print\\:hidden {
           display: none !important;
@@ -2969,11 +3099,15 @@ export function SavedBolReport({
   }, [activeTab, pdfOrientation, activeReportData, overviewKpis, reportCompanyName])
 
   const handlePrint = useCallback(() => {
+    setIsPrintPreviewModalOpen(true)
+  }, [])
+
+  const handleDirectPrint = useCallback(() => {
     const prevPageSize = pageSize
     setPageSize("all")
-    const toastId = toast.loading("Preparing report for printing...")
+    const toastId = toast.loading("Preparing report for direct printing...")
 
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         const cleanup = preparePrintRoot()
         if (!cleanup) {
@@ -2992,18 +3126,25 @@ export function SavedBolReport({
 
         window.addEventListener("afterprint", handleAfterPrint)
 
-        // Trigger native browser print
-        setTimeout(() => {
+        if (typeof window !== "undefined" && window.skyDesktop?.print) {
+          await window.skyDesktop.print({
+            silent: false,
+            printBackground: true,
+            landscape: pdfOrientation === "landscape",
+            pageSize: "A4",
+          })
+          handleAfterPrint()
+        } else {
           window.print()
           setTimeout(handleAfterPrint, 4000)
-        }, 150)
+        }
       } catch (err) {
         console.error("Print initialization failed:", err)
         toast.error("Failed to prepare report for printing", { id: toastId })
         setPageSize(prevPageSize)
       }
     }, 250)
-  }, [pageSize, preparePrintRoot])
+  }, [pageSize, preparePrintRoot, pdfOrientation])
 
   // Listen for external print triggers (from top bar or Ctrl+P) and native browser print menu
   useEffect(() => {
@@ -3361,7 +3502,11 @@ export function SavedBolReport({
                 <DropdownMenuLabel className="text-xs font-bold text-slate-500">Document Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={handlePrint} className="text-xs font-bold cursor-pointer">
                   <Printer className="w-4 h-4 mr-2 text-slate-600" />
-                  Print Report (Ctrl+P)
+                  Print Preview Studio (Ctrl+P)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDirectPrint} className="text-xs font-bold text-slate-600 cursor-pointer">
+                  <Printer className="w-4 h-4 mr-2 opacity-60" />
+                  Quick Direct Print
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleGeneratePdf} disabled={isGeneratingPdf} className="text-xs font-bold text-blue-700 cursor-pointer">
                   <FileDown className="w-4 h-4 mr-2" />
@@ -3417,7 +3562,18 @@ export function SavedBolReport({
                 className={"h-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none " + (isPreviewMode ? "bg-slate-800 text-white dark:bg-blue-600" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100")}
               >
                 <Eye className="w-3.5 h-3.5 mr-1.5" />
-                <span>{isPreviewMode ? "Exit Preview" : "A4 Preview"}</span>
+                <span>{isPreviewMode ? "Exit Page View" : "A4 Page View"}</span>
+              </Button>
+              <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsPrintPreviewModalOpen(true)}
+                className="h-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-blue-50/80 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 dark:text-blue-300"
+                title="Open interactive A4 Print Preview Studio"
+              >
+                <Printer className="w-3.5 h-3.5 mr-1.5 text-blue-600 dark:text-blue-400" />
+                <span>Print Studio</span>
               </Button>
               <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
               <button
@@ -3449,8 +3605,19 @@ export function SavedBolReport({
             </div>
           </div>
 
-          {/* Right Group: Primary Export Actions (Print, PDF, Excel) */}
+          {/* Right Group: Primary Export Actions (Refresh, Print, PDF, Excel) */}
           <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => void loadAllBols(true)}
+              disabled={isLoadingFullDataset}
+              className="h-9 px-3 rounded-xl border-blue-200 dark:border-blue-800 bg-blue-50/80 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 text-blue-900 dark:text-blue-200 font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-all active:scale-95 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+              title="Refresh all latest BOL records and updates from the system"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 text-blue-600 dark:text-blue-400 ${isLoadingFullDataset ? "animate-spin" : ""}`} />
+              <span>{isLoadingFullDataset ? "Updating..." : "Refresh"}</span>
+            </Button>
+
             <Button
               onClick={handlePrint}
               className="h-9 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-black text-xs shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
@@ -5743,6 +5910,25 @@ export function SavedBolReport({
           handleViewMatchingBols(drawerState.entityType, drawerState.entityName)
         }
         onOpenBolQuickView={(doc) => setQuickViewDoc(doc)}
+      />
+
+      {/* 6. REPORT PRINT PREVIEW & LAYOUT STUDIO */}
+      <ReportPrintPreviewModal
+        isOpen={isPrintPreviewModalOpen}
+        onClose={() => setIsPrintPreviewModalOpen(false)}
+        reportTitle={`Saved Bills of Lading — ${activeTab.toUpperCase()} Report`}
+        companyName={reportCompanyName || "AQ COMPANIES"}
+        data={activeReportData}
+        kpis={{
+          totalBols: overviewKpis.totalBols,
+          totalPackages: overviewKpis.totalPackages,
+          totalNetWeight: overviewKpis.totalNetWeightKg,
+          totalGoodsValueUSD: overviewKpis.currencyTotals.find((c) => c.currency === "USD")?.amount || 0,
+          totalDriverRentAFN: overviewKpis.currencyTotals.find((c) => c.currency === "AFN")?.amount || 0,
+        }}
+        initialOrientation={pdfOrientation}
+        onDownloadPdf={handleGeneratePdf}
+        isGeneratingPdf={isGeneratingPdf}
       />
     </div>
   )

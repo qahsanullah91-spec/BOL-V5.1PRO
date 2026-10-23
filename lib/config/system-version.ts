@@ -21,12 +21,12 @@ export interface SystemVersionInfo {
   }
 }
 
-export const SYSTEM_RELEASE_LABEL = "v5.1pro" as const
+export const SYSTEM_RELEASE_LABEL = "v5.1.2" as const
 
 export const CURRENT_SYSTEM_VERSION = {
   version: SYSTEM_RELEASE_LABEL,
-  buildNumber: "2026.10.14-PRO",
-  releaseDate: "2026-10-14",
+  buildNumber: "2026.10.23-PRO",
+  releaseDate: "2026-10-23",
   edition: "AQ COMPANIES Enterprise Pro Edition",
   companyName: "AQ COMPANIES",
   applicationName: `AQ Companies BOL ${SYSTEM_RELEASE_LABEL}`,
@@ -35,7 +35,45 @@ export const CURRENT_SYSTEM_VERSION = {
   updateChannel: "stable",
   changelog: [
     {
-      version: SYSTEM_RELEASE_LABEL,
+      version: "v5.1.2",
+      date: "2026-10-23",
+      title: "Saved BOL Report Vector Printing & Layout Precision",
+      changes: [
+        "Calibrated landscape column weights preventing vertical letter-stacking of SAVED status, BOL numbers, and dates.",
+        "Engineered automatic pruning for empty Container and Seal Number columns, returning horizontal space to active shipment data.",
+        "Eliminated duplicate driver father names when already present in the primary driver record.",
+        "Sanitized Packages column by removing redundant commodity names that duplicate Cargo Summary entries.",
+        "Suppressed interactive UI action badges (Switch BL, AI triggers) during print rendering.",
+        "Enforced strict keep-all word-break boundaries for financial, quantity, and status metrics in printed documents.",
+      ],
+    },
+    {
+      version: "v5.1.1",
+      date: "2026-10-19",
+      title: "Interactive Print Preview Studio & Windows 11 Modern Print Engine",
+      changes: [
+        "Eliminated Windows 11 'This app doesn't support print preview' error via automated PreferLegacyPrintDialog registry integration.",
+        "Engineered interactive In-App A4 Print Preview & Layout Studio with true-to-life vector typography and drop-shadow canvas.",
+        "Added live Orientation Switcher (A4 Landscape 297x210mm vs Portrait 210x297mm) with instant layout re-flow.",
+        "Integrated real-time system printer selection with auto-detection of default Windows physical printer.",
+        "Added dynamic density controls (Compact vs Standard) and column toggles (Rent, Goods Value, Route, Truck/Driver).",
+        "Applied zero-overflow multi-page @media print CSS with repeating headers, footers, and page-break isolation.",
+        "Unified desktop print across Saved BOL Reports, Detailed Report Table, Statements, and Commercial Invoices.",
+      ],
+    },
+    {
+      version: "v5.1.0",
+      date: "2026-10-18",
+      title: "NSIS Process Lock Shield & In-Place Instant Upgrade Engine",
+      changes: [
+        "Eliminated 'AQ COMPANIES cannot be closed' installer retry dialogs by integrating custom NSIS process termination hooks.",
+        "Engineered detached launcher sequence with immediate OS-level process teardown to free all Windows file locks.",
+        "Added 'Unlock Files & Terminate Background Instances' quick repair action directly in Software Updates tab.",
+        "Implemented interactive In-App Update Modal with seamless automatic relaunch post-upgrade.",
+      ],
+    },
+    {
+      version: "v5.1.0",
       date: "2026-10-14",
       title: "1-Click Desktop Update Engine & Windows 11 Print System Upgrade",
       changes: [

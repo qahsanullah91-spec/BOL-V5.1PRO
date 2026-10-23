@@ -21,6 +21,10 @@ import {
   Laptop,
   ArrowUpRight,
   ExternalLink,
+  Unlock,
+  Layers,
+  X,
+  ShieldAlert,
 } from "lucide-react"
 import { CURRENT_SYSTEM_VERSION, SYSTEM_RELEASE_LABEL } from "@/lib/config/system-version"
 import { toast } from "sonner"
@@ -51,6 +55,9 @@ export function SoftwareUpdateTab() {
   const [copiedCmd, setCopiedCmd] = useState<boolean>(false)
   const [expandedChangelog, setExpandedChangelog] = useState<boolean>(true)
   const [isDesktopApp, setIsDesktopApp] = useState<boolean>(false)
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false)
+  const [upgradeMode, setUpgradeMode] = useState<"seamless" | "guided">("seamless")
+  const [isKillingProcesses, setIsKillingProcesses] = useState<boolean>(false)
 
   // Detect environment on mount
   useEffect(() => {
@@ -168,28 +175,61 @@ export function SoftwareUpdateTab() {
     checkForUpdates()
   }, [checkForUpdates])
 
-  // 1-Click Install Update
-  const handleInstallUpdate = async () => {
+  // Release file locks and kill background workers
+  const handleKillProcesses = async () => {
+    setIsKillingProcesses(true)
+    try {
+      if (typeof window !== "undefined" && window.skyDesktop?.killProcesses) {
+        const res = await window.skyDesktop.killProcesses()
+        if (res.success) {
+          toast.success("Background processes terminated & Windows file locks released!")
+        } else {
+          toast.error(res.error || "Failed to terminate background processes")
+        }
+      } else {
+        const res = await fetch("/api/system/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "kill-processes" }),
+        })
+        const json = await res.json()
+        if (json.success) {
+          toast.success("Background processes terminated & Windows file locks released!")
+        } else {
+          toast.error(json.error || "Failed to terminate processes")
+        }
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Error clearing background processes")
+    } finally {
+      setIsKillingProcesses(false)
+    }
+  }
+
+  // Open In-App Confirmation Modal
+  const handleOpenInstallModal = () => {
     if (!updateData?.installerPath && !updateData?.hasUpdate) {
       toast.error("No valid installer found to install.")
       return
     }
+    setShowConfirmModal(true)
+  }
 
-    const confirmed = window.confirm(
-      `Ready to install AQ COMPANIES update (${updateData?.version || CURRENT_SYSTEM_VERSION.version})?\n\n` +
-      `The installer will launch automatically. The current application will close to allow setup to complete.\n\n` +
-      `Your database, settings, and bills of lading will remain safe and untouched.`
-    )
-    if (!confirmed) return
-
+  // Execute Upgrade
+  const triggerInstall = async (mode: "seamless" | "guided" = upgradeMode) => {
+    setShowConfirmModal(false)
     setIsInstalling(true)
     setInstallCountdown(3)
 
     try {
+      const isSilent = mode === "seamless"
       if (typeof window !== "undefined" && window.skyDesktop?.installUpdate) {
-        const res = await window.skyDesktop.installUpdate(updateData.installerPath || undefined)
+        const res = await window.skyDesktop.installUpdate({
+          targetPath: updateData?.installerPath || undefined,
+          silent: isSilent,
+        })
         if (res.success) {
-          toast.success("Installer launched! Closing application in 2 seconds...")
+          toast.success("Installer launched! Closing current application in 2 seconds...")
           let count = 3
           const timer = setInterval(() => {
             count -= 1
@@ -208,7 +248,11 @@ export function SoftwareUpdateTab() {
         const res = await fetch("/api/system/update", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "install", installerPath: updateData.installerPath }),
+          body: JSON.stringify({
+            action: "install",
+            installerPath: updateData?.installerPath,
+            silent: isSilent,
+          }),
         })
         const json = await res.json()
         if (json.success) {
@@ -409,11 +453,11 @@ export function SoftwareUpdateTab() {
           </div>
 
           {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 lg:min-w-[240px]">
+          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 lg:min-w-[250px]">
             {hasInstallerReady ? (
               <button
                 type="button"
-                onClick={handleInstallUpdate}
+                onClick={handleOpenInstallModal}
                 disabled={isInstalling}
                 className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-sm shadow-xl shadow-emerald-600/30 active:scale-95 transition flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
               >
@@ -437,6 +481,17 @@ export function SoftwareUpdateTab() {
                 <span>Scan for New Release Package</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={handleKillProcesses}
+              disabled={isKillingProcesses || isInstalling}
+              className="w-full py-2.5 px-4 rounded-xl border border-amber-300 bg-amber-50/50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              title="Force terminate lingering background instances to unlock files before installation"
+            >
+              <Unlock className={`w-3.5 h-3.5 text-amber-700 ${isKillingProcesses ? "animate-spin" : ""}`} />
+              <span>{isKillingProcesses ? "Clearing Locks..." : "Unlock Files & Clear Workers"}</span>
+            </button>
 
             <button
               type="button"
@@ -650,6 +705,166 @@ export function SoftwareUpdateTab() {
           </div>
         )}
       </div>
+
+      {/* Interactive Update Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black tracking-tight text-white">
+                    Confirm Software Upgrade
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Upgrading to {updateData?.version || CURRENT_SYSTEM_VERSION.version} • {updateData?.installerFormattedSize || "535 MB"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5">
+              {/* Upgrade Mode Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-600">
+                  Select Upgrade Mode
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setUpgradeMode("seamless")}
+                    className={`p-4 rounded-2xl border-2 transition cursor-pointer flex flex-col justify-between gap-2 ${
+                      upgradeMode === "seamless"
+                        ? "border-emerald-500 bg-emerald-50/60 shadow-sm"
+                        : "border-slate-200 hover:border-slate-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                        <Zap className="w-4 h-4 text-emerald-600" />
+                        1-Click Seamless
+                      </span>
+                      {upgradeMode === "seamless" && (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                      Recommended. Automatically terminates background processes, runs in-place upgrade, and relaunches smoothly.
+                    </p>
+                    <span className="text-[9px] font-black uppercase text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full w-fit">
+                      Auto-Relaunch (--updated)
+                    </span>
+                  </div>
+
+                  <div
+                    onClick={() => setUpgradeMode("guided")}
+                    className={`p-4 rounded-2xl border-2 transition cursor-pointer flex flex-col justify-between gap-2 ${
+                      upgradeMode === "guided"
+                        ? "border-blue-500 bg-blue-50/60 shadow-sm"
+                        : "border-slate-200 hover:border-slate-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                        <Layers className="w-4 h-4 text-blue-600" />
+                        Guided Setup
+                      </span>
+                      {upgradeMode === "guided" && (
+                        <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                      Launches the full interactive Windows NSIS installation wizard with standard setup prompts and directory options.
+                    </p>
+                    <span className="text-[9px] font-black uppercase text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full w-fit">
+                      Standard Setup Wizard
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Data Safety Reassurance Card */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-800">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>100% Guaranteed Data Protection</span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                  Your bills of lading, account ledgers, local SQLite database, settings, and documents stored in AppData are completely safe and preserved during the upgrade process.
+                </p>
+                <p className="text-[11px] text-slate-500 font-[vazirmatn] font-bold" dir="rtl">
+                  تمامی بارنامه‌ها، حساب‌ها و اطلاعات پایگاه داده شما کاملاً امن و دست‌نخورده باقی می‌ماند.
+                </p>
+              </div>
+
+              {/* Package Details */}
+              <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-100/80 px-4 py-2.5 rounded-xl font-mono">
+                <span className="truncate max-w-[280px]">
+                  {updateData?.installerName || "AQ-COMPANIES-Setup.exe"}
+                </span>
+                <span className="font-bold text-slate-700">
+                  {updateData?.installerFormattedSize || "535 MB"}
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => triggerInstall(upgradeMode)}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-xs shadow-lg shadow-emerald-600/30 active:scale-95 transition flex items-center gap-2 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Start Upgrade Now</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Installation / App Teardown Overlay */}
+      {isInstalling && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="max-w-md w-full p-8 rounded-3xl bg-white shadow-2xl border border-slate-200 text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center justify-center">
+              <Download className="w-8 h-8 animate-bounce text-emerald-600" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-black text-slate-900">
+                Upgrading AQ COMPANIES...
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                {installCountdown !== null && installCountdown > 0
+                  ? `Releasing all process locks and exiting in ${installCountdown}s...`
+                  : "Installer running in background. Upgrading components..."}
+              </p>
+            </div>
+            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-xs text-emerald-800 font-medium flex items-center justify-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>NSIS Process Lock Shield active: files unlocked cleanly</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -285,7 +285,11 @@ function configureWindowsPrintPreferences(): void {
   if (process.platform !== "win32") return
   try {
     // Windows 11 Modern Print Dialog displays "This app doesn't support print preview" for all Win32/Chromium apps.
-    // Setting PreferLaunchLegacyDialog ensures the native, responsive classic Windows Print Dialog opens instantly without preview errors.
+    // Setting both PreferLegacyPrintDialog and PreferLaunchLegacyDialog restores the classic, fast, reliable Windows print dialog.
+    spawn("reg", ["add", "HKCU\\Software\\Microsoft\\Print\\UnifiedPrintDialog", "/v", "PreferLegacyPrintDialog", "/t", "REG_DWORD", "/d", "1", "/f"], {
+      windowsHide: true,
+      stdio: "ignore",
+    }).unref()
     spawn("reg", ["add", "HKCU\\Software\\Microsoft\\Print\\UnifiedPrintDialog", "/v", "PreferLaunchLegacyDialog", "/t", "REG_DWORD", "/d", "1", "/f"], {
       windowsHide: true,
       stdio: "ignore",

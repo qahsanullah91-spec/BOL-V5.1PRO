@@ -43,6 +43,7 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react"
+import { OnlineSyncStatusBadge } from "@/components/sync/online-sync-status-badge"
 import type { PreviewMode } from "./use-a4-preview-scale"
 
 export interface A4PreviewToolbarProps {
@@ -223,6 +224,18 @@ function A4PreviewToolbarBase({
             </div>
           )}
         </div>
+
+        {/* Online Cloud Sync Status Badge */}
+        <OnlineSyncStatusBadge
+          variant="compact"
+          onOpenCloudSync={onOpenCloudSync}
+          className="hidden md:inline-flex"
+        />
+        <OnlineSyncStatusBadge
+          variant="icon"
+          onOpenCloudSync={onOpenCloudSync}
+          className="md:hidden"
+        />
 
         {/* Quick Save / Update Button */}
         <Button

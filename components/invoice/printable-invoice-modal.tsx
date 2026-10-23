@@ -31,7 +31,20 @@ export function PrintableInvoiceModal({
 
   if (!invoice) return null
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    if (typeof window !== "undefined" && window.skyDesktop?.print) {
+      try {
+        await window.skyDesktop.print({
+          silent: false,
+          printBackground: true,
+          pageSize: "A4",
+          landscape: false,
+        })
+        return
+      } catch (err) {
+        console.warn("Desktop print fallback to browser print:", err)
+      }
+    }
     window.print()
   }
 

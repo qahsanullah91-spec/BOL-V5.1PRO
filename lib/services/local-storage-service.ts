@@ -273,6 +273,11 @@ export async function storeLocalBOL(bolNumber: string, data: any): Promise<void>
     else bols.unshift(newBol)
     return bols
   })
+  try {
+    const { enqueueChange } = await import("@/lib/sync/sync-queue")
+    enqueueChange(candidateNum || bolNumber, "bol", "create", data)
+    scheduleAutoBackupOnDataChange()
+  } catch (_) {}
   console.log(`[v0] Stored BOL locally: ${candidateNum || bolNumber}`)
 }
 
@@ -362,6 +367,11 @@ export async function updateLocalBOL(bolNumber: string, data: any): Promise<void
     }
     return bols
   })
+  try {
+    const { enqueueChange } = await import("@/lib/sync/sync-queue")
+    enqueueChange(candidateNum || bolNumber, "bol", "update", data)
+    scheduleAutoBackupOnDataChange()
+  } catch (_) {}
   console.log(`[v0] Updated local BOL: ${candidateNum || bolNumber}`)
 }
 
@@ -373,6 +383,11 @@ export async function deleteLocalBOL(bolNumber: string): Promise<void> {
   if (!target) throw new Error("A BOL number is required")
   await mutateAllBols((bols) => bols.filter((b) => ![b.id, b.bol_number, b.billOfLadingNumber, b.bolNo]
     .some((value) => String(value || "").trim().toLowerCase() === target)))
+  try {
+    const { enqueueChange } = await import("@/lib/sync/sync-queue")
+    enqueueChange(bolNumber, "bol", "delete", { id: bolNumber })
+    scheduleAutoBackupOnDataChange()
+  } catch (_) {}
   console.log(`[v0] Deleted local BOL: ${bolNumber}`)
 }
 

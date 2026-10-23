@@ -66,6 +66,8 @@ import { CopyWhatsAppButton } from "./copy-whatsapp-button"
 const PrintSafeBOL = dynamic(safeChunkDynamic(() => import("./print-safe-bol")), { ssr: false })
 import { BillOfLadingFormData, initialFormData, RouteStop, AFGHANISTAN_DOCUMENT_OPTIONS, DOCUMENT_CATEGORIES, AfghanistanDocumentDetail, type DocumentCategory, NOTE_THEMES, type NoteTheme, CARGO_ROUTE_NOTE_OPTIONS } from "@/lib/types/bill-of-lading"
 import { isUUID, cleanBolNumber, normalizeBolRecord, parseBolSeq, formatCanonicalDriverRent } from "@/lib/utils/bol-filters"
+import { onlineSaveManager } from "@/lib/client/online-save-manager"
+import { OnlineSyncStatusBadge } from "@/components/sync/online-sync-status-badge"
 import { ArrowLeft, Printer, Save, FileText, Eye, Plus, Loader2, Calendar, Truck, MapPin, Trash2, ArrowRight, Package, Edit3, ImageIcon, Upload, RotateCcw, ScrollText, Check, Download, Building2, Phone, Mail, Ship, Plane, Train, AlertCircle, User, Bell, Globe, Shield, Leaf, Heart, Scale, Bookmark, BookmarkPlus, X, IdCard, Car, Landmark, ShieldCheck, Receipt, List, ChevronDown, ChevronUp, Info, CheckCircle2, Circle, Sparkles, Copy, Box, ArrowLeftRight, Zap, Calculator, Sliders, SlidersHorizontal, Layers, Keyboard, Cloud, DownloadCloud, UploadCloud, RefreshCw, FileSpreadsheet, Coins, Hash, MoreHorizontal, Palette, ZoomIn, ZoomOut, Maximize2, Minimize2, FolderArchive, Search, Snowflake } from "lucide-react"
 import { formatPersianDate, getDualDates } from "@/lib/utils/persian-date"
 import {
@@ -954,6 +956,20 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       flushDraftRef.current?.(true)
     }
   }, [])
+
+  useEffect(() => {
+    const handleOnlineSyncComplete = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail
+      if (detail?.count) {
+        toast.success(`✓ Synchronized ${detail.count} document(s) with online cloud!`, {
+          description: detail.bolNumbers?.length ? `Documents: ${detail.bolNumbers.join(", ")}` : undefined,
+        })
+        onRefreshDocuments?.()
+      }
+    }
+    window.addEventListener("skybol:online-sync-complete", handleOnlineSyncComplete)
+    return () => window.removeEventListener("skybol:online-sync-complete", handleOnlineSyncComplete)
+  }, [onRefreshDocuments])
   const [activeRouteIndex, setActiveRouteIndex] = useState<number | null>(null)
   const [showLocationDropdown, setShowLocationDropdown] = useState<number | null>(null)
   const [selectedCountryFilter, setSelectedCountryFilter] = useState("ALL")
@@ -4669,31 +4685,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         delete dataToSend.id
       }
       
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSend),
-      })
+      const saveResult = await onlineSaveManager.saveBol(url, method, dataToSend)
       
-      if (!response.ok) {
-        let errorMessage = "Could not update BOL. Your changes are still available."
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.error || errorMessage
-        } catch {
-          errorMessage = `Server error: ${response.status}`
-        }
+      if (!saveResult.success) {
         setAutoSaveStatus("error")
         toast.error("Could not update BOL. Your changes are still available.", {
-          description: errorMessage,
+          description: saveResult.error || "Save error",
         })
         return
       }
       
-      const result = await response.json()
-      
-      if (result.success && result.data) {
-        const canonicalRecord = normalizeBolRecord(result.data, cleanNum || validEditId)
+      if (saveResult.data) {
+        const canonicalRecord = normalizeBolRecord(saveResult.data, cleanNum || validEditId)
         const savedBolNumber = cleanBolNumber(canonicalRecord.bol_number) || cleanNum || "BOL-2026-NSA626"
         const savedId = canonicalRecord.id || editDocumentId || savedBolNumber
 
@@ -4836,19 +4839,24 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         onRefreshDocuments?.()
         
         // Show success toast with BOL number & 1-click action to View Saved BOLs
-        const action = isEditMode ? "updated" : "saved"
-        toast.success(`Document ${action} successfully!`, {
-          description: `BOL ${savedBolNumber} ${action} in your documents library`,
-          action: {
-            label: "View Saved BOLs",
-            onClick: () => setActiveTab("saved-documents"),
-          },
-        })
-      } else if (result.error) {
-        setAutoSaveStatus("error")
-        toast.error("Could not update BOL. Your changes are still available.", {
-          description: result.error,
-        })
+        if (saveResult.mode === "offline-queued") {
+          toast.info("Saved locally (Offline Mode)", {
+            description: `BOL ${savedBolNumber} saved locally and queued. Will automatically sync online when reconnected.`,
+            action: {
+              label: "Cloud Queue",
+              onClick: () => setIsCloudSyncModalOpen(true),
+            },
+          })
+        } else {
+          const action = isEditMode ? "updated" : "saved"
+          toast.success(`Document ${action} & synced online!`, {
+            description: `BOL ${savedBolNumber} ${action} in cloud and local storage`,
+            action: {
+              label: "View Saved BOLs",
+              onClick: () => setActiveTab("saved-documents"),
+            },
+          })
+        }
       }
     } catch (error) {
       console.error("[v0] Error saving BOL:", error)
@@ -5145,7 +5153,22 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             previewEl.setAttribute("data-color-strip", options.includeColorStrip ? "true" : "false")
             previewEl.setAttribute("data-fit-to-page", options.fitToPage ? "true" : "false")
           }
-          setTimeout(() => {
+          setTimeout(async () => {
+            if (typeof window !== "undefined" && window.skyDesktop?.print) {
+              try {
+                await window.skyDesktop.print({
+                  silent: false,
+                  printBackground: true,
+                  pageSize: "A4",
+                  landscape: false,
+                })
+                setIsSaving(false)
+                cleanup()
+                return
+              } catch (e) {
+                // fallback to browser window.print()
+              }
+            }
             window.print()
             setIsSaving(false)
             setTimeout(cleanup, 2500)
@@ -5519,6 +5542,23 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                 </div>
               )}
               </div>
+
+              {/* Online Cloud Sync Status Badge */}
+              <OnlineSyncStatusBadge
+                variant="full"
+                onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
+                className="hidden lg:inline-flex"
+              />
+              <OnlineSyncStatusBadge
+                variant="compact"
+                onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
+                className="hidden sm:inline-flex lg:hidden"
+              />
+              <OnlineSyncStatusBadge
+                variant="icon"
+                onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
+                className="sm:hidden"
+              />
             </div>
 
             {/* Mobile Primary Save Button */}

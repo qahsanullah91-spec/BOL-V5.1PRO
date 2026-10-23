@@ -21,7 +21,19 @@ function fetchLocal(url) {
   })
 }
 
+function isServerOnline() {
+  return new Promise((resolve) => {
+    const req = http.get("http://localhost:3001/api/ready", (res) => resolve(res.statusCode < 500))
+    req.on("error", () => resolve(false))
+    req.setTimeout(500, () => { req.destroy(); resolve(false) })
+  })
+}
+
 test("PERFORMANCE SUITE: Section 119 — Saved BOLs Scaling (25, 100, 500, 2,000)", async (t) => {
+  if (!(await isServerOnline())) {
+    t.skip("Live server not running on port 3001")
+    return
+  }
   // Warmup ping to ensure Next.js route is compiled
   await fetchLocal("http://localhost:3001/api/bol?limit=25")
 
@@ -169,6 +181,10 @@ test("PERFORMANCE SUITE: Section 122 — Files 5,000 Metadata Records", async (t
 })
 
 test("PERFORMANCE SUITE: Section 123 & 124 — Sequential BOL Switching & Preview (20 Requests)", async (t) => {
+  if (!(await isServerOnline())) {
+    t.skip("Live server not running on port 3001")
+    return
+  }
   // Pre-flight warmup ping
   await fetchLocal("http://localhost:3001/api/bol/BOL-2026-NSA626")
 

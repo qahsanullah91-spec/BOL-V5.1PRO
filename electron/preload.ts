@@ -7,7 +7,10 @@ contextBridge.exposeInMainWorld("skyDesktop", {
   saveFile: (defaultName: string, bytes: number[]) => ipcRenderer.invoke("file:save", { defaultName, bytes }),
   openFile: (filePath: string) => ipcRenderer.invoke("file:open", filePath),
   revealFile: (filePath: string) => ipcRenderer.invoke("file:reveal", filePath),
-  print: () => ipcRenderer.invoke("print:page"),
+  print: (options?: { silent?: boolean; printBackground?: boolean; landscape?: boolean; margins?: any; pageSize?: any; deviceName?: string }) => ipcRenderer.invoke("print:page", options),
+  getPrinters: () => ipcRenderer.invoke("print:get-printers"),
+  getPreviewPdf: (options?: { landscape?: boolean; pageSize?: any }) => ipcRenderer.invoke("print:get-preview-pdf", options),
+  getPreviewPDF: (options?: { landscape?: boolean; pageSize?: any }) => ipcRenderer.invoke("print:get-preview-pdf", options),
   exportPageToPdf: (defaultName: string) => ipcRenderer.invoke("print:pdf", defaultName),
   exportBackup: () => ipcRenderer.invoke("backup:export"),
   restoreBackup: () => ipcRenderer.invoke("backup:restore"),
@@ -23,7 +26,8 @@ contextBridge.exposeInMainWorld("skyDesktop", {
   writeClipboardText: (text: string) => ipcRenderer.invoke("clipboard:write-text", text),
   // Software Updater Bridge
   checkForUpdates: (customPath?: string) => ipcRenderer.invoke("updater:check", customPath),
-  installUpdate: (installerPath?: string) => ipcRenderer.invoke("updater:install", installerPath),
+  installUpdate: (options?: string | { targetPath?: string; silent?: boolean }) => ipcRenderer.invoke("updater:install", options),
+  killProcesses: () => ipcRenderer.invoke("updater:kill-processes"),
   openUpdateFolder: (targetPath?: string) => ipcRenderer.invoke("updater:open-folder", targetPath),
   selectInstallerFile: () => ipcRenderer.invoke("updater:select-file"),
 })

@@ -12,13 +12,22 @@ try {
   }
 }
 
-module.exports = function loadTypescript(relativePath, mocks = {}) {
+const moduleCache = new Map()
+
+module.exports = function loadTypescript(relativePath, mocks = {}, currentCache = moduleCache) {
   const filename = path.resolve(__dirname, '..', relativePath)
+  if (currentCache.has(filename)) {
+    return currentCache.get(filename).exports
+  }
+
+  const subject = new Module(filename, module)
+  subject.paths = Module._nodeModulePaths(path.dirname(filename))
+  currentCache.set(filename, subject)
+
   const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
   }).outputText
-  const subject = new Module(filename, module)
-  subject.paths = Module._nodeModulePaths(path.dirname(filename))
+
   const originalRequire = subject.require.bind(subject)
   
   subject.require = name => {
@@ -27,8 +36,8 @@ module.exports = function loadTypescript(relativePath, mocks = {}) {
       const sub = name.slice(2)
       const absTs = path.resolve(__dirname, '..', `${sub}.ts`)
       const absTsx = path.resolve(__dirname, '..', `${sub}.tsx`)
-      if (fs.existsSync(absTs)) return loadTypescript(`${sub}.ts`, mocks)
-      if (fs.existsSync(absTsx)) return loadTypescript(`${sub}.tsx`, mocks)
+      if (fs.existsSync(absTs)) return loadTypescript(`${sub}.ts`, mocks, currentCache)
+      if (fs.existsSync(absTsx)) return loadTypescript(`${sub}.tsx`, mocks, currentCache)
       return originalRequire(path.resolve(__dirname, '..', sub))
     }
     if (name.startsWith('.')) {
@@ -37,11 +46,11 @@ module.exports = function loadTypescript(relativePath, mocks = {}) {
       const targetTsx = path.resolve(dir, `${name}.tsx`)
       if (fs.existsSync(targetTs)) {
         const rel = path.relative(path.resolve(__dirname, '..'), targetTs)
-        return loadTypescript(rel, mocks)
+        return loadTypescript(rel, mocks, currentCache)
       }
       if (fs.existsSync(targetTsx)) {
         const rel = path.relative(path.resolve(__dirname, '..'), targetTsx)
-        return loadTypescript(rel, mocks)
+        return loadTypescript(rel, mocks, currentCache)
       }
     }
     try {

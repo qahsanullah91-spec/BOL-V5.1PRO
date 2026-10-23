@@ -174,6 +174,27 @@ export interface DetailedReportTableProps {
 
 const LOCAL_STORAGE_COLS_KEY = "aq_bol_report_visible_cols_v2"
 
+export function formatPackageDisplay(
+  rawPackages: string | number | undefined,
+  singleCommodityTitle?: string
+): string {
+  if (!rawPackages) return "—"
+  const str = String(rawPackages).trim()
+  if (!str) return "—"
+
+  let cleaned = str
+  if (singleCommodityTitle && singleCommodityTitle.trim()) {
+    const escaped = singleCommodityTitle.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const regex = new RegExp("\\b" + escaped + "\\b", "gi")
+    cleaned = cleaned.replace(regex, "").replace(/\s+/g, " ").trim()
+  }
+
+  // Remove trailing prepositions like OF, IN, CONTAINING
+  cleaned = cleaned.replace(/\s+(of|in|containing)\s*$/i, "").trim()
+
+  return cleaned || str
+}
+
 const TOGGLEABLE_COLUMNS = COLUMN_DEFINITIONS.filter(
   (c) => c.id !== "idx" && c.id !== "expand" && c.id !== "bolNo"
 )
@@ -902,19 +923,19 @@ export function DetailedReportTable({
 
       {/* 4. MAIN DATA TABLE (Desktop & Tablet) */}
       <div className="hidden md:block print:block w-full overflow-x-auto print:overflow-visible border border-slate-200/90 dark:border-slate-800 print:border-none rounded-2xl print:rounded-none max-h-[calc(100vh-210px)] print:max-h-none overflow-y-auto print:overflow-y-visible shadow-xs bg-white dark:bg-slate-900 scrollbar-thin">
-        <table className={`w-full ${isFitScreen ? "min-w-[1450px]" : "min-w-[1850px]"} text-xs text-left border-collapse`}>
+        <table className={`w-full ${isFitScreen ? "min-w-[1450px]" : "min-w-[1850px]"} print:min-w-0 text-xs text-left border-collapse`}>
           <thead className="sticky top-0 z-20 bg-slate-900 text-slate-100 shadow-sm print:static print:table-header-group">
             <tr className="border-b border-slate-700 bg-slate-900 text-slate-100">
               {/* Sticky # column */}
               {visibleColumns.has("idx") && (
-                <th className={`px-2 font-extrabold text-slate-300 text-center uppercase tracking-wider sticky left-0 z-30 bg-slate-900 border-r border-slate-800 w-10 min-w-[40px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="idx" className={`px-2 font-extrabold text-slate-300 text-center uppercase tracking-wider sticky left-0 z-30 bg-slate-900 border-r border-slate-800 w-10 min-w-[40px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   #
                 </th>
               )}
 
               {/* Sticky Expand column */}
               {visibleColumns.has("expand") && (
-                <th className={`px-1.5 font-extrabold text-slate-300 text-center uppercase tracking-wider sticky left-[40px] z-30 bg-slate-900 border-r border-slate-800 w-8 min-w-[32px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="expand" className={`px-1.5 font-extrabold text-slate-300 text-center uppercase tracking-wider sticky left-[40px] z-30 bg-slate-900 border-r border-slate-800 w-8 min-w-[32px] print:hidden no-print ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   <span className="sr-only">Expand</span>
                 </th>
               )}
@@ -922,8 +943,9 @@ export function DetailedReportTable({
               {/* Sticky BOL No. column */}
               {visibleColumns.has("bolNo") && (
                 <th
+                  data-col-id="bolNo"
                   onClick={() => handleSort("bol_number")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider sticky left-[72px] z-30 bg-slate-900 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.35)] border-r border-slate-700 min-w-[115px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider sticky left-[72px] z-30 bg-slate-900 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.35)] border-r border-slate-700 min-w-[115px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>BOL No.</span>
@@ -939,8 +961,9 @@ export function DetailedReportTable({
               {/* Date */}
               {visibleColumns.has("date") && (
                 <th
+                  data-col-id="date"
                   onClick={() => handleSort("issue_date")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[90px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[90px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Date</span>
@@ -956,8 +979,9 @@ export function DetailedReportTable({
               {/* Truck / Driver */}
               {visibleColumns.has("truckDriver") && (
                 <th
+                  data-col-id="truckDriver"
                   onClick={() => handleSort("truck_number")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[155px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[155px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Truck / Driver</span>
@@ -971,8 +995,9 @@ export function DetailedReportTable({
               {/* Invoice */}
               {visibleColumns.has("invoice") && (
                 <th
+                  data-col-id="invoice"
                   onClick={() => handleSort("invoice_no")}
-                  className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider min-w-[95px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider min-w-[95px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Invoice</span>
@@ -986,8 +1011,9 @@ export function DetailedReportTable({
               {/* Shipper */}
               {visibleColumns.has("shipper") && (
                 <th
+                  data-col-id="shipper"
                   onClick={() => handleSort("shipper_name")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[170px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[170px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Shipper</span>
@@ -1001,8 +1027,9 @@ export function DetailedReportTable({
               {/* Consignee */}
               {visibleColumns.has("consignee") && (
                 <th
+                  data-col-id="consignee"
                   onClick={() => handleSort("consignee_name")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[170px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[170px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Consignee</span>
@@ -1016,8 +1043,9 @@ export function DetailedReportTable({
               {/* Notify Party */}
               {visibleColumns.has("notify") && (
                 <th
+                  data-col-id="notify"
                   onClick={() => handleSort("notify_party")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[150px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[150px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Notify Party</span>
@@ -1030,14 +1058,14 @@ export function DetailedReportTable({
 
               {/* Cargo Summary */}
               {visibleColumns.has("cargo") && (
-                <th className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[210px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="cargo" className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[210px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Cargo Summary
                 </th>
               )}
 
               {/* Route */}
               {visibleColumns.has("route") && (
-                <th className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[170px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="route" className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[170px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Route & Border
                 </th>
               )}
@@ -1045,8 +1073,9 @@ export function DetailedReportTable({
               {/* Packages */}
               {visibleColumns.has("packages") && (
                 <th
+                  data-col-id="packages"
                   onClick={() => handleSort("packages")}
-                  className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[110px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[110px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Packages</span>
@@ -1060,8 +1089,9 @@ export function DetailedReportTable({
               {/* Net Wt */}
               {visibleColumns.has("netWt") && (
                 <th
+                  data-col-id="netWt"
                   onClick={() => handleSort("net_weight")}
-                  className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[105px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[105px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Net Wt</span>
@@ -1075,8 +1105,9 @@ export function DetailedReportTable({
               {/* Gross Wt */}
               {visibleColumns.has("grossWt") && (
                 <th
+                  data-col-id="grossWt"
                   onClick={() => handleSort("gross_weight")}
-                  className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[105px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[105px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Gross Wt</span>
@@ -1089,7 +1120,7 @@ export function DetailedReportTable({
 
               {/* Rate */}
               {visibleColumns.has("rate") && (
-                <th className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[95px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="rate" className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[95px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Rate/KG
                 </th>
               )}
@@ -1097,8 +1128,9 @@ export function DetailedReportTable({
               {/* Goods Value */}
               {visibleColumns.has("value") && (
                 <th
+                  data-col-id="value"
                   onClick={() => handleSort("goods_value")}
-                  className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[135px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[135px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Goods Value</span>
@@ -1111,14 +1143,14 @@ export function DetailedReportTable({
 
               {/* Container */}
               {visibleColumns.has("container") && (
-                <th className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider min-w-[130px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="container" className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider min-w-[130px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Container
                 </th>
               )}
 
               {/* Seal */}
               {visibleColumns.has("seal") && (
-                <th className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider min-w-[100px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="seal" className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider min-w-[100px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Seal No.
                 </th>
               )}
@@ -1126,8 +1158,9 @@ export function DetailedReportTable({
               {/* Status */}
               {visibleColumns.has("status") && (
                 <th
+                  data-col-id="status"
                   onClick={() => handleSort("status")}
-                  className={`px-2 font-extrabold text-slate-200 text-center uppercase tracking-wider min-w-[100px] cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2 font-extrabold text-slate-200 text-center uppercase tracking-wider min-w-[100px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   Status
                 </th>
@@ -1135,14 +1168,14 @@ export function DetailedReportTable({
 
               {/* PDF */}
               {visibleColumns.has("pdf") && (
-                <th className={`px-1.5 font-extrabold text-slate-300 text-center uppercase tracking-wider print:hidden no-print min-w-[70px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="pdf" className={`px-1.5 font-extrabold text-slate-300 text-center uppercase tracking-wider print:hidden no-print min-w-[70px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   PDF
                 </th>
               )}
 
               {/* Actions */}
               {visibleColumns.has("actions") && (
-                <th className={`px-2 font-extrabold text-slate-300 text-center uppercase tracking-wider print:hidden no-print min-w-[125px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="actions" className={`px-2 font-extrabold text-slate-300 text-center uppercase tracking-wider print:hidden no-print min-w-[125px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Actions
                 </th>
               )}
@@ -1194,7 +1227,7 @@ export function DetailedReportTable({
                   >
                     {/* Index + Select Checkbox */}
                     {visibleColumns.has("idx") && (
-                      <td className={`${cellPad} font-bold text-slate-400 text-center tabular-nums sticky left-0 z-10 bg-inherit border-r border-slate-100 dark:border-slate-800`}>
+                      <td data-col-id="idx" className={`${cellPad} font-bold text-slate-400 text-center tabular-nums sticky left-0 z-10 bg-inherit border-r border-slate-100 dark:border-slate-800`}>
                         <div className="flex items-center justify-center gap-1.5">
                           <input
                             type="checkbox"
@@ -1213,8 +1246,9 @@ export function DetailedReportTable({
                     {/* Expand Toggle Chevron */}
                     {visibleColumns.has("expand") && (
                       <td
+                        data-col-id="expand"
                         onClick={(e) => toggleRowExpanded(doc.id, e)}
-                        className={`${cellPad} text-center sticky left-[40px] z-10 bg-inherit border-r border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900`}
+                        className={`${cellPad} text-center sticky left-[40px] z-10 bg-inherit border-r border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900 print:hidden no-print`}
                         title={isExpanded ? "Collapse Details" : "Expand Full Details"}
                       >
                         <button
@@ -1229,6 +1263,7 @@ export function DetailedReportTable({
                     {/* BOL Number (Sticky) */}
                     {visibleColumns.has("bolNo") && (
                       <td
+                        data-col-id="bolNo"
                         onClick={() => onOpenQuickView(doc)}
                         className={`${cellPad} sticky left-[72px] z-10 bg-inherit shadow-[4px_0_8px_-2px_rgba(0,0,0,0.06)] border-r border-slate-200 dark:border-slate-800`}
                       >
@@ -1243,42 +1278,59 @@ export function DetailedReportTable({
 
                     {/* Date */}
                     {visibleColumns.has("date") && (
-                      <td className={`${cellPad} font-medium text-slate-600 dark:text-slate-400 tabular-nums whitespace-nowrap`} title={doc.issue_date || doc.created_at}>
+                      <td data-col-id="date" className={`${cellPad} font-medium text-slate-600 dark:text-slate-400 tabular-nums whitespace-nowrap`} title={doc.issue_date || doc.created_at}>
                         {formatDisplayDate(doc.issue_date || doc.created_at)}
                       </td>
                     )}
 
                     {/* Truck / Driver */}
                     {visibleColumns.has("truckDriver") && (
-                      <td className={`${cellPad}`}>
+                      <td data-col-id="truckDriver" className={`${cellPad}`}>
                         <div className="flex flex-col min-w-0 space-y-0.5">
                           <span className="font-bold text-slate-900 dark:text-white font-mono text-[11px]" dir="ltr">
                             {truckText}
                           </span>
                           <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 flex-wrap">
                             {doc.driver_name && (
-                              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]" title={doc.driver_name}>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px] print:max-w-none print:whitespace-normal" title={doc.driver_name}>
                                 {doc.driver_name}
                               </span>
                             )}
-                            {driverFatherName !== "-" && (
-                              <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-sans" title={`Father: ${driverFatherName}`}>
-                                (ولد {driverFatherName})
-                              </span>
-                            )}
+                            {(() => {
+                              const fName = (driverFatherName || "").trim()
+                              const dName = (doc.driver_name || "").trim()
+                              const isFatherAlreadyInName = Boolean(
+                                fName &&
+                                fName !== "-" &&
+                                dName &&
+                                (
+                                  dName.includes(fName) ||
+                                  dName.includes("ولد") ||
+                                  dName.includes("s/o") ||
+                                  dName.includes("S/O") ||
+                                  dName.includes("بن")
+                                )
+                              )
+                              if (!fName || fName === "-" || isFatherAlreadyInName) return null
+                              return (
+                                <span className="text-[9.5px] print:text-[8px] text-slate-500 dark:text-slate-400 font-sans" title={`Father: ${fName}`}>
+                                  (ولد {fName})
+                                </span>
+                              )
+                            })()}
                             {doc.driver_contact && (
-                              <span className="font-mono text-slate-400 truncate" title={doc.driver_contact}>
+                              <span className="font-mono text-slate-400 truncate print:hidden" title={doc.driver_contact}>
                                 • {doc.driver_contact}
                               </span>
                             )}
                           </div>
                           {(doc.driver_rent || (doc as any).driverFreight) && (
-                            <span className="inline-flex items-center text-[9px] font-black text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 rounded px-1.5 py-0.2 w-fit whitespace-nowrap" title="Driver Rent / کرایه موتر">
+                            <span className="inline-flex items-center text-[9px] print:text-[7.5px] font-black text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 rounded px-1.5 py-0.2 w-fit whitespace-nowrap print:whitespace-normal" title="Driver Rent / کرایه موتر">
                               {doc.driver_rent || (doc as any).driverFreight}
                             </span>
                           )}
                           {borderStation !== "-" && (
-                            <span className="text-[9px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 rounded px-1 w-fit whitespace-nowrap" title={`Transit Border: ${borderStation}`}>
+                            <span className="text-[9px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 rounded px-1 w-fit whitespace-nowrap print:hidden" title={`Transit Border: ${borderStation}`}>
                               📍 {borderStation.split(" ")[0]}
                             </span>
                           )}
@@ -1288,7 +1340,7 @@ export function DetailedReportTable({
 
                     {/* Invoice */}
                     {visibleColumns.has("invoice") && (
-                      <td className={`${cellPad}`}>
+                      <td data-col-id="invoice" className={`${cellPad}`}>
                         {invText !== "—" && invText !== "NO" ? (
                           <div className="flex flex-col space-y-0.5">
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold tracking-tight whitespace-nowrap w-fit">
@@ -1308,7 +1360,7 @@ export function DetailedReportTable({
 
                     {/* Shipper */}
                     {visibleColumns.has("shipper") && (
-                      <td
+                      <td data-col-id="shipper"
                         className={`${cellPad} font-semibold text-slate-900 dark:text-slate-100 whitespace-normal break-words ${isShipperRtl ? "text-right font-[vazirmatn]" : ""}`}
                         dir={isShipperRtl ? "rtl" : "ltr"}
                         title={(doc as any).shipper_address || doc.shipper_name || "Missing"}
@@ -1321,7 +1373,7 @@ export function DetailedReportTable({
 
                     {/* Consignee */}
                     {visibleColumns.has("consignee") && (
-                      <td
+                      <td data-col-id="consignee"
                         className={`${cellPad} font-medium text-slate-800 dark:text-slate-200 whitespace-normal break-words ${isConsigneeRtl ? "text-right font-[vazirmatn]" : ""}`}
                         dir={isConsigneeRtl ? "rtl" : "ltr"}
                         title={(doc as any).consignee_address || doc.consignee_name || "Missing"}
@@ -1334,7 +1386,7 @@ export function DetailedReportTable({
 
                     {/* Notify Party */}
                     {visibleColumns.has("notify") && (
-                      <td className={`${cellPad} text-slate-700 dark:text-slate-300 max-w-[170px]`}>
+                      <td data-col-id="notify" className={`${cellPad} text-slate-700 dark:text-slate-300 max-w-[170px] print:max-w-none`}>
                         {isNotifySame ? (
                           <span className="text-slate-400 italic font-light text-xs" title="Same as Consignee">Same</span>
                         ) : (
@@ -1349,7 +1401,7 @@ export function DetailedReportTable({
                               {notifyPartyText}
                             </span>
                             {notifyAddressText && (
-                              <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5" title={notifyAddressText}>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5 print:hidden" title={notifyAddressText}>
                                 {notifyAddressText.split("\n")[0]}
                               </span>
                             )}
@@ -1360,10 +1412,10 @@ export function DetailedReportTable({
 
                     {/* Cargo Summary */}
                     {visibleColumns.has("cargo") && (
-                      <td className={`${cellPad} min-w-[220px]`}>
+                      <td data-col-id="cargo" className={`${cellPad} min-w-[220px] print:min-w-0`}>
                         {cargoData.isMultiCargo ? (
-                          <div className="flex flex-col space-y-1.5 py-0.5">
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex flex-col space-y-1.5 py-0.5 print:space-y-0.5 print:py-0">
+                            <div className="flex items-center gap-1.5 flex-wrap print:hidden">
                               <span className="inline-flex items-center gap-1 font-black text-blue-900 dark:text-blue-200 bg-blue-100/90 dark:bg-blue-950/90 border border-blue-300 dark:border-blue-800 px-1.5 py-0.5 rounded text-[10px] w-fit shadow-2xs">
                                 <Boxes className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                 {cargoData.items.length} Cargo Items
@@ -1374,11 +1426,11 @@ export function DetailedReportTable({
                                 </span>
                               )}
                             </div>
-                            <div className="space-y-1 divide-y divide-slate-100 dark:divide-slate-800/80">
+                            <div className="space-y-1 divide-y divide-slate-100 dark:divide-slate-800/80 print:space-y-0.5 print:divide-y-0">
                               {cargoData.items.map((item, cIdx) => (
-                                <div key={item.id || cIdx} className="pt-1 first:pt-0">
-                                  <div className="flex items-start gap-1.5 text-[11px] leading-snug">
-                                    <span className="w-3.5 h-3.5 rounded bg-blue-50 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[9px] font-black flex items-center justify-center shrink-0 mt-0.5 border border-blue-200/80 dark:border-blue-800">
+                                <div key={item.id || cIdx} className="pt-1 first:pt-0 print:pt-0">
+                                  <div className="flex items-start gap-1.5 text-[11px] print:text-[7.8px] leading-snug print:leading-tight">
+                                    <span className="w-3.5 h-3.5 print:w-3 print:h-3 rounded bg-blue-50 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[9px] print:text-[7px] font-black flex items-center justify-center shrink-0 mt-0.5 border border-blue-200/80 dark:border-blue-800">
                                       {cIdx + 1}
                                     </span>
                                     <span className="font-bold text-slate-900 dark:text-slate-100 break-words" title={item.fullTitle}>
@@ -1386,7 +1438,7 @@ export function DetailedReportTable({
                                     </span>
                                   </div>
                                   {(item.netWeight || item.rate) && (
-                                    <div className="flex items-center gap-2 pl-5 text-[10px] text-slate-500 dark:text-slate-400 font-mono flex-wrap mt-0.5">
+                                    <div className="flex items-center gap-2 pl-5 print:pl-4 text-[10px] print:text-[7.2px] text-slate-500 dark:text-slate-400 font-mono flex-wrap mt-0.5 print:mt-0">
                                       {item.netWeight && (
                                         <span className="text-amber-700 dark:text-amber-400 font-semibold" title="Net Weight">
                                           ⚖️ {item.netWeight}
@@ -1409,11 +1461,11 @@ export function DetailedReportTable({
                             </div>
                           </div>
                         ) : (
-                          <div className="flex flex-col space-y-0.5 min-w-[180px]">
-                            <span className="font-bold text-slate-900 dark:text-white break-words text-[11.5px]" title={cargoData.singleCommodityTitle}>
+                          <div className="flex flex-col space-y-0.5 min-w-[180px] print:min-w-0">
+                            <span className="font-bold text-slate-900 dark:text-white break-words text-[11.5px] print:text-[8px] print:leading-tight" title={cargoData.singleCommodityTitle}>
                               {cargoData.singleCommodityTitle}
                             </span>
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono flex-wrap">
+                            <div className="flex items-center gap-1.5 text-[10px] print:text-[7.2px] text-slate-500 font-mono flex-wrap">
                               {cargoData.items[0]?.packageText && (
                                 <span className="font-semibold text-slate-700 dark:text-slate-300">
                                   📦 {cargoData.items[0].packageText}
@@ -1437,32 +1489,32 @@ export function DetailedReportTable({
 
                     {/* Route & Border */}
                     {visibleColumns.has("route") && (
-                      <td className={`${cellPad}`} title={routeInfo.display}>
+                      <td data-col-id="route" className={`${cellPad}`} title={routeInfo.display}>
                         {routeInfo.display !== "—" ? (
                           <div className="flex flex-col min-w-0 space-y-0.5">
                             <div className="inline-flex items-start gap-1 font-semibold text-slate-800 dark:text-slate-200">
-                              <Compass className="w-3 h-3 text-indigo-500 shrink-0 mt-0.5" />
-                              <span className="truncate max-w-[150px]" dir={routeInfo.isPersian ? "rtl" : "ltr"}>
+                              <Compass className="w-3 h-3 text-indigo-500 shrink-0 mt-0.5 print:hidden" />
+                              <span className="truncate max-w-[150px] print:max-w-none print:whitespace-normal print:text-[8px]" dir={routeInfo.isPersian ? "rtl" : "ltr"}>
                                 {routeInfo.shortDisplay || routeInfo.display}
                               </span>
                             </div>
                             <div className="flex items-center gap-1 flex-wrap">
                               {routeInfo.borderCrossing && (
-                                <span className="inline-flex items-center text-[8.5px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 rounded px-1 py-0.2 whitespace-nowrap">
+                                <span className="inline-flex items-center text-[8.5px] print:text-[7.5px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 rounded px-1 py-0.2 whitespace-nowrap print:whitespace-normal">
                                   {routeInfo.borderCrossing.split(" ")[0]}
                                 </span>
                               )}
                               {routeInfo.isFullReefer ? (
-                                <span className="inline-flex items-center text-[8px] font-black text-cyan-800 dark:text-cyan-200 bg-cyan-100 dark:bg-cyan-950 border border-cyan-300 rounded px-1 py-0.2 whitespace-nowrap">
+                                <span className="inline-flex items-center text-[8px] print:text-[7px] font-black text-cyan-800 dark:text-cyan-200 bg-cyan-100 dark:bg-cyan-950 border border-cyan-300 rounded px-1 py-0.2 whitespace-nowrap print:whitespace-normal">
                                   ❄️ Full Reefer
                                 </span>
                               ) : routeInfo.hasReefer ? (
-                                <span className="inline-flex items-center text-[8px] font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 rounded px-1 py-0.2 whitespace-nowrap">
+                                <span className="inline-flex items-center text-[8px] print:text-[7px] font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 rounded px-1 py-0.2 whitespace-nowrap print:whitespace-normal">
                                   ❄️ Reefer
                                 </span>
                               ) : null}
                               {routeInfo.hasSwitchBl && (
-                                <span className="inline-flex items-center text-[8px] font-black text-purple-800 dark:text-purple-300 bg-purple-100 dark:bg-purple-950 border border-purple-300 rounded px-1 py-0.2 whitespace-nowrap">
+                                <span className="inline-flex items-center text-[8px] print:hidden no-print font-black text-purple-800 dark:text-purple-300 bg-purple-100 dark:bg-purple-950 border border-purple-300 rounded px-1 py-0.2 whitespace-nowrap">
                                   🔄 Switch BL
                                 </span>
                               )}
@@ -1476,20 +1528,20 @@ export function DetailedReportTable({
 
                     {/* Packages */}
                     {visibleColumns.has("packages") && (
-                      <td className={`${cellPad} font-bold tabular-nums text-right text-slate-800 dark:text-slate-200`}>
+                      <td data-col-id="packages" className={`${cellPad} font-bold tabular-nums text-right text-slate-800 dark:text-slate-200 whitespace-nowrap`}>
                         {isMultiCargo ? (
                           <span className="text-blue-900 dark:text-blue-300 font-black">
                             Σ {syncedCargo.totals.totalPackages.toLocaleString()} {syncedCargo.totals.packageUnit}
                           </span>
                         ) : (
-                          <span>{doc.number_of_packages || "—"}</span>
+                          <span>{formatPackageDisplay(doc.number_of_packages, cargoData.singleCommodityTitle)}</span>
                         )}
                       </td>
                     )}
 
                     {/* Net Wt */}
                     {visibleColumns.has("netWt") && (
-                      <td className={`${cellPad} font-bold tabular-nums text-right text-amber-700 dark:text-amber-400`}>
+                      <td data-col-id="netWt" className={`${cellPad} font-bold tabular-nums text-right text-amber-700 whitespace-nowrap dark:text-amber-400`}>
                         {isMultiCargo ? (
                           <span>Σ {syncedCargo.totals.totalNetWeight.toLocaleString()} KG</span>
                         ) : (
@@ -1500,7 +1552,7 @@ export function DetailedReportTable({
 
                     {/* Gross Wt */}
                     {visibleColumns.has("grossWt") && (
-                      <td className={`${cellPad} font-semibold tabular-nums text-right text-slate-700 dark:text-slate-300`}>
+                      <td data-col-id="grossWt" className={`${cellPad} font-semibold tabular-nums text-right text-slate-700 whitespace-nowrap dark:text-slate-300`}>
                         {isMultiCargo ? (
                           <span className="text-slate-900 dark:text-white font-bold">
                             Σ {syncedCargo.totals.totalGrossWeight.toLocaleString()} KG
@@ -1513,22 +1565,22 @@ export function DetailedReportTable({
 
                     {/* Rate */}
                     {visibleColumns.has("rate") && (
-                      <td className={`${cellPad} font-semibold tabular-nums text-right text-blue-700 dark:text-blue-300 whitespace-nowrap min-w-[110px]`}>
+                      <td data-col-id="rate" className={`${cellPad} font-semibold tabular-nums text-right text-blue-700 dark:text-blue-300 whitespace-nowrap min-w-[110px] print:min-w-0`}>
                         {cargoData.isMultiRate ? (
-                          <div className="flex flex-col items-end space-y-1">
-                            <span className="inline-flex items-center gap-1 text-[9px] font-black text-blue-900 dark:text-blue-200 bg-blue-100/90 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 rounded px-1.5 py-0.2 mb-0.5 shadow-2xs">
+                          <div className="flex flex-col items-end space-y-1 print:space-y-0">
+                            <span className="inline-flex items-center gap-1 text-[9px] print:text-[7px] font-black text-blue-900 dark:text-blue-200 bg-blue-100/90 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 rounded px-1.5 py-0.2 mb-0.5 print:mb-0 shadow-2xs print:hidden">
                               {cargoData.allRates.length} Rates
                             </span>
-                            <div className="space-y-0.5 w-full">
+                            <div className="space-y-0.5 print:space-y-0 w-full">
                               {cargoData.items.map((item, rIdx) => {
                                 if (!item.rate) return null
                                 return (
                                   <div
                                     key={rIdx}
-                                    className="flex items-center justify-end gap-1.5 font-mono text-[11px]"
+                                    className="flex items-center justify-end gap-1.5 font-mono text-[11px] print:text-[7.8px] print:leading-tight"
                                     title={`${item.fullTitle}: ${item.rate}`}
                                   >
-                                    <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 font-sans">
+                                    <span className="text-[9px] print:text-[7px] font-bold text-slate-400 dark:text-slate-500 font-sans">
                                       #{rIdx + 1}:
                                     </span>
                                     <span className="font-black text-blue-800 dark:text-blue-300">
@@ -1540,16 +1592,16 @@ export function DetailedReportTable({
                             </div>
                           </div>
                         ) : cargoData.isUniformRate ? (
-                          <div className="flex flex-col items-end space-y-0.5">
-                            <span className="font-black text-blue-800 dark:text-blue-300 text-[11px]">
+                          <div className="flex flex-col items-end space-y-0.5 print:space-y-0">
+                            <span className="font-black text-blue-800 dark:text-blue-300 text-[11px] print:text-[7.8px]">
                               {cargoData.allRates[0]}
                             </span>
-                            <span className="text-[9px] font-medium text-slate-400 dark:text-slate-500">
+                            <span className="text-[9px] print:text-[7px] font-medium text-slate-400 dark:text-slate-500 print:hidden">
                               (All {cargoData.items.length} Items)
                             </span>
                           </div>
                         ) : (
-                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 print:text-[7.8px]">
                             {cargoData.displayRate || doc.rate_per_kgs || (doc as any).rate_per_kg || "—"}
                           </span>
                         )}
@@ -1558,7 +1610,7 @@ export function DetailedReportTable({
 
                     {/* Goods Value */}
                     {visibleColumns.has("value") && (
-                      <td className={`${cellPad} font-extrabold tabular-nums text-right text-emerald-700 dark:text-emerald-400`}>
+                      <td data-col-id="value" className={`${cellPad} font-extrabold tabular-nums text-right text-emerald-700 dark:text-emerald-400`}>
                         {isMultiCargo ? (
                           <span className="font-black text-emerald-800 dark:text-emerald-300">
                             Σ ${(syncedCargo.totals.totalGoodsValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1571,7 +1623,7 @@ export function DetailedReportTable({
 
                     {/* Container */}
                     {visibleColumns.has("container") && (
-                      <td className={`${cellPad} font-mono text-[11px]`}>
+                      <td data-col-id="container" className={`${cellPad} font-mono text-[11px]`}>
                         {containerText ? (
                           <span className="inline-flex items-center gap-1 font-bold text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded px-1.5 py-0.2 whitespace-nowrap">
                             🏷️ {containerText}
@@ -1584,15 +1636,15 @@ export function DetailedReportTable({
 
                     {/* Seal */}
                     {visibleColumns.has("seal") && (
-                      <td className={`${cellPad} font-mono text-slate-700 dark:text-slate-300`}>
+                      <td data-col-id="seal" className={`${cellPad} font-mono text-slate-700 dark:text-slate-300`}>
                         {doc.seal_numbers || "—"}
                       </td>
                     )}
 
                     {/* Status */}
                     {visibleColumns.has("status") && (
-                      <td className={`${cellPad} text-center`}>
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-wider ${
+                      <td data-col-id="status" className={`${cellPad} text-center whitespace-nowrap`}>
+                        <span className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[9px] print:text-[8px] font-black uppercase tracking-wider whitespace-nowrap ${
                           doc.pdf_url
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
                             : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
@@ -1604,7 +1656,7 @@ export function DetailedReportTable({
 
                     {/* PDF Action */}
                     {visibleColumns.has("pdf") && (
-                      <td className={`${cellPad} text-center print:hidden no-print`}>
+                      <td data-col-id="pdf" className={`${cellPad} text-center print:hidden no-print`}>
                         {doc.pdf_url ? (
                           <a
                             href={doc.pdf_url}
@@ -1623,7 +1675,7 @@ export function DetailedReportTable({
 
                     {/* Actions Column */}
                     {visibleColumns.has("actions") && (
-                      <td className={`${cellPad} text-center print:hidden no-print`}>
+                      <td data-col-id="actions" className={`${cellPad} text-center print:hidden no-print`}>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
@@ -1684,32 +1736,64 @@ export function DetailedReportTable({
           </tbody>
 
           {/* TABLE FOOTER WITH SUB-TOTALS */}
-          {sortedData.length > 0 && (
-            <tfoot className="sticky bottom-0 z-20 bg-slate-900 text-white font-bold print:static print:table-footer-group shadow-lg border-t-2 border-blue-500 text-xs">
-              <tr className="bg-slate-900 text-white">
-                <td colSpan={3} className="py-2.5 px-3 font-black text-white text-[11px] uppercase tracking-wider">
-                  Page Subtotal ({paginatedRows.length} BOLs):
-                </td>
-                <td colSpan={visibleColsCount - 7} className="text-right text-slate-400 text-[10.5px]">
-                  Showing {paginatedRows.length} of {sortedData.length} records
-                </td>
-                <td className="py-2.5 px-2 text-right tabular-nums font-bold text-white whitespace-nowrap">
-                  {pageSubtotals.pkgs.toLocaleString()} CTNS
-                </td>
-                <td className="py-2.5 px-2 text-right tabular-nums font-semibold text-amber-300 whitespace-nowrap">
-                  {pageSubtotals.net.toLocaleString()} KG
-                </td>
-                <td className="py-2.5 px-2 text-right tabular-nums font-semibold text-slate-200 whitespace-nowrap">
-                  {pageSubtotals.gross.toLocaleString()} KG
-                </td>
-                <td className="py-2.5 px-1 text-right text-slate-500">—</td>
-                <td className="py-2.5 px-2 text-right tabular-nums font-extrabold text-emerald-400 whitespace-nowrap">
-                  ${pageSubtotals.val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </td>
-                <td colSpan={3} className="print:hidden no-print"></td>
-              </tr>
-            </tfoot>
-          )}
+          {sortedData.length > 0 && (() => {
+            const preColumns: ColumnId[] = ["bolNo", "date", "truckDriver", "invoice", "shipper", "consignee", "notify", "cargo", "route"]
+            const preSpanCount = preColumns.filter((c) => visibleColumns.has(c)).length
+
+            return (
+              <tfoot className="sticky bottom-0 z-20 bg-slate-900 text-white font-bold print:static print:table-footer-group shadow-lg border-t-2 border-blue-500 text-xs">
+                <tr className="bg-slate-900 text-white">
+                  {visibleColumns.has("idx") && (
+                    <td className="py-2 px-2 font-black text-white text-[10px] uppercase tracking-wider print:py-1">
+                      Subtotal
+                    </td>
+                  )}
+                  {visibleColumns.has("expand") && (
+                    <td className="print:hidden no-print"></td>
+                  )}
+                  {preSpanCount > 0 && (
+                    <td colSpan={preSpanCount} className="py-2 px-2 text-right text-slate-300 text-[10px] font-bold print:py-1 print:text-[8px]">
+                      Page Subtotal ({paginatedRows.length} of {sortedData.length} records)
+                    </td>
+                  )}
+
+                  {visibleColumns.has("packages") && (
+                    <td data-col-id="packages" className="py-2 px-2 text-right tabular-nums font-bold text-white whitespace-nowrap print:py-1 print:text-[8px]">
+                      {pageSubtotals.pkgs.toLocaleString()} CTNS
+                    </td>
+                  )}
+
+                  {visibleColumns.has("netWt") && (
+                    <td data-col-id="netWt" className="py-2 px-2 text-right tabular-nums font-semibold text-amber-300 whitespace-nowrap print:py-1 print:text-[8px]">
+                      {pageSubtotals.net.toLocaleString()} KG
+                    </td>
+                  )}
+
+                  {visibleColumns.has("grossWt") && (
+                    <td data-col-id="grossWt" className="py-2 px-2 text-right tabular-nums font-semibold text-slate-200 whitespace-nowrap print:py-1 print:text-[8px]">
+                      {pageSubtotals.gross.toLocaleString()} KG
+                    </td>
+                  )}
+
+                  {visibleColumns.has("rate") && (
+                    <td data-col-id="rate" className="py-2 px-1 text-right text-slate-500 print:py-1 print:text-[8px]">—</td>
+                  )}
+
+                  {visibleColumns.has("value") && (
+                    <td data-col-id="value" className="py-2 px-2 text-right tabular-nums font-extrabold text-emerald-400 whitespace-nowrap print:py-1 print:text-[8px]">
+                      ${pageSubtotals.val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  )}
+
+                  {visibleColumns.has("container") && <td data-col-id="container" className="print:py-1"></td>}
+                  {visibleColumns.has("seal") && <td data-col-id="seal" className="print:py-1"></td>}
+                  {visibleColumns.has("status") && <td data-col-id="status" className="print:py-1"></td>}
+                  {visibleColumns.has("pdf") && <td className="print:hidden no-print"></td>}
+                  {visibleColumns.has("actions") && <td className="print:hidden no-print"></td>}
+                </tr>
+              </tfoot>
+            )
+          })()}
         </table>
       </div>
 

@@ -253,7 +253,7 @@ function formatTruckNumberExecutive(value: unknown): string {
       "ننگرهار": "Nangarhar",
       "nangarhar": "Nangarhar",
       "جلال آباد": "Jalalabad",
-      "جلال\u200Cآباد": "Jalalabad",
+      "جلال‌آباد": "Jalalabad",
       "هلمند": "Helmand",
       "helmand": "Helmand",
       "غزنی": "Ghazni",
@@ -266,9 +266,12 @@ function formatTruckNumberExecutive(value: unknown): string {
       "kunduz": "Kunduz",
     }
     const engProv = provMap[prov] || provMap[prov.toLowerCase()] || prov
-    return `${num} – ${engProv}`
+    if (engProv !== prov && /[\u0600-\u06FF]/.test(prov)) {
+      return `${num} ${prov} – ${engProv}`
+    }
+    return `${num} ${prov}`
   }
-  return text.replace(/^(\d+)([\u0600-\u06FF])/, "$1 – $2")
+  return text.replace(/^(\d+)([\u0600-\u06FF])/, "$1 $2")
 }
 
 function getBilingualCommodity(commodity: string): string {
@@ -509,7 +512,7 @@ export function formatTransitDetailsText(bol: WhatsAppBol): { en: string; fa: st
     borderEn = "Nimroz"
     borderFa = "نیمروز"
   } else if (/dogh?aroun|dougharoun|دوغارون/i.test(allContext)) {
-    borderEn = "Dogharoun"
+    borderEn = "Dougharoun"
     borderFa = "دوغارون"
   } else if (/islam\s*qala|اسلام\s*قلعه/i.test(allContext)) {
     borderEn = "Islam Qala"
@@ -588,13 +591,13 @@ export function formatTransitDetailsText(bol: WhatsAppBol): { en: string; fa: st
   if (isAllDry) {
     return {
       en: `Standard container from ${borderEn} to Bandar Abbas, then container to ${switchLocEn} for Switch B/L. Final destination: ${destEn}.`,
-      fa: `حمل با کانتینر معمولی از ${borderFa} به بندرعباس، سپس با کانتینر معمولی به ${switchLocFa} جهت تعویض بارنامه (Switch B/L). مقصد نهایی: ${destFa}.`,
+      fa: `حمل با کانتینر معمولی از ${borderFa} تا بندرعباس، سپس با کانتینر معمولی به ${switchLocFa} جهت تعویض بارنامه (Switch B/L). مقصد نهایی: ${destFa}.`,
     }
   }
 
   return {
     en: `Standard container from ${borderEn} to Bandar Abbas, then refrigerated container to ${switchLocEn} for Switch B/L. Final destination: ${destEn}.`,
-    fa: `حمل با کانتینر معمولی از ${borderFa} به بندرعباس، سپس با کانتینر یخچالی به ${switchLocFa} جهت تعویض بارنامه (Switch B/L). مقصد نهایی: ${destFa}.`,
+    fa: `حمل با کانتینر معمولی از ${borderFa} تا بندرعباس، سپس با کانتینر یخچالی به ${switchLocFa} جهت تعویض بارنامه (Switch B/L). مقصد نهایی: ${destFa}.`,
   }
 }
 
@@ -613,32 +616,32 @@ export function buildWhatsAppShipmentUpdate(bol: WhatsAppBol): string {
   const details = formatTransitDetailsText(bol)
 
   const docLines = [
-    blNo ? `📄 *B/L No. / شماره بارنامه\u200E:* ${blNo}` : "",
-    invoiceNo ? `🧾 *Invoice No. / شماره فاکتور\u200E:* ${invoiceNo}` : "",
-    truck ? `🚚 *Truck No. / شماره موتر\u200E:* ${truck}` : "",
+    blNo ? `📄 *B/L No. / شماره بارنامه:* ${blNo}` : "",
+    invoiceNo ? `🧾 *Invoice No. / شماره فاکتور:* ${invoiceNo}` : "",
+    truck ? `🚚 *Truck No. / شماره موتر:* ${truck}` : "",
   ].filter(Boolean)
 
   const partyLines = [
-    shipper ? `🏢 *Shipper / فرستنده\u200E:* ${shipper}` : "",
-    consignee ? `🏢 *Consignee / گیرنده\u200E:* ${consignee}` : "",
+    shipper ? `🏢 *Shipper / فرستنده:* ${shipper}` : "",
+    consignee ? `🏢 *Consignee / گیرنده:* ${consignee}` : "",
   ].filter(Boolean)
 
   const cargoLines = [
-    commodity ? `🍇 *Commodity / نوع کالا\u200E:* ${commodity}` : "",
-    packages ? `📦 *Packages / تعداد کارتن\u200E:* ${packages}` : "",
-    netWeight ? `⚖️ *Net Weight / وزن خالص\u200E:* ${netWeight}` : "",
-    unitPrice ? `💵 *Unit Price / قیمت واحد\u200E:* ${unitPrice}` : "",
+    commodity ? `🍇 *Commodity / نوع کالا:* ${commodity}` : "",
+    packages ? `📦 *Packages / تعداد کارتن:* ${packages}` : "",
+    netWeight ? `⚖️ *Net Weight / وزن خالص:* ${netWeight}` : "",
+    unitPrice ? `💵 *Unit Price / قیمت واحد:* ${unitPrice}` : "",
   ].filter(Boolean)
 
   if (!docLines.length && !cargoLines.length) return ""
 
   const routeBlock = [
-    "🛣️ *TRANSIT ROUTE / مسیر ترانزیت\u200E:*",
+    "🛣️ *TRANSIT ROUTE / مسیر ترانزیت:*",
     route,
   ].join("\n")
 
   const detailsBlock = [
-    "🚛 *TRANSIT DETAILS / جزئیات ترانزیت\u200E:*",
+    "🚛 *TRANSIT DETAILS / جزئیات ترانزیت:*",
     details.en,
     "",
     details.fa,

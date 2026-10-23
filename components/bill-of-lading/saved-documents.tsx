@@ -57,6 +57,7 @@ import {
 import { generateBOLPDFBlob, savePDFToDevice, buildBolSmartFileName } from "@/lib/utils/pdf-upload"
 import { generateShippingDocumentsPDF, deriveShippingDocumentData, buildShippingDocumentFileName, extractInvoiceNumber } from "@/lib/utils/shipping-documents"
 import { CloudSyncModal } from "./cloud-sync-modal"
+import { OnlineSyncStatusBadge } from "@/components/sync/online-sync-status-badge"
 import { useApp } from "@/lib/app-context"
 import { SavedBolReport } from "@/components/reports/saved-bol-report"
 import { extractBolRoute, parsePackages, parseWeight, parseMoney, parsePackageUnit, formatPackageBreakdown } from "@/lib/reports/parsers"
@@ -770,16 +771,21 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       void fetchDocuments()
       void fetchRecentBols()
       void fetchSummary()
+      void fetchAllReportDocuments()
     }
 
     window.addEventListener("skybol:documents-updated", handleRefresh as EventListener)
     window.addEventListener("skybol:account-ledger-updated", handleRefresh as EventListener)
+    window.addEventListener("skybol:online-sync-complete", handleRefresh as EventListener)
+    window.addEventListener("skybol:cloud-synced", handleRefresh as EventListener)
 
     return () => {
       cancelAnimationFrame(frame)
       clearTimeout(timer)
       window.removeEventListener("skybol:documents-updated", handleRefresh as EventListener)
       window.removeEventListener("skybol:account-ledger-updated", handleRefresh as EventListener)
+      window.removeEventListener("skybol:online-sync-complete", handleRefresh as EventListener)
+      window.removeEventListener("skybol:cloud-synced", handleRefresh as EventListener)
     }
   }, [refreshTrigger])
 
@@ -2238,6 +2244,23 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               <FileSpreadsheet className="h-3.5 w-3.5 mr-1 text-emerald-600 shrink-0 pointer-events-none" />
               <span>Export CSV</span>
             </Button>
+            {/* Online Cloud Sync Status Badge */}
+            <OnlineSyncStatusBadge
+              variant="full"
+              onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
+              className="hidden lg:inline-flex"
+            />
+            <OnlineSyncStatusBadge
+              variant="compact"
+              onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
+              className="hidden sm:inline-flex lg:hidden"
+            />
+            <OnlineSyncStatusBadge
+              variant="icon"
+              onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
+              className="sm:hidden"
+            />
+
             <Button
               type="button"
               variant="outline"
