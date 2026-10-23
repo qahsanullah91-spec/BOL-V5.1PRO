@@ -88,6 +88,15 @@ export interface EnterpriseModuleItem {
 export const ENTERPRISE_MODULES: EnterpriseModuleItem[] = [
   // --- 1. FREIGHT & OPERATIONS ---
   {
+    id: 'dashboard',
+    title: 'Executive Dashboard',
+    shortLabel: 'Dashboard',
+    subtitle: 'System overview, KPIs, trends & live operations',
+    icon: LayoutGrid,
+    category: 'ops',
+    color: 'text-sky-500 dark:text-sky-400',
+  },
+  {
     id: 'shipments',
     title: 'Control Tower',
     shortLabel: 'Control Tower',
@@ -400,7 +409,7 @@ export function Header({ title, subtitle }: HeaderProps) {
   const [selectedMegaSuite, setSelectedMegaSuite] = useState<'all' | 'ops' | 'finance' | 'commercial' | 'system'>('all')
 
   // BOL & Account Ledger main workspace views
-  const isBolWorkspace = ['bol', 'accounts', 'companies', 'ledger', 'invoice', 'reports', 'shipments'].includes(view as string)
+  const isBolWorkspace = ['dashboard', 'bol', 'accounts', 'companies', 'ledger', 'invoice', 'reports', 'shipments'].includes(view as string)
 
   // Identify active category and current module details
   const currentModule = useMemo(() => {
@@ -472,8 +481,8 @@ export function Header({ title, subtitle }: HeaderProps) {
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
           <div
             className="flex items-center gap-1.5 transition-transform hover:scale-102 active:scale-98 cursor-pointer shrink-0"
-            onClick={() => handleNavigate('bol')}
-            title="Return to BOL Workspace"
+            onClick={() => handleNavigate('dashboard')}
+            title="Return to Executive Dashboard"
           >
             <div className="relative flex items-center justify-center h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 p-0.5 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs shrink-0">
               <Image
@@ -511,7 +520,9 @@ export function Header({ title, subtitle }: HeaderProps) {
                 >
                   <Layers className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                   <span className="font-extrabold hidden md:inline">
-                    {isBolWorkspace && view !== 'bol'
+                    {view === 'dashboard'
+                      ? 'Dashboard'
+                      : isBolWorkspace && view !== 'bol'
                       ? view === 'accounts'
                         ? 'Accounts'
                         : view === 'ledger'
@@ -528,7 +539,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                       : 'Workspaces'}
                   </span>
                   <span className="hidden min-[1500px]:inline text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold">
-                    7
+                    8
                   </span>
                   <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
                 </button>
@@ -537,6 +548,16 @@ export function Header({ title, subtitle }: HeaderProps) {
                 <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
                   Core Logistics Workspaces
                 </DropdownMenuLabel>
+
+                {/* 0. Executive Dashboard */}
+                <DropdownMenuItem onClick={() => handleNavigate('dashboard')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'dashboard' ? 'bg-sky-600 text-white font-bold' : ''}`}>
+                  <LayoutGrid className={`h-3.5 w-3.5 shrink-0 ${view === 'dashboard' ? 'text-white' : 'text-sky-500'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-xs">Executive Dashboard</p>
+                    <p className={`text-[10px] truncate ${view === 'dashboard' ? 'text-sky-100' : 'text-slate-400'}`}>Overview, KPIs & live activity</p>
+                  </div>
+                  {view === 'dashboard' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1" />}
+                </DropdownMenuItem>
 
                 {/* 1. BOL Editor */}
                 <DropdownMenuItem onClick={() => handleNavigate('bol')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'bol' ? 'bg-blue-600 text-white font-bold' : ''}`}>
@@ -632,6 +653,21 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* ================================================================= */}
         {currentUser && currentUser.role !== 'shipper' && (
           <nav className="hidden md:flex items-center gap-0.5 xl:gap-1 shrink-0 min-w-0">
+
+            {/* Direct Dashboard Quick Pill */}
+            <button
+              type="button"
+              onClick={() => handleNavigate('dashboard')}
+              className={`flex items-center gap-1.5 h-7.5 px-2.5 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                view === 'dashboard'
+                  ? 'bg-sky-600 text-white shadow-xs shadow-sky-500/30'
+                  : 'bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 shadow-2xs'
+              }`}
+              title="Executive Dashboard"
+            >
+              <LayoutGrid className={`h-3.5 w-3.5 shrink-0 ${view === 'dashboard' ? 'text-white' : 'text-sky-600 dark:text-sky-400'}`} />
+              <span className="font-extrabold hidden md:inline">Dashboard</span>
+            </button>
             
             {/* ------------------------------------------------------------- */}
             {/* 1. ALL MODULES ENTERPRISE LAUNCHER (MEGA-DROPDOWN)            */}

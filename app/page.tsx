@@ -18,6 +18,7 @@ import { smartMergeLedgerRecords } from '@/lib/services/ledger-sync-utils'
 import { UiOverflowDetector } from '@/components/system/ui-overflow-detector'
 import { AppShell, MainWorkspace } from '@/components/layout'
 
+const DashboardView = createSafeModule('Executive Dashboard', () => import('@/components/dashboard/dashboard-view').then(m => m.DashboardView))
 const BOLEditor = createSafeModule('Bill of Lading', () => import('@/components/bill-of-lading/bol-editor').then(m => m.BOLEditor))
 const AccountsView = createSafeModule('Customer Accounts', () => import('@/components/accounts-view').then(m => m.AccountsView))
 const CompaniesView = createSafeModule('Companies', () => import('@/components/companies-view').then(m => m.CompaniesView))
@@ -70,6 +71,7 @@ function MainContent() {
   useEffect(() => {
     setMounted(true)
     scheduleIdlePreloads([
+      { key: 'dashboard-view', importer: () => import('@/components/dashboard/dashboard-view') },
       { key: 'bol-editor', importer: () => import('@/components/bill-of-lading/bol-editor') },
       { key: 'ledger-view', importer: () => import('@/components/ledger-view') },
       { key: 'accounts-view', importer: () => import('@/components/accounts-view') },
@@ -321,7 +323,7 @@ function MainContent() {
       footer={<MobileBottomNav />}
     >
       <MainWorkspace
-        fluid={isBolView || isShipper || view === 'accounts' || view === 'companies' || view === 'ledger'}
+        fluid={view === 'dashboard' || isBolView || isShipper || view === 'accounts' || view === 'companies' || view === 'ledger'}
         noPadding={isBolView}
       >
         {isShipper ? (
@@ -332,6 +334,13 @@ function MainContent() {
           </div>
         ) : (
           <>
+            {view === 'dashboard' && (
+              <div key="dashboard" className="animate-page-crossfade w-full flex-1 flex flex-col min-h-0">
+                <ModuleErrorBoundary moduleName="Executive Dashboard">
+                  <DashboardView />
+                </ModuleErrorBoundary>
+              </div>
+            )}
             {isBolView && (
               <div key="bol-editor" className="animate-page-crossfade flex-1 flex flex-col min-h-0 h-full">
                 <ModuleErrorBoundary moduleName="Bill of Lading Workspace">

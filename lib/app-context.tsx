@@ -1,6 +1,7 @@
 "use client"
 
 import { Account, Company, LedgerEntry, Invoice, InvoiceItem, LedgerSettings, User, UserRole } from '@/lib/types'
+export type { Account, Company, LedgerEntry, Invoice, InvoiceItem, LedgerSettings, User, UserRole }
 import { authenticateLocalUser } from "@/lib/services/local-user-auth"
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect, startTransition } from 'react'
 import { mergeEntities } from '@/lib/master-data/duplicate-detector'
@@ -89,7 +90,7 @@ interface AppState {
   invoices: Invoice[]
   currentAccount: Account | null
   currentCompany: Company | null
-  view: 'accounts' | 'companies' | 'ledger' | 'accounting' | 'invoice' | 'bol' | 'settings' | 'bank' | 'invoice-pad' | 'sky-cmr' | 'sky-doc' | 'reports' | 'shipper-portal' | 'analytics' | 'export-calculator' | 'acci-portal' | 'shipments' | 'whatsapp' | 'customer-portal' | 'customer-portal-admin' | 'accounting-finance' | 'document-compliance' | 'booking-containers' | 'bulk-entry' | 'master-data' | 'workflow' | 'notifications' | 'data-protection' | 'backup' | 'daily-operations' | 'audit-history' | 'search' | 'ai-assistant' | 'routes-locations' | 'rates-quotations' | 'procurement' | 'fleet-operations' | 'warehouse-cargo' | 'customs-transit' | 'ocean-operations' | 'air-freight' | 'claims-incidents' | 'crm-sales' | 'period-closing' | 'treasury' | 'management-reports' | 'file-center' | 'communications'
+  view: 'dashboard' | 'accounts' | 'companies' | 'ledger' | 'accounting' | 'invoice' | 'bol' | 'settings' | 'bank' | 'invoice-pad' | 'sky-cmr' | 'sky-doc' | 'reports' | 'shipper-portal' | 'analytics' | 'export-calculator' | 'acci-portal' | 'shipments' | 'whatsapp' | 'customer-portal' | 'customer-portal-admin' | 'accounting-finance' | 'document-compliance' | 'booking-containers' | 'bulk-entry' | 'master-data' | 'workflow' | 'notifications' | 'data-protection' | 'backup' | 'daily-operations' | 'audit-history' | 'search' | 'ai-assistant' | 'routes-locations' | 'rates-quotations' | 'procurement' | 'fleet-operations' | 'warehouse-cargo' | 'customs-transit' | 'ocean-operations' | 'air-freight' | 'claims-incidents' | 'crm-sales' | 'period-closing' | 'treasury' | 'management-reports' | 'file-center' | 'communications'
 
   isAuthenticated: boolean
   currentUser: User | null
@@ -348,7 +349,7 @@ function getInitialAppState(): AppState {
     invoices: [],
     currentAccount: null,
     currentCompany: null,
-    view: user?.role === "shipper" ? "shipper-portal" : "accounts",
+    view: user?.role === "shipper" ? "shipper-portal" : "dashboard",
     isAuthenticated: isAuth,
     currentUser: user,
     users: currentUsers,
@@ -653,7 +654,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...prev,
       isAuthenticated: true,
       currentUser: userObj,
-      view: userObj.role === "shipper" ? "shipper-portal" : (prev.view === "shipper-portal" ? "accounts" : prev.view),
+      view: userObj.role === "shipper" ? "shipper-portal" : "dashboard",
     }))
     return true
   }, [state.users])
@@ -671,7 +672,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...prev,
       isAuthenticated: false,
       currentUser: null,
-      view: 'accounts',
+      view: 'dashboard',
       currentAccount: null,
       currentCompany: null,
     }))
