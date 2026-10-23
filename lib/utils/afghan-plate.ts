@@ -247,12 +247,15 @@ export function parseAfghanPlate(input?: string): ParsedAfghanPlate {
   // Fallback: If no single token matched, test compound phrase (e.g. "مزار شریف")
   if (!matchedProvince && tokens.length > 0) {
     const joined = tokens.join(" ")
-    matchedProvince = getProvinceInfo(joined)
+    const candidate = getProvinceInfo(joined)
+    if (candidate && !/^\d+$/.test(candidate.nameFa)) {
+      matchedProvince = candidate
+    }
   }
 
-  // Fallback province if still empty
-  if (!matchedProvince) {
-    matchedProvince = getProvinceInfo(raw)
+  // Fallback province if still empty or purely numeric
+  if (!matchedProvince || /^\d+$/.test(matchedProvince.nameFa)) {
+    matchedProvince = AFGHAN_PROVINCES[0] // Default to Kabul (کابل / KBL)
   }
 
   // 4. Now search remaining non-province tokens for plate letter
@@ -265,8 +268,8 @@ export function parseAfghanPlate(input?: string): ParsedAfghanPlate {
   }
 
   return {
-    plateNumber: plateNumber || raw,
-    plateNumberFa: plateNumberFa || convertToPersianDigits(raw),
+    plateNumber: plateNumber || (raw && !/^\s*$/.test(raw) ? raw : "—"),
+    plateNumberFa: plateNumberFa || (raw ? convertToPersianDigits(raw) : "—"),
     provinceFa: matchedProvince.nameFa,
     provinceEn: matchedProvince.nameEn,
     provinceCode: matchedProvince.code,

@@ -33,11 +33,17 @@ export type AfghanTruckPlateProps = AfghanVehiclePlateProps
 /**
  * <AfghanTruckPlate />
  *
- * Backward-compatible wrapper around <AfghanVehiclePlate />,
- * matching the authentic flat white Afghan vehicle registration plate standard.
+ * Official Afghanistan Truck Registration Plate UI Component.
+ * Faithfully renders the commercial freight truck plate (with "ل" / "L" classification)
+ * adhering 1:1 to official Afghanistan physical registration plates:
+ * - Pure flat white background (#ffffff)
+ * - Solid thin black border with slightly rounded corners
+ * - Top Row: Dari/Pashto Province + Persian Digits + "ل" (Lorri/Truck)
+ * - Middle Left: Authentic Kabul architectural landmark line-art illustration
+ * - Bottom Row: 3-letter Latin Province Code + Latin Digits + "L"
  */
 export function AfghanTruckPlate(props: AfghanTruckPlateProps) {
-  return <AfghanVehiclePlate {...props} />
+  return <AfghanVehiclePlate defaultLetter="ل" defaultLetterEn="L" {...props} />
 }
 
-export default AfghanVehiclePlate
+export default AfghanTruckPlate

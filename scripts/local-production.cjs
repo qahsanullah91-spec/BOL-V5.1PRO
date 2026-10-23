@@ -22,9 +22,25 @@ const host = process.env.SERVER_HOST || (process.env.LAN_MODE === 'true' ? '0.0.
 const port = process.env.SERVER_PORT || '3000'
 
 const args = mode === 'build' ? ['build'] : ['start', '--hostname', host, '-p', port]
-const child = spawn(process.execPath, [require.resolve('next/dist/bin/next'), ...args, ...process.argv.slice(3)], {
-  cwd: root, env, stdio: 'inherit', windowsHide: true,
-})
 
-child.on('error', (error) => { console.error(error); process.exitCode = 1 })
-child.on('exit', (code) => { process.exitCode = code ?? 1 })
+function runProcess(attempt = 1) {
+  const child = spawn(process.execPath, [require.resolve('next/dist/bin/next'), ...args, ...process.argv.slice(3)], {
+    cwd: root, env, stdio: 'inherit', windowsHide: true,
+  })
+
+  child.on('error', (error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+
+  child.on('exit', (code) => {
+    if (code !== 0 && mode === 'build' && attempt === 1) {
+      console.log('Build exited with code', code, '- retrying build (attempt 2 of 2)...')
+      runProcess(2)
+      return
+    }
+    process.exitCode = code ?? 1
+  })
+}
+
+runProcess(1)

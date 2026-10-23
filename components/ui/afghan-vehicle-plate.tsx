@@ -27,21 +27,25 @@ export {
 }
 
 export interface AfghanVehiclePlateProps {
-  /** Combined raw truck/vehicle plate string (e.g. "12346 کابل ل", "2877 کابل", "35974 کابل", "24345 کابل ل", "38663-HRT") */
+  /** Combined raw truck/vehicle plate string (e.g. "12346 کابل ل", "3292 هلمند", "2877 کابل", "35974 کابل", "38663-HRT") */
   value?: string
-  /** Explicit registration number (e.g. "12346") */
+  /** Explicit registration number (e.g. "12346" or "3292") */
   plateNumber?: string
-  /** Explicit province name (Dari/Pashto or English, e.g. "کابل") */
+  /** Explicit province name (Dari/Pashto or English, e.g. "کابل" or "هلمند") */
   province?: string
-  /** Explicit 3-letter province code (e.g. "KBL") */
+  /** Explicit 3-letter province code (e.g. "KBL" or "HLM") */
   provinceEn?: string
   /** Explicit plate classification letter (e.g. "ل" or "L") */
   plateLetter?: string
   /** Plate letter in Latin (e.g. "L") */
   plateLetterEn?: string
+  /** Fallback category letter to use if none is in the input. Defaults to "ل" (commercial transport/truck). */
+  defaultLetter?: string
+  /** Fallback Latin category letter. Defaults to "L". */
+  defaultLetterEn?: string
   /** Visual scale or size variant */
   size?: "compact" | "sm" | "default" | "md" | "lg" | "responsive"
-  /** Whether to show the classification letter on the right. Defaults to true if letter is provided or present. */
+  /** Whether to show the classification letter on the right. Defaults to true. */
   showLetter?: boolean
   /** Additional CSS class names */
   className?: string
@@ -57,16 +61,16 @@ export interface AfghanVehiclePlateProps {
  * - Pure white background (#ffffff) with crisp solid black border & slightly rounded corners
  * - Strictly NO shadows, gradients, metallic effects, debossed grooves, screws, or fake bolt heads
  * - Top row:
- *     - Left: Dari/Persian Province (e.g. کابل) in bold Dari calligraphy
- *     - Center: Persian numerals (e.g. ۱۲۳۴۶) with authentic proportions & tracking
+ *     - Left: Dari/Pashto Province (e.g. کابل / هلمند) in bold Dari typography
+ *     - Center: Persian numerals (e.g. ۱۲۳۴۶ / ۳۲۹۲) with authentic proportions & vertical alignment
  *     - Right: Dari category letter (e.g. ل)
  * - Upper-Left: Authentic Kabul landmark architectural line-art illustration
  * - Bottom row:
- *     - Left: 3-letter Latin province code (e.g. KBL) in bold uppercase
- *     - Center: Latin numerals (e.g. 12346) in large bold font
+ *     - Left: 3-letter Latin province code (e.g. KBL / HLM) in bold uppercase
+ *     - Center: Latin numerals (e.g. 12346 / 3292) in large bold DIN/license-plate font
  *     - Right: Latin category letter (e.g. L)
  * - Strict RTL / LTR isolation: digits and letters strictly preserve their correct reading order
- * - Fully dynamic: connects to database records while defaulting to the canonical reference plate
+ * - Fully dynamic: connects to database records while matching authentic physical plate proportions
  */
 export function AfghanVehiclePlate({
   value,
@@ -75,14 +79,15 @@ export function AfghanVehiclePlate({
   provinceEn: explicitProvinceEn,
   plateLetter: explicitLetter,
   plateLetterEn: explicitLetterEn,
+  defaultLetter = "ل",
+  defaultLetterEn = "L",
   size = "compact",
-  showLetter,
+  showLetter = true,
   className = "",
   style,
 }: AfghanVehiclePlateProps) {
   // Parse or compute data
   const data = useMemo(() => {
-    // If no values provided at all, default to reference plate values
     const rawInput = value || explicitNumber || ""
     const isReferenceDefault = !rawInput && !explicitProvince && !explicitLetter
 
@@ -94,7 +99,7 @@ export function AfghanVehiclePlate({
         provinceCode: "KBL",
         letterFa: "ل",
         letterEn: "L",
-        hasLetter: true,
+        hasLetter: showLetter,
       }
     }
 
@@ -114,8 +119,9 @@ export function AfghanVehiclePlate({
       finalProvCode = explicitProvinceEn.toUpperCase()
     }
 
-    let finalLetterFa = parsed.plateLetterFa || ""
-    let finalLetterEn = parsed.plateLetterEn || ""
+    // Determine category letter
+    let finalLetterFa = parsed.plateLetterFa || defaultLetter || "ل"
+    let finalLetterEn = parsed.plateLetterEn || defaultLetterEn || "L"
 
     if (explicitLetter) {
       const letterInfo = AFGHAN_PLATE_LETTERS[explicitLetter] || {
@@ -133,10 +139,6 @@ export function AfghanVehiclePlate({
       finalLetterEn = explicitLetterEn.toUpperCase()
     }
 
-    // Determine if letter should be shown
-    const letterPresent = Boolean(finalLetterFa || finalLetterEn)
-    const shouldShowLetter = showLetter !== undefined ? showLetter : letterPresent
-
     return {
       number: finalNumber,
       numberFa: finalNumberFa,
@@ -144,85 +146,89 @@ export function AfghanVehiclePlate({
       provinceCode: finalProvCode,
       letterFa: finalLetterFa,
       letterEn: finalLetterEn,
-      hasLetter: shouldShowLetter && letterPresent,
+      hasLetter: Boolean(showLetter && (finalLetterFa || finalLetterEn)),
     }
-  }, [value, explicitNumber, explicitProvince, explicitProvinceEn, explicitLetter, explicitLetterEn, showLetter])
+  }, [value, explicitNumber, explicitProvince, explicitProvinceEn, explicitLetter, explicitLetterEn, defaultLetter, defaultLetterEn, showLetter])
 
   // Precise sizing configurations preserving the exact 2.62:1 aspect ratio
+  // and ensuring Persian numerals (38% height) match Latin numerals (35% height)
   const sizeStyles = {
     compact: {
-      container: "w-[184px] h-[70px] rounded-[5px]",
+      container: "w-[204px] h-[78px] rounded-[6px]",
       border: "border-[1.8px] border-black",
-      padding: "px-[3.5%] py-[2.5%]",
-      provFa: "text-[12pt] leading-none",
-      landmarkH: "h-[16px]",
-      provEn: "text-[9.5pt] leading-none tracking-[0.05em]",
-      numFa: "text-[18pt] leading-none tracking-[0.14em]",
-      numEn: "text-[19pt] leading-none tracking-[0.02em]",
-      letterFa: "text-[13pt] leading-none",
-      letterEn: "text-[11pt] leading-none",
+      padding: "px-[2.5%] py-[2%]",
+      provFa: "text-[13pt] leading-none",
+      landmarkH: "h-[19px]",
+      provEn: "text-[10pt] leading-none tracking-[0.06em]",
+      numFa: "text-[27pt] leading-none tracking-[0.06em]",
+      numEn: "text-[21pt] leading-none tracking-[0.02em]",
+      letterFa: "text-[17.5pt] leading-none",
+      letterEn: "text-[13pt] leading-none",
     },
     sm: {
-      container: "w-[158px] h-[60px] rounded-[4px]",
+      container: "w-[172px] h-[66px] rounded-[5px]",
       border: "border-[1.6px] border-black",
-      padding: "px-[3.5%] py-[2.2%]",
-      provFa: "text-[10pt] leading-none",
-      landmarkH: "h-[13px]",
-      provEn: "text-[8pt] leading-none tracking-[0.05em]",
-      numFa: "text-[15.5pt] leading-none tracking-[0.14em]",
-      numEn: "text-[16pt] leading-none tracking-[0.02em]",
-      letterFa: "text-[11pt] leading-none",
-      letterEn: "text-[9.5pt] leading-none",
+      padding: "px-[2.5%] py-[2%]",
+      provFa: "text-[11pt] leading-none",
+      landmarkH: "h-[16px]",
+      provEn: "text-[8.5pt] leading-none tracking-[0.06em]",
+      numFa: "text-[23pt] leading-none tracking-[0.06em]",
+      numEn: "text-[18pt] leading-none tracking-[0.02em]",
+      letterFa: "text-[15pt] leading-none",
+      letterEn: "text-[11pt] leading-none",
     },
     default: {
-      container: "w-[236px] h-[90px] rounded-[7px]",
+      container: "w-[250px] h-[95px] rounded-[7px]",
       border: "border-[2.2px] border-black",
-      padding: "px-[3.5%] py-[2.5%]",
-      provFa: "text-[15pt] leading-none",
-      landmarkH: "h-[21px]",
-      provEn: "text-[12pt] leading-none tracking-[0.05em]",
-      numFa: "text-[23pt] leading-none tracking-[0.14em]",
-      numEn: "text-[24pt] leading-none tracking-[0.02em]",
-      letterFa: "text-[16pt] leading-none",
-      letterEn: "text-[14pt] leading-none",
-    },
-    md: {
-      container: "w-[275px] h-[105px] rounded-[8px]",
-      border: "border-[2.5px] border-black",
-      padding: "px-[3.5%] py-[2.5%]",
-      provFa: "text-[17.5pt] leading-none",
-      landmarkH: "h-[24px]",
-      provEn: "text-[14pt] leading-none tracking-[0.05em]",
-      numFa: "text-[27pt] leading-none tracking-[0.14em]",
-      numEn: "text-[28pt] leading-none tracking-[0.02em]",
-      letterFa: "text-[19pt] leading-none",
+      padding: "px-[2.5%] py-[2%]",
+      provFa: "text-[16pt] leading-none",
+      landmarkH: "h-[23px]",
+      provEn: "text-[12.5pt] leading-none tracking-[0.06em]",
+      numFa: "text-[33pt] leading-none tracking-[0.06em]",
+      numEn: "text-[26pt] leading-none tracking-[0.02em]",
+      letterFa: "text-[21pt] leading-none",
       letterEn: "text-[16pt] leading-none",
     },
+    md: {
+      container: "w-[285px] h-[108px] rounded-[8px]",
+      border: "border-[2.5px] border-black",
+      padding: "px-[2.5%] py-[2%]",
+      provFa: "text-[18pt] leading-none",
+      landmarkH: "h-[26px]",
+      provEn: "text-[14pt] leading-none tracking-[0.06em]",
+      numFa: "text-[38pt] leading-none tracking-[0.06em]",
+      numEn: "text-[30pt] leading-none tracking-[0.02em]",
+      letterFa: "text-[24pt] leading-none",
+      letterEn: "text-[18.5pt] leading-none",
+    },
     lg: {
-      container: "w-[340px] h-[130px] rounded-[10px]",
+      container: "w-[350px] h-[133px] rounded-[10px]",
       border: "border-[3px] border-black",
-      padding: "px-[3.5%] py-[2.5%]",
+      padding: "px-[2.5%] py-[2%]",
       provFa: "text-[22pt] leading-none",
-      landmarkH: "h-[30px]",
-      provEn: "text-[17pt] leading-none tracking-[0.05em]",
-      numFa: "text-[33pt] leading-none tracking-[0.15em]",
-      numEn: "text-[35pt] leading-none tracking-[0.02em]",
-      letterFa: "text-[23pt] leading-none",
-      letterEn: "text-[20pt] leading-none",
+      landmarkH: "h-[32px]",
+      provEn: "text-[17.5pt] leading-none tracking-[0.06em]",
+      numFa: "text-[46pt] leading-none tracking-[0.06em]",
+      numEn: "text-[37pt] leading-none tracking-[0.02em]",
+      letterFa: "text-[29pt] leading-none",
+      letterEn: "text-[23pt] leading-none",
     },
     responsive: {
       container: "w-full max-w-[320px] aspect-[2.62/1] rounded-[7px]",
       border: "border-[2px] border-black",
-      padding: "px-[3.5%] py-[2.5%]",
+      padding: "px-[2.5%] py-[2%]",
       provFa: "text-[clamp(11px,3.8vw,20pt)] leading-none",
       landmarkH: "h-[clamp(14px,4.8vw,28px)]",
-      provEn: "text-[clamp(9px,3.0vw,16pt)] leading-none tracking-[0.05em]",
-      numFa: "text-[clamp(16px,5.8vw,31pt)] leading-none tracking-[0.14em]",
-      numEn: "text-[clamp(17px,6.0vw,33pt)] leading-none tracking-[0.02em]",
-      letterFa: "text-[clamp(11px,3.9vw,21pt)] leading-none",
+      provEn: "text-[clamp(9px,3.0vw,16pt)] leading-none tracking-[0.06em]",
+      numFa: "text-[clamp(18px,6.8vw,36pt)] leading-none tracking-[0.06em]",
+      numEn: "text-[clamp(15px,5.4vw,28pt)] leading-none tracking-[0.02em]",
+      letterFa: "text-[clamp(12px,4.2vw,22pt)] leading-none",
       letterEn: "text-[clamp(10px,3.5vw,18pt)] leading-none",
     },
   }[size]
+
+  const persianFontFamily = '"AfghanPlateFa", "NotoNaskhArabic", "Noto Naskh Arabic", "Vazirmatn", "Segoe UI", Tahoma, Arial, sans-serif'
+  const latinFontFamily = '"Bahnschrift", "DIN Alternate", "DIN Condensed", "Franklin Gothic Medium", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Arial Black", sans-serif'
 
   return (
     <div
@@ -240,14 +246,14 @@ export function AfghanVehiclePlate({
         {/* ========================================================================= */}
         {/* COLUMN 1 (LEFT): Dari Province + Landmark Illustration + Latin Province    */}
         {/* ========================================================================= */}
-        <div className="flex flex-col justify-between items-center text-center h-full w-[22%] min-w-0 py-[1%]">
-          {/* Top Left: Dari Province (e.g. کابل) */}
-          <div className="flex items-center justify-center w-full min-w-0">
+        <div className="flex flex-col justify-between items-center text-center h-full w-[21%] min-w-0 py-[1%]">
+          {/* Top Left: Dari/Pashto Province (e.g. کابل / هلمند) */}
+          <div className="flex items-center justify-center w-full h-[36%] min-w-0">
             <span
               dir="rtl"
-              className={`font-[vazirmatn] font-black text-black select-text ${sizeStyles.provFa}`}
+              className={`font-black text-black select-text ${sizeStyles.provFa}`}
               style={{
-                fontFamily: 'var(--font-vazirmatn), "Noto Naskh Arabic", "Vazirmatn", "Traditional Arabic", Arial, Tahoma, sans-serif',
+                fontFamily: persianFontFamily,
                 fontWeight: 900,
                 color: "#000000",
               }}
@@ -257,24 +263,24 @@ export function AfghanVehiclePlate({
           </div>
 
           {/* Middle Left: Architectural Landmark Illustration */}
-          <div className="flex items-center justify-center w-full my-auto pointer-events-none" aria-hidden="true">
+          <div className="flex items-center justify-center w-full h-[28%] pointer-events-none" aria-hidden="true">
             <img
               src={KABUL_LANDMARK_DATA_URI}
               alt=""
               className={`${sizeStyles.landmarkH} w-auto object-contain select-none`}
               style={{
-                filter: "contrast(1.05)",
+                filter: "contrast(1.08) brightness(0.95)",
                 maxWidth: "100%",
               }}
             />
           </div>
 
-          {/* Bottom Left: Latin Province Code (e.g. KBL) */}
-          <div className="flex items-center justify-center w-full min-w-0">
+          {/* Bottom Left: Latin Province Code (e.g. KBL / HLM) */}
+          <div className="flex items-center justify-center w-full h-[36%] min-w-0">
             <span
-              className={`font-sans font-black text-black uppercase select-text ${sizeStyles.provEn}`}
+              className={`font-black text-black uppercase select-text ${sizeStyles.provEn}`}
               style={{
-                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                fontFamily: latinFontFamily,
                 fontWeight: 900,
                 color: "#000000",
               }}
@@ -287,16 +293,16 @@ export function AfghanVehiclePlate({
         {/* ========================================================================= */}
         {/* COLUMN 2 (CENTER): Persian Digits + Latin Digits                          */}
         {/* ========================================================================= */}
-        <div className="flex flex-col justify-between items-center text-center h-full flex-1 min-w-0 px-[2%] py-[1%]">
-          {/* Top Center: Persian Numerals (e.g. ۱۲۳۴۶) */}
-          <div className="flex items-center justify-center w-full min-w-0">
+        <div className={`flex flex-col justify-center items-center text-center h-full flex-1 min-w-0 ${data.hasLetter ? "px-[1.5%]" : "px-[4%]"} py-[0.5%]`}>
+          {/* Top Center: Persian Numerals (e.g. ۱۲۳۴۶ / ۳۲۹۲) */}
+          <div className="flex items-center justify-center w-full h-1/2 min-w-0 pt-[2%]">
             <span
               dir="ltr"
-              className={`font-[vazirmatn] font-black text-black text-center tabular-nums select-text ${sizeStyles.numFa}`}
+              className={`font-black text-black text-center tabular-nums select-text ${sizeStyles.numFa}`}
               style={{
                 direction: "ltr",
                 unicodeBidi: "isolate",
-                fontFamily: 'var(--font-vazirmatn), "Noto Naskh Arabic", "Vazirmatn", Arial, Tahoma, sans-serif',
+                fontFamily: persianFontFamily,
                 fontWeight: 900,
                 color: "#000000",
               }}
@@ -305,15 +311,15 @@ export function AfghanVehiclePlate({
             </span>
           </div>
 
-          {/* Bottom Center: Latin Numerals (e.g. 12346) */}
-          <div className="flex items-center justify-center w-full min-w-0">
+          {/* Bottom Center: Latin Numerals (e.g. 12346 / 3292) */}
+          <div className="flex items-center justify-center w-full h-1/2 min-w-0 pb-[1%]">
             <span
               dir="ltr"
-              className={`font-sans font-black text-black text-center tabular-nums select-text ${sizeStyles.numEn}`}
+              className={`font-black text-black text-center tabular-nums select-text ${sizeStyles.numEn}`}
               style={{
                 direction: "ltr",
                 unicodeBidi: "isolate",
-                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                fontFamily: latinFontFamily,
                 fontWeight: 900,
                 color: "#000000",
               }}
@@ -326,44 +332,38 @@ export function AfghanVehiclePlate({
         {/* ========================================================================= */}
         {/* COLUMN 3 (RIGHT): Dari Letter + Latin Letter                              */}
         {/* ========================================================================= */}
-        <div className="flex flex-col justify-between items-center text-center h-full w-[16%] min-w-0 py-[1%]">
-          {/* Top Right: Dari Category Letter (e.g. ل) */}
-          <div className="flex items-center justify-center w-full min-w-0">
-            {data.hasLetter ? (
+        {data.hasLetter && (
+          <div className="flex flex-col justify-between items-center text-center h-full w-[14%] min-w-0 py-[1%]">
+            {/* Top Right: Dari Category Letter (e.g. ل) */}
+            <div className="flex items-center justify-center w-full h-1/2 min-w-0 pt-[2%]">
               <span
                 dir="rtl"
-                className={`font-[vazirmatn] font-black text-black select-text ${sizeStyles.letterFa}`}
+                className={`font-black text-black select-text ${sizeStyles.letterFa}`}
                 style={{
-                  fontFamily: 'var(--font-vazirmatn), "Noto Naskh Arabic", "Vazirmatn", "Traditional Arabic", Arial, Tahoma, sans-serif',
+                  fontFamily: persianFontFamily,
                   fontWeight: 900,
                   color: "#000000",
                 }}
               >
                 {data.letterFa}
               </span>
-            ) : (
-              <span className="invisible select-none text-[10pt]">&nbsp;</span>
-            )}
-          </div>
+            </div>
 
-          {/* Bottom Right: Latin Category Letter (e.g. L) */}
-          <div className="flex items-center justify-center w-full min-w-0">
-            {data.hasLetter ? (
+            {/* Bottom Right: Latin Category Letter (e.g. L) */}
+            <div className="flex items-center justify-center w-full h-1/2 min-w-0 pb-[1%]">
               <span
-                className={`font-sans font-black text-black uppercase select-text ${sizeStyles.letterEn}`}
+                className={`font-black text-black uppercase select-text ${sizeStyles.letterEn}`}
                 style={{
-                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  fontFamily: latinFontFamily,
                   fontWeight: 900,
                   color: "#000000",
                 }}
               >
                 {data.letterEn}
               </span>
-            ) : (
-              <span className="invisible select-none text-[10pt]">&nbsp;</span>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
