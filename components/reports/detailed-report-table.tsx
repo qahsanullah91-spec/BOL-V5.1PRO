@@ -769,8 +769,11 @@ export function DetailedReportTable({
             <select
               value={pageSize}
               onChange={(e) => {
-                setPageSize(e.target.value === "all" ? "all" : parseInt(e.target.value, 10))
-                setCurrentPage(1)
+                const val = e.target.value === "all" ? "all" : parseInt(e.target.value, 10)
+                startTransition(() => {
+                  setPageSize(val)
+                  setCurrentPage(1)
+                })
               }}
               className="bg-transparent text-xs font-black text-slate-800 dark:text-slate-200 outline-none cursor-pointer pr-1"
             >
@@ -798,7 +801,7 @@ export function DetailedReportTable({
           return (
             <div
               key={doc.id || `mobile-doc-${idx}`}
-              className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-xs space-y-2.5"
+              className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-xs space-y-2.5 [content-visibility:auto] [contain-intrinsic-size:auto_180px]"
             >
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <div className="flex items-center gap-1.5">
@@ -1215,7 +1218,7 @@ export function DetailedReportTable({
                 <React.Fragment key={`${doc.id}-${idx}`}>
                   <tr
                     onDoubleClick={() => onOpenQuickView(doc)}
-                    className={`transition-colors duration-150 group cursor-pointer ${
+                    className={`transition-colors duration-150 group cursor-pointer [content-visibility:auto] [contain-intrinsic-size:auto_42px] print:[content-visibility:visible] ${
                       isSelected
                         ? "bg-blue-50/90 dark:bg-blue-950/70 ring-1 ring-inset ring-blue-300 dark:ring-blue-700"
                         : isExpanded

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState, useRef, useEffect, useCallback, startTransition } from "react"
+import React, { useMemo, useState, useRef, useEffect, useCallback, startTransition, useDeferredValue } from "react"
 import {
   SavedDocument,
   ReportTab,
@@ -278,6 +278,7 @@ export function SavedBolReport({
 
   // Filter & Search State
   const [searchQuery, setSearchQuery] = useState("")
+  const deferredSearchQuery = useDeferredValue(searchQuery)
   const [advancedFilters, setAdvancedFilters] = useState<ReportFilterCriteria>({})
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false)
 
@@ -434,7 +435,7 @@ export function SavedBolReport({
   const filteredData = useMemo(() => {
     const combinedCriteria: ReportFilterCriteria = {
       ...advancedFilters,
-      searchQuery,
+      searchQuery: deferredSearchQuery,
     }
 
     let result = applyReportFilters(baseData, combinedCriteria)
@@ -506,7 +507,7 @@ export function SavedBolReport({
     }
 
     return result
-  }, [baseData, advancedFilters, searchQuery, drillDownEntity])
+  }, [baseData, advancedFilters, deferredSearchQuery, drillDownEntity])
 
   // Count active filters for badge
   const activeFiltersCount = useMemo(() => {
