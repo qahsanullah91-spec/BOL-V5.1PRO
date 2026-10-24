@@ -77,5 +77,10 @@ test('A4 Preview - Authorized Signature Block & Bottom Document Layout Suite', a
     assert.match(code, /text-blue-800[\s\S]*7\.6pt/, 'Shipment overview English label must use blue-800 and 7.6pt max scale');
     assert.match(code, /font-\[vazirmatn\][\s\S]*7\.2pt/, 'Shipment overview Persian label must use vazirmatn and 7.2pt max scale');
   });
+
+  await t.test('15. Driver Name and Contact phone pill feature enlarged prominent typography', () => {
+    assert.match(code, /font-\[vazirmatn\]\s+font-black\s+text-slate-950[\s\S]*13\.8pt/, 'Driver name must use enlarged 13.8pt scale');
+    assert.match(code, /rounded-full\s+border\s+border-blue-300\/80[\s\S]*11\.8pt/, 'Driver phone must use enlarged 11.8pt scale in rounded-full pill');
+  });
 });
 

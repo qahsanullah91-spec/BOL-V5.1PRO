@@ -92,7 +92,7 @@ test('Dashboard Subsystem — Core Accounting Invariance and Routing Rules', asy
 
     // Core Workspaces Switcher includes Dashboard
     assert.match(headerFile, /view === ['"]dashboard['"]\s*\?\s*['"]Dashboard['']/);
-    assert.match(headerFile, /<p className=["']font-bold text-xs["']>Executive Dashboard<\/p>/);
+    assert.match(headerFile, /<p className=["']font-bold text-xs(?: pointer-events-none)?["']>Executive Dashboard<\/p>/);
 
     // Desktop nav bar has direct Dashboard button
     assert.match(headerFile, /Direct Dashboard Quick Pill/);

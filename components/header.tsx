@@ -56,6 +56,7 @@ import { HeaderProtectionPill } from '@/components/backup/header-protection-pill
 import { ThemeToggle } from '@/components/theme-toggle'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { GlobalSearch } from '@/components/global-search'
+import { yieldToPaint } from '@/lib/utils/yield-to-paint'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -449,26 +450,33 @@ export function Header({ title, subtitle }: HeaderProps) {
     )
   }, [megaSearch])
 
+  const pendingNavRef = useRef<any>(null)
+
   const handleNavigate = (modId: any) => {
     if (view === modId) return
     previousView.current = view
-    // Defer state transition out of Radix UI's synchronous ReactDOM.flushSync discrete event loop (< 16ms INP)
-    setTimeout(() => {
-      startTransition(() => {
-        setView(modId)
-      })
-    }, 0)
+    pendingNavRef.current = modId
+    // Yield to the browser paint pipeline so user interactions (button press, active feedback)
+    // paint in < 16ms before the heavy destination module starts mounting and rendering.
+    yieldToPaint().then(() => {
+      if (pendingNavRef.current === modId) {
+        pendingNavRef.current = null
+        startTransition(() => {
+          setView(modId)
+        })
+      }
+    })
   }
 
   const handleCreateNewBol = () => {
-    setTimeout(() => {
+    yieldToPaint().then(() => {
       startTransition(() => {
         setView('bol')
       })
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('skybol:new-bol'))
       }
-    }, 0)
+    })
   }
 
   return (
@@ -479,8 +487,9 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* LEFT: Logo & Core Workspace Switcher Dropdown                     */}
         {/* ================================================================= */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
-          <div
-            className="flex items-center gap-1.5 transition-transform hover:scale-102 active:scale-98 cursor-pointer shrink-0"
+          <button
+            type="button"
+            className="flex items-center gap-1.5 transition-transform hover:scale-102 active:scale-98 cursor-pointer shrink-0 select-none text-left bg-transparent border-0 p-0 focus:outline-hidden [&_span]:pointer-events-none [&_img]:pointer-events-none"
             onClick={() => handleNavigate('dashboard')}
             title="Return to Executive Dashboard"
           >
@@ -507,19 +516,19 @@ export function Header({ title, subtitle }: HeaderProps) {
                 Logistics & BOL Management
               </span>
             </div>
-          </div>
+          </button>
 
           {/* Core Workspaces Switcher Dropdown */}
           {currentUser?.role !== 'shipper' && (
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="hidden md:flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 shadow-2xs shrink-0 whitespace-nowrap"
+                  className="hidden md:flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 shadow-2xs shrink-0 whitespace-nowrap"
                   title="Core Workspaces (BOL, Accounts, Invoices, Ledgers, Reports, Shipments)"
                 >
-                  <Layers className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="font-extrabold hidden md:inline">
+                  <Layers className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0 pointer-events-none" />
+                  <span className="font-extrabold hidden md:inline pointer-events-none select-none">
                     {view === 'dashboard'
                       ? 'Dashboard'
                       : isBolWorkspace && view !== 'bol'
@@ -538,10 +547,10 @@ export function Header({ title, subtitle }: HeaderProps) {
                         : 'Workspaces'
                       : 'Workspaces'}
                   </span>
-                  <span className="hidden min-[1500px]:inline text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold">
+                  <span className="hidden min-[1500px]:inline text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold pointer-events-none select-none">
                     8
                   </span>
-                  <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                  <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0 pointer-events-none" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56 p-1.5 text-xs rounded-xl shadow-xl z-50">
@@ -550,83 +559,83 @@ export function Header({ title, subtitle }: HeaderProps) {
                 </DropdownMenuLabel>
 
                 {/* 0. Executive Dashboard */}
-                <DropdownMenuItem onClick={() => handleNavigate('dashboard')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'dashboard' ? 'bg-sky-600 text-white font-bold' : ''}`}>
-                  <LayoutGrid className={`h-3.5 w-3.5 shrink-0 ${view === 'dashboard' ? 'text-white' : 'text-sky-500'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs">Executive Dashboard</p>
-                    <p className={`text-[10px] truncate ${view === 'dashboard' ? 'text-sky-100' : 'text-slate-400'}`}>Overview, KPIs & live activity</p>
+                <DropdownMenuItem onClick={() => handleNavigate('dashboard')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none [&_p]:pointer-events-none ${view === 'dashboard' ? 'bg-sky-600 text-white font-bold' : ''}`}>
+                  <LayoutGrid className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'dashboard' ? 'text-white' : 'text-sky-500'}`} />
+                  <div className="flex-1 min-w-0 pointer-events-none">
+                    <p className="font-bold text-xs pointer-events-none">Executive Dashboard</p>
+                    <p className={`text-[10px] truncate pointer-events-none ${view === 'dashboard' ? 'text-sky-100' : 'text-slate-400'}`}>Overview, KPIs & live activity</p>
                   </div>
-                  {view === 'dashboard' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1" />}
+                  {view === 'dashboard' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1 pointer-events-none" />}
                 </DropdownMenuItem>
 
                 {/* 1. BOL Editor */}
-                <DropdownMenuItem onClick={() => handleNavigate('bol')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'bol' ? 'bg-blue-600 text-white font-bold' : ''}`}>
-                  <FileText className={`h-3.5 w-3.5 shrink-0 ${view === 'bol' ? 'text-white' : 'text-blue-600'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs">Bill of Lading Editor</p>
-                    <p className={`text-[10px] truncate ${view === 'bol' ? 'text-blue-100' : 'text-slate-400'}`}>Create, edit & print BOLs</p>
+                <DropdownMenuItem onClick={() => handleNavigate('bol')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none [&_p]:pointer-events-none ${view === 'bol' ? 'bg-blue-600 text-white font-bold' : ''}`}>
+                  <FileText className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'bol' ? 'text-white' : 'text-blue-600'}`} />
+                  <div className="flex-1 min-w-0 pointer-events-none">
+                    <p className="font-bold text-xs pointer-events-none">Bill of Lading Editor</p>
+                    <p className={`text-[10px] truncate pointer-events-none ${view === 'bol' ? 'text-blue-100' : 'text-slate-400'}`}>Create, edit & print BOLs</p>
                   </div>
-                  {view === 'bol' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1" />}
+                  {view === 'bol' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1 pointer-events-none" />}
                 </DropdownMenuItem>
 
                 {/* 2. Customer Accounts */}
-                <DropdownMenuItem onClick={() => handleNavigate('accounts')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'accounts' ? 'bg-emerald-600 text-white font-bold' : ''}`}>
-                  <Users className={`h-3.5 w-3.5 shrink-0 ${view === 'accounts' ? 'text-white' : 'text-emerald-600'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs">Customer Accounts</p>
-                    <p className={`text-[10px] truncate ${view === 'accounts' ? 'text-emerald-100' : 'text-slate-400'}`}>Master client ledger directory</p>
+                <DropdownMenuItem onClick={() => handleNavigate('accounts')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none [&_p]:pointer-events-none ${view === 'accounts' ? 'bg-emerald-600 text-white font-bold' : ''}`}>
+                  <Users className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'accounts' ? 'text-white' : 'text-emerald-600'}`} />
+                  <div className="flex-1 min-w-0 pointer-events-none">
+                    <p className="font-bold text-xs pointer-events-none">Customer Accounts</p>
+                    <p className={`text-[10px] truncate pointer-events-none ${view === 'accounts' ? 'text-emerald-100' : 'text-slate-400'}`}>Master client ledger directory</p>
                   </div>
-                  {view === 'accounts' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1" />}
+                  {view === 'accounts' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1 pointer-events-none" />}
                 </DropdownMenuItem>
 
                 {/* 3. Running Ledger */}
-                <DropdownMenuItem onClick={() => handleNavigate('ledger')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'ledger' ? 'bg-amber-600 text-white font-bold' : ''}`}>
-                  <BookOpen className={`h-3.5 w-3.5 shrink-0 ${view === 'ledger' ? 'text-white' : 'text-amber-600'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs">Running Ledger</p>
-                    <p className={`text-[10px] truncate ${view === 'ledger' ? 'text-amber-100' : 'text-slate-400'}`}>Debit / credit accounting statement</p>
+                <DropdownMenuItem onClick={() => handleNavigate('ledger')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none [&_p]:pointer-events-none ${view === 'ledger' ? 'bg-amber-600 text-white font-bold' : ''}`}>
+                  <BookOpen className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'ledger' ? 'text-white' : 'text-amber-600'}`} />
+                  <div className="flex-1 min-w-0 pointer-events-none">
+                    <p className="font-bold text-xs pointer-events-none">Running Ledger</p>
+                    <p className={`text-[10px] truncate pointer-events-none ${view === 'ledger' ? 'text-amber-100' : 'text-slate-400'}`}>Debit / credit accounting statement</p>
                   </div>
-                  {view === 'ledger' && <Check className="h-3.5 w-3.5 text-amber-600 shrink-0 ml-1" />}
+                  {view === 'ledger' && <Check className="h-3.5 w-3.5 text-amber-600 shrink-0 ml-1 pointer-events-none" />}
                 </DropdownMenuItem>
 
                 {/* 4. Invoices & Billing */}
-                <DropdownMenuItem onClick={() => handleNavigate('invoice')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'invoice' ? 'bg-indigo-600 text-white font-bold' : ''}`}>
-                  <Receipt className={`h-3.5 w-3.5 shrink-0 ${view === 'invoice' ? 'text-white' : 'text-indigo-600'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs">Invoices & Billing</p>
-                    <p className={`text-[10px] truncate ${view === 'invoice' ? 'text-indigo-100' : 'text-slate-400'}`}>Demurrage, freight & service invoices</p>
+                <DropdownMenuItem onClick={() => handleNavigate('invoice')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none [&_p]:pointer-events-none ${view === 'invoice' ? 'bg-indigo-600 text-white font-bold' : ''}`}>
+                  <Receipt className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'invoice' ? 'text-white' : 'text-indigo-600'}`} />
+                  <div className="flex-1 min-w-0 pointer-events-none">
+                    <p className="font-bold text-xs pointer-events-none">Invoices & Billing</p>
+                    <p className={`text-[10px] truncate pointer-events-none ${view === 'invoice' ? 'text-indigo-100' : 'text-slate-400'}`}>Demurrage, freight & service invoices</p>
                   </div>
-                  {view === 'invoice' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1" />}
+                  {view === 'invoice' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1 pointer-events-none" />}
                 </DropdownMenuItem>
 
                 {/* 5. Reports Center & P&L */}
-                <DropdownMenuItem onClick={() => handleNavigate('reports')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'reports' ? 'bg-rose-600 text-white font-bold' : ''}`}>
-                  <BarChart3 className={`h-3.5 w-3.5 shrink-0 ${view === 'reports' ? 'text-white' : 'text-rose-600'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs">Reports Center & P&L</p>
-                    <p className={`text-[10px] truncate ${view === 'reports' ? 'text-rose-100' : 'text-slate-400'}`}>Financial summaries & statements</p>
+                <DropdownMenuItem onClick={() => handleNavigate('reports')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none [&_p]:pointer-events-none ${view === 'reports' ? 'bg-rose-600 text-white font-bold' : ''}`}>
+                  <BarChart3 className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'reports' ? 'text-white' : 'text-rose-600'}`} />
+                  <div className="flex-1 min-w-0 pointer-events-none">
+                    <p className="font-bold text-xs pointer-events-none">Reports Center & P&L</p>
+                    <p className={`text-[10px] truncate pointer-events-none ${view === 'reports' ? 'text-rose-100' : 'text-slate-400'}`}>Financial summaries & statements</p>
                   </div>
-                  {view === 'reports' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1" />}
+                  {view === 'reports' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1 pointer-events-none" />}
                 </DropdownMenuItem>
 
                 {/* 6. Companies & Branches */}
-                <DropdownMenuItem onClick={() => handleNavigate('companies')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'companies' ? 'bg-cyan-600 text-white font-bold' : ''}`}>
-                  <Building2 className={`h-3.5 w-3.5 shrink-0 ${view === 'companies' ? 'text-white' : 'text-cyan-600'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs">Companies & Branches</p>
-                    <p className={`text-[10px] truncate ${view === 'companies' ? 'text-cyan-100' : 'text-slate-400'}`}>Corporate accounts & affiliates</p>
+                <DropdownMenuItem onClick={() => handleNavigate('companies')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none [&_p]:pointer-events-none ${view === 'companies' ? 'bg-cyan-600 text-white font-bold' : ''}`}>
+                  <Building2 className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'companies' ? 'text-white' : 'text-cyan-600'}`} />
+                  <div className="flex-1 min-w-0 pointer-events-none">
+                    <p className="font-bold text-xs pointer-events-none">Companies & Branches</p>
+                    <p className={`text-[10px] truncate pointer-events-none ${view === 'companies' ? 'text-cyan-100' : 'text-slate-400'}`}>Corporate accounts & affiliates</p>
                   </div>
-                  {view === 'companies' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1" />}
+                  {view === 'companies' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1 pointer-events-none" />}
                 </DropdownMenuItem>
 
                 {/* 7. Control Tower / Shipments */}
-                <DropdownMenuItem onClick={() => handleNavigate('shipments')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg ${view === 'shipments' ? 'bg-blue-600 text-white font-bold' : ''}`}>
-                  <Activity className={`h-3.5 w-3.5 shrink-0 ${view === 'shipments' ? 'text-white' : 'text-blue-500'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs">Control Tower</p>
-                    <p className={`text-[10px] truncate ${view === 'shipments' ? 'text-blue-100' : 'text-slate-400'}`}>Live shipments & active transit</p>
+                <DropdownMenuItem onClick={() => handleNavigate('shipments')} className={`cursor-pointer gap-2 py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none [&_p]:pointer-events-none ${view === 'shipments' ? 'bg-blue-600 text-white font-bold' : ''}`}>
+                  <Activity className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'shipments' ? 'text-white' : 'text-blue-500'}`} />
+                  <div className="flex-1 min-w-0 pointer-events-none">
+                    <p className="font-bold text-xs pointer-events-none">Control Tower</p>
+                    <p className={`text-[10px] truncate pointer-events-none ${view === 'shipments' ? 'text-blue-100' : 'text-slate-400'}`}>Live shipments & active transit</p>
                   </div>
-                  {view === 'shipments' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1" />}
+                  {view === 'shipments' && <Check className="h-3.5 w-3.5 text-white shrink-0 ml-1 pointer-events-none" />}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -637,13 +646,13 @@ export function Header({ title, subtitle }: HeaderProps) {
             <Button
               variant="outline"
               size="sm"
-              className="hidden md:flex h-7.5 gap-1 px-2 text-xs font-semibold border-blue-500/30 bg-blue-50/70 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/50 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
+              className="hidden md:flex h-7.5 gap-1 px-2 text-xs font-semibold border-blue-500/30 bg-blue-50/70 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/50 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none"
               onClick={() => handleNavigate('bol')}
               title="Return to BOL Workspace"
             >
-              <ArrowLeft className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-              <span className="font-bold hidden sm:inline">Back to BOL</span>
-              <span className="font-bold sm:hidden">BOL</span>
+              <ArrowLeft className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0 pointer-events-none" />
+              <span className="font-bold hidden sm:inline pointer-events-none select-none">Back to BOL</span>
+              <span className="font-bold sm:hidden pointer-events-none select-none">BOL</span>
             </Button>
           )}
         </div>
@@ -659,33 +668,33 @@ export function Header({ title, subtitle }: HeaderProps) {
             <button
               type="button"
               onClick={() => handleNavigate('dashboard')}
-              className={`hidden min-[1500px]:flex items-center gap-1.5 h-7.5 px-2.5 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              className={`hidden min-[1500px]:flex items-center gap-1.5 h-7.5 px-2.5 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
                 view === 'dashboard'
                   ? 'bg-sky-600 text-white shadow-xs shadow-sky-500/30'
                   : 'bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 shadow-2xs'
               }`}
               title="Executive Dashboard"
             >
-              <LayoutGrid className={`h-3.5 w-3.5 shrink-0 ${view === 'dashboard' ? 'text-white' : 'text-sky-600 dark:text-sky-400'}`} />
-              <span className="font-extrabold hidden md:inline">Dashboard</span>
+              <LayoutGrid className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'dashboard' ? 'text-white' : 'text-sky-600 dark:text-sky-400'}`} />
+              <span className="font-extrabold hidden md:inline pointer-events-none select-none">Dashboard</span>
             </button>
             
             {/* ------------------------------------------------------------- */}
             {/* 1. ALL MODULES ENTERPRISE LAUNCHER (MEGA-DROPDOWN)            */}
             {/* ------------------------------------------------------------- */}
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 shadow-2xs shrink-0 whitespace-nowrap"
+                  className="flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 shadow-2xs shrink-0 whitespace-nowrap"
                   title="All 33 Enterprise Modules Launcher"
                 >
-                  <LayoutGrid className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="font-extrabold hidden md:inline">Modules</span>
-                  <span className="hidden min-[1500px]:inline text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold">
+                  <LayoutGrid className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0 pointer-events-none" />
+                  <span className="font-extrabold hidden md:inline pointer-events-none select-none">Modules</span>
+                  <span className="hidden min-[1500px]:inline text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold pointer-events-none select-none">
                     33
                   </span>
-                  <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                  <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0 pointer-events-none" />
                 </button>
               </DropdownMenuTrigger>
 
@@ -797,23 +806,23 @@ export function Header({ title, subtitle }: HeaderProps) {
                             key={mod.id}
                             type="button"
                             onClick={() => handleNavigate(mod.id)}
-                            className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer group ${
+                            className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer group active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_p]:pointer-events-none ${
                               isActive
                                 ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                                 : 'bg-white dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
                             }`}
                           >
-                            <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
+                            <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 pointer-events-none ${
                               isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 group-hover:scale-105 transition-transform'
                             }`}>
-                              <Icon className={`h-4 w-4 ${isActive ? 'text-white' : mod.color}`} />
+                              <Icon className={`h-4 w-4 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="font-bold text-xs truncate">{mod.title}</span>
-                                {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0" />}
+                            <div className="min-w-0 flex-1 pointer-events-none">
+                              <div className="flex items-center justify-between gap-1 pointer-events-none">
+                                <span className="font-bold text-xs truncate pointer-events-none">{mod.title}</span>
+                                {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0 pointer-events-none" />}
                               </div>
-                              <p className={`text-[10.5px] leading-tight mt-0.5 line-clamp-1 ${
+                              <p className={`text-[10.5px] leading-tight mt-0.5 line-clamp-1 pointer-events-none ${
                                 isActive ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'
                               }`}>
                                 {mod.subtitle}
@@ -850,19 +859,19 @@ export function Header({ title, subtitle }: HeaderProps) {
                                 key={mod.id}
                                 type="button"
                                 onClick={() => handleNavigate(mod.id)}
-                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer group ${
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer group active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none ${
                                   isActive
                                     ? 'bg-blue-600 text-white shadow-2xs font-bold'
                                     : 'hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
                                 }`}
                               >
-                                <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-bold text-[11.5px] truncate flex items-center justify-between">
-                                    <span>{mod.title}</span>
-                                    {isActive && <Check className="h-3 w-3 text-white shrink-0 ml-1" />}
+                                <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                                <div className="min-w-0 flex-1 pointer-events-none">
+                                  <div className="font-bold text-[11.5px] truncate flex items-center justify-between pointer-events-none">
+                                    <span className="pointer-events-none">{mod.title}</span>
+                                    {isActive && <Check className="h-3 w-3 text-white shrink-0 ml-1 pointer-events-none" />}
                                   </div>
-                                  <div className={`text-[10px] leading-none truncate ${isActive ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                  <div className={`text-[10px] leading-none truncate pointer-events-none ${isActive ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
                                     {mod.subtitle}
                                   </div>
                                 </div>
@@ -890,19 +899,19 @@ export function Header({ title, subtitle }: HeaderProps) {
                                 key={mod.id}
                                 type="button"
                                 onClick={() => handleNavigate(mod.id)}
-                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer group ${
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer group active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none ${
                                   isActive
                                     ? 'bg-emerald-600 text-white shadow-2xs font-bold'
                                     : 'hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
                                 }`}
                               >
-                                <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-bold text-[11.5px] truncate flex items-center justify-between">
-                                    <span>{mod.title}</span>
-                                    {isActive && <Check className="h-3 w-3 text-white shrink-0 ml-1" />}
+                                <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                                <div className="min-w-0 flex-1 pointer-events-none">
+                                  <div className="font-bold text-[11.5px] truncate flex items-center justify-between pointer-events-none">
+                                    <span className="pointer-events-none">{mod.title}</span>
+                                    {isActive && <Check className="h-3 w-3 text-white shrink-0 ml-1 pointer-events-none" />}
                                   </div>
-                                  <div className={`text-[10px] leading-none truncate ${isActive ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                  <div className={`text-[10px] leading-none truncate pointer-events-none ${isActive ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400'}`}>
                                     {mod.subtitle}
                                   </div>
                                 </div>
@@ -930,19 +939,19 @@ export function Header({ title, subtitle }: HeaderProps) {
                                 key={mod.id}
                                 type="button"
                                 onClick={() => handleNavigate(mod.id)}
-                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer group ${
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer group active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none ${
                                   isActive
                                     ? 'bg-amber-600 text-white shadow-2xs font-bold'
                                     : 'hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
                                 }`}
                               >
-                                <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-bold text-[11.5px] truncate flex items-center justify-between">
-                                    <span>{mod.title}</span>
-                                    {isActive && <Check className="h-3 w-3 text-white shrink-0 ml-1" />}
+                                <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                                <div className="min-w-0 flex-1 pointer-events-none">
+                                  <div className="font-bold text-[11.5px] truncate flex items-center justify-between pointer-events-none">
+                                    <span className="pointer-events-none">{mod.title}</span>
+                                    {isActive && <Check className="h-3 w-3 text-white shrink-0 ml-1 pointer-events-none" />}
                                   </div>
-                                  <div className={`text-[10px] leading-none truncate ${isActive ? 'text-amber-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                  <div className={`text-[10px] leading-none truncate pointer-events-none ${isActive ? 'text-amber-100' : 'text-slate-500 dark:text-slate-400'}`}>
                                     {mod.subtitle}
                                   </div>
                                 </div>
@@ -970,19 +979,19 @@ export function Header({ title, subtitle }: HeaderProps) {
                                 key={mod.id}
                                 type="button"
                                 onClick={() => handleNavigate(mod.id)}
-                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer group ${
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer group active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none ${
                                   isActive
                                     ? 'bg-purple-700 text-white shadow-2xs font-bold'
                                     : 'hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
                                 }`}
                               >
-                                <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-bold text-[11.5px] truncate flex items-center justify-between">
-                                    <span>{mod.title}</span>
-                                    {isActive && <Check className="h-3 w-3 text-white shrink-0 ml-1" />}
+                                <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                                <div className="min-w-0 flex-1 pointer-events-none">
+                                  <div className="font-bold text-[11.5px] truncate flex items-center justify-between pointer-events-none">
+                                    <span className="pointer-events-none">{mod.title}</span>
+                                    {isActive && <Check className="h-3 w-3 text-white shrink-0 ml-1 pointer-events-none" />}
                                   </div>
-                                  <div className={`text-[10px] leading-none truncate ${isActive ? 'text-purple-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                  <div className={`text-[10px] leading-none truncate pointer-events-none ${isActive ? 'text-purple-100' : 'text-slate-500 dark:text-slate-400'}`}>
                                     {mod.subtitle}
                                   </div>
                                 </div>
@@ -1020,19 +1029,19 @@ export function Header({ title, subtitle }: HeaderProps) {
             <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 min-w-0 shrink-0">
               
               {/* Operations Dropdown (Primary - Always visible on desktop) */}
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                    className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
                       isOpsActive
                         ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/30'
                         : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                     }`}
                     title="Freight & Transport Operations Suite"
                   >
-                    <Truck className={`h-3.5 w-3.5 shrink-0 ${isOpsSuiteActive ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
-                    <span>
+                    <Truck className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isOpsSuiteActive ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
+                    <span className="pointer-events-none select-none">
                       {isOpsSuiteActive && currentModule?.category === 'ops' ? (
                         currentModule.shortLabel
                       ) : (
@@ -1042,7 +1051,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                         </>
                       )}
                     </span>
-                    <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                    <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0 pointer-events-none" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-64 text-xs p-1.5 rounded-xl shadow-xl z-50">
@@ -1056,15 +1065,15 @@ export function Header({ title, subtitle }: HeaderProps) {
                       <DropdownMenuItem
                         key={mod.id}
                         onClick={() => handleNavigate(mod.id)}
-                        className={`cursor-pointer font-medium flex items-center justify-between py-2 px-2.5 rounded-lg ${
+                        className={`cursor-pointer font-medium flex items-center justify-between py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                           isActive ? 'bg-blue-600 text-white font-bold' : ''
                         }`}
                       >
-                        <div className="flex items-center gap-2 truncate">
-                          <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                          <span className="truncate">{mod.title}</span>
+                        <div className="flex items-center gap-2 truncate pointer-events-none select-none">
+                          <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                          <span className="truncate pointer-events-none">{mod.title}</span>
                         </div>
-                        {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0" />}
+                        {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0 pointer-events-none" />}
                       </DropdownMenuItem>
                     )
                   })}
@@ -1072,24 +1081,24 @@ export function Header({ title, subtitle }: HeaderProps) {
               </DropdownMenu>
 
               {/* Finance Dropdown (Primary - Always visible on desktop) */}
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                    className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
                       isFinanceActive
                         ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-500/30'
                         : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                     }`}
                     title="Finance, Ledger & Accounting Suite"
                   >
-                    <Landmark className={`h-3.5 w-3.5 shrink-0 ${isFinanceActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
-                    <span>
+                    <Landmark className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isFinanceActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                    <span className="pointer-events-none select-none">
                       {isFinanceActive && currentModule?.category === 'finance'
                         ? currentModule.shortLabel
                         : 'Finance'}
                     </span>
-                    <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                    <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0 pointer-events-none" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-64 text-xs p-1.5 rounded-xl shadow-xl z-50">
@@ -1103,15 +1112,15 @@ export function Header({ title, subtitle }: HeaderProps) {
                       <DropdownMenuItem
                         key={mod.id}
                         onClick={() => handleNavigate(mod.id)}
-                        className={`cursor-pointer font-medium flex items-center justify-between py-2 px-2.5 rounded-lg ${
+                        className={`cursor-pointer font-medium flex items-center justify-between py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                           isActive ? 'bg-emerald-600 text-white font-bold' : ''
                         }`}
                       >
-                        <div className="flex items-center gap-2 truncate">
-                          <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                          <span className="truncate">{mod.title}</span>
+                        <div className="flex items-center gap-2 truncate pointer-events-none select-none">
+                          <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                          <span className="truncate pointer-events-none">{mod.title}</span>
                         </div>
-                        {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0" />}
+                        {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0 pointer-events-none" />}
                       </DropdownMenuItem>
                     )
                   })}
@@ -1120,19 +1129,19 @@ export function Header({ title, subtitle }: HeaderProps) {
 
               {/* Sales & CRM Dropdown */}
               <div className="flex items-center">
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                      className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
                         isCommercialActive
                           ? 'bg-amber-600 text-white shadow-xs shadow-amber-500/30'
                           : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                       }`}
                       title="Commercial, Sales Pipeline & Pricing Suite"
                     >
-                      <Tag className={`h-3.5 w-3.5 shrink-0 ${isCommercialActive ? 'text-white' : 'text-amber-500 dark:text-amber-400'}`} />
-                      <span>
+                      <Tag className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isCommercialActive ? 'text-white' : 'text-amber-500 dark:text-amber-400'}`} />
+                      <span className="pointer-events-none select-none">
                         {isCommercialActive && currentModule?.category === 'commercial' ? (
                           currentModule.shortLabel
                         ) : (
@@ -1141,7 +1150,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                           </>
                         )}
                       </span>
-                      <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                      <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0 pointer-events-none" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64 text-xs p-1.5 rounded-xl shadow-xl z-50">
@@ -1155,15 +1164,15 @@ export function Header({ title, subtitle }: HeaderProps) {
                         <DropdownMenuItem
                           key={mod.id}
                           onClick={() => handleNavigate(mod.id)}
-                          className={`cursor-pointer font-medium flex items-center justify-between py-2 px-2.5 rounded-lg ${
+                          className={`cursor-pointer font-medium flex items-center justify-between py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                             isActive ? 'bg-amber-600 text-white font-bold' : ''
                           }`}
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                            <span className="truncate">{mod.title}</span>
+                          <div className="flex items-center gap-2 truncate pointer-events-none select-none">
+                            <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                            <span className="truncate pointer-events-none">{mod.title}</span>
                           </div>
-                          {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0" />}
+                          {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0 pointer-events-none" />}
                         </DropdownMenuItem>
                       )
                     })}
@@ -1173,19 +1182,19 @@ export function Header({ title, subtitle }: HeaderProps) {
 
               {/* Docs & Tools Dropdown */}
               <div className="flex items-center">
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                      className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
                         isSystemActive
                           ? 'bg-purple-700 text-white shadow-xs shadow-purple-500/30'
                           : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                       }`}
                       title="Compliance, Documents & System Tools"
                     >
-                      <FileCheck2 className={`h-3.5 w-3.5 shrink-0 ${isSystemActive ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
-                      <span>
+                      <FileCheck2 className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isSystemActive ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
+                      <span className="pointer-events-none select-none">
                         {isSystemActive && currentModule?.category === 'system' ? (
                           currentModule.shortLabel
                         ) : (
@@ -1194,7 +1203,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                           </>
                         )}
                       </span>
-                      <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                      <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0 pointer-events-none" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64 text-xs p-1.5 rounded-xl shadow-xl z-50">
@@ -1208,15 +1217,15 @@ export function Header({ title, subtitle }: HeaderProps) {
                         <DropdownMenuItem
                           key={mod.id}
                           onClick={() => handleNavigate(mod.id)}
-                          className={`cursor-pointer font-medium flex items-center justify-between py-2 px-2.5 rounded-lg ${
+                          className={`cursor-pointer font-medium flex items-center justify-between py-2 px-2.5 rounded-lg active:scale-[0.99] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                             isActive ? 'bg-purple-700 text-white font-bold' : ''
                           }`}
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                            <span className="truncate">{mod.title}</span>
+                          <div className="flex items-center gap-2 truncate pointer-events-none select-none">
+                            <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                            <span className="truncate pointer-events-none">{mod.title}</span>
                           </div>
-                          {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0" />}
+                          {isActive && <Check className="h-3.5 w-3.5 text-white shrink-0 pointer-events-none" />}
                         </DropdownMenuItem>
                       )
                     })}
@@ -1228,24 +1237,24 @@ export function Header({ title, subtitle }: HeaderProps) {
               <button
                 type="button"
                 onClick={() => handleNavigate('ai-assistant')}
-                className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
                   view === 'ai-assistant'
                     ? 'bg-purple-700 text-white shadow-xs shadow-purple-500/30'
                     : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60 dark:hover:bg-purple-900/50'
                 }`}
                 title="Sky AI Operations Assistant"
               >
-                <Sparkles className={`h-3.5 w-3.5 shrink-0 ${view === 'ai-assistant' ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
-                <span className="font-extrabold">Ask AI</span>
+                <Sparkles className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${view === 'ai-assistant' ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
+                <span className="font-extrabold pointer-events-none select-none">Ask AI</span>
               </button>
 
               {/* More Suites ▾ Dropdown (Compact fallback for tablet widths; desktop shows every suite directly) */}
               <div className="flex lg:hidden items-center">
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className={`flex items-center gap-1.5 h-7.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                      className={`flex items-center gap-1.5 h-7.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
                         isMoreActive
                           ? isCommercialActive
                             ? 'bg-amber-600 text-white shadow-xs'
@@ -1295,17 +1304,17 @@ export function Header({ title, subtitle }: HeaderProps) {
                                 key={mod.id}
                                 type="button"
                                 onClick={() => handleNavigate(mod.id)}
-                                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors text-left ${
+                                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors text-left active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                                   isActive
                                     ? 'bg-amber-500 text-white font-bold'
                                     : 'text-slate-700 hover:text-slate-950 hover:bg-amber-50/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                                 }`}
                               >
-                                <div className="flex items-center gap-2 truncate">
-                                  <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                                  <span className="truncate">{mod.title}</span>
+                                <div className="flex items-center gap-2 truncate pointer-events-none select-none">
+                                  <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                                  <span className="truncate pointer-events-none">{mod.title}</span>
                                 </div>
-                                {isActive && <Check className="h-3 w-3 text-white shrink-0" />}
+                                {isActive && <Check className="h-3 w-3 text-white shrink-0 pointer-events-none" />}
                               </button>
                             )
                           })}
@@ -1327,17 +1336,17 @@ export function Header({ title, subtitle }: HeaderProps) {
                                 key={mod.id}
                                 type="button"
                                 onClick={() => handleNavigate(mod.id)}
-                                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors text-left ${
+                                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors text-left active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none ${
                                   isActive
                                     ? 'bg-purple-700 text-white font-bold'
                                     : 'text-slate-700 hover:text-slate-950 hover:bg-purple-50/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                                 }`}
                               >
-                                <div className="flex items-center gap-2 truncate">
-                                  <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : mod.color}`} />
-                                  <span className="truncate">{mod.title}</span>
+                                <div className="flex items-center gap-2 truncate pointer-events-none select-none">
+                                  <Icon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isActive ? 'text-white' : mod.color}`} />
+                                  <span className="truncate pointer-events-none">{mod.title}</span>
                                 </div>
-                                {isActive && <Check className="h-3 w-3 text-white shrink-0" />}
+                                {isActive && <Check className="h-3 w-3 text-white shrink-0 pointer-events-none" />}
                               </button>
                             )
                           })}
@@ -1349,22 +1358,22 @@ export function Header({ title, subtitle }: HeaderProps) {
                     <button
                       type="button"
                       onClick={() => handleNavigate('ai-assistant')}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none [&_div]:pointer-events-none [&_p]:pointer-events-none ${
                         view === 'ai-assistant'
                           ? 'bg-purple-700 text-white shadow-xs'
                           : 'bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-800 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60 dark:hover:bg-purple-900/50'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-lg bg-purple-600 text-white flex items-center justify-center">
-                          <Sparkles className="h-3.5 w-3.5" />
+                      <div className="flex items-center gap-2 pointer-events-none">
+                        <div className="h-6 w-6 rounded-lg bg-purple-600 text-white flex items-center justify-center pointer-events-none">
+                          <Sparkles className="h-3.5 w-3.5 pointer-events-none" />
                         </div>
-                        <div className="text-left">
-                          <p className="font-extrabold leading-tight">Ask Sky AI Assistant</p>
-                          <p className="text-[10px] text-purple-600/80 dark:text-purple-300/80 font-normal">Real-time logistics reasoning & document queries</p>
+                        <div className="text-left pointer-events-none">
+                          <p className="font-extrabold leading-tight pointer-events-none">Ask Sky AI Assistant</p>
+                          <p className="text-[10px] text-purple-600/80 dark:text-purple-300/80 font-normal pointer-events-none">Real-time logistics reasoning & document queries</p>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 opacity-60" />
+                      <ChevronRight className="h-4 w-4 opacity-60 pointer-events-none" />
                     </button>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -1396,12 +1405,12 @@ export function Header({ title, subtitle }: HeaderProps) {
                   type="button"
                   variant="default"
                   size="sm"
-                  className="hidden md:inline-flex h-7.5 gap-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-[11.5px] font-bold text-white shadow-xs cursor-pointer px-2 shrink-0 whitespace-nowrap active:scale-[0.98]"
+                  className="hidden md:inline-flex h-7.5 gap-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-[11.5px] font-bold text-white shadow-xs cursor-pointer px-2 shrink-0 whitespace-nowrap active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none"
                   title="Create New Document or Record"
                 >
-                  <Plus className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden sm:inline">New</span>
-                  <ChevronDown className="h-2.5 w-2.5 opacity-70 shrink-0" />
+                  <Plus className="h-3.5 w-3.5 shrink-0 pointer-events-none" />
+                  <span className="hidden sm:inline pointer-events-none select-none">New</span>
+                  <ChevronDown className="h-2.5 w-2.5 opacity-70 shrink-0 pointer-events-none" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-1.5 text-xs rounded-xl shadow-xl z-50">

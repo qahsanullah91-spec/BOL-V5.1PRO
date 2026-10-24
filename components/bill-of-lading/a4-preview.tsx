@@ -1656,12 +1656,12 @@ function ShipmentOverview({
             )}
             {hasValue(persianDateNumeric) && (
               <div
-                className={`font-[vazirmatn] font-extrabold text-blue-900 bg-blue-50/90 border border-blue-200/90 rounded-md shadow-2xs ${
+                className={`font-[vazirmatn] font-black text-blue-900 bg-blue-50/90 border border-blue-200/90 rounded-md shadow-2xs ${
                   isUltra
-                    ? "text-[8.0pt] px-1.5 py-0.2 mt-0.3"
+                    ? "text-[9.4pt] px-2 py-0.3 mt-0.4"
                     : isCompact
-                    ? "text-[8.8pt] px-2 py-0.3 mt-0.4"
-                    : "text-[9.6pt] px-2.5 py-0.4 mt-0.5"
+                    ? "text-[10.4pt] px-2.5 py-0.4 mt-0.5"
+                    : "text-[11.4pt] px-3 py-0.5 mt-0.6"
                 } leading-tight whitespace-nowrap keep-all text-center inline-flex items-center justify-center`}
                 dir="rtl"
                 style={{ direction: "rtl", textAlign: "center" }}
@@ -1709,12 +1709,12 @@ function ShipmentOverview({
               {hasDriver ? "نام راننده" : "تماس راننده"}
             </div>
           </div>
-          <div className={`flex-1 flex flex-col items-center justify-center ${valMarginClass} w-full gap-1`}>
+          <div className={`flex-1 flex flex-col items-center justify-center ${valMarginClass} w-full gap-1.2`}>
             {hasDriver && (
               <div
                 className={`font-[vazirmatn] font-black text-slate-950 ${
-                  isUltra ? "text-[9.2pt]" : isCompact ? "text-[10.2pt]" : "text-[11.2pt]"
-                } leading-snug break-words text-center w-full px-0.5`}
+                  isUltra ? "text-[11.2pt]" : isCompact ? "text-[12.5pt]" : "text-[13.8pt]"
+                } leading-tight break-words text-center w-full px-0.5`}
                 dir="rtl"
                 style={{ textAlign: "center", direction: "rtl" }}
               >
@@ -1722,21 +1722,21 @@ function ShipmentOverview({
               </div>
             )}
             {hasContact && (
-              <div className={`flex flex-wrap items-center justify-center gap-1 w-full ${hasDriver ? (isUltra ? "mt-0.5" : "mt-0.8") : ""}`}>
+              <div className={`flex flex-wrap items-center justify-center gap-1.5 w-full ${hasDriver ? (isUltra ? "mt-0.6" : "mt-1") : ""}`}>
                 {phones.map((phone, idx) => (
                   <div
                     key={idx}
                     className={`font-mono font-black text-blue-950 ${
                       isUltra
-                        ? "text-[8.0pt] py-0.5 px-2"
+                        ? "text-[9.5pt] py-0.6 px-2.5"
                         : isCompact
-                        ? "text-[8.8pt] py-0.6 px-2.5"
-                        : "text-[9.8pt] py-0.7 px-3"
-                    } leading-tight tracking-wider bg-gradient-to-r from-blue-50/90 via-sky-50/80 to-blue-50/90 rounded-lg border border-blue-200/90 shadow-2xs text-center whitespace-nowrap keep-all direction-ltr unicode-isolate inline-flex items-center justify-center gap-1.5`}
+                        ? "text-[10.6pt] py-0.8 px-3"
+                        : "text-[11.8pt] py-1 px-3.5"
+                    } leading-tight tracking-tight bg-gradient-to-r from-blue-50/95 via-sky-50/90 to-blue-50/95 rounded-full border border-blue-300/80 shadow-2xs text-center whitespace-nowrap keep-all direction-ltr unicode-isolate inline-flex items-center justify-center gap-1.5`}
                     dir="ltr"
                     style={{ direction: "ltr", unicodeBidi: "isolate", textAlign: "center" }}
                   >
-                    <Phone className={`${isUltra ? "h-2 w-2" : "h-2.5 w-2.5"} text-blue-600 shrink-0 inline`} />
+                    <Phone className={`${isUltra ? "h-2.5 w-2.5" : isCompact ? "h-3 w-3" : "h-3.2 w-3.2"} text-blue-600 shrink-0 inline`} />
                     <span>{phone}</span>
                   </div>
                 ))}
