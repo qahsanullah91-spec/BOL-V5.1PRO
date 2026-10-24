@@ -137,7 +137,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "concurrently": "^10.0.5",
+    "concurrently": "^10.0.6",
     "cross-env": "^10.0.0",
     "drizzle-kit": "^0.31.10",
     "electron": "41.10.6",
