@@ -4267,16 +4267,16 @@
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
-    padding: 2px 2px !important;
+    padding: 3px 2.5px 4px !important;
     background: #ffffff !important;
-    border: 1px solid #93c5fd !important;
+    border-width: 1.5px !important;
     box-shadow: none !important;
   }
 
   .route-timeline-arrow {
-    width: 14px !important;
-    min-width: 14px !important;
-    height: 14px !important;
+    width: 18px !important;
+    min-width: 18px !important;
+    height: 18px !important;
     margin: 0 1px !important;
     box-shadow: none !important;
     flex-shrink: 0 !important;
@@ -5006,23 +5006,23 @@
   }
 
   [data-density="ultra"] .route-timeline-container {
-    padding: 1px 2px !important;
+    padding: 3px 4px !important;
     min-height: auto !important;
   }
 
   [data-density="ultra"] .route-timeline-card {
-    padding: 1px 1px !important;
-    min-height: 20px !important;
+    padding: 3px 2.5px 4px !important;
+    min-height: 52px !important;
   }
 
   [data-density="compact"] .route-timeline-container {
-    padding: 1.5px 2.5px !important;
+    padding: 3px 4px !important;
     min-height: auto !important;
   }
 
   [data-density="compact"] .route-timeline-card {
-    padding: 1px 1.2px !important;
-    min-height: 23px !important;
+    padding: 3px 2.5px 4px !important;
+    min-height: 52px !important;
   }
 
   [data-print-root="true"]:not(.ledger-print-root):not(.reports-print-root) *:not([data-bol-watermark="true"]),
@@ -6571,15 +6571,15 @@
 
 [data-bol-a4="true"] .route-timeline-container,
 [data-pdf-export="true"] .route-timeline-container {
-  padding: 1.5px 3px !important;
-  border-radius: 6px !important;
+  padding: 3px 4px !important;
+  border-radius: 8px !important;
 }
 
 [data-bol-a4="true"] .route-timeline-card,
 [data-pdf-export="true"] .route-timeline-card {
-  min-height: 24px !important;
-  padding: 1px 1.2px !important;
-  border-radius: 5px !important;
+  min-height: 52px !important;
+  padding: 3px 2.5px 4px !important;
+  border-radius: 6px !important;
 }
 
 /* Synchronized Cargo Grid Column Header Styles - Strictly Centered */

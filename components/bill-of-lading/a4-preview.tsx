@@ -27,7 +27,21 @@ import {
   Snowflake,
   Compass,
   Receipt,
+  QrCode,
+  Copy,
+  Check,
+  Download,
+  ExternalLink,
 } from "lucide-react"
+import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { generateQrMatrix } from "@/lib/utils/qr-code"
 import { parseLogisticsRoute } from "@/lib/utils/transit-route-parser"
 import {
   RouteAirIcon,
@@ -274,55 +288,100 @@ function containsArabic(value: string) {
   return /[\u0600-\u06FF]/.test(value)
 }
 
-function DocumentQRCode({ value, size = 28 }: { value: string; size?: number }) {
-  const grid = 21
-  const modules: boolean[][] = Array.from({ length: grid }, () => Array(grid).fill(false))
+export function DocumentQRCode({
+  value,
+  size = 24,
+  pdfMode = false,
+  className = "",
+}: {
+  value: string
+  size?: number
+  pdfMode?: boolean
+  className?: string
+}) {
+  const [showModal, setShowModal] = useState(false)
+  const [copied, setCopied] = useState(false)
 
-  const addFinder = (r: number, c: number) => {
-    for (let i = 0; i < 7; i++) {
-      for (let j = 0; j < 7; j++) {
-        if (i === 0 || i === 6 || j === 0 || j === 6 || (i >= 2 && i <= 4 && j >= 2 && j <= 4)) {
-          modules[r + i][c + j] = true
+  const qrData = useMemo(() => {
+    return generateQrMatrix(value, { errorCorrectionLevel: "M", margin: 2 })
+  }, [value])
+
+  const handleCopyLink = async () => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(qrData.url)
+        setCopied(true)
+        toast.success("Verification link copied to clipboard")
+        setTimeout(() => setCopied(false), 2500)
+      }
+    } catch {
+      toast.error("Failed to copy link")
+    }
+  }
+
+  const handleDownloadSvg = () => {
+    try {
+      const blob = new Blob([qrData.svgString], { type: "image/svg+xml;charset=utf-8" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${value || "BOL"}-QR.svg`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success("QR Code SVG downloaded")
+    } catch {
+      toast.error("Failed to download SVG")
+    }
+  }
+
+  const handleDownloadPng = () => {
+    try {
+      const canvas = document.createElement("canvas")
+      const scale = 16 // 16x density for razor-sharp logistics print
+      const totalSize = qrData.size * scale
+      canvas.width = totalSize
+      canvas.height = totalSize
+      const ctx = canvas.getContext("2d")
+      if (!ctx) return
+
+      ctx.imageSmoothingEnabled = false
+      ctx.fillStyle = "#ffffff"
+      ctx.fillRect(0, 0, totalSize, totalSize)
+
+      ctx.fillStyle = "#0f172a"
+      for (let r = 0; r < qrData.moduleCount; r++) {
+        for (let c = 0; c < qrData.moduleCount; c++) {
+          if (qrData.modules[r]?.[c]) {
+            ctx.fillRect(
+              (c + qrData.margin) * scale,
+              (r + qrData.margin) * scale,
+              scale,
+              scale
+            )
+          }
         }
       }
+
+      const pngUrl = canvas.toDataURL("image/png")
+      const a = document.createElement("a")
+      a.href = pngUrl
+      a.download = `${value || "BOL"}-QR.png`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      toast.success("High-resolution QR code PNG downloaded")
+    } catch {
+      toast.error("Failed to download PNG")
     }
   }
 
-  addFinder(0, 0)
-  addFinder(0, 14)
-  addFinder(14, 0)
-
-  let hash = 0
-  for (let i = 0; i < value.length; i++) {
-    hash = (hash << 5) - hash + value.charCodeAt(i)
-    hash |= 0
-  }
-
-  for (let r = 0; r < grid; r++) {
-    for (let c = 0; c < grid; c++) {
-      const isFinder = (r < 7 && c < 7) || (r < 7 && c >= 14) || (r >= 14 && c < 7)
-      if (!isFinder) {
-        const bit = ((hash ^ (r * 31 + c * 17)) & 1) === 1
-        modules[r][c] = bit
-      }
-    }
-  }
-
-  const cellSize = size / grid
-  let path = ""
-  for (let r = 0; r < grid; r++) {
-    for (let c = 0; c < grid; c++) {
-      if (modules[r][c]) {
-        path += `M${(c * cellSize).toFixed(2)},${(r * cellSize).toFixed(2)}h${cellSize.toFixed(2)}v${cellSize.toFixed(2)}h-${cellSize.toFixed(2)}z `
-      }
-    }
-  }
-
-  return (
+  const qrSvg = (
     <svg
       width={size}
       height={size}
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox={`0 0 ${qrData.size} ${qrData.size}`}
       className="shrink-0 block"
       style={{
         shapeRendering: "crispEdges",
@@ -331,9 +390,167 @@ function DocumentQRCode({ value, size = 28 }: { value: string; size?: number }) 
         backgroundColor: "#ffffff",
       }}
     >
-      <rect width={size} height={size} fill="#ffffff" />
-      <path d={path} fill="#000000" />
+      <rect width={qrData.size} height={qrData.size} fill="#ffffff" />
+      <path d={qrData.path} fill="#0f172a" />
     </svg>
+  )
+
+  // In PDF export mode or print, render strictly static vector SVG without interactive handlers
+  if (pdfMode) {
+    return (
+      <div
+        className={`shrink-0 flex items-center justify-center bg-white rounded border border-blue-200/90 shadow-2xs ${className}`}
+        style={{ padding: "1.5px" }}
+        data-qr-code="true"
+      >
+        {qrSvg}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setShowModal(true)}
+        title="Official Verification QR Code - Click to enlarge and verify"
+        className={`shrink-0 flex items-center justify-center bg-white rounded-[4px] border border-blue-200/90 p-[1.5px] shadow-2xs hover:border-blue-500 hover:shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer group relative ${className}`}
+        data-qr-code="true"
+        aria-label="Enlarge QR Code"
+      >
+        {qrSvg}
+        <span className="sr-only">Verify BOL QR Code</span>
+      </button>
+
+      {/* Interactive Document Authenticity & Verification Dialog */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-white text-slate-900 border border-slate-200 shadow-2xl rounded-2xl">
+          <DialogHeader className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-5 text-left">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-white/10 rounded-xl backdrop-blur-xs border border-white/20">
+                <ShieldCheck className="w-5 h-5 text-blue-200" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-black tracking-tight text-white flex items-center gap-2">
+                  Document Authenticity Verification
+                </DialogTitle>
+                <DialogDescription className="text-xs text-blue-200 font-medium mt-0.5">
+                  Sky Ariana Logistics Verification Portal
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-5 flex flex-col items-center">
+            {/* Scannable High-Res QR Code Card */}
+            <div className="relative p-3.5 bg-white rounded-2xl border-2 border-blue-100 shadow-lg flex flex-col items-center group">
+              <svg
+                width={190}
+                height={190}
+                viewBox={`0 0 ${qrData.size} ${qrData.size}`}
+                className="shrink-0 block"
+                style={{ shapeRendering: "crispEdges" }}
+              >
+                <rect width={qrData.size} height={qrData.size} fill="#ffffff" />
+                <path d={qrData.path} fill="#0f172a" />
+              </svg>
+              <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+                <QrCode className="w-3.5 h-3.5 text-blue-600" />
+                <span>ISO/IEC 18004 Standard QR Code</span>
+              </div>
+            </div>
+
+            {/* Document Info Badge */}
+            <div className="mt-4 w-full bg-slate-50 rounded-xl p-3 border border-slate-200 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                  Document Number
+                </span>
+                <span className="font-mono font-black text-blue-950 text-sm">
+                  {value || "SKY-BOL"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/70">
+                <span className="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                  Verification Status
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Official Logistics Record
+                </span>
+              </div>
+            </div>
+
+            {/* Direct Verification Link Box */}
+            <div className="mt-3.5 w-full">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-left">
+                Direct Verification URL
+              </label>
+              <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded-lg p-1.5">
+                <input
+                  type="text"
+                  readOnly
+                  value={qrData.url}
+                  className="bg-transparent text-xs text-slate-700 font-mono flex-1 outline-hidden select-all truncate px-1"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="px-2.5 py-1 text-xs font-bold bg-white text-blue-900 rounded-md border border-slate-200 hover:bg-blue-50 active:scale-95 transition-all flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-4 grid grid-cols-3 gap-2 w-full">
+              <button
+                type="button"
+                onClick={handleDownloadSvg}
+                className="flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all cursor-pointer"
+                title="Download Vector SVG"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-600" />
+                <span>SVG</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadPng}
+                className="flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all cursor-pointer"
+                title="Download High-Res PNG"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-600" />
+                <span>PNG (HD)</span>
+              </button>
+              <a
+                href={qrData.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-lg shadow-2xs transition-all cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Verify</span>
+              </a>
+            </div>
+
+            <p className="mt-3 text-[10px] text-slate-400 text-center leading-normal">
+              Scan with any mobile phone camera or logistics barcode scanner to instantly verify document authenticity.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
@@ -3639,8 +3856,12 @@ function Page1Header({
                 {bolNumber}
               </span>
             </div>
-            <div className="shrink-0 flex items-center justify-center p-[1px] bg-white rounded border border-slate-200 shadow-2xs">
-              <DocumentQRCode value={bolNumber || "SKY-BOL"} size={isUltraCompact ? 16 : isCompact ? 18 : 20} />
+            <div className="shrink-0 flex items-center justify-center">
+              <DocumentQRCode
+                value={bolNumber || "SKY-BOL"}
+                size={isUltraCompact ? 20 : isCompact ? 22 : 24}
+                pdfMode={pdfMode}
+              />
             </div>
           </div>
         </div>
@@ -3766,8 +3987,12 @@ function Page2Header({
           <div className="flex items-center gap-1 rounded-lg border border-blue-600 bg-blue-600 px-2 py-1 text-white shadow-2xs">
             <span className="font-mono text-[6.5pt] font-black tracking-wider">PAGE 2 OF 2</span>
           </div>
-          <div className="shrink-0 flex items-center justify-center p-0.5 bg-white border border-slate-200 rounded shadow-2xs">
-            <DocumentQRCode value={bolNumber || "SKY-BOL"} size={18} />
+          <div className="shrink-0 flex items-center justify-center">
+            <DocumentQRCode
+              value={bolNumber || "SKY-BOL"}
+              size={isUltraCompact ? 18 : 20}
+              pdfMode={pdfMode}
+            />
           </div>
         </div>
       </div>
