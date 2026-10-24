@@ -154,94 +154,94 @@ export function AfghanVehiclePlate({
   // and ensuring Persian numerals match Latin numerals in visual weight
   const sizeStyles = {
     sm: {
-      container: "w-[166px] h-[63px] rounded-[5px]",
+      container: "w-[166px] h-[63px] aspect-[2.62/1] rounded-[5px]",
       border: "border-[1.6px] border-black",
-      padding: "px-[3%] py-[2%]",
-      provFa: "text-[12pt] leading-none",
-      provFaLong: "text-[10pt] leading-none",
-      landmarkH: "h-[13px]",
-      provEn: "text-[10pt] leading-none tracking-[0.06em]",
-      numFa: "text-[20pt] leading-none",
-      numEn: "text-[16pt] leading-none",
-      digitGapFa: "0.12em",
-      digitGapEn: "0.06em",
-      letterFa: "text-[13.5pt] leading-none",
-      letterEn: "text-[10.5pt] leading-none",
-    },
-    compact: {
-      container: "w-[194px] h-[74px] rounded-[6px]",
-      border: "border-[1.8px] border-black",
       padding: "px-[3%] py-[2%]",
       provFa: "text-[14pt] leading-none",
       provFaLong: "text-[11.5pt] leading-none",
       landmarkH: "h-[16px]",
       provEn: "text-[12pt] leading-none tracking-[0.06em]",
+      numFa: "text-[20pt] leading-none",
+      numEn: "text-[16pt] leading-none",
+      digitGapFa: "0.12em",
+      digitGapEn: "0.06em",
+      letterFa: "text-[13pt] leading-none",
+      letterEn: "text-[11pt] leading-none",
+    },
+    compact: {
+      container: "w-[194px] h-[74px] aspect-[2.62/1] rounded-[6px]",
+      border: "border-[1.8px] border-black",
+      padding: "px-[3%] py-[2%]",
+      provFa: "text-[16pt] leading-none",
+      provFaLong: "text-[13pt] leading-none",
+      landmarkH: "h-[20px]",
+      provEn: "text-[14pt] leading-none tracking-[0.06em]",
       numFa: "text-[24pt] leading-none",
       numEn: "text-[19pt] leading-none",
       digitGapFa: "0.14em",
       digitGapEn: "0.08em",
-      letterFa: "text-[16pt] leading-none",
-      letterEn: "text-[12pt] leading-none",
+      letterFa: "text-[15pt] leading-none",
+      letterEn: "text-[12.5pt] leading-none",
     },
     default: {
-      container: "w-[240px] h-[91px] rounded-[7px]",
+      container: "w-[240px] h-[91px] aspect-[2.62/1] rounded-[7px]",
       border: "border-[2px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[17.5pt] leading-none",
-      provFaLong: "text-[14.5pt] leading-none",
-      landmarkH: "h-[19px]",
-      provEn: "text-[15pt] leading-none tracking-[0.06em]",
+      provFa: "text-[20pt] leading-none",
+      provFaLong: "text-[16.5pt] leading-none",
+      landmarkH: "h-[26px]",
+      provEn: "text-[17.5pt] leading-none tracking-[0.06em]",
       numFa: "text-[29pt] leading-none",
       numEn: "text-[23.5pt] leading-none",
       digitGapFa: "0.15em",
       digitGapEn: "0.08em",
-      letterFa: "text-[19.5pt] leading-none",
-      letterEn: "text-[15pt] leading-none",
+      letterFa: "text-[19pt] leading-none",
+      letterEn: "text-[15.5pt] leading-none",
     },
     md: {
-      container: "w-[275px] h-[105px] rounded-[8px]",
+      container: "w-[275px] h-[105px] aspect-[2.62/1] rounded-[8px]",
       border: "border-[2.5px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[20pt] leading-none",
-      provFaLong: "text-[16.5pt] leading-none",
-      landmarkH: "h-[22px]",
-      provEn: "text-[17pt] leading-none tracking-[0.06em]",
+      provFa: "text-[23pt] leading-none",
+      provFaLong: "text-[19pt] leading-none",
+      landmarkH: "h-[30px]",
+      provEn: "text-[20pt] leading-none tracking-[0.06em]",
       numFa: "text-[34pt] leading-none",
       numEn: "text-[27.5pt] leading-none",
       digitGapFa: "0.15em",
       digitGapEn: "0.08em",
-      letterFa: "text-[22.5pt] leading-none",
-      letterEn: "text-[17.5pt] leading-none",
+      letterFa: "text-[22pt] leading-none",
+      letterEn: "text-[18pt] leading-none",
     },
     lg: {
-      container: "w-[330px] h-[126px] rounded-[10px]",
+      container: "w-[330px] h-[126px] aspect-[2.62/1] rounded-[10px]",
       border: "border-[3px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[24.5pt] leading-none",
-      provFaLong: "text-[20pt] leading-none",
-      landmarkH: "h-[27px]",
-      provEn: "text-[21pt] leading-none tracking-[0.06em]",
+      provFa: "text-[28pt] leading-none",
+      provFaLong: "text-[23pt] leading-none",
+      landmarkH: "h-[36px]",
+      provEn: "text-[24pt] leading-none tracking-[0.06em]",
       numFa: "text-[41pt] leading-none",
       numEn: "text-[33pt] leading-none",
       digitGapFa: "0.16em",
       digitGapEn: "0.08em",
-      letterFa: "text-[27pt] leading-none",
+      letterFa: "text-[26pt] leading-none",
       letterEn: "text-[21pt] leading-none",
     },
     responsive: {
       container: "w-full max-w-[280px] aspect-[2.62/1] rounded-[6px]",
       border: "border-[2px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[clamp(12px,4.1vw,21pt)] leading-none",
-      provFaLong: "text-[clamp(10px,3.4vw,17pt)] leading-none",
-      landmarkH: "h-[clamp(12px,4.0vw,23px)]",
-      provEn: "text-[clamp(10px,3.5vw,18pt)] leading-none tracking-[0.06em]",
+      provFa: "text-[clamp(14px,4.6vw,23pt)] leading-none",
+      provFaLong: "text-[clamp(11px,3.8vw,19pt)] leading-none",
+      landmarkH: "h-[clamp(15px,4.8vw,30px)]",
+      provEn: "text-[clamp(12px,4.0vw,20pt)] leading-none tracking-[0.06em]",
       numFa: "text-[clamp(16px,6.0vw,31pt)] leading-none",
       numEn: "text-[clamp(13px,4.8vw,25pt)] leading-none",
       digitGapFa: "0.14em",
       digitGapEn: "0.08em",
-      letterFa: "text-[clamp(11px,3.8vw,20pt)] leading-none",
-      letterEn: "text-[clamp(9px,3.2vw,16pt)] leading-none",
+      letterFa: "text-[clamp(13px,4.3vw,21pt)] leading-none",
+      letterEn: "text-[clamp(11px,3.6vw,17pt)] leading-none",
     },
   }[size]
 
@@ -262,6 +262,7 @@ export function AfghanVehiclePlate({
       style={{
         backgroundColor: "#ffffff",
         boxSizing: "border-box",
+        aspectRatio: "2.62 / 1",
         ...style,
       }}
       title={`Afghanistan Vehicle Registration Plate: ${data.provinceCode} ${data.number}${data.hasLetter ? ` ${data.letterEn}` : ""}`}
@@ -272,7 +273,7 @@ export function AfghanVehiclePlate({
         {/* ========================================================================= */}
         <div className="flex flex-col justify-between items-center text-center h-full w-[26%] min-w-0 pl-[0.5%] pr-[0.5%] py-[0.5%]">
           {/* Top Left: Dari/Pashto Province (e.g. کابل / هلمند / نیمروز) */}
-          <div className="flex items-center justify-center w-full h-[38%] min-w-0">
+          <div className="flex items-center justify-center w-full h-[33%] min-w-0">
             <span
               dir="rtl"
               className={`font-black text-black select-text text-center truncate ${
@@ -290,20 +291,20 @@ export function AfghanVehiclePlate({
           </div>
 
           {/* Middle Left: Architectural Landmark Illustration */}
-          <div className="flex items-center justify-center w-full h-[24%] pointer-events-none" aria-hidden="true">
+          <div className="flex items-center justify-center w-full h-[34%] pointer-events-none" aria-hidden="true">
             <img
               src={KABUL_LANDMARK_DATA_URI}
               alt=""
               className={`${sizeStyles.landmarkH} w-auto object-contain select-none`}
               style={{
-                filter: "contrast(1.1) brightness(0.92)",
+                filter: "contrast(1.15) brightness(0.9)",
                 maxWidth: "100%",
               }}
             />
           </div>
 
           {/* Bottom Left: Latin Province Code (e.g. KBL / HLM / NRZ) */}
-          <div className="flex items-center justify-center w-full h-[38%] min-w-0">
+          <div className="flex items-center justify-center w-full h-[33%] min-w-0">
             <span
               className={`font-black text-black uppercase select-text text-center ${sizeStyles.provEn}`}
               style={{
@@ -390,7 +391,7 @@ export function AfghanVehiclePlate({
         {data.hasLetter && (
           <div className="flex flex-col justify-between items-center text-center h-full w-[15%] min-w-0 pl-[0.5%] pr-[1%] py-[0.5%]">
             {/* Top Right: Dari Category Letter (e.g. ل) - Aligned with Top Row */}
-            <div className="flex items-center justify-center w-full h-[38%] min-w-0">
+            <div className="flex items-center justify-center w-full h-[33%] min-w-0">
               <span
                 dir="rtl"
                 className={`font-black text-black select-text text-center ${sizeStyles.letterFa}`}
@@ -405,11 +406,11 @@ export function AfghanVehiclePlate({
               </span>
             </div>
 
-            {/* Middle Spacer between Dari and Latin letter (aligned with landmark space) */}
-            <div className="w-full h-[24%] pointer-events-none" aria-hidden="true" />
+            {/* Middle Spacer between Dari and Latin letter (aligned with landmark space, guaranteed separation) */}
+            <div className="w-full h-[34%] min-h-[14px] flex-1 pointer-events-none" aria-hidden="true" />
 
             {/* Bottom Right: Latin Category Letter (e.g. L) - Aligned with Bottom Row */}
-            <div className="flex items-center justify-center w-full h-[38%] min-w-0">
+            <div className="flex items-center justify-center w-full h-[33%] min-w-0">
               <span
                 className={`font-black text-black uppercase select-text text-center ${sizeStyles.letterEn}`}
                 style={{

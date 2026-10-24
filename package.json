@@ -145,6 +145,7 @@
     "electron-winstaller": "^5.4.0",
     "eslint": "9.0.0",
     "eslint-plugin-react-hooks": "^7.0.0",
+    "jsqr": "^1.4.0",
     "postcss": "^8.5.29",
     "tailwindcss": "^4.2.0",
     "tw-animate-css": "1.3.3",
