@@ -586,8 +586,11 @@
       },
       "git": {
         "branch": "main",
-        "tag": null,
-        "committed": false
+        "commit": "6735d1e",
+        "tag": "v5.3.4",
+        "committed": true,
+        "pushed": true,
+        "note": "Covers the v5.2.11-v5.3.4 batch; pushed to v5pro."
       },
       "backupPath": "scratch\\version-control-backups\\v5.3.3-to-v5.3.4-2026.10.25-PRO-17",
       "createdAt": "2026-10-25T20:21:50.290Z"
