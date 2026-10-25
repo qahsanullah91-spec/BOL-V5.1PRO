@@ -386,8 +386,8 @@
       "validation": {
         "typecheck": "SUCCESS",
         "tests": "SUCCESS",
-        "build": "PENDING",
-        "overall": "VALIDATED"
+        "build": "SUCCESS",
+        "overall": "RELEASED"
       },
       "git": {
         "branch": "main",
@@ -398,7 +398,13 @@
         "note": "Covers the v5.2.4-v5.2.10 batch; pushed to v5pro."
       },
       "backupPath": "scratch\\version-control-backups\\v5.2.9-to-v5.2.10-2026.10.25-PRO-11",
-      "createdAt": "2026-10-25T18:17:15.171Z"
+      "createdAt": "2026-10-25T18:17:15.171Z",
+      "installer": {
+        "file": "release/AQ-COMPANIES-Setup.exe",
+        "sizeBytes": 618516945,
+        "sha256": "fc457b895250b22937ee521ac0361ec308de7652f525fcc1842d1dfa6c56b2df",
+        "builtAt": "2026-10-25T20:00:52Z"
+      }
     }
   ]
 }
