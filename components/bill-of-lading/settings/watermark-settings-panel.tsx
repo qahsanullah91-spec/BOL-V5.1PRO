@@ -193,7 +193,7 @@ export function WatermarkSettingsPanel({
                 </span>
                 <span className="text-slate-500">|</span>
                 <span className="text-slate-400 font-mono text-[11px]">
-                  Rec: {Math.round(recommendedOpacity * 100)}%
+                  Recommended: {Math.round(recommendedOpacity * 100)}%
                 </span>
 
                 {Math.round(activeOpacity * 100) !== Math.round(recommendedOpacity * 100) && (
@@ -437,12 +437,19 @@ export function WatermarkSettingsPanel({
                   className="h-full max-h-full"
                 />
 
-                {/* Top-Left Format Tag */}
-                <span className="absolute left-2 top-2 rounded bg-slate-900/80 text-white px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider shadow-2xs backdrop-blur-xs">
-                  {isSvg ? 'Vector SVG' : item.url ? 'Image' : 'Blank'}
-                </span>
+                {/* Top-Left Format Tag / Selected Pill */}
+                {isSelected ? (
+                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-blue-600 text-white px-2 py-0.5 text-[9px] font-bold shadow-sm">
+                    <Check className="h-2.5 w-2.5 stroke-[3]" />
+                    Selected
+                  </span>
+                ) : (
+                  <span className="absolute left-2 top-2 rounded bg-slate-900/80 text-white px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider shadow-2xs backdrop-blur-xs">
+                    {isSvg ? 'Vector SVG' : item.url ? 'Image' : 'Blank'}
+                  </span>
+                )}
 
-                {/* Top-Right Badges & Favorite Toggle */}
+                {/* Top-Right Favorite & Custom Actions */}
                 <div className="absolute right-2 top-2 flex items-center gap-1">
                   <button
                     type="button"
@@ -473,13 +480,6 @@ export function WatermarkSettingsPanel({
                       <Trash2 className="h-3 w-3" />
                     </button>
                   )}
-
-                  {isSelected && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white px-2 py-0.5 text-[9px] font-bold shadow-sm">
-                      <Check className="h-2.5 w-2.5 stroke-[3]" />
-                      Selected
-                    </span>
-                  )}
                 </div>
               </div>
 
@@ -487,9 +487,10 @@ export function WatermarkSettingsPanel({
               <div className="p-2 border-t border-slate-100 dark:border-slate-800 flex flex-col justify-between flex-1">
                 <div>
                   <p
-                    className={`text-xs font-bold truncate transition-colors ${
+                    className={`text-xs font-bold line-clamp-2 leading-snug break-words min-h-[2em] transition-colors ${
                       isSelected ? 'text-blue-700 dark:text-blue-400' : 'text-slate-900 dark:text-slate-100 group-hover:text-blue-600'
                     }`}
+                    title={item.label}
                   >
                     {item.label}
                   </p>
@@ -498,9 +499,11 @@ export function WatermarkSettingsPanel({
                   </p>
                 </div>
 
-                <div className="mt-1.5 flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800 text-[9.5px] text-slate-400 font-mono">
-                  <span>Rec:</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">
+                <div className="mt-1.5 flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">
+                    Recommended
+                  </span>
+                  <span className="font-mono text-[9.5px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                     {Math.round(item.opacity * 100)}%
                   </span>
                 </div>

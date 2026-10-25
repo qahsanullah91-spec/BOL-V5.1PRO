@@ -66,8 +66,8 @@ export interface AfghanVehiclePlateProps {
  *     - Right: Dari category letter (e.g. ل)
  * - Upper-Left: Authentic Kabul landmark architectural line-art illustration
  * - Bottom row:
- *     - Left: 3-letter Latin province code (e.g. KBL / NRZ / HLM) in bold uppercase DIN font
- *     - Center: Latin numerals (e.g. 12346 / 2142) in large bold DIN/license-plate font with 1:1 vertical column alignment
+ *     - Left: 3-letter Latin province code (e.g. KBL / NRZ / HLM) in bold uppercase heavy-grotesque (Arial Black) font
+ *     - Center: Latin numerals (e.g. 12346 / 2142) in large bold wide heavy-grotesque (Arial Black) font with 1:1 vertical column alignment
  *     - Right: Latin category letter (e.g. L)
  * - Strict RTL / LTR isolation: digits and letters strictly preserve their correct reading order
  * - Fully dynamic: connects to database records while matching authentic physical plate proportions (2.62:1 aspect ratio)
@@ -163,7 +163,7 @@ export function AfghanVehiclePlate({
       provEn: "text-[10.5pt] leading-none tracking-[0.06em]",
       numFa: "text-[20pt] leading-none",
       numEn: "text-[16pt] leading-none",
-      digitGapFa: "0.02em",
+      digitGapFa: "0.08em",
       digitGapEn: "0.06em",
       letterFa: "text-[13pt] leading-none",
       letterEn: "text-[11pt] leading-none",
@@ -178,7 +178,7 @@ export function AfghanVehiclePlate({
       provEn: "text-[12pt] leading-none tracking-[0.06em]",
       numFa: "text-[24pt] leading-none",
       numEn: "text-[19pt] leading-none",
-      digitGapFa: "0.02em",
+      digitGapFa: "0.08em",
       digitGapEn: "0.08em",
       letterFa: "text-[15pt] leading-none",
       letterEn: "text-[12.5pt] leading-none",
@@ -193,7 +193,7 @@ export function AfghanVehiclePlate({
       provEn: "text-[15pt] leading-none tracking-[0.06em]",
       numFa: "text-[29pt] leading-none",
       numEn: "text-[23.5pt] leading-none",
-      digitGapFa: "0.02em",
+      digitGapFa: "0.08em",
       digitGapEn: "0.08em",
       letterFa: "text-[19pt] leading-none",
       letterEn: "text-[15.5pt] leading-none",
@@ -208,7 +208,7 @@ export function AfghanVehiclePlate({
       provEn: "text-[17.5pt] leading-none tracking-[0.06em]",
       numFa: "text-[34pt] leading-none",
       numEn: "text-[27.5pt] leading-none",
-      digitGapFa: "0.02em",
+      digitGapFa: "0.08em",
       digitGapEn: "0.08em",
       letterFa: "text-[22pt] leading-none",
       letterEn: "text-[18pt] leading-none",
@@ -223,7 +223,7 @@ export function AfghanVehiclePlate({
       provEn: "text-[21pt] leading-none tracking-[0.06em]",
       numFa: "text-[41pt] leading-none",
       numEn: "text-[33pt] leading-none",
-      digitGapFa: "0.02em",
+      digitGapFa: "0.08em",
       digitGapEn: "0.08em",
       letterFa: "text-[26pt] leading-none",
       letterEn: "text-[21pt] leading-none",
@@ -238,15 +238,15 @@ export function AfghanVehiclePlate({
       provEn: "text-[clamp(10px,3.4vw,17pt)] leading-none tracking-[0.06em]",
       numFa: "text-[clamp(16px,6.0vw,31pt)] leading-none",
       numEn: "text-[clamp(13px,4.8vw,25pt)] leading-none",
-      digitGapFa: "0.02em",
+      digitGapFa: "0.08em",
       digitGapEn: "0.08em",
       letterFa: "text-[clamp(13px,4.3vw,21pt)] leading-none",
       letterEn: "text-[clamp(11px,3.6vw,17pt)] leading-none",
     },
   }[size]
 
-  const persianFontFamily = '"AfghanPlateFa", "NotoNaskhArabic", "Noto Naskh Arabic", "Vazirmatn", "Segoe UI", Tahoma, Arial, sans-serif'
-  const latinFontFamily = '"Bahnschrift", "DIN Alternate", "DIN Condensed", "Franklin Gothic Medium", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Arial Black", sans-serif'
+  const persianFontFamily = '"AfghanPlateFa", "Vazirmatn", "Noto Naskh Arabic", "NotoNaskhArabic", "Segoe UI", Tahoma, Arial, sans-serif'
+  const latinFontFamily = '"Arial Black", "Arial Bold", Arial, "Helvetica Neue", Helvetica, "Segoe UI", "Vazirmatn", sans-serif'
 
   // Split digits into distinct characters to guarantee no HarfBuzz cursive joining or ligature collisions
   const digitsFa = useMemo(() => String(data.numberFa || "").split(""), [data.numberFa])

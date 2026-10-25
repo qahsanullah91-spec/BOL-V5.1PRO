@@ -196,7 +196,7 @@ export function registerIpcHandlers(options: {
   ipcMain.handle("backup:export", async () => {
     const nowStr = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
     const options: Electron.SaveDialogOptions = {
-      defaultPath: `AQ_COMPANIES_FULL_BACKUP_${nowStr}_v5.2.10.json`,
+      defaultPath: `AQ_COMPANIES_FULL_BACKUP_${nowStr}_v5.3.4.json`,
       filters: [{ name: "AQ Companies backup", extensions: ["json"] }],
     }
     const owner = getWindow()
@@ -276,10 +276,10 @@ export function registerIpcHandlers(options: {
         status: "error",
         hasUpdate: false,
         isRepairOrReinstall: false,
-        currentVersion: app.getVersion() || "5.2.10",
-        currentBuild: "2026.10.25-PRO-11",
-        availableVersion: app.getVersion() || "5.2.10",
-        availableBuild: "2026.10.25-PRO-11",
+        currentVersion: app.getVersion() || "5.3.4",
+        currentBuild: "2026.10.25-PRO-17",
+        availableVersion: app.getVersion() || "5.3.4",
+        availableBuild: "2026.10.25-PRO-17",
         installerPath: null,
         installerName: null,
         installerSize: 0,

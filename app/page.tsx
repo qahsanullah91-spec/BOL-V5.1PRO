@@ -7,6 +7,7 @@ import { safeLazy, createSafeModule } from '@/lib/safe-lazy'
 import { AppProvider, useApp } from '@/lib/app-context'
 import { Header } from '@/components/header'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { GlobalSmartInputLayer } from '@/components/smart/global-smart-inputs'
 import { LoginScreen } from '@/components/login-screen'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { ModuleErrorBoundary } from '@/components/system/module-error-boundary'
@@ -710,6 +711,7 @@ export default function Home() {
     <ErrorBoundary>
       <AppProvider>
         <MainContent />
+        <GlobalSmartInputLayer />
       </AppProvider>
     </ErrorBoundary>
   )

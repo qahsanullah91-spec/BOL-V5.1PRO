@@ -88,6 +88,7 @@ import {
   type CompanyStampConfig,
 } from "@/lib/company-stamp-data"
 import { COMPANY_STAMP_SIGNATURE_DATA_URL } from "@/lib/company-stamp-fallback"
+import { SmartTypingSettingsCard } from "@/components/smart/smart-typing-settings-card"
 import { toast } from "sonner"
 
 // Preset Official Company Stamps and Seals
@@ -952,6 +953,11 @@ export function SettingsView() {
           </div>
         </div>
       </header>
+
+      {/* MODULE 4: Smart Typing & AI Recommendations Control Card (always visible) */}
+      <div className="mb-4">
+        <SmartTypingSettingsCard />
+      </div>
 
       {/* Responsive Mobile / Tablet Category & Item Selector */}
       <div className="lg:hidden w-full space-y-2.5 bg-white/95 dark:bg-slate-900/95 p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm">

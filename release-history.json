@@ -405,6 +405,192 @@
         "sha256": "fc457b895250b22937ee521ac0361ec308de7652f525fcc1842d1dfa6c56b2df",
         "builtAt": "2026-10-25T20:00:52Z"
       }
+    },
+    {
+      "previousVersion": "v5.2.10",
+      "newVersion": "v5.2.11",
+      "build": "2026.10.25-PRO-12",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "AQ Companies brand favicon and app icon set",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Browser tab showed the default v0 placeholder favicon; replaced with AQ monogram brand icon set (favicon.ico, light/dark 32px, 192/512, maskable, apple-touch, SVG, Electron app-icon.ico/png) generated from the master logo, plus missing apple-touch-icon.png now provided"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.2.10-to-v5.2.11-2026.10.25-PRO-12",
+      "createdAt": "2026-10-25T20:08:28.283Z",
+      "validationNote": "Gate had failed on the BOL sequence drift (startSequence 743 vs highest 741) caused by concurrent gate runs; drift repaired via setBolStartingSequence(742) and the full 780-test suite re-verified green at the v5.3.4 gate on the same code."
+    },
+    {
+      "previousVersion": "v5.2.11",
+      "newVersion": "v5.3.0",
+      "build": "2026.10.25-PRO-13",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "MINOR",
+      "title": "Global Smart Input Layer & Workspace Security",
+      "summary": "New smart-typing assistance across workspace inputs, a workspace security lock, and a regenerated brand icon set.",
+      "featuresAdded": [
+        "GlobalSmartInputLayer: smart-typing assistance wired into workspace inputs with per-input type handling and direction-aware rendering.",
+        "Smart predictor and grammar-and-polish engines (lib/smart) with a Smart Typing settings card in the editor settings.",
+        "Workspace lock overlay security component for locking the workspace during inactivity or manual lock.",
+        "Regenerated brand icon set (app icon, favicon, maskable/light/dark icons, AQ monogram) via scripts/generate-brand-icons.cjs."
+      ],
+      "featuresModified": [
+        "Watermark settings panel and watermark thumbnail refinements."
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.2.11-to-v5.3.0-2026.10.25-PRO-13",
+      "createdAt": "2026-10-25T20:09:04.653Z",
+      "validationNote": "Gate had failed on the BOL sequence drift (startSequence 743 vs highest 741) caused by concurrent gate runs; drift repaired via setBolStartingSequence(742) and the full 780-test suite re-verified green at the v5.3.4 gate on the same code."
+    },
+    {
+      "previousVersion": "v5.3.0",
+      "newVersion": "v5.3.1",
+      "build": "2026.10.25-PRO-14",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Truck number plate typography matched to official Afghan plate reference",
+      "summary": "",
+      "featuresAdded": [
+        "Latin plate row (digits, province code, category letter) switched from condensed DIN/Bahnschrift to wide heavy Arial Black grotesque matching the official Kabul plate photo",
+        "Persian digit tracking widened to match reference spacing"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.3.0-to-v5.3.1-2026.10.25-PRO-14",
+      "createdAt": "2026-10-25T20:14:35.344Z"
+    },
+    {
+      "previousVersion": "v5.3.1",
+      "newVersion": "v5.3.2",
+      "build": "2026.10.25-PRO-15",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "AQ Companies brand favicon and app icon set",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Browser tab showed the default v0 placeholder favicon; replaced with AQ monogram brand icon set (favicon.ico, light/dark 32px, 192/512, maskable, apple-touch, SVG, Electron app-icon.ico/png) generated from the master logo, plus missing apple-touch-icon.png now provided"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.3.1-to-v5.3.2-2026.10.25-PRO-15",
+      "createdAt": "2026-10-25T20:15:19.413Z"
+    },
+    {
+      "previousVersion": "v5.3.2",
+      "newVersion": "v5.3.3",
+      "build": "2026.10.25-PRO-16",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "BOL Settings watermark gallery visual overhaul",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Photo watermark thumbnails now fill the A4 paper frame edge-to-edge (object-cover) like they actually print, instead of floating tiny inside white margins; vector SVG art keeps full-page contain",
+        "Gallery card titles no longer truncate mid-word (two-line clamp with tooltip) and the Recommended opacity badge is spelled out instead of cryptic 'Rec:'",
+        "Selected watermark card shows a single clean 'Selected' pill in place of the format tag; favorite star no longer crowded"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.3.2-to-v5.3.3-2026.10.25-PRO-16",
+      "createdAt": "2026-10-25T20:15:23.614Z"
+    },
+    {
+      "previousVersion": "v5.3.3",
+      "newVersion": "v5.3.4",
+      "build": "2026.10.25-PRO-17",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "BOL Settings watermark gallery visual overhaul",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Photo watermark thumbnails now fill the A4 paper frame edge-to-edge (object-cover) like they actually print, instead of floating tiny inside white margins; vector SVG art keeps full-page contain",
+        "Gallery card titles no longer truncate mid-word (two-line clamp with tooltip) and the Recommended opacity badge is spelled out instead of cryptic 'Rec:'",
+        "Selected watermark card shows a single clean 'Selected' pill in place of the format tag; favorite star no longer crowded"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.3.3-to-v5.3.4-2026.10.25-PRO-17",
+      "createdAt": "2026-10-25T20:21:50.290Z"
     }
   ]
 }

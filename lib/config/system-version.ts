@@ -21,11 +21,11 @@ export interface SystemVersionInfo {
   }
 }
 
-export const SYSTEM_RELEASE_LABEL = "v5.2.10" as const
+export const SYSTEM_RELEASE_LABEL = "v5.3.4" as const
 
 export const CURRENT_SYSTEM_VERSION = {
   version: SYSTEM_RELEASE_LABEL,
-  buildNumber: "2026.10.25-PRO-11",
+  buildNumber: "2026.10.25-PRO-17",
   releaseDate: "2026-10-25",
   edition: "AQ COMPANIES Enterprise Pro Edition",
   companyName: "AQ COMPANIES",
@@ -34,6 +34,69 @@ export const CURRENT_SYSTEM_VERSION = {
   platform: "Windows Desktop / Electron / Web",
   updateChannel: "stable",
   changelog: [
+    {
+      version: "v5.3.4",
+      date: "2026-10-25",
+      title: "BOL Settings watermark gallery visual overhaul",
+      changes: [
+        "Fixed: Photo watermark thumbnails now fill the A4 paper frame edge-to-edge (object-cover) like they actually print, instead of floating tiny inside white margins; vector SVG art keeps full-page contain",
+        "Fixed: Gallery card titles no longer truncate mid-word (two-line clamp with tooltip) and the Recommended opacity badge is spelled out instead of cryptic 'Rec:'",
+        "Fixed: Selected watermark card shows a single clean 'Selected' pill in place of the format tag; favorite star no longer crowded",
+      ],
+    },
+
+    {
+      version: "v5.3.3",
+      date: "2026-10-25",
+      title: "BOL Settings watermark gallery visual overhaul",
+      changes: [
+        "Fixed: Photo watermark thumbnails now fill the A4 paper frame edge-to-edge (object-cover) like they actually print, instead of floating tiny inside white margins; vector SVG art keeps full-page contain",
+        "Fixed: Gallery card titles no longer truncate mid-word (two-line clamp with tooltip) and the Recommended opacity badge is spelled out instead of cryptic 'Rec:'",
+        "Fixed: Selected watermark card shows a single clean 'Selected' pill in place of the format tag; favorite star no longer crowded",
+      ],
+    },
+
+    {
+      version: "v5.3.2",
+      date: "2026-10-25",
+      title: "AQ Companies brand favicon and app icon set",
+      changes: [
+        "Fixed: Browser tab showed the default v0 placeholder favicon; replaced with AQ monogram brand icon set (favicon.ico, light/dark 32px, 192/512, maskable, apple-touch, SVG, Electron app-icon.ico/png) generated from the master logo, plus missing apple-touch-icon.png now provided",
+      ],
+    },
+
+    {
+      version: "v5.3.1",
+      date: "2026-10-25",
+      title: "Truck number plate typography matched to official Afghan plate reference",
+      changes: [
+        "Added: Latin plate row (digits, province code, category letter) switched from condensed DIN/Bahnschrift to wide heavy Arial Black grotesque matching the official Kabul plate photo",
+        "Added: Persian digit tracking widened to match reference spacing",
+      ],
+    },
+
+    {
+      version: "v5.3.0",
+      date: "2026-10-25",
+      title: "Global Smart Input Layer & Workspace Security",
+      changes: [
+        "Added: GlobalSmartInputLayer: smart-typing assistance wired into workspace inputs with per-input type handling and direction-aware rendering.",
+        "Added: Smart predictor and grammar-and-polish engines (lib/smart) with a Smart Typing settings card in the editor settings.",
+        "Added: Workspace lock overlay security component for locking the workspace during inactivity or manual lock.",
+        "Added: Regenerated brand icon set (app icon, favicon, maskable/light/dark icons, AQ monogram) via scripts/generate-brand-icons.cjs.",
+        "Modified: Watermark settings panel and watermark thumbnail refinements.",
+      ],
+    },
+
+    {
+      version: "v5.2.11",
+      date: "2026-10-25",
+      title: "AQ Companies brand favicon and app icon set",
+      changes: [
+        "Fixed: Browser tab showed the default v0 placeholder favicon; replaced with AQ monogram brand icon set (favicon.ico, light/dark 32px, 192/512, maskable, apple-touch, SVG, Electron app-icon.ico/png) generated from the master logo, plus missing apple-touch-icon.png now provided",
+      ],
+    },
+
     {
       version: "v5.2.10",
       date: "2026-10-25",

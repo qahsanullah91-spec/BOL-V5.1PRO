@@ -74,6 +74,10 @@ export function WatermarkThumbnail({
       : 'contrast(1.18) brightness(0.95) saturate(1.2)'
     : undefined
 
+  // Photographic watermarks print as a full-page background cover, so preview
+  // them edge-to-edge (object-cover) instead of letterboxing a small landscape
+  // photo inside the portrait paper frame. Vector guilloche / blueprint art is
+  // authored full-page with its own margins, so it keeps object-contain.
   const content = (
     <div className="relative h-full w-full flex items-center justify-center overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -86,7 +90,7 @@ export function WatermarkThumbnail({
           console.warn(`[WATERMARK PREVIEW ERROR] Failed to load watermark: ${url}`, e)
           setHasError(true)
         }}
-        className={`h-full w-full object-contain p-0.5 transition-transform duration-300 group-hover:scale-[1.03] ${imageClassName}`}
+        className={`h-full w-full ${isSvg ? 'object-contain p-0.5' : 'object-cover'} transition-transform duration-300 group-hover:scale-[1.03] ${imageClassName}`}
         style={filterStyle ? { filter: filterStyle } : undefined}
       />
     </div>
