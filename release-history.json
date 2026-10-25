@@ -391,8 +391,11 @@
       },
       "git": {
         "branch": "main",
-        "tag": null,
-        "committed": false
+        "commit": "650a2f6",
+        "tag": "v5.2.10",
+        "committed": true,
+        "pushed": true,
+        "note": "Covers the v5.2.4-v5.2.10 batch; pushed to v5pro."
       },
       "backupPath": "scratch\\version-control-backups\\v5.2.9-to-v5.2.10-2026.10.25-PRO-11",
       "createdAt": "2026-10-25T18:17:15.171Z"
