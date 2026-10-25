@@ -171,8 +171,11 @@
       },
       "git": {
         "branch": "main",
-        "tag": null,
-        "committed": false
+        "commit": "6554f64",
+        "tag": "v5.2.3",
+        "committed": true,
+        "pushed": false,
+        "note": "Single commit 6554f64 also carries the v5.2.1/v5.2.2 batch; tag created on release publication."
       },
       "backupPath": "scratch\\version-control-backups\\v5.2.2-to-v5.2.3-2026.10.25-PRO-4",
       "createdAt": "2026-10-25T14:11:08.688Z",
