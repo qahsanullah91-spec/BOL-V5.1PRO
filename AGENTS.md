@@ -27,6 +27,7 @@ trigger: always_on
 
 ## 6. Data Integrity & Persistence
 - **Atomic Operations**: Always write local JSON snapshots (`.local-*.json`) atomically to prevent file corruption during concurrent operations or background syncs.
+- **Live Business Data**: Root `.local-*.json` files (`.local-bols.json`, `.local-account-ledgers.json`, `.local-bol-account-ledgers.json`, `.local-invoices.json`, `.receipt-counter`, `.treasury-*-counter`, …) are real production records. Never delete, reset, re-seed, or bulk-reformat them. Audit with `node scripts/verify-data-integrity.cjs` or the `bol-ledger-workflow` skill CLI.
 
 ## 7. Python Virtual Environment & Dependency Standards
 - **Explicit Virtual Environment**: All scripts, tests, background services, and CLI tools must execute strictly via `.venv\Scripts\python.exe` (Windows) or `.venv/bin/python` (Unix). Never invoke global `python` or `python3`.
@@ -42,6 +43,25 @@ trigger: always_on
 - **Required End-of-Task Workflow**: (1) `status` → inspect current version; (2) review the task's changes; (3) `detect` for a classification suggestion; (4) `release --type <patch|minor|major> --title "..." --feature ... --fixed ...`; (5) let it run validation (typecheck + tests); (6) report the final version in the SOFTWARE UPDATE REPORT format. Only claim SUCCESS for builds that actually ran and passed — otherwise report the status as pending/failed.
 - **Git Safety**: The release script never commits or pushes. Only tag with `--tag` on explicit authorization, and an existing tag is never overwritten. Unrelated user modifications are preserved.
 - **Failure Safety**: If validation fails, the script preserves the previous version metadata (backup under `scratch/version-control-backups/`) and offers `revert --last`. Never reset databases or delete user data during a version update.
+
+## 9. Repository Map & Stack
+- **Stack**: Next.js 16 (App Router, webpack dev) + React 19 + TypeScript strict + Tailwind CSS v4 + Radix/Shadcn (27 primitives in `components/ui/`); Electron 41 desktop shell (`main`: `dist-electron/main.js`).
+- **Key directories**: `app/` (routes + `globals.css` — the live stylesheet), `components/` (feature suites; `components/bill-of-lading/` is the core BOL module), `lib/` (types, services, utils, `lib/config/system-version.ts`), `electron/` (main process, `ipc/`, `services/`), `scripts/` (SQL migrations `001_*.sql`–`013_*.sql`, version-control, build/QA tooling), `tests/` (121 `node:test` `.test.cjs` suites), `docs/`.
+- **Commands**: `npm run dev` (port 3001) · `npm run electron:dev` · `npm run typecheck` (both app + electron tsconfigs) · `npm test` (`node --test --test-concurrency=1 tests/*.test.cjs` + typecheck) · `npm run lint` (eslint, 0 warnings) · `npm run qa` · `npm run release:win` (Windows installer pipeline).
+- **Docs to read before sensitive changes**: `docs/DATA-ARCHITECTURE.md`, `docs/TESTING.md`, `docs/RELEASE_AND_ROLLBACK_GUIDE.md`, `docs/BUILD-WINDOWS.md`.
+
+## 10. Test Suite Convention — Source-Assertion Tests
+- Most `tests/*.test.cjs` suites are `node:test` scripts that read component/CSS **source text and regex-assert on it** (class names, handler props, CSS properties, media queries) — they do not execute the UI.
+- Consequence: renaming a CSS class, handler prop, or markup string can fail tests with **no runtime error**. After editing toolbar/editor/dashboard markup or `globals.css`, run the matching suites (e.g. `tests/a4-preview-toolbar-layout-fit.test.cjs`, `tests/bol-editor-toolbar-responsive.test.cjs`, `tests/responsive-layout-system.test.cjs`) or the full `npm test`.
+- Always run with `--test-concurrency=1` (the suites share local JSON snapshots).
+
+## 11. Runtime & Environment Gotchas
+- **Port 3001 only**: `next dev`/`next start` and `electron:dev` (via `wait-on`) hardcode port 3001. Port 3000 hosts a different application on this machine — never use it.
+- **Printing**: never fake print output with CSS visibility tricks. Print flows must clone content into the whitelisted print root and set `data-print-active` (see `print-safe-bol.tsx`, ledger/invoice print components) — otherwise output is blank.
+- **Hidden-window rendering**: `html-to-image` `toCanvas` and `yieldToPaint` (rAF-based) **hang when the Electron window is hidden** (e.g., background PDF generation). Use `toSvg` + a manual `Image` loader with a timeout cap instead.
+- **Tailwind glob poisoning**: junk filenames containing braces crash `next build` during Tailwind's glob scan; `scripts/check-tailwind-glob-safety.cjs` guards this — keep it in prebuild flows.
+- **BOL editor toolbar CSS** (`.bol-editor-toolbar` in `app/globals.css`): must **wrap, never clip** — no `nowrap` + hidden/`auto` horizontal scroll at any breakpoint; `.toolbar-group-nav-appearance` must wrap below 1024px. Source-assertion tests enforce this.
+- **Dev auth**: admin login in dev is seeded via `sessionStorage`; the IAB (in-app browser) tab stays hidden.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -185,6 +185,217 @@
         "sha256": "60ee18e4ae934e168efbeec16653d874a96dbfa1303e2c65d1b7deba9774aa8c",
         "builtAt": "2026-10-25T16:36:33Z"
       }
+    },
+    {
+      "previousVersion": "v5.2.3",
+      "newVersion": "v5.2.4",
+      "build": "2026.10.25-PRO-5",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Mobile UI overflow fixes: toolbar zoom clipping, select overflow, dashboard header wrap",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "A4 preview toolbar zoom controls no longer clip past the right edge on mobile/tablet (nav+appearance cluster now wraps and centers)",
+        "Select triggers no longer overflow their cards with long values (max-width guard + truncation, directory and vehicle preset selects full-width)",
+        "Dashboard and Saved 'LATEST BOL CREATIONS' header no longer stacks text vertically on phones"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.2.3-to-v5.2.4-2026.10.25-PRO-5",
+      "createdAt": "2026-10-25T16:52:52.851Z"
+    },
+    {
+      "previousVersion": "v5.2.4",
+      "newVersion": "v5.2.5",
+      "build": "2026.10.25-PRO-6",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Header Search Bar Icon-Only Trigger",
+      "summary": "The header search bar now shows only the search icon; the placeholder text and shortcut badge were removed while the Command Center modal and Ctrl+K shortcut remain fully functional.",
+      "featuresAdded": [],
+      "featuresModified": [
+        "GlobalSearch desktop trigger reduced to a compact icon-only button with tooltip discoverability.",
+        "Header no longer passes the wide pill className; single icon-only trigger serves all breakpoints."
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.2.4-to-v5.2.5-2026.10.25-PRO-6",
+      "createdAt": "2026-10-25T17:02:30.314Z"
+    },
+    {
+      "previousVersion": "v5.2.5",
+      "newVersion": "v5.2.6",
+      "build": "2026.10.25-PRO-7",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Authentic Vehicle Plate Persian Typography",
+      "summary": "Fixed the Afghan vehicle plate's Persian digits, province text and classification letter rendering in a fat, uneven fallback Naskh face.",
+      "featuresAdded": [],
+      "featuresModified": [
+        "Bundled Vazirmatn-Bold.ttf and Vazirmatn-Regular.ttf with their SIL OFL license in public/fonts."
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "The AfghanPlateFa @font-face pointed at NotoNaskhArabic-Bold.ttf, so plate numbers rendered in heavy traditional Naskh that clashed with the DIN-style Latin row; it now loads the genuine Vazirmatn font for clean, vertically consistent plate typography."
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.2.5-to-v5.2.6-2026.10.25-PRO-7",
+      "createdAt": "2026-10-25T17:47:05.530Z"
+    },
+    {
+      "previousVersion": "v5.2.6",
+      "newVersion": "v5.2.7",
+      "build": "2026.10.25-PRO-8",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Dark theme polish for Staff Roles & Permissions screens",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Staff Users, Roles, Permission Matrix, Approval Rules, Approval Inbox, Audit Log and their modals now render correctly in dark mode (cards, inputs, selects, badges, table and buttons were hard-coded light)"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.2.6-to-v5.2.7-2026.10.25-PRO-8",
+      "createdAt": "2026-10-25T17:51:07.853Z"
+    },
+    {
+      "previousVersion": "v5.2.7",
+      "newVersion": "v5.2.8",
+      "build": "2026.10.25-PRO-9",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Modern Persian Typography App-Wide (Genuine Vazirmatn)",
+      "summary": "The app-wide 'Vazirmatn' font-face was an alias to NotoNaskhArabic-Bold.ttf, so every Persian label using font-[vazirmatn] rendered in heavy traditional Naskh; it now loads the genuine Vazirmatn family.",
+      "featuresAdded": [],
+      "featuresModified": [
+        "Noto Naskh Arabic remains bundled and available as an explicit fallback family for stacks that request it."
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced the fake Vazirmatn alias with real Vazirmatn-Bold.ttf (weights 700-900) and Vazirmatn-Regular.ttf (weights 100-700) faces, giving Persian UI text and print documents clean, consistent modern typography with proper regular-weight rendering."
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.2.7-to-v5.2.8-2026.10.25-PRO-9",
+      "createdAt": "2026-10-25T18:01:32.071Z"
+    },
+    {
+      "previousVersion": "v5.2.8",
+      "newVersion": "v5.2.9",
+      "build": "2026.10.25-PRO-10",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Top bar version badge accuracy and suite-row overflow fix",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Header version badges now read SYSTEM_RELEASE_LABEL instead of hardcoded v5.1 / v5.1.0 (logo badge + user menu)",
+        "Ask AI quick pill gated to >=1600px and CRM label kept compact, so the suite row no longer clips the active module pill (e.g. Backup & DR) mid-word on 1536-1600px screens"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.2.8-to-v5.2.9-2026.10.25-PRO-10",
+      "createdAt": "2026-10-25T18:16:31.943Z"
+    },
+    {
+      "previousVersion": "v5.2.9",
+      "newVersion": "v5.2.10",
+      "build": "2026.10.25-PRO-11",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Tighter Persian Digit Spacing on Vehicle Plates",
+      "summary": "The Persian digit row on Afghan plates rendered too loose after the Vazirmatn switch: the legacy 0.12-0.16em per-digit gaps were tuned for narrow Naskh glyphs.",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Reduced digitGapFa from 0.12-0.16em to a uniform 0.02em across all six plate size variants so the Persian numerals are optically as snug as the Latin row."
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.2.9-to-v5.2.10-2026.10.25-PRO-11",
+      "createdAt": "2026-10-25T18:17:15.171Z"
     }
   ]
 }

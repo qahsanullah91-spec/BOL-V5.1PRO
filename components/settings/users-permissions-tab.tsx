@@ -380,17 +380,17 @@ export function UsersPermissionsTab() {
       </div>
 
       {/* Subpage Navigation Bar */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 shadow-xs backdrop-blur-md overflow-x-auto scrollbar-none touch-pan-y overscroll-x-contain">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs backdrop-blur-md overflow-x-auto scrollbar-none touch-pan-y overscroll-x-contain">
         <button
           type="button"
           onClick={() => setActiveSubTab("users")}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            activeSubTab === "users" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100"
+            activeSubTab === "users" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           }`}
         >
           <Users className="w-3.5 h-3.5 text-amber-400" />
           <span>Staff Users</span>
-          <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-blue-100 text-blue-900">
+          <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-blue-300">
             {users.length}
           </span>
         </button>
@@ -399,12 +399,12 @@ export function UsersPermissionsTab() {
           type="button"
           onClick={() => setActiveSubTab("roles")}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            activeSubTab === "roles" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100"
+            activeSubTab === "roles" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           }`}
         >
           <Shield className="w-3.5 h-3.5 text-emerald-400" />
           <span>Roles & Scopes</span>
-          <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-slate-100 text-slate-700">
+          <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
             {roles.length}
           </span>
         </button>
@@ -413,7 +413,7 @@ export function UsersPermissionsTab() {
           type="button"
           onClick={() => setActiveSubTab("permissions")}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            activeSubTab === "permissions" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100"
+            activeSubTab === "permissions" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           }`}
         >
           <Key className="w-3.5 h-3.5 text-amber-400" />
@@ -424,12 +424,12 @@ export function UsersPermissionsTab() {
           type="button"
           onClick={() => setActiveSubTab("approval_rules")}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            activeSubTab === "approval_rules" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100"
+            activeSubTab === "approval_rules" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           }`}
         >
           <Sliders className="w-3.5 h-3.5 text-sky-400" />
           <span>Approval Rules</span>
-          <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-slate-100 text-slate-700">
+          <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
             {approvalRules.length}
           </span>
         </button>
@@ -438,7 +438,7 @@ export function UsersPermissionsTab() {
           type="button"
           onClick={() => setActiveSubTab("approval_inbox")}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            activeSubTab === "approval_inbox" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100"
+            activeSubTab === "approval_inbox" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           }`}
         >
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -454,7 +454,7 @@ export function UsersPermissionsTab() {
           type="button"
           onClick={() => setActiveSubTab("audit_log")}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            activeSubTab === "audit_log" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100"
+            activeSubTab === "audit_log" ? "bg-blue-900 text-white shadow-xs" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           }`}
         >
           <History className="w-3.5 h-3.5 text-indigo-400" />
@@ -468,7 +468,7 @@ export function UsersPermissionsTab() {
       {activeSubTab === "users" && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -476,14 +476,14 @@ export function UsersPermissionsTab() {
                 placeholder="Search staff by name, @username, email, or department..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
             <div className="flex items-center gap-2">
               <select
                 value={userRoleFilter}
                 onChange={(e) => setUserRoleFilter(e.target.value)}
-                className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-bold text-slate-700"
+                className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-200 bg-white font-bold text-slate-700"
               >
                 <option value="all">All Roles (همه نقش‌ها)</option>
                 {roles.map((r) => (
@@ -512,7 +512,7 @@ export function UsersPermissionsTab() {
                 <div
                   key={u.id}
                   className={`p-4 rounded-2xl border transition-all shadow-xs flex flex-col justify-between gap-3 ${
-                    isActive ? "bg-white border-slate-200 hover:border-blue-400" : "bg-slate-50 border-slate-300 opacity-75"
+                    isActive ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500" : "bg-slate-50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 opacity-75"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -521,10 +521,10 @@ export function UsersPermissionsTab() {
                         {u.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="text-sm font-black text-slate-900">{u.name}</div>
-                        <div className="text-xs text-slate-500 font-mono font-bold">@{u.username}</div>
+                        <div className="text-sm font-black text-slate-900 dark:text-white">{u.name}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 font-mono font-bold">@{u.username}</div>
                         {(u as any).department && (
-                          <div className="text-[11px] text-blue-800 font-semibold">
+                          <div className="text-[11px] text-blue-800 dark:text-blue-300 font-semibold">
                             📂 {(u as any).department}
                           </div>
                         )}
@@ -535,19 +535,19 @@ export function UsersPermissionsTab() {
                       <span
                         className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${
                           isSuper
-                            ? "bg-purple-100 text-purple-900 border border-purple-200"
+                            ? "bg-purple-100 text-purple-900 border border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30"
                             : u.role === "admin"
-                            ? "bg-blue-100 text-blue-900 border border-blue-200"
+                            ? "bg-blue-100 text-blue-900 border border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30"
                             : u.role === "management"
-                            ? "bg-amber-100 text-amber-900 border border-amber-200"
-                            : "bg-slate-100 text-slate-800 border border-slate-200"
+                            ? "bg-amber-100 text-amber-900 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
+                            : "bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
                         }`}
                       >
                         {roleDef?.name || u.role}
                       </span>
                       <span
                         className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${
-                          isActive ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                          isActive ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300" : "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"
                         }`}
                       >
                         {u.status || "active"}
@@ -555,13 +555,13 @@ export function UsersPermissionsTab() {
                     </div>
                   </div>
 
-                  <div className="text-[11px] text-slate-500 space-y-0.5 border-t border-slate-100 pt-2">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5 border-t border-slate-100 dark:border-slate-800 pt-2">
                     {u.email && <div>✉️ {u.email}</div>}
                     {(u as any).phone && <div>📞 {(u as any).phone}</div>}
                     {(u as any).branch && <div>🏢 {(u as any).branch}</div>}
                   </div>
 
-                  <div className="flex items-center justify-between gap-1 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between gap-1 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
@@ -569,7 +569,7 @@ export function UsersPermissionsTab() {
                           setEditingUser({ ...u })
                           setIsEditUserModalOpen(true)
                         }}
-                        className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-blue-900 transition cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-900 dark:hover:text-blue-300 transition cursor-pointer"
                         title="Edit profile & role"
                       >
                         <Edit className="w-3.5 h-3.5" />
@@ -585,7 +585,7 @@ export function UsersPermissionsTab() {
                             else toast.error(res.message)
                           }
                         }}
-                        className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-amber-800 transition cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-amber-800 dark:hover:text-amber-300 transition cursor-pointer"
                         title="Reset password"
                       >
                         <Lock className="w-3.5 h-3.5" />
@@ -606,8 +606,8 @@ export function UsersPermissionsTab() {
                         }}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
                           u.status === "disabled" || u.status === "suspended"
-                            ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
-                            : "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/40 dark:hover:bg-emerald-500/20"
+                            : "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/40 dark:hover:bg-amber-500/20"
                         }`}
                       >
                         {u.status === "disabled" || u.status === "suspended" ? "Reactivate" : "Suspend"}
@@ -617,7 +617,7 @@ export function UsersPermissionsTab() {
                         <button
                           type="button"
                           onClick={() => handleDeleteUserSafely(u.id, u.name)}
-                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition cursor-pointer"
+                          className="p-1.5 rounded-lg text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer"
                           title="Delete user"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -644,41 +644,41 @@ export function UsersPermissionsTab() {
               return (
                 <div
                   key={r.id}
-                  className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-400 transition-all flex flex-col justify-between gap-3"
+                  className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-blue-400 transition-all flex flex-col justify-between gap-3"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-900 border border-blue-200 text-xs font-black">
+                      <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-900 border border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30 text-xs font-black">
                         {r.name}
                       </span>
                       {r.system_role ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30">
                           System Role
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30">
                           Custom Role
                         </span>
                       )}
                     </div>
                     {r.nameFa && (
-                      <div className="text-xs text-slate-500 font-[vazirmatn] font-bold mb-1" dir="rtl">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-[vazirmatn] font-bold mb-1" dir="rtl">
                         {r.nameFa}
                       </div>
                     )}
-                    <p className="text-xs text-slate-600 line-clamp-2">{r.description}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">{r.description}</p>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-3 flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-700">
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-700 dark:text-slate-200">
                       👥 {userCount} assigned staff
                     </span>
-                    <span className="font-mono text-slate-500 font-bold">
+                    <span className="font-mono text-slate-500 dark:text-slate-400 font-bold">
                       🔑 {r.permissions.length} perms
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <Button
                       onClick={() => {
                         setSelectedRoleForMatrix(r.id)
@@ -696,7 +696,7 @@ export function UsersPermissionsTab() {
                         setCloneRoleName(`${r.name} Copy`)
                         setIsCloneRoleModalOpen(true)
                       }}
-                      className="p-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer"
+                      className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
                       title="Clone role"
                     >
                       <Copy className="w-3.5 h-3.5" />
@@ -715,9 +715,9 @@ export function UsersPermissionsTab() {
       {activeSubTab === "permissions" && (
         <div className="space-y-4">
           {/* Role Selector Header */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Configuring Role:</span>
+              <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Configuring Role:</span>
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
                 {roles.map((r) => (
                   <button
@@ -727,7 +727,7 @@ export function UsersPermissionsTab() {
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
                       selectedRoleForMatrix === r.id
                         ? "bg-blue-900 text-white shadow-xs"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                     }`}
                   >
                     {r.name}
@@ -743,7 +743,7 @@ export function UsersPermissionsTab() {
                 placeholder="Search permissions..."
                 value={permissionSearch}
                 onChange={(e) => setPermissionSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
           </div>
@@ -772,18 +772,18 @@ export function UsersPermissionsTab() {
               const allGranted = grantedCount === catPerms.length
 
               return (
-                <div key={category} className="rounded-2xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
-                  <div className="p-3.5 bg-slate-50/80 flex items-center justify-between gap-3 border-b border-slate-200/60">
+                <div key={category} className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+                  <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-between gap-3 border-b border-slate-200/60 dark:border-slate-800">
                     <button
                       type="button"
                       onClick={() =>
                         setCollapsedCategories((prev) => ({ ...prev, [category]: !prev[category] }))
                       }
-                      className="flex items-center gap-2 font-black text-xs text-slate-800 hover:text-blue-900 cursor-pointer"
+                      className="flex items-center gap-2 font-black text-xs text-slate-800 dark:text-slate-100 hover:text-blue-900 dark:hover:text-blue-300 cursor-pointer"
                     >
                       {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       <span>{category}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-950">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-950 dark:bg-blue-500/20 dark:text-blue-300">
                         {grantedCount} / {catPerms.length}
                       </span>
                     </button>
@@ -811,28 +811,28 @@ export function UsersPermissionsTab() {
                   </div>
 
                   {!isCollapsed && (
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
                       {catPerms.map((perm) => {
                         const isGranted = selectedRole?.permissions.includes(perm.permission_key) || selectedRoleForMatrix === "superadmin"
 
                         return (
                           <div
                             key={perm.permission_key}
-                            className="p-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition"
+                            className="p-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition"
                           >
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-black text-slate-900">{perm.name}</span>
-                                <code className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
+                                <span className="text-xs font-black text-slate-900 dark:text-white">{perm.name}</span>
+                                <code className="text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
                                   {perm.permission_key}
                                 </code>
                                 {perm.nameFa && (
-                                  <span className="text-[11px] text-amber-700 font-[vazirmatn] font-bold" dir="rtl">
+                                  <span className="text-[11px] text-amber-700 dark:text-amber-400 font-[vazirmatn] font-bold" dir="rtl">
                                     {perm.nameFa}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-slate-500">{perm.description}</p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400">{perm.description}</p>
                             </div>
 
                             <button
@@ -842,7 +842,7 @@ export function UsersPermissionsTab() {
                               className={`w-9 h-9 rounded-xl flex items-center justify-center transition shadow-xs cursor-pointer ${
                                 isGranted
                                   ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                  : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                                  : "bg-slate-100 text-slate-400 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:hover:bg-slate-700"
                               }`}
                               title={isGranted ? "Permission granted (click to revoke)" : "Permission denied (click to grant)"}
                             >
@@ -865,9 +865,9 @@ export function UsersPermissionsTab() {
       {/* ===================================================================== */}
       {activeSubTab === "approval_rules" && (
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-950 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
+              <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>
                 <strong>Four-Eyes Financial Governance:</strong> High-value transactions exceeding the thresholds below will remain in <strong>PENDING</strong> status and cannot be committed to the ledger until an authorized manager approves them. Self-approval is blocked by default.
               </span>
@@ -878,44 +878,44 @@ export function UsersPermissionsTab() {
             {approvalRules.map((rule) => (
               <div
                 key={rule.id}
-                className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between gap-3"
+                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between gap-3"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-950 font-black text-xs border border-blue-200">
+                    <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-950 font-black text-xs border border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30">
                       {rule.name}
                     </span>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        rule.active ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"
+                        rule.active ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                       }`}
                     >
                       {rule.active ? "Active Rule" : "Disabled"}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 mb-3">{rule.description}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">{rule.description}</p>
 
-                  <div className="space-y-1.5 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="space-y-1.5 text-xs bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Threshold:</span>
+                      <span className="text-slate-500 dark:text-slate-400">Threshold:</span>
                       <span className="font-mono font-black text-blue-900">
                         {rule.min_amount === 0 ? "Any Amount (All Transactions)" : `${rule.min_amount.toLocaleString()} ${rule.currency}`}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Authorized Approvers:</span>
-                      <span className="font-bold text-slate-800">{rule.approver_roles.join(", ")}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Authorized Approvers:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{rule.approver_roles.join(", ")}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Self-Approval:</span>
-                      <span className={`font-bold ${rule.allow_self_approval ? "text-amber-700" : "text-emerald-700"}`}>
+                      <span className="text-slate-500 dark:text-slate-400">Self-Approval:</span>
+                      <span className={`font-bold ${rule.allow_self_approval ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"}`}>
                         {rule.allow_self_approval ? "Allowed" : "Prohibited (Four-Eyes Required)"}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <span className="text-[10px] text-slate-400 font-mono">{rule.id}</span>
                   <Button
                     size="sm"
@@ -948,10 +948,10 @@ export function UsersPermissionsTab() {
       {/* ===================================================================== */}
       {activeSubTab === "approval_inbox" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black text-slate-700 uppercase">Requests Queue:</span>
-              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-950 font-bold text-xs">
+              <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Requests Queue:</span>
+              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-950 dark:bg-blue-500/20 dark:text-blue-300 font-bold text-xs">
                 {approvalRequests.length} Total
               </span>
             </div>
@@ -966,36 +966,36 @@ export function UsersPermissionsTab() {
           </div>
 
           {approvalRequests.length === 0 ? (
-            <div className="p-12 text-center rounded-2xl bg-white border border-slate-200/80 text-slate-400">
+            <div className="p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-400">
               <CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-emerald-500/50" />
-              <p className="text-sm font-bold text-slate-600">No approval requests currently in queue</p>
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No approval requests currently in queue</p>
               <p className="text-xs text-slate-400">Transactions exceeding threshold amounts will appear here for management sign-off.</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 rounded-2xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
               {approvalRequests.map((req) => {
                 const isPending = req.status === "PENDING"
                 const isApproved = req.status === "APPROVED"
 
                 return (
-                  <div key={req.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition">
+                  <div key={req.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-black text-slate-900">{req.request_type}</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white">{req.request_type}</span>
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
                             isPending
-                              ? "bg-amber-100 text-amber-900 border border-amber-200"
+                              ? "bg-amber-100 text-amber-900 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
                               : isApproved
-                              ? "bg-emerald-100 text-emerald-900 border border-emerald-200"
-                              : "bg-red-100 text-red-900 border border-red-200"
+                              ? "bg-emerald-100 text-emerald-900 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30"
+                              : "bg-red-100 text-red-900 border border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30"
                           }`}
                         >
                           {req.status}
                         </span>
                         <span className="text-[11px] font-mono text-slate-400">Ref: {req.entity_ref}</span>
                       </div>
-                      <p className="text-xs text-slate-600 font-medium">{req.reason}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">{req.reason}</p>
                       <div className="text-[11px] text-slate-400 flex items-center gap-2">
                         <span>By: {req.requested_by_name}</span>
                         <span>•</span>
@@ -1005,7 +1005,7 @@ export function UsersPermissionsTab() {
 
                     <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
                       <div className="text-right">
-                        <div className="text-base font-black font-mono text-blue-900">
+                        <div className="text-base font-black font-mono text-blue-900 dark:text-blue-300">
                           {req.amount.toLocaleString()} {req.currency}
                         </div>
                         <div className="text-[10px] text-slate-400">Financial Impact</div>
@@ -1036,11 +1036,11 @@ export function UsersPermissionsTab() {
       {/* ===================================================================== */}
       {activeSubTab === "audit_log" && (
         <div className="space-y-4">
-          <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-3 flex-wrap">
+          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-indigo-600" />
-              <span className="text-xs font-black text-slate-800">Immutable Audit Trail</span>
-              <span className="text-[10px] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+              <History className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-xs font-black text-slate-800 dark:text-slate-100">Immutable Audit Trail</span>
+              <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-600 dark:text-slate-300">
                 {auditLogs.length} events logged
               </span>
             </div>
@@ -1050,14 +1050,14 @@ export function UsersPermissionsTab() {
               variant="outline"
               className="text-xs font-bold h-8 px-3 rounded-xl cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+              <Download className="w-3.5 h-3.5 mr-1 text-emerald-600 dark:text-emerald-400" />
               Export to CSV (اکسل)
             </Button>
           </div>
 
-          <div className="rounded-2xl bg-white border border-slate-200/80 shadow-xs overflow-x-auto">
+          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200/60 text-slate-500 font-bold">
+              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold">
                 <tr>
                   <th className="p-3">Timestamp</th>
                   <th className="p-3">User</th>
@@ -1066,22 +1066,22 @@ export function UsersPermissionsTab() {
                   <th className="p-3">Description</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {auditLogs.slice(0, 100).map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50/50 transition">
-                    <td className="p-3 whitespace-nowrap font-mono text-[11px] text-slate-500">
+                  <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
+                    <td className="p-3 whitespace-nowrap font-mono text-[11px] text-slate-500 dark:text-slate-400">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="p-3 font-bold text-slate-800">{log.user_name}</td>
+                    <td className="p-3 font-bold text-slate-800 dark:text-slate-200">{log.user_name}</td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-900 font-mono text-[10px] font-bold border border-blue-200">
+                      <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-900 font-mono text-[10px] font-bold border border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30">
                         {log.action}
                       </span>
                     </td>
-                    <td className="p-3 font-mono text-[11px] text-slate-500">
+                    <td className="p-3 font-mono text-[11px] text-slate-500 dark:text-slate-400">
                       {log.entity_type} ({log.entity_id})
                     </td>
-                    <td className="p-3 text-slate-600 max-w-md truncate">{log.description}</td>
+                    <td className="p-3 text-slate-600 dark:text-slate-300 max-w-md truncate">{log.description}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1095,13 +1095,13 @@ export function UsersPermissionsTab() {
       {/* --------------------------------------------------------------------- */}
       {isAddUserModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-sm font-black text-slate-900">Add Staff User (ثبت کارمند جدید)</h3>
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">Add Staff User (ثبت کارمند جدید)</h3>
               <button
                 type="button"
                 onClick={() => setIsAddUserModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1109,36 +1109,36 @@ export function UsersPermissionsTab() {
 
             <form onSubmit={handleCreateUser} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Full Name (نام و تخلص)</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Full Name (نام و تخلص)</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Ahmad Qasimi"
                   value={newUserForm.name}
                   onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Username (نام کاربری)</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Username (نام کاربری)</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. ahmad.ops"
                   value={newUserForm.username}
                   onChange={(e) => setNewUserForm({ ...newUserForm, username: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Role (نقش سازمانی)</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Role (نقش سازمانی)</label>
                   <select
                     value={newUserForm.role}
                     onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as UserRole })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-200 font-bold"
                   >
                     {roles.map((r) => (
                       <option key={r.id} value={r.id}>
@@ -1149,11 +1149,11 @@ export function UsersPermissionsTab() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Department (بخش)</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Department (بخش)</label>
                   <select
                     value={newUserForm.department}
                     onChange={(e) => setNewUserForm({ ...newUserForm, department: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-200"
                   >
                     <option value="Operations">Operations</option>
                     <option value="Accounting">Accounting & Finance</option>
@@ -1167,11 +1167,11 @@ export function UsersPermissionsTab() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Branch / Office (شعبه)</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Branch / Office (شعبه)</label>
                 <select
                   value={newUserForm.branch}
                   onChange={(e) => setNewUserForm({ ...newUserForm, branch: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-200"
                 >
                   <option value="Main Headquarters (Kabul)">Main Headquarters (Kabul)</option>
                   <option value="Kandahar Office">Kandahar Office</option>
@@ -1184,39 +1184,39 @@ export function UsersPermissionsTab() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Email (اختیاری)</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Email (اختیاری)</label>
                   <input
                     type="email"
                     placeholder="email@skybalam.com"
                     value={newUserForm.email}
                     onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Phone (تلفن)</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Phone (تلفن)</label>
                   <input
                     type="text"
                     placeholder="+93 79 000 0000"
                     value={newUserForm.phone}
                     onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Initial Password (رمز عبور)</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Initial Password (رمز عبور)</label>
                 <input
                   type="password"
                   placeholder="Defaults to: skybalam2026"
                   value={newUserForm.password}
                   onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 outline-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <Button
                   type="button"
                   variant="outline"
@@ -1242,13 +1242,13 @@ export function UsersPermissionsTab() {
       {/* --------------------------------------------------------------------- */}
       {isEditUserModalOpen && editingUser && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-sm font-black text-slate-900">Edit User @{editingUser.username}</h3>
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">Edit User @{editingUser.username}</h3>
               <button
                 type="button"
                 onClick={() => setIsEditUserModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1256,23 +1256,23 @@ export function UsersPermissionsTab() {
 
             <form onSubmit={handleUpdateUserSubmit} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Full Name</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   value={editingUser.name}
                   onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Role</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Role</label>
                   <select
                     value={editingUser.role}
                     onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as UserRole })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-200 font-bold"
                   >
                     {roles.map((r) => (
                       <option key={r.id} value={r.id}>
@@ -1283,11 +1283,11 @@ export function UsersPermissionsTab() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Status</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Status</label>
                   <select
                     value={editingUser.status || "active"}
                     onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value as UserStatus })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-200 font-bold"
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -1300,26 +1300,26 @@ export function UsersPermissionsTab() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Department</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Department</label>
                   <input
                     type="text"
                     value={editingUser.department || ""}
                     onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Branch</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Branch</label>
                   <input
                     type="text"
                     value={editingUser.branch || ""}
                     onChange={(e) => setEditingUser({ ...editingUser, branch: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 outline-none"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <Button
                   type="button"
                   variant="outline"
@@ -1345,13 +1345,13 @@ export function UsersPermissionsTab() {
       {/* --------------------------------------------------------------------- */}
       {isCloneRoleModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-sm font-black text-slate-900">Clone Staff Role (کپی نقش سازمانی)</h3>
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">Clone Staff Role (کپی نقش سازمانی)</h3>
               <button
                 type="button"
                 onClick={() => setIsCloneRoleModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1359,11 +1359,11 @@ export function UsersPermissionsTab() {
 
             <form onSubmit={handleCloneRole} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Source Template Role</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Source Template Role</label>
                 <select
                   value={cloningSourceRoleId}
                   onChange={(e) => setCloningSourceRoleId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-200 font-bold"
                 >
                   {roles.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -1374,29 +1374,29 @@ export function UsersPermissionsTab() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">New Role Name (e.g. Operations Supervisor)</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">New Role Name (e.g. Operations Supervisor)</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Senior Accountant"
                   value={cloneRoleName}
                   onChange={(e) => setCloneRoleName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Description</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Description</label>
                 <textarea
                   rows={3}
                   placeholder="Responsibilities and access scope of this role..."
                   value={cloneRoleDesc}
                   onChange={(e) => setCloneRoleDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 outline-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <Button
                   type="button"
                   variant="outline"
@@ -1422,44 +1422,44 @@ export function UsersPermissionsTab() {
       {/* --------------------------------------------------------------------- */}
       {approvalModalRequest && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-blue-900" />
-                <h3 className="text-sm font-black text-slate-900">Authorize Financial Request</h3>
+                <ShieldCheck className="w-5 h-5 text-blue-900 dark:text-blue-300" />
+                <h3 className="text-sm font-black text-slate-900 dark:text-white">Authorize Financial Request</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setApprovalModalRequest(null)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-200 space-y-2 text-xs">
+            <div className="p-4 rounded-2xl bg-blue-50/80 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 space-y-2 text-xs">
               <div className="flex justify-between items-center">
-                <span className="font-bold text-slate-600">Action:</span>
-                <span className="font-black text-blue-950">{approvalModalRequest.request_type}</span>
+                <span className="font-bold text-slate-600 dark:text-slate-300">Action:</span>
+                <span className="font-black text-blue-950 dark:text-blue-300">{approvalModalRequest.request_type}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="font-bold text-slate-600">Amount / Value:</span>
-                <span className="font-black font-mono text-base text-blue-900">
+                <span className="font-bold text-slate-600 dark:text-slate-300">Amount / Value:</span>
+                <span className="font-black font-mono text-base text-blue-900 dark:text-blue-300">
                   {approvalModalRequest.amount.toLocaleString()} {approvalModalRequest.currency}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="font-bold text-slate-600">Requested By:</span>
-                <span className="font-semibold text-slate-800">{approvalModalRequest.requested_by_name}</span>
+                <span className="font-bold text-slate-600 dark:text-slate-300">Requested By:</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{approvalModalRequest.requested_by_name}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="font-bold text-slate-600">Reason:</span>
-                <span className="text-slate-800">{approvalModalRequest.reason}</span>
+                <span className="font-bold text-slate-600 dark:text-slate-300">Reason:</span>
+                <span className="text-slate-800 dark:text-slate-200">{approvalModalRequest.reason}</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
                 Approver Comment (توضیحات و دلیل تصمیم):
               </label>
               <textarea
@@ -1467,16 +1467,16 @@ export function UsersPermissionsTab() {
                 placeholder="e.g. Approved — supplier invoice and bank details verified."
                 value={approvalComment}
                 onChange={(e) => setApprovalComment(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => handleApprovalAction("REJECT")}
-                className="h-9 px-4 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-200 cursor-pointer"
+                className="h-9 px-4 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 border-rose-200 dark:border-rose-500/40 cursor-pointer"
               >
                 Reject Request
               </Button>

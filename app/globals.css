@@ -2627,15 +2627,29 @@
 }
 @font-face {
   font-family: "Vazirmatn";
-  src: url("/fonts/NotoNaskhArabic-Bold.ttf") format("truetype");
+  src: url("/fonts/Vazirmatn-Bold.ttf") format("truetype");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Regular.ttf") format("truetype");
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "AfghanPlateFa";
+  src: url("/fonts/Vazirmatn-Bold.ttf") format("truetype");
   font-weight: 700 900;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "AfghanPlateFa";
-  src: url("/fonts/NotoNaskhArabic-Bold.ttf") format("truetype");
-  font-weight: 700 900;
+  src: url("/fonts/Vazirmatn-Regular.ttf") format("truetype");
+  font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }
@@ -7726,7 +7740,6 @@
     row-gap: 5px;
     flex-shrink: 1;
     min-width: 0;
-    max-width: 100%;
   }
 
   .toolbar-group-export {

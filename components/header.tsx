@@ -57,6 +57,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { GlobalSearch } from '@/components/global-search'
 import { yieldToPaint } from '@/lib/utils/yield-to-paint'
+import { SYSTEM_RELEASE_LABEL } from '@/lib/config/system-version'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -509,7 +510,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                   {title || 'AQ COMPANIES'}
                 </span>
                 <span className="hidden xl:inline-block text-[9px] font-mono px-1 py-0.2 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-extrabold border border-blue-200/60 dark:border-blue-800/40">
-                  v5.1
+                  {SYSTEM_RELEASE_LABEL}
                 </span>
               </div>
               <span className="hidden min-[1920px]:block text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none mt-0.5">
@@ -1142,13 +1143,9 @@ export function Header({ title, subtitle }: HeaderProps) {
                     >
                       <Tag className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isCommercialActive ? 'text-white' : 'text-amber-500 dark:text-amber-400'}`} />
                       <span className="pointer-events-none select-none">
-                        {isCommercialActive && currentModule?.category === 'commercial' ? (
-                          currentModule.shortLabel
-                        ) : (
-                          <>
-                            <span className="hidden min-[1600px]:inline">Sales & </span>CRM
-                          </>
-                        )}
+                        {isCommercialActive && currentModule?.category === 'commercial'
+                          ? currentModule.shortLabel
+                          : 'CRM'}
                       </span>
                       <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0 pointer-events-none" />
                     </button>
@@ -1233,11 +1230,13 @@ export function Header({ title, subtitle }: HeaderProps) {
                 </DropdownMenu>
               </div>
 
-              {/* Direct Ask AI Pill Button */}
+              {/* Direct Ask AI Pill Button (>= 1600px only; below that the mega
+                  launcher and More Suites menu both reach the assistant, and the
+                  ~90px saved here keeps the suite row from clipping its last pill) */}
               <button
                 type="button"
                 onClick={() => handleNavigate('ai-assistant')}
-                className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
+                className={`hidden min-[1600px]:flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
                   view === 'ai-assistant'
                     ? 'bg-purple-700 text-white shadow-xs shadow-purple-500/30'
                     : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60 dark:hover:bg-purple-900/50'
@@ -1390,9 +1389,9 @@ export function Header({ title, subtitle }: HeaderProps) {
         {currentUser && (
           <div className="flex items-center gap-1 xl:gap-1.5 shrink-0 ml-auto">
             
-            {/* Global Omni Search */}
+            {/* Global Omni Search - icon only, opens the Command Center */}
             <div className="shrink min-w-0">
-              <GlobalSearch className="hidden sm:flex items-center gap-1.5 px-2 py-1 text-xs text-slate-500 bg-slate-100/90 hover:bg-slate-200/90 dark:bg-slate-800/90 dark:text-slate-400 dark:hover:bg-slate-700/90 transition-all rounded-lg border border-slate-200/90 dark:border-slate-700/90 w-24 md:w-28 lg:w-32 xl:w-32 2xl:w-44 focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs group shrink" />
+              <GlobalSearch />
               <div className="sm:hidden">
                 <GlobalSearch mobileIconOnly />
               </div>
@@ -1559,7 +1558,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold leading-none text-slate-900 dark:text-slate-100">{currentUser.name}</p>
                         <span className="text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                          v5.1.0
+                          {SYSTEM_RELEASE_LABEL}
                         </span>
                       </div>
                       <p className="text-[10px] leading-none text-slate-500 capitalize">{currentUser.role} • AQ Companies</p>

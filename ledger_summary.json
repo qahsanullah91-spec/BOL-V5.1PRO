@@ -1,95 +1,95 @@
 {
-  "timestamp": "2026-09-02T22:37:00.633343",
+  "timestamp": "2026-10-25T10:01:16.447674",
   "totals": {
-    "total_bol_count": 59,
-    "total_accounts_count": 20,
+    "total_bol_count": 268,
+    "total_accounts_count": 105,
     "total_invoices_count": 3,
     "total_invoice_billed_usd": 38750.0,
     "total_documentation_charges_usd": 150.0,
-    "overall_debit_usd": 236900.0,
-    "overall_credit_usd": 18222.0,
-    "overall_net_receivable_usd": 218678.0
+    "overall_debit_usd": 15249647.86,
+    "overall_credit_usd": 11330456.0,
+    "overall_net_receivable_usd": 3919191.86
   },
   "top_accounts": [
     {
-      "account_id": "najeb-amin-ltd-mersin-port-account",
-      "entry_count": 18,
-      "total_debit_usd": 198000.0,
+      "account_id": "حاجی یونس دوبی بیل",
+      "entry_count": 5,
+      "total_debit_usd": 1858955.0,
       "total_credit_usd": 0.0,
-      "net_balance_usd": 198000.0,
-      "latest_entry_date": "2026-08-13"
+      "net_balance_usd": 1858955.0,
+      "latest_entry_date": "1404-01-01"
     },
     {
-      "account_id": "d45c97c9-e70e-493b-af93-7b2408272973",
-      "entry_count": 2,
-      "total_debit_usd": 13000.0,
-      "total_credit_usd": 5000.0,
-      "net_balance_usd": 8000.0,
-      "latest_entry_date": "2026-06-03"
-    },
-    {
-      "account_id": "6ed83185-22b2-426a-b865-20d4e79fcdf4",
-      "entry_count": 1,
-      "total_debit_usd": 7200.0,
+      "account_id": "شرکت حیمد انصاف لمیټد",
+      "entry_count": 30,
+      "total_debit_usd": 1380320.0,
       "total_credit_usd": 0.0,
-      "net_balance_usd": 7200.0,
-      "latest_entry_date": "2026-06-04"
+      "net_balance_usd": 1380320.0,
+      "latest_entry_date": "6-7-1404"
     },
     {
-      "account_id": "79bd5d03-7fe7-481e-b5cf-21bed863082a",
-      "entry_count": 4,
-      "total_debit_usd": 18700.0,
-      "total_credit_usd": 13222.0,
-      "net_balance_usd": 5478.0,
-      "latest_entry_date": "2026-06-08"
+      "account_id": "Mr. Nazar Muhmmmad (Yarmal)2",
+      "entry_count": 71,
+      "total_debit_usd": 179585.0,
+      "total_credit_usd": 935000.0,
+      "net_balance_usd": -755415.0,
+      "latest_entry_date": "1404-01-01"
     },
     {
-      "account_id": "5a8ee275-1a24-481b-905a-39858b23af98",
-      "entry_count": 0,
-      "total_debit_usd": 0,
-      "total_credit_usd": 0,
-      "net_balance_usd": 0,
-      "latest_entry_date": null
-    },
-    {
-      "account_id": "da5ba436-da21-412b-9394-d14c5ec0aae5",
-      "entry_count": 0,
-      "total_debit_usd": 0,
-      "total_credit_usd": 0,
-      "net_balance_usd": 0,
-      "latest_entry_date": null
-    },
-    {
-      "account_id": "asadullah niamatullah habibi ltd",
-      "entry_count": 3,
+      "account_id": "najeb-amin-limited",
+      "entry_count": 157,
       "total_debit_usd": 0.0,
-      "total_credit_usd": 0.0,
-      "net_balance_usd": 0.0,
-      "latest_entry_date": "2026-06-01"
+      "total_credit_usd": 628000.0,
+      "net_balance_usd": -628000.0,
+      "latest_entry_date": "2026-10-10"
     },
     {
-      "account_id": "pahlawan noori ltd",
-      "entry_count": 6,
+      "account_id": "Najeb Amin Limited",
+      "entry_count": 157,
       "total_debit_usd": 0.0,
-      "total_credit_usd": 0.0,
-      "net_balance_usd": 0.0,
-      "latest_entry_date": "2026-05-25"
+      "total_credit_usd": 628000.0,
+      "net_balance_usd": -628000.0,
+      "latest_entry_date": "2026-10-10"
     },
     {
-      "account_id": "rahmat nazar ltd",
-      "entry_count": 2,
-      "total_debit_usd": 0.0,
-      "total_credit_usd": 0.0,
-      "net_balance_usd": 0.0,
-      "latest_entry_date": "2025-12-07"
+      "account_id": "شرکت نجیب امین لمیټد / NAJEB AMIN LTD",
+      "entry_count": 61,
+      "total_debit_usd": 681150.0,
+      "total_credit_usd": 104810.0,
+      "net_balance_usd": 576340.0,
+      "latest_entry_date": "2026-09-19"
     },
     {
-      "account_id": "omar shahi ltd",
-      "entry_count": 2,
+      "account_id": "شرکت نجیب امین لمیټد",
+      "entry_count": 59,
+      "total_debit_usd": 661094.98,
+      "total_credit_usd": 104810.0,
+      "net_balance_usd": 556284.98,
+      "latest_entry_date": "2026-09-17"
+    },
+    {
+      "account_id": "HAMID-INSAF-LTD DOCUMENTS",
+      "entry_count": 53,
+      "total_debit_usd": 1688000.0,
+      "total_credit_usd": 1260900.0,
+      "net_balance_usd": 427100.0,
+      "latest_entry_date": "2026-09-19"
+    },
+    {
+      "account_id": "kabul-traders-llc",
+      "entry_count": 158,
       "total_debit_usd": 0.0,
-      "total_credit_usd": 0.0,
-      "net_balance_usd": 0.0,
-      "latest_entry_date": "2025-12-31"
+      "total_credit_usd": 237000.0,
+      "net_balance_usd": -237000.0,
+      "latest_entry_date": "2026-10-12"
+    },
+    {
+      "account_id": "Kabul Traders LLC",
+      "entry_count": 158,
+      "total_debit_usd": 0.0,
+      "total_credit_usd": 237000.0,
+      "net_balance_usd": -237000.0,
+      "latest_entry_date": "2026-10-12"
     }
   ],
   "recent_invoices": [
@@ -126,104 +126,104 @@
   ],
   "recent_bols": [
     {
-      "bol_number": "BOL-2026-NSA513",
-      "issue_date": "2026-08-26",
-      "shipper": "HAJI-NOOR-MUHMMAD-AYAZ-NOORI",
-      "consignee": "",
-      "truck_number": "71731کابل",
-      "driver_name": "  شبیراحمد ولد حاجی محمد",
-      "packages": "514- CTNS پارسل رویحان- ",
-      "net_weight": "25,443 KG"
+      "bol_number": "BOL-2026-NSA741",
+      "issue_date": "2026-10-22",
+      "shipper": "SKY ARIANA LTD",
+      "consignee": "LA ROCHER TRADING PRIVATE LIMITED",
+      "truck_number": "3292 هلمند",
+      "driver_name": "خان محمد ولد عبدالله ",
+      "packages": "1000 CTNS DRY FIGS 20 CTNS DRY APRICOTS",
+      "net_weight": "10,000 KG - 320 KG"
     },
     {
-      "bol_number": "BOL-2026-NSA515",
-      "issue_date": "2026-08-26",
-      "shipper": "HAJI NOOR MUHMMAD AYAZ NOORI",
-      "consignee": "",
-      "truck_number": "",
-      "driver_name": "",
-      "packages": "",
-      "net_weight": ""
+      "bol_number": "BOL-2026-NSA739",
+      "issue_date": "2026-10-22",
+      "shipper": "RAHMAT NAZAR LTD",
+      "consignee": "HEMAL INTERNATIONAL.",
+      "truck_number": "38552هرات",
+      "driver_name": "نوم رحیم جان ولد عبدالرحیم",
+      "packages": "1398 CTNS GOLDEN RAISINS",
+      "net_weight": "22,368 KG"
     },
     {
-      "bol_number": "BOL-2026-NSA504",
-      "issue_date": "2026-08-26",
+      "bol_number": "BOL-2026-NSA738",
+      "issue_date": "2026-10-22",
+      "shipper": "WASELA LTD",
+      "consignee": "MEHRA GLOBAL IMPEX",
+      "truck_number": "37382هرات",
+      "driver_name": "نوم شریف احمد ولد احمدشاه",
+      "packages": "1475 CTNS GOLDEN RAISINS",
+      "net_weight": "23,600 KG"
+    },
+    {
+      "bol_number": "BOL-2026-NSA737",
+      "issue_date": "2026-10-22",
+      "shipper": "NAJEB AMIN LTD",
+      "consignee": "RICH VALLEY DRY FRUIT PRIVATE LTD",
+      "truck_number": "2142نیمروز",
+      "driver_name": "نوم عبدالله ولد عبیدالله",
+      "packages": "1249 CTNS DRY FIGS - 670 CTNS BLACK RAISINS ",
+      "net_weight": "12,490 KG - 10,720 KG"
+    },
+    {
+      "bol_number": "BOL-2026-NSA736",
+      "issue_date": "2026-10-22",
+      "shipper": "MS TRADING COMPANY LTD",
+      "consignee": "LCDF IMPEX PRIVATE LIMITED",
+      "truck_number": "79319- هرات",
+      "driver_name": "فریدن",
+      "packages": "1482 CTNS GREEN RAISINS ",
+      "net_weight": "23,712 KG"
+    },
+    {
+      "bol_number": "BOL-2026-NSA735",
+      "issue_date": "2026-10-22",
+      "shipper": "ABDUL QAYOOM S/O ABDUL RAUF",
+      "consignee": "MANOCHA ENTERPRISES.",
+      "truck_number": "46944 هرات ",
+      "driver_name": "مطیع الله",
+      "packages": "2221 CTNS DRY FIGS ",
+      "net_weight": "22,210 KG"
+    },
+    {
+      "bol_number": "BOL-2026-NSA734",
+      "issue_date": "2026-10-21",
+      "shipper": "NAJEB AMIN LTD",
+      "consignee": "Satgun Exim LLP",
+      "truck_number": "41854هرات",
+      "driver_name": "داستاذ نوم گلا اغا  ولدی عبدالغنی",
+      "packages": "1510 CTNS BLACK RAISINS",
+      "net_weight": "24,160 KG"
+    },
+    {
+      "bol_number": "BOL-2026-NSA733",
+      "issue_date": "2026-10-21",
       "shipper": "NAJEB AMIN LTD",
       "consignee": "MANIK TRADERS",
-      "truck_number": "35974هرات",
-      "driver_name": " گل احمد ولد حاجي نظرمحمد",
-      "packages": "1400 CTNS - BLACK RAISNIS",
-      "net_weight": "22,400 KG"
+      "truck_number": "24925هرات",
+      "driver_name": "داستاذ نوم صفئ الله ولدی سرتیف ",
+      "packages": "2320 CTNS DRY FIGS ",
+      "net_weight": "23,200 KG"
     },
     {
-      "bol_number": "BOL-2026-NSA505",
-      "issue_date": "2026-08-26",
-      "shipper": "HAYATULLAH KHAN FAZLI LTD",
-      "consignee": "LAKHDATAR FOODS",
-      "truck_number": "1265نیمروز",
-      "driver_name": " امیرمحمد ولد دوست محمد",
-      "packages": "2150 CTNS - DRY FIGS 10 KGS",
-      "net_weight": "21,500 KG - 100 KG"
+      "bol_number": "BOL-2026-NSA732",
+      "issue_date": "2026-10-21",
+      "shipper": "RAHMAT NAZAR LTD",
+      "consignee": "GOPAL INTERNATIONAL",
+      "truck_number": "76945هرات",
+      "driver_name": "داستاذ نوم محمد ولدی محمد اکبر ",
+      "packages": "2297 CTNS DRY FIGS ",
+      "net_weight": "22,970 KG"
     },
     {
-      "bol_number": "BOL-2025-NSA150",
-      "issue_date": "2026-06-01",
-      "shipper": "ASADULLAH NIAMATULLAH HABIBI LTD",
-      "consignee": "DEV IMPEX-",
-      "truck_number": "38663-HRT",
-      "driver_name": "AHMAD",
-      "packages": "1565 CTNS",
-      "net_weight": "25,040 KG"
-    },
-    {
-      "bol_number": "BOL-2025-NSA151",
-      "issue_date": "2025-09-04",
-      "shipper": "ASADULLAH NIAMATULLAH HABIBI LTD",
-      "consignee": "DEV IMPEX-",
-      "truck_number": "27668-HRT",
-      "driver_name": "MUHMMAD",
-      "packages": "1561 CTNS",
-      "net_weight": "24,976 KG"
-    },
-    {
-      "bol_number": "BOL-2025-NSA152",
-      "issue_date": "2026-06-02",
-      "shipper": "ASADULLAH NIAMATULLAH HABIBI LTD",
-      "consignee": "DEV IMPEX",
-      "truck_number": "37133-HRT",
-      "driver_name": "WALI AHMAD",
-      "packages": "1564 CTNS",
-      "net_weight": "25,024 KG"
-    },
-    {
-      "bol_number": "BOL-2026-NSA090",
-      "issue_date": "2026-05-25",
-      "shipper": "PAHLAWAN NOORI LTD",
-      "consignee": "S V INTERNATIONAL",
-      "truck_number": "71238 هرات",
-      "driver_name": "داد ﻣﺣﻣد",
-      "packages": "1407 CNTS",
-      "net_weight": "22,512 KG"
-    },
-    {
-      "bol_number": "BOL-2026-NSA070",
-      "issue_date": "2026-05-19",
-      "shipper": "PAHLAWAN NOORI LTD",
-      "consignee": "REHMAT OEVERSRSS",
-      "truck_number": "6572-HRT",
-      "driver_name": "رنکین",
-      "packages": "1400 CNTS",
-      "net_weight": "22,400 KG"
-    },
-    {
-      "bol_number": "BOL-2026-NSA091",
-      "issue_date": "2026-06-04",
-      "shipper": "PAHLAWAN NOORI LTD",
-      "consignee": "KUKREJA FRUITS COMPANY",
-      "truck_number": "25918بادغیس",
-      "driver_name": "امید",
-      "packages": "1350 CNTS ",
-      "net_weight": "21,600 KG"
+      "bol_number": "BOL-2026-NSA731",
+      "issue_date": "2026-10-20",
+      "shipper": "KAKH TABEYAT LTD",
+      "consignee": "K.B.S. ENTERPRISES",
+      "truck_number": "28291-هرات",
+      "driver_name": "امان الله",
+      "packages": "1370 CTNS GOLDEN RAISINS ",
+      "net_weight": "21,920 KG"
     }
   ]
 }

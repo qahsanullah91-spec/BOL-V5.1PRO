@@ -46,16 +46,11 @@ export function GlobalSearch({ className, mobileIconOnly = false }: GlobalSearch
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={className || "hidden md:flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-700/80 transition-all rounded-xl border border-slate-200 dark:border-slate-700 w-56 lg:w-72 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs group"}
-        title="Open Smart Search (Ctrl + K)"
+        className={className || "hidden sm:flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200/90 bg-slate-100/90 text-slate-500 hover:bg-slate-200/90 hover:text-blue-600 dark:bg-slate-800/90 dark:text-slate-400 dark:border-slate-700/90 dark:hover:bg-slate-700/90 transition-all focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs group"}
+        title="Search BOL, container, truck... (Ctrl + K)"
+        aria-label="Search"
       >
-        <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600 transition-colors shrink-0" />
-        <span className="truncate text-left flex-1 text-slate-500 dark:text-slate-400 font-medium">
-          Search BOL, container, truck...
-        </span>
-        <kbd className="pointer-events-none inline-flex h-4.5 select-none items-center gap-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-1 font-mono text-[9.5px] font-bold text-slate-500 dark:text-slate-400 shadow-2xs shrink-0">
-          <span className="text-[10px]">⌘</span>K
-        </kbd>
+        <Search className="h-3.5 w-3.5 shrink-0" />
       </button>
 
       <CommandCenterModal open={open} onOpenChange={setOpen} />

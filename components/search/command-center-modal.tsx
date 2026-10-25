@@ -252,7 +252,7 @@ export function CommandCenterModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[min(92dvh,850px)] h-auto flex flex-col p-0 gap-0 overflow-hidden rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900">
+      <DialogContent className="[&>[data-slot=dialog-close]]:hidden sm:max-w-4xl max-h-[min(92dvh,850px)] h-auto flex flex-col p-0 gap-0 overflow-hidden rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900">
         <DialogHeader className="sr-only">
           <DialogTitle>Sky Ariana Global Search & Command Center</DialogTitle>
         </DialogHeader>
@@ -289,6 +289,15 @@ export function CommandCenterModal({
           <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono font-bold text-slate-500 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-2xs">
             ESC to close
           </kbd>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
+            title="Close search (Esc)"
+            aria-label="Close search"
+          >
+            <X className="h-4.5 w-4.5" />
+          </button>
         </div>
 
         {/* ----------------------------------------------------------------- */}
@@ -340,7 +349,7 @@ export function CommandCenterModal({
           {/* LEFT: RESULTS COLUMN */}
           <div
             ref={resultsContainerRef}
-            className="flex-1 overflow-y-auto p-3 space-y-2 border-r border-slate-200/80 dark:border-slate-800/80 min-h-[300px] max-h-[520px]"
+            className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-2 border-r border-slate-200/80 dark:border-slate-800/80 min-h-[300px] max-h-[520px]"
           >
             {/* Top Exact Match Hero Banner */}
             {topMatch && topMatch.matchType === "exact_id" && (
@@ -444,14 +453,14 @@ export function CommandCenterModal({
                     setPreviewItem(item)
                   }}
                   onClick={() => executeItemPrimaryAction(item)}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                  className={`group p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                     isSelected
                       ? "bg-blue-50/80 dark:bg-blue-950/40 border-blue-400/80 shadow-xs"
                       : "bg-white dark:bg-slate-900 border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0">
+                    <div className={`p-2 rounded-xl shrink-0 transition-colors ${isSelected ? "bg-blue-100 dark:bg-blue-900/60" : "bg-slate-100 dark:bg-slate-800"}`}>
                       {getTypeIcon(item.type)}
                     </div>
                     <div className="min-w-0">
@@ -468,14 +477,16 @@ export function CommandCenterModal({
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                         {item.subtitle}
                       </p>
-                      <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mt-0.5">
-                        {item.matchedField}
-                      </span>
+                      {item.type !== "command" && item.matchedField && (
+                        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mt-0.5">
+                          Matched: {item.matchedField}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="hidden sm:flex items-center gap-1 shrink-0 text-slate-400 group-hover:text-blue-600">
-                    <ChevronRight className="w-4 h-4" />
+                  <div className="hidden sm:flex items-center gap-1 shrink-0 text-slate-400 group-hover:text-blue-600 transition-colors">
+                    <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                   </div>
                 </div>
               )
@@ -483,10 +494,10 @@ export function CommandCenterModal({
           </div>
 
           {/* RIGHT: LIVE ENTITY PREVIEW PANEL */}
-          <div className="hidden md:flex w-80 lg:w-96 flex-col p-4 bg-slate-50/60 dark:bg-slate-950/40 border-t md:border-t-0 overflow-y-auto space-y-3.5">
+          <div className="hidden md:flex w-80 lg:w-96 flex-col p-4 bg-slate-50/60 dark:bg-slate-950/40 border-t md:border-t-0 overflow-y-auto scrollbar-thin space-y-3.5">
             {previewItem ? (
               <>
-                <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2">
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">
                       Entity Preview
@@ -495,12 +506,22 @@ export function CommandCenterModal({
                       {previewItem.type.toUpperCase()}
                     </Badge>
                   </div>
+                  {previewItem.type === "command" && (
+                    <div className="h-14 w-14 rounded-2xl bg-linear-to-br from-amber-100 to-orange-100 dark:from-amber-950/60 dark:to-orange-950/40 border border-amber-200/70 dark:border-amber-800/50 flex items-center justify-center">
+                      <Sparkles className="h-7 w-7 text-amber-500 fill-amber-500" />
+                    </div>
+                  )}
                   <h3 className="text-base font-black text-slate-950 dark:text-slate-100">
                     {previewItem.title}
                   </h3>
                   <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                     {previewItem.subtitle}
                   </p>
+                  {previewItem.type === "command" && (
+                    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200/70 dark:border-blue-800/60 text-[10.5px] font-bold text-blue-700 dark:text-blue-300">
+                      Press <kbd className="px-1 py-0.2 rounded bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 font-mono text-[9.5px]">Enter ↵</kbd> to launch
+                    </div>
+                  )}
                 </div>
 
                 {/* Connected Records Breakdown */}

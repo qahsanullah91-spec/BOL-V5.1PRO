@@ -356,8 +356,7 @@
     justify-content: space-between;
     width: 100%;
     gap: 5px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
   }
 
   .toolbar-cluster-row-2 {
@@ -366,8 +365,7 @@
     justify-content: space-between;
     width: 100%;
     gap: 5px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
     padding-top: 6px;
     border-top: 1px solid #e2e8f0;
   }
@@ -376,10 +374,15 @@
     border-top-color: #1e293b;
   }
 
+  /* Wrap inside the nav+appearance cluster instead of letting the zoom pill
+     overflow past the right edge on narrow tablets. */
   .toolbar-group-nav-appearance {
     width: auto;
     justify-content: flex-start;
-    flex-shrink: 0;
+    flex-wrap: wrap;
+    row-gap: 5px;
+    flex-shrink: 1;
+    min-width: 0;
   }
 
   .toolbar-group-export {
@@ -445,6 +448,15 @@
     justify-content: center;
   }
 
+  /* The zoom pill + watermark/stamp cluster must wrap onto its own centered
+     lines — nowrap here is what pushed "100%" off the right edge of phones. */
+  .toolbar-group-nav-appearance {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 5px;
+  }
+
   .toolbar-group-appearance {
     width: 100%;
     justify-content: space-between;
@@ -452,7 +464,7 @@
 
   .toolbar-group-export {
     width: 100%;
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .toolbar-button {

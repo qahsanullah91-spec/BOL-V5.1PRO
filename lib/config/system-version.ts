@@ -21,11 +21,11 @@ export interface SystemVersionInfo {
   }
 }
 
-export const SYSTEM_RELEASE_LABEL = "v5.2.3" as const
+export const SYSTEM_RELEASE_LABEL = "v5.2.10" as const
 
 export const CURRENT_SYSTEM_VERSION = {
   version: SYSTEM_RELEASE_LABEL,
-  buildNumber: "2026.10.25-PRO-4",
+  buildNumber: "2026.10.25-PRO-11",
   releaseDate: "2026-10-25",
   edition: "AQ COMPANIES Enterprise Pro Edition",
   companyName: "AQ COMPANIES",
@@ -34,6 +34,75 @@ export const CURRENT_SYSTEM_VERSION = {
   platform: "Windows Desktop / Electron / Web",
   updateChannel: "stable",
   changelog: [
+    {
+      version: "v5.2.10",
+      date: "2026-10-25",
+      title: "Tighter Persian Digit Spacing on Vehicle Plates",
+      changes: [
+        "Fixed: Reduced digitGapFa from 0.12-0.16em to a uniform 0.02em across all six plate size variants so the Persian numerals are optically as snug as the Latin row.",
+      ],
+    },
+
+    {
+      version: "v5.2.9",
+      date: "2026-10-25",
+      title: "Top bar version badge accuracy and suite-row overflow fix",
+      changes: [
+        "Fixed: Header version badges now read SYSTEM_RELEASE_LABEL instead of hardcoded v5.1 / v5.1.0 (logo badge + user menu)",
+        "Fixed: Ask AI quick pill gated to >=1600px and CRM label kept compact, so the suite row no longer clips the active module pill (e.g. Backup & DR) mid-word on 1536-1600px screens",
+      ],
+    },
+
+    {
+      version: "v5.2.8",
+      date: "2026-10-25",
+      title: "Modern Persian Typography App-Wide (Genuine Vazirmatn)",
+      changes: [
+        "Modified: Noto Naskh Arabic remains bundled and available as an explicit fallback family for stacks that request it.",
+        "Fixed: Replaced the fake Vazirmatn alias with real Vazirmatn-Bold.ttf (weights 700-900) and Vazirmatn-Regular.ttf (weights 100-700) faces, giving Persian UI text and print documents clean, consistent modern typography with proper regular-weight rendering.",
+      ],
+    },
+
+    {
+      version: "v5.2.7",
+      date: "2026-10-25",
+      title: "Dark theme polish for Staff Roles & Permissions screens",
+      changes: [
+        "Fixed: Staff Users, Roles, Permission Matrix, Approval Rules, Approval Inbox, Audit Log and their modals now render correctly in dark mode (cards, inputs, selects, badges, table and buttons were hard-coded light)",
+      ],
+    },
+
+    {
+      version: "v5.2.6",
+      date: "2026-10-25",
+      title: "Authentic Vehicle Plate Persian Typography",
+      changes: [
+        "Modified: Bundled Vazirmatn-Bold.ttf and Vazirmatn-Regular.ttf with their SIL OFL license in public/fonts.",
+        "Fixed: The AfghanPlateFa @font-face pointed at NotoNaskhArabic-Bold.ttf, so plate numbers rendered in heavy traditional Naskh that clashed with the DIN-style Latin row; it now loads the genuine Vazirmatn font for clean, vertically consistent plate typography.",
+      ],
+    },
+
+    {
+      version: "v5.2.5",
+      date: "2026-10-25",
+      title: "Header Search Bar Icon-Only Trigger",
+      changes: [
+        "Modified: GlobalSearch desktop trigger reduced to a compact icon-only button with tooltip discoverability.",
+        "Modified: Header no longer passes the wide pill className; single icon-only trigger serves all breakpoints.",
+      ],
+    },
+
+    {
+      version: "v5.2.4",
+      date: "2026-10-25",
+      title: "Mobile UI overflow fixes: toolbar zoom clipping, select overflow, dashboard header wrap",
+      changes: [
+        "Fixed: A4 preview toolbar zoom controls no longer clip past the right edge on mobile/tablet (nav+appearance cluster now wraps and centers)",
+        "Fixed: Select triggers no longer overflow their cards with long values (max-width guard + truncation, directory and vehicle preset selects full-width)",
+        "Fixed: Dashboard and Saved 'LATEST BOL CREATIONS' header no longer stacks text vertically on phones",
+      ],
+    },
+
     {
       version: "v5.2.3",
       date: "2026-10-25",
