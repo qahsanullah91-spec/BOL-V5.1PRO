@@ -1127,8 +1127,8 @@ export function Header({ title, subtitle }: HeaderProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Sales & CRM Dropdown */}
-              <div className="flex items-center">
+              {/* Sales & CRM Dropdown (collapsed into More Suites below 1280px) */}
+              <div className="hidden xl:flex items-center">
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -1249,7 +1249,7 @@ export function Header({ title, subtitle }: HeaderProps) {
               </button>
 
               {/* More Suites ▾ Dropdown (Compact fallback for tablet widths; desktop shows every suite directly) */}
-              <div className="flex lg:hidden items-center">
+              <div className="lg:hidden flex items-center">
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button

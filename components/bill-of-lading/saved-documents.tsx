@@ -2423,12 +2423,12 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                   <Zap className="w-4 h-4 fill-slate-950" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 tracking-tight">
-                    LATEST BOL CREATIONS
-                    <span className="text-[10px] font-bold text-slate-400 font-['Vazirmatn',sans-serif]" dir="rtl">
+                  <h3 className="text-sm font-black text-slate-950 dark:text-white flex flex-wrap items-center gap-x-2 gap-y-0.5 tracking-tight min-w-0">
+                    <span className="whitespace-nowrap">LATEST BOL CREATIONS</span>
+                    <span className="text-[10px] font-bold text-slate-400 font-['Vazirmatn',sans-serif] whitespace-nowrap" dir="rtl">
                       آخرین بارنامه‌های ثبت شده
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 text-[10px] font-black">
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 text-[10px] font-black whitespace-nowrap">
                       {latestTopBOLs.length} RECENT
                     </span>
                   </h3>

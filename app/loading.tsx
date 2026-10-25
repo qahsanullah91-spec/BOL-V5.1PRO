@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { SYSTEM_RELEASE_LABEL } from "@/lib/config/system-version"
 
 const STEPS = [
   "Starting core logistics engine...",
@@ -61,7 +62,7 @@ export default function RootLoading() {
 
         {/* Runtime Badge */}
         <div className="mt-6 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9.5px] text-slate-400 font-mono tracking-wider">
-          AQ-SYSTEM v5.1.2 PRO • ULTRA PERFORMANCE RUNTIME
+          AQ-SYSTEM {SYSTEM_RELEASE_LABEL} PRO • ULTRA PERFORMANCE RUNTIME
         </div>
       </div>
     </div>

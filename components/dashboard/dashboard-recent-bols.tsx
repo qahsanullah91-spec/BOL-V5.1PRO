@@ -43,12 +43,12 @@ export const DashboardRecentBols = memo(function DashboardRecentBols({
             <Zap className="w-4 h-4 fill-slate-950" />
           </div>
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-950 dark:text-white flex items-center gap-2">
-              <span>Latest BOL Creations</span>
-              <span className="text-[10px] font-bold text-slate-400 font-['Vazirmatn',sans-serif]" dir="rtl">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-950 dark:text-white flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
+              <span className="whitespace-nowrap">Latest BOL Creations</span>
+              <span className="text-[10px] font-bold text-slate-400 font-['Vazirmatn',sans-serif] whitespace-nowrap" dir="rtl">
                 آخرین بارنامه‌های ثبت شده
               </span>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200/80">
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200/80 whitespace-nowrap">
                 {bols.length} Recent
               </span>
             </h3>

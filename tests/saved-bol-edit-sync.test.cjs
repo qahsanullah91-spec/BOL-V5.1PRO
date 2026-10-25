@@ -33,8 +33,8 @@ async function runTests() {
   console.log("1. Checking initial Saved BOL list...")
   const listRes = await request("/api/bol?page=1&size=50")
   assert.strictEqual(listRes.status, 200, "Initial BOL list should return 200")
-  const initialDocs = listRes.body.data || []
-  const initialCount = initialDocs.length
+  // The list endpoint caps page_size at 50 - use the authoritative total across all pages
+  const initialCount = listRes.body.total
   console.log(`   Initial BOL Count: ${initialCount}`)
 
   // Step 2: Fetch full record for BOL-2026-NSA648
@@ -94,13 +94,17 @@ async function runTests() {
   // Step 5: Verify Saved BOL Card summary & Recent creations immediately reflect new consignee
   console.log("\n5. Verifying Saved BOL Card & Recent Creations list reflection...")
   const listAfterRes = await request("/api/bol?page=1&size=50")
-  const docsAfter = listAfterRes.body.data || []
-  assert.strictEqual(docsAfter.length, initialCount, "Total BOL count must NOT change (no duplicate created)")
-  const foundInList = docsAfter.find((d) => d.bol_number === "BOL-2026-NSA648" || d.id === originalId)
+  assert.strictEqual(listAfterRes.body.total, initialCount, "Total BOL count must NOT change (no duplicate created)")
+  let foundInList = null
+  const totalPages = listAfterRes.body.total_pages || 1
+  for (let page = 1; page <= totalPages && !foundInList; page++) {
+    const pageRes = page === 1 ? listAfterRes : await request(`/api/bol?page=${page}&size=50`)
+    foundInList = (pageRes.body.data || []).find((d) => d.bol_number === "BOL-2026-NSA648" || d.id === originalId)
+  }
   assert(foundInList, "Updated BOL must be found in list")
   assert.strictEqual(foundInList.consignee_name, testConsignee, "Card in list must show new consignee")
   console.log(`   ✓ Saved BOL card updated immediately: "${foundInList.consignee_name}"`)
-  console.log(`   ✓ Total record count unchanged: ${docsAfter.length}`)
+  console.log(`   ✓ Total record count unchanged: ${initialCount}`)
 
   // Step 6: Verify Recent API reflects updated BOL
   console.log("\n6. Verifying /api/bol/recent...")
@@ -162,7 +166,7 @@ async function runTests() {
 
   // Step 10: Verify record count after revert
   const finalCountRes = await request("/api/bol?page=1&size=50")
-  assert.strictEqual(finalCountRes.body.data.length, initialCount, "Final record count must match initial")
+  assert.strictEqual(finalCountRes.body.total, initialCount, "Final record count must match initial")
   console.log(`   ✓ Record count perfectly preserved: ${initialCount}`)
 
   console.log("\n=== ALL SYNC AND EDIT AUDIT TESTS PASSED! ===")

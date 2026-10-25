@@ -58,6 +58,86 @@ const ROUTE_GROUPS: RouteGroup[] = [
     accentBorder: "border-r-4 border-r-sky-500",
     options: [
       {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر جبل علی (دبی) با کانتینر معمولی؛ سپس از بندر جبل علی به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر جبل علی (دبی)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی موندرا (Mundra)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "موندرا (Mundra)، هند",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی موندرا (Mundra)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "موندرا (Mundra)، هند",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی موندرا (Mundra)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "موندرا (Mundra)، هند",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "از دوغارون کانتینر یخچالی از بندر مرسین کانتینر یخچالی با سوییچ بی ال در بندر مرسین ترکیه (Full Way Reefer)",
+        origin: "دوغارون",
+        destination: "بندر مرسین ترکیه / اروپا",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "از دوغارون کانتینر یخچالی از بندر حمریه کانتینر یخچالی با سوییچ بی ال در بندر حمریه شارجه (Full Way Reefer)",
+        origin: "دوغارون",
+        destination: "بندر حمریه (شارجه)",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "از دوغارون کانتینر یخچالی از بندر صحار کانتینر یخچالی با سوییچ بی ال در بندر صحار عمان (Full Way Reefer)",
+        origin: "دوغارون",
+        destination: "بندر صحار عمان",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار عمان",
+      },
+      {
         text: "🗺️از دوغارون با کانتینر معمولی تا بندرعباس، سپس با کانتینر یخچالی از بندرعباس، با سوییچ B/L در دبی / جبل علی، و مقصد نهایی: نهاوا شیوا (Nhava Sheva).",
         origin: "دوغارون",
         destination: "نهاوا شیوا (Nhava Sheva)",
@@ -179,6 +259,94 @@ const ROUTE_GROUPS: RouteGroup[] = [
     pillActiveColor: "border-purple-600 bg-purple-600 text-white shadow-xs",
     pillHoverColor: "border-purple-200 bg-white text-purple-900 hover:border-purple-400 hover:bg-purple-50/70 dark:bg-slate-900 dark:border-slate-800 dark:text-purple-300",
     options: [
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "از دوغارون کانتینر یخچالی از بندرعباس کانتینر یخچالی با سوییچ بی ال در بندر حمریه (شارجه) (Full Way Reefer)",
+        origin: "دوغارون",
+        destination: "بندر حمریه (شارجه)",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "از دوغارون کانتینر یخچالی از بندرعباس کانتینر یخچالی با سوییچ بی ال در بندر صحار عمان (Full Way Reefer)",
+        origin: "دوغارون",
+        destination: "بندر صحار عمان",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار عمان",
+      },
       {
         text: "🗺️از دوغارون با کانتینر معمولی تا بندرعباس، سپس با کانتینر یخچالی از بندرعباس، با سوییچ B/L در دبی / جبل علی، و مقصد نهایی: نهاوا شیوا (Nhava Sheva).",
         origin: "دوغارون",
@@ -434,6 +602,62 @@ const ROUTE_GROUPS: RouteGroup[] = [
     pillHoverColor: "border-blue-200 bg-white text-blue-900 hover:border-blue-400 hover:bg-blue-50/70 dark:bg-slate-900 dark:border-slate-800 dark:text-blue-300",
     options: [
       {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر جبل علی (دبی) با کانتینر معمولی؛ سپس از بندر جبل علی به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر جبل علی (دبی)",
+      },
+      {
+        text: "از اسلام قلعه کانتینر یخچالی از بندر مرسین کانتینر یخچالی با سوییچ بی ال در بندر مرسین ترکیه (Full Way Reefer)",
+        origin: "اسلام قلعه",
+        destination: "بندر مرسین ترکیه / اروپا",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "از اسلام قلعه کانتینر یخچالی از بندر حمریه کانتینر یخچالی با سوییچ بی ال در بندر حمریه شارجه (Full Way Reefer)",
+        origin: "اسلام قلعه",
+        destination: "بندر حمریه (شارجه)",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "از اسلام قلعه کانتینر یخچالی از بندر صحار کانتینر یخچالی با سوییچ بی ال در بندر صحار عمان (Full Way Reefer)",
+        origin: "اسلام قلعه",
+        destination: "بندر صحار عمان",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار عمان",
+      },
+      {
         text: "🗺️از اسلام قلعه با کانتینر معمولی تا بندرعباس، سپس با کانتینر یخچالی از بندرعباس، با سوییچ B/L در دبی / جبل علی، و مقصد نهایی: نهاوا شیوا (Nhava Sheva).",
         origin: "اسلام قلعه",
         destination: "نهاوا شیوا (Nhava Sheva)",
@@ -513,6 +737,62 @@ const ROUTE_GROUPS: RouteGroup[] = [
     pillActiveColor: "border-rose-600 bg-rose-600 text-white shadow-xs",
     pillHoverColor: "border-rose-200 bg-white text-rose-900 hover:border-rose-400 hover:bg-rose-50/70 dark:bg-slate-900 dark:border-slate-800 dark:text-rose-300",
     options: [
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر جبل علی (دبی) با کانتینر معمولی؛ سپس از بندر جبل علی به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر جبل علی (دبی)",
+      },
+      {
+        text: "از نیمروز کانتینر یخچالی از بندر مرسین کانتینر یخچالی با سوییچ بی ال در بندر مرسین ترکیه (Full Way Reefer)",
+        origin: "نیمروز",
+        destination: "بندر مرسین ترکیه / اروپا",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "از نیمروز کانتینر یخچالی از بندر حمریه کانتینر یخچالی با سوییچ بی ال در بندر حمریه شارجه (Full Way Reefer)",
+        origin: "نیمروز",
+        destination: "بندر حمریه (شارجه)",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "از نیمروز کانتینر یخچالی از بندر صحار کانتینر یخچالی با سوییچ بی ال در بندر صحار عمان (Full Way Reefer)",
+        origin: "نیمروز",
+        destination: "بندر صحار عمان",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار عمان",
+      },
       {
         text: "🗺️از نیمروز با کانتینر معمولی تا بندرعباس، سپس با کانتینر یخچالی از بندرعباس، با سوییچ B/L در دبی / جبل علی، و مقصد نهایی: نهاوا شیوا (Nhava Sheva).",
         origin: "نیمروز",
@@ -660,6 +940,30 @@ const ROUTE_GROUPS: RouteGroup[] = [
     pillHoverColor: "border-emerald-200 bg-white text-emerald-900 hover:border-emerald-400 hover:bg-emerald-50/70 dark:bg-slate-900 dark:border-slate-800 dark:text-emerald-300",
     options: [
       {
+        text: "🗺️ مسیر حمل کانتینر: از تورغندی به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "تورغندی",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از تورغندی به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "تورغندی",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از تورغندی به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "تورغندی",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
         text: "از تورغندی کانتینر معمولی از بندرعباس کانتینر معمولی",
         origin: "تورغندی",
         destination: "بندرعباس",
@@ -695,6 +999,30 @@ const ROUTE_GROUPS: RouteGroup[] = [
     pillActiveColor: "border-indigo-600 bg-indigo-600 text-white shadow-xs",
     pillHoverColor: "border-indigo-200 bg-white text-indigo-900 hover:border-indigo-400 hover:bg-indigo-50/70 dark:bg-slate-900 dark:border-slate-800 dark:text-indigo-300",
     options: [
+      {
+        text: "🗺️ مسیر حمل کانتینر: از حیرتان به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "حیرتان",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از حیرتان به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "حیرتان",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از حیرتان به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "حیرتان",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
       {
         text: "از حیرتان کانتینر معمولی از بندرعباس کانتینر معمولی",
         origin: "حیرتان",
@@ -732,6 +1060,38 @@ const ROUTE_GROUPS: RouteGroup[] = [
     pillHoverColor: "border-amber-200 bg-white text-amber-900 hover:border-amber-400 hover:bg-amber-50/70 dark:bg-slate-900 dark:border-slate-800 dark:text-amber-300",
     options: [
       {
+        text: "🗺️ مسیر حمل کانتینر: از سپین بولدک به بندر جبل علی (دبی) با کانتینر معمولی؛ سپس از بندر جبل علی به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "سپین بولدک",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر جبل علی (دبی)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از سپین بولدک به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "سپین بولدک",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از سپین بولدک به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "سپین بولدک",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از سپین بولدک به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "سپین بولدک",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
         text: "از سپین بولدک کانتینر معمولی از بندرعباس کانتینر معمولی",
         origin: "سپین بولدک",
         destination: "بندرعباس",
@@ -767,7 +1127,186 @@ const ROUTE_GROUPS: RouteGroup[] = [
       },
     ],
   },
-]
+  {
+    id: "international-ports",
+    label: "بنادر ترانزیت بین‌المللی",
+    sublabel: "مرسین ترکیه، حمریه شارجه، صحار عمان، جبل علی دبی",
+    badgeColor: "border-teal-300 bg-teal-100 text-teal-900 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-300",
+    pillActiveColor: "border-teal-600 bg-teal-600 text-white shadow-xs",
+    pillHoverColor: "border-teal-200 bg-white text-teal-950 hover:border-teal-400 hover:bg-teal-50/70 dark:bg-slate-900 dark:border-slate-800 dark:text-teal-200",
+    accentBorder: "border-r-4 border-r-teal-500",
+    options: [
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر جبل علی (دبی) با کانتینر معمولی؛ سپس از بندر جبل علی به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر جبل علی (دبی)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از اسلام قلعه به بندر جبل علی (دبی) با کانتینر معمولی؛ سپس از بندر جبل علی به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "اسلام قلعه",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر جبل علی (دبی)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر جبل علی (دبی) با کانتینر معمولی؛ سپس از بندر جبل علی به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "نیمروز",
+        destination: "بندر نهاوا شیوا (Nhava Sheva)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر جبل علی (دبی)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی موندرا (Mundra)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "موندرا (Mundra)، هند",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی موندرا (Mundra)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "موندرا (Mundra)، هند",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "🗺️ مسیر حمل کانتینر: از دوغارون به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی موندرا (Mundra)، هند، با کانتینر یخچالی (Reefer).",
+        origin: "دوغارون",
+        destination: "موندرا (Mundra)، هند",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار (عمان)",
+      },
+      {
+        text: "از دوغارون کانتینر یخچالی از بندر مرسین کانتینر یخچالی با سوییچ بی ال در بندر مرسین ترکیه (Full Way Reefer)",
+        origin: "دوغارون",
+        destination: "بندر مرسین ترکیه / اروپا",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر مرسین ترکیه",
+      },
+      {
+        text: "از دوغارون کانتینر یخچالی از بندر حمریه کانتینر یخچالی با سوییچ بی ال در بندر حمریه شارجه (Full Way Reefer)",
+        origin: "دوغارون",
+        destination: "بندر حمریه (شارجه)",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر حمریه (شارجه)",
+      },
+      {
+        text: "از دوغارون کانتینر یخچالی از بندر صحار کانتینر یخچالی با سوییچ بی ال در بندر صحار عمان (Full Way Reefer)",
+        origin: "دوغارون",
+        destination: "بندر صحار عمان",
+        containerType: "full_reefer",
+        isSwitchBl: true,
+        switchLocation: "بندر صحار عمان",
+      },
+      {
+        text: "از دوغارون تمام مسیر کانتینر یخچالی تا بندر جبل علی دبی (Full Way Reefer - Jebel Ali)",
+        origin: "دوغارون",
+        destination: "جبل علی / دبی",
+        containerType: "full_reefer",
+      },
+      {
+        text: "از دوغارون کانتینر معمولی تا بندر مرسین ترکیه (Dry Container - Mersin Port)",
+        origin: "دوغارون",
+        destination: "بندر مرسین ترکیه",
+        containerType: "dry",
+      },
+      {
+        text: "از دوغارون کانتینر معمولی تا بندر حمریه شارجه امارات (Dry Container - Hamriyah Port)",
+        origin: "دوغارون",
+        destination: "بندر حمریه شارجه",
+        containerType: "dry",
+      },
+      {
+        text: "از دوغارون کانتینر معمولی تا بندر صحار عمان (Dry Container - Sohar Port)",
+        origin: "دوغارون",
+        destination: "بندر صحار عمان",
+        containerType: "dry",
+      },
+    ],
+  },
+];
 
 interface RouteDisplayParts {
   mainText: string
@@ -933,17 +1472,36 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
     const switchSuffix = ` (با سوییچ بی ال در ${location})`
     const genericPattern = /\s*\((با\s*)?سوی[ی]?چ\s*(بی\s*ال|B\/L|بارنامه)[^)]*\)/gi
 
-    if (hasSwitchBl) {
+    if (hasSwitchBl && value.includes(location)) {
       const cleaned = value.replace(genericPattern, "").trim()
       onChange(cleaned)
-      toast.info("گزینه سوییچ بی ال حذف شد")
+      toast.info(`گزینه سوییچ بی ال در ${location} حذف شد`)
     } else {
-      if (!value.trim()) {
+      const clean = value.replace(genericPattern, "").trim()
+      if (!clean) {
         onChange(`سوییچ بی ال در ${location}`)
       } else {
-        onChange(`${value.trim()}${switchSuffix}`)
+        onChange(`${clean}${switchSuffix}`)
       }
-      toast.success(`گزینه سوییچ بی ال در ${location} اضافه شد!`)
+      toast.success(`گزینه سوییچ بی ال در ${location} اعمال شد!`)
+    }
+  }
+
+  const handleToggleDestination = (destName: string, label: string) => {
+    const destFragment = `، و مقصد نهایی: ${destName}.`
+    if (value.includes(label) || value.includes(destName)) {
+      const regex = new RegExp(`(?:،\\s*)?(?:و\\s+)?مقصد\\s*(?:نهایی)?[:\\s]+[^،\\n\\.]*[\\.\\s]*`, "gi")
+      const cleaned = value.replace(regex, "").trim()
+      onChange(cleaned)
+      toast.info(`مقصد ${label} حذف شد`)
+    } else {
+      if (!value.trim()) {
+        onChange(`مقصد نهایی: ${destName}.`)
+      } else {
+        const clean = value.replace(/[\.\s]+$/, "")
+        onChange(`${clean}${destFragment}`)
+      }
+      toast.success(`مقصد ${label} اضافه شد!`)
     }
   }
 
@@ -991,7 +1549,7 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
     }
   }
 
-  // Filter options based on active station, container filter, and search
+    // Filter options based on active station, container filter, and search
   const displayedGroups = useMemo(() => {
     let groups = ROUTE_GROUPS
     if (selectedGroup !== "all") {
@@ -1153,6 +1711,12 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
                 <span dir="rtl" style={{ unicodeBidi: "isolate" }}>{parsedRoute.switchBlBadge}</span>
               </span>
             )}
+            {parsedRoute.reeferBadge && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-300 dark:border-cyan-800 text-[11px] font-black text-cyan-900 dark:text-cyan-200 shadow-2xs">
+                <Snowflake className="h-3 w-3 text-cyan-500 shrink-0" />
+                <span dir="rtl" style={{ unicodeBidi: "isolate" }}>{parsedRoute.reeferBadge}</span>
+              </span>
+            )}
             {parsedRoute.destinationBadge && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-[11px] font-black text-emerald-900 dark:text-emerald-200 shadow-2xs">
                 <MapPin className="h-3 w-3 text-emerald-600 shrink-0" />
@@ -1299,6 +1863,144 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
               </span>
             </button>
 
+            {/* Dogharoun -> Mersin -> Nhava Sheva (User Route) */}
+            <button
+              type="button"
+              onClick={() => {
+                const targetText = "🗺️ مسیر حمل کانتینر: از دوغارون به بندر مرسین با کانتینر معمولی؛ سپس از بندر مرسین به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer)."
+                onChange(targetText)
+                toast.success("مسیر دوغارون به مرسین و نهاوا شیوا (معمولی ➔ یخچالی) اعمال شد!")
+              }}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-black transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
+                value.includes("مرسین") && value.includes("نهاوا شیوا")
+                  ? "bg-teal-600 border-teal-600 text-white shadow-teal-200"
+                  : "bg-teal-50 hover:bg-teal-100 border-teal-300 dark:border-teal-800 dark:bg-teal-950/70 text-teal-950 dark:text-teal-200"
+              }`}
+              title="اعمال سریع: از دوغارون به بندر مرسین با کانتینر معمولی؛ سپس با کانتینر یخچالی به نهاوا شیوا"
+            >
+              <Navigation className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+              <span>
+                {value.includes("مرسین") && value.includes("نهاوا شیوا")
+                  ? "✓ دوغارون ➔ مرسین ➔ نهاوا شیوا"
+                  : "🗺️ دوغارون ➔ مرسین ➔ نهاوا شیوا"}
+              </span>
+            </button>
+
+            {/* Dogharoun -> Hamriyah -> Nhava Sheva */}
+            <button
+              type="button"
+              onClick={() => {
+                const targetText = "🗺️ مسیر حمل کانتینر: از دوغارون به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس از بندر حمریه به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer)."
+                onChange(targetText)
+                toast.success("مسیر دوغارون به بندر حمریه شارجه و نهاوا شیوا اعمال شد!")
+              }}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-black transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
+                value.includes("حمریه") && value.includes("نهاوا شیوا")
+                  ? "bg-teal-600 border-teal-600 text-white shadow-teal-200"
+                  : "bg-teal-50 hover:bg-teal-100 border-teal-300 dark:border-teal-800 dark:bg-teal-950/70 text-teal-950 dark:text-teal-200"
+              }`}
+              title="اعمال سریع: از دوغارون به بندر حمریه (شارجه) با کانتینر معمولی؛ سپس با کانتینر یخچالی به نهاوا شیوا"
+            >
+              <Navigation className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+              <span>
+                {value.includes("حمریه") && value.includes("نهاوا شیوا")
+                  ? "✓ دوغارون ➔ حمریه (شارجه) ➔ نهاوا شیوا"
+                  : "🗺️ دوغارون ➔ حمریه (شارجه) ➔ نهاوا شیوا"}
+              </span>
+            </button>
+
+            {/* Dogharoun -> Oman Sohar -> Nhava Sheva */}
+            <button
+              type="button"
+              onClick={() => {
+                const targetText = "🗺️ مسیر حمل کانتینر: از دوغارون به بندر صحار (عمان) با کانتینر معمولی؛ سپس از بندر صحار به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer)."
+                onChange(targetText)
+                toast.success("مسیر دوغارون به بندر صحار عمان و نهاوا شیوا اعمال شد!")
+              }}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-black transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
+                value.includes("صحار") && value.includes("نهاوا شیوا")
+                  ? "bg-teal-600 border-teal-600 text-white shadow-teal-200"
+                  : "bg-teal-50 hover:bg-teal-100 border-teal-300 dark:border-teal-800 dark:bg-teal-950/70 text-teal-950 dark:text-teal-200"
+              }`}
+              title="اعمال سریع: از دوغارون به بندر صحار (عمان) با کانتینر معمولی؛ سپس با کانتینر یخچالی به نهاوا شیوا"
+            >
+              <Navigation className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+              <span>
+                {value.includes("صحار") && value.includes("نهاوا شیوا")
+                  ? "✓ دوغارون ➔ صحار عمان ➔ نهاوا شیوا"
+                  : "🗺️ دوغارون ➔ صحار عمان ➔ نهاوا شیوا"}
+              </span>
+            </button>
+
+            {/* Mersin Full Way Reefer */}
+            <button
+              type="button"
+              onClick={() => {
+                const targetText = "از دوغارون کانتینر یخچالی از بندر مرسین کانتینر یخچالی با سوییچ بی ال در بندر مرسین ترکیه (Full Way Reefer)"
+                onChange(targetText)
+                toast.success("مسیر مرسین ترکیه تمام یخچالی اعمال شد!")
+              }}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-black transition-all cursor-pointer shadow-2xs flex items-center gap-1 ${
+                value.includes("مرسین") && isFullWayReefer
+                  ? "bg-cyan-700 border-cyan-700 text-white shadow-cyan-200"
+                  : "bg-cyan-50 hover:bg-cyan-100 border-cyan-300 dark:border-cyan-800 dark:bg-cyan-950/70 text-cyan-950 dark:text-cyan-200"
+              }`}
+              title="اعمال سریع: از دوغارون به مرسین تمام یخچالی با سوییچ B/L"
+            >
+              <Snowflake className="h-3.5 w-3.5 text-cyan-500 shrink-0" />
+              <span>
+                {value.includes("مرسین") && isFullWayReefer
+                  ? "✓ مرسین تمام یخچالی"
+                  : "❄️ مرسین تمام یخچالی"}
+              </span>
+            </button>
+
+            {/* Hamriyah Switch BL */}
+            <button
+              type="button"
+              onClick={() => {
+                const targetText = "از دوغارون کانتینر یخچالی از بندر حمریه کانتینر یخچالی با سوییچ بی ال در بندر حمریه شارجه (Full Way Reefer)"
+                onChange(targetText)
+                toast.success("مسیر حمریه شارجه با سوییچ B/L اعمال شد!")
+              }}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-black transition-all cursor-pointer shadow-2xs flex items-center gap-1 ${
+                value.includes("حمریه") && hasSwitchBl
+                  ? "bg-purple-700 border-purple-700 text-white shadow-purple-200"
+                  : "bg-purple-50 hover:bg-purple-100 border-purple-300 dark:border-purple-800 dark:bg-purple-950/70 text-purple-950 dark:text-purple-200"
+              }`}
+              title="اعمال سریع: دوغارون به حمریه شارجه با سوییچ B/L"
+            >
+              <RefreshCw className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+              <span>
+                {value.includes("حمریه") && hasSwitchBl
+                  ? "✓ حمریه شارجه (سوییچ B/L)"
+                  : "🚢 حمریه شارجه (سوییچ B/L)"}
+              </span>
+            </button>
+
+            {/* Sohar Oman Switch BL */}
+            <button
+              type="button"
+              onClick={() => {
+                const targetText = "از دوغارون کانتینر یخچالی از بندر صحار کانتینر یخچالی با سوییچ بی ال در بندر صحار عمان (Full Way Reefer)"
+                onChange(targetText)
+                toast.success("مسیر صحار عمان با سوییچ B/L اعمال شد!")
+              }}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-black transition-all cursor-pointer shadow-2xs flex items-center gap-1 ${
+                value.includes("صحار") && hasSwitchBl
+                  ? "bg-purple-700 border-purple-700 text-white shadow-purple-200"
+                  : "bg-purple-50 hover:bg-purple-100 border-purple-300 dark:border-purple-800 dark:bg-purple-950/70 text-purple-950 dark:text-purple-200"
+              }`}
+              title="اعمال سریع: دوغارون به صحار عمان با سوییچ B/L"
+            >
+              <RefreshCw className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+              <span>
+                {value.includes("صحار") && hasSwitchBl
+                  ? "✓ صحار عمان (سوییچ B/L)"
+                  : "🚢 صحار عمان (سوییچ B/L)"}
+              </span>
+            </button>
+
             {/* Nimroz Full Way Reefer */}
             <button
               type="button"
@@ -1369,6 +2071,48 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
               <span>{hasSwitchBl && value.includes("چابهار") ? "✓ سوییچ B/L چابهار" : "+ سوییچ B/L چابهار"}</span>
             </button>
 
+            {/* Switch B/L at Mersin Port */}
+            <button
+              type="button"
+              onClick={() => handleToggleSwitchBl("بندر مرسین ترکیه")}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 ${
+                hasSwitchBl && value.includes("مرسین")
+                  ? "bg-purple-600 border-purple-600 text-white"
+                  : "bg-white dark:bg-slate-800 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200 hover:bg-purple-100/70"
+              }`}
+            >
+              <RefreshCw className="h-3 w-3" />
+              <span>{hasSwitchBl && value.includes("مرسین") ? "✓ سوییچ B/L مرسین" : "+ سوییچ B/L مرسین"}</span>
+            </button>
+
+            {/* Switch B/L at Hamriyah Port */}
+            <button
+              type="button"
+              onClick={() => handleToggleSwitchBl("بندر حمریه (شارجه)")}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 ${
+                hasSwitchBl && value.includes("حمریه")
+                  ? "bg-purple-600 border-purple-600 text-white"
+                  : "bg-white dark:bg-slate-800 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200 hover:bg-purple-100/70"
+              }`}
+            >
+              <RefreshCw className="h-3 w-3" />
+              <span>{hasSwitchBl && value.includes("حمریه") ? "✓ سوییچ B/L حمریه" : "+ سوییچ B/L حمریه"}</span>
+            </button>
+
+            {/* Switch B/L at Sohar Oman */}
+            <button
+              type="button"
+              onClick={() => handleToggleSwitchBl("بندر صحار (عمان)")}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 ${
+                hasSwitchBl && value.includes("صحار")
+                  ? "bg-purple-600 border-purple-600 text-white"
+                  : "bg-white dark:bg-slate-800 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200 hover:bg-purple-100/70"
+              }`}
+            >
+              <RefreshCw className="h-3 w-3" />
+              <span>{hasSwitchBl && value.includes("صحار") ? "✓ سوییچ B/L صحار عمان" : "+ سوییچ B/L صحار عمان"}</span>
+            </button>
+
             {/* Destination Nhava Sheva */}
             <button
               type="button"
@@ -1382,6 +2126,51 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
             >
               <MapPin className="h-3 w-3 text-emerald-600 shrink-0" />
               <span>{value.includes("نهاوا شیوا") ? "✓ مقصد: نهاوا شیوا" : "+ مقصد: نهاوا شیوا (Nhava Sheva)"}</span>
+            </button>
+
+            {/* Destination Mundra India */}
+            <button
+              type="button"
+              onClick={() => handleToggleDestination("موندرا (Mundra)، هند", "موندرا")}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 ${
+                value.includes("موندرا")
+                  ? "bg-emerald-600 border-emerald-600 text-white"
+                  : "bg-white dark:bg-slate-800 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 hover:bg-emerald-50"
+              }`}
+              title="افزودن یا حذف مقصد نهایی موندرا هند"
+            >
+              <MapPin className="h-3 w-3 text-emerald-600 shrink-0" />
+              <span>{value.includes("موندرا") ? "✓ مقصد: موندرا" : "+ مقصد: موندرا (Mundra)"}</span>
+            </button>
+
+            {/* Destination Mersin Turkey */}
+            <button
+              type="button"
+              onClick={() => handleToggleDestination("بندر مرسین (Mersin)، ترکیه", "مرسین")}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 ${
+                value.includes("مرسین") && value.includes("مقصد")
+                  ? "bg-emerald-600 border-emerald-600 text-white"
+                  : "bg-white dark:bg-slate-800 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 hover:bg-emerald-50"
+              }`}
+              title="افزودن یا حذف مقصد نهایی بندر مرسین ترکیه"
+            >
+              <MapPin className="h-3 w-3 text-emerald-600 shrink-0" />
+              <span>{value.includes("مرسین") && value.includes("مقصد") ? "✓ مقصد: مرسین" : "+ مقصد: مرسین (Mersin)"}</span>
+            </button>
+
+            {/* Destination Sohar Oman */}
+            <button
+              type="button"
+              onClick={() => handleToggleDestination("بندر صحار (Sohar)، عمان", "صحار")}
+              className={`rounded-lg border px-2.5 py-1 text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 ${
+                value.includes("صحار") && value.includes("مقصد")
+                  ? "bg-emerald-600 border-emerald-600 text-white"
+                  : "bg-white dark:bg-slate-800 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 hover:bg-emerald-50"
+              }`}
+              title="افزودن یا حذف مقصد نهایی بندر صحار عمان"
+            >
+              <MapPin className="h-3 w-3 text-emerald-600 shrink-0" />
+              <span>{value.includes("صحار") && value.includes("مقصد") ? "✓ مقصد: صحار" : "+ مقصد: صحار (Sohar)"}</span>
             </button>
 
             {/* Container Reefer */}

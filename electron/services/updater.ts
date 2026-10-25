@@ -263,8 +263,8 @@ export function readReleaseManifest(dir: string): ReleaseManifest | null {
 }
 
 export async function evaluateSystemUpdate(customCandidate?: string | null): Promise<DesktopUpdateInfo> {
-  const currentVersion = (app.getVersion() || "5.1.2").replace(/^v/i, "")
-  const currentBuild = "2026.10.23-PRO"
+  const currentVersion = (app.getVersion() || "5.2.3").replace(/^v/i, "")
+  const currentBuild = "2026.10.25-PRO-4"
 
   const candidate = findInstallerCandidate(customCandidate)
   if (!candidate || !fs.existsSync(candidate.installerPath)) {
@@ -429,7 +429,7 @@ export async function createPreUpdateBackup(): Promise<{
   try {
     const dataDir = getDataDirectory()
     const backupRoot = path.join(dataDir, "backups")
-    const currentVer = app.getVersion() || "5.1.2"
+    const currentVer = app.getVersion() || "5.2.3"
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
     const backupName = `pre-update-v${currentVer.replace(/^v/i, "")}-${timestamp}`
     const targetDir = path.join(backupRoot, backupName)
@@ -489,7 +489,7 @@ export async function createPreUpdateBackup(): Promise<{
       backupType: "PRE_UPDATE_PROTECTIVE_SNAPSHOT",
       appName: "AQ-COMPANIES",
       currentVersion: currentVer,
-      buildNumber: "2026.10.23-PRO",
+      buildNumber: "2026.10.25-PRO-4",
       createdAt: new Date().toISOString(),
       files: copiedFiles,
       recordCounts: {
@@ -703,6 +703,8 @@ export async function prepareAndExecuteUpdate(options: {
     "AQ COMPANIES.exe"
   )
 
+  const nsisArgs = isSilent ? "/S" : ""
+
   const runnerScript = `@echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -711,10 +713,11 @@ echo ================================================================= > "${logP
 echo      AQ COMPANIES - SECURE SOFTWARE UPDATER RUNNER >> "${logPath}"
 echo      Timestamp: %DATE% %TIME% >> "${logPath}"
 echo      Target Installer: "${installerPath}" >> "${logPath}"
+echo      Mode: ${isSilent ? "Seamless / Silent" : "Guided Setup Wizard"} >> "${logPath}"
 echo ================================================================= >> "${logPath}"
 
-echo [1/3] Waiting for parent AQ COMPANIES processes to exit cleanly... >> "${logPath}"
-for /L %%i in (1,1,12) do (
+echo [1/3] Waiting for parent application processes to exit cleanly... >> "${logPath}"
+for /L %%i in (1,1,10) do (
   tasklist /FI "IMAGENAME eq AQ COMPANIES.exe" 2>nul | find /I /N "AQ COMPANIES.exe">nul
   if errorlevel 1 (
     goto :PROCESS_CLEARED
@@ -722,36 +725,54 @@ for /L %%i in (1,1,12) do (
   timeout /t 1 /nobreak >nul
 )
 
+:: Forcibly release any lingering locks if application hasn't exited yet
+taskkill /F /T /IM "AQ COMPANIES.exe" >nul 2>&1
 taskkill /F /T /IM "aq-backend.exe" >nul 2>&1
 timeout /t 1 /nobreak >nul
 
 :PROCESS_CLEARED
-echo [2/3] All application locks cleared. Executing installer... >> "${logPath}"
-start /wait "" "${installerPath}" ${args}
-set INSTALLER_EXIT=%ERRORLEVEL%
-echo [3/3] Installer finished with exit code: %INSTALLER_EXIT% >> "${logPath}"
+echo [2/3] Executing installer package... >> "${logPath}"
+${
+  isSilent
+    ? `start /wait "" "${installerPath}" ${nsisArgs}
+set INSTALLER_EXIT=!ERRORLEVEL!
+echo [3/3] Installer finished with exit code: !INSTALLER_EXIT! >> "${logPath}"
 
-if "%INSTALLER_EXIT%"=="0" (
-  echo Installation succeeded. Relaunching AQ COMPANIES... >> "${logPath}"
-  if exist "${installedAppExe}" (
-    start "" "${installedAppExe}" --updated
+if "!INSTALLER_EXIT!"=="0" (
+  echo Installation succeeded. Locating installed AQ COMPANIES.exe to relaunch... >> "${logPath}"
+  set "APP_EXE="
+  if exist "%LOCALAPPDATA%\\Programs\\AQ COMPANIES\\AQ COMPANIES.exe" (
+    set "APP_EXE=%LOCALAPPDATA%\\Programs\\AQ COMPANIES\\AQ COMPANIES.exe"
+  ) else if exist "%ProgramFiles%\\AQ COMPANIES\\AQ COMPANIES.exe" (
+    set "APP_EXE=%ProgramFiles%\\AQ COMPANIES\\AQ COMPANIES.exe"
+  ) else if exist "%ProgramFiles(x86)%\\AQ COMPANIES\\AQ COMPANIES.exe" (
+    set "APP_EXE=%ProgramFiles(x86)%\\AQ COMPANIES\\AQ COMPANIES.exe"
+  )
+  if defined APP_EXE (
+    echo Launching: !APP_EXE! >> "${logPath}"
+    start "" "!APP_EXE!" --updated
   ) else (
-    start "" "${installerPath}" --updated
+    echo Note: Installed executable not in default paths; user can launch from desktop shortcut. >> "${logPath}"
   )
 ) else (
-  echo Installation did not return code 0. Check Windows installer logs. >> "${logPath}"
-)
+  echo Installer returned non-zero exit code: !INSTALLER_EXIT! >> "${logPath}"
+)`
+    : `start "" "${installerPath}"
+echo [3/3] Guided installer launched into user session. >> "${logPath}"`
+}
 
+timeout /t 2 /nobreak >nul
 (goto) 2>nul & del "%~f0"
-exit /b %INSTALLER_EXIT%
+exit /b 0
 `
 
   fs.writeFileSync(runnerPath, runnerScript, "utf8")
 
-  const child = spawn("cmd.exe", ["/c", `"${runnerPath}"`], {
+  // Spawn runner detached without extra quotes that trigger cmd.exe syntax error
+  const child = spawn("cmd.exe", ["/c", runnerPath], {
     detached: true,
     stdio: "ignore",
-    windowsHide: true,
+    windowsHide: false,
   })
   child.unref()
 

@@ -37,7 +37,7 @@ function copyWithFallback(message: string): void {
   }
 }
 
-export function CopyWhatsAppButton({ bol }: { bol: BillOfLadingFormData }) {
+export function CopyWhatsAppButton({ bol, className = "" }: { bol: BillOfLadingFormData; className?: string }) {
   const [status, setStatus] = useState<"idle" | "copying" | "copied">("idle")
   const [previewMode, setPreviewMode] = useState<CopyMode | null>(null)
   const [customMessage, setCustomMessage] = useState("")
@@ -99,28 +99,29 @@ export function CopyWhatsAppButton({ bol }: { bol: BillOfLadingFormData }) {
 
   return (
     <>
-      <div className="inline-flex items-center rounded-lg shadow-2xs">
+      <div className={`inline-flex items-center rounded-lg shadow-2xs shrink-0 ${className}`}>
         <Button
           type="button" size="sm" variant="outline" onClick={() => void handleCopy("update")}
           disabled={status === "copying"}
-          className="h-7.5 px-2.5 rounded-r-none border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-800 font-bold text-xs cursor-pointer gap-1.5"
+          className="h-8 px-2.5 rounded-r-none border-emerald-200 dark:border-emerald-800 bg-white dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 font-bold text-xs cursor-pointer gap-1.5"
           title="Copy shipment update as WhatsApp message"
           aria-label="Copy shipment update as WhatsApp message"
         >
           {status === "copying" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
             status === "copied" ? <Check className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
-          <span className="hidden sm:inline">{status === "copied" ? "Copied" : status === "copying" ? "Copying..." : "Copy WhatsApp"}</span>
-          <span className="sm:hidden">{status === "copied" ? "Copied" : status === "copying" ? "Copying..." : "WhatsApp"}</span>
+          <span className="hidden 2xl:inline">{status === "copied" ? "Copied" : status === "copying" ? "Copying..." : "Copy WhatsApp"}</span>
+          <span className="hidden sm:inline 2xl:hidden">{status === "copied" ? "Copied" : status === "copying" ? "Copying..." : "WhatsApp"}</span>
+          <span className="sm:hidden">{status === "copied" ? "✓" : "WA"}</span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button type="button" size="sm" variant="outline" disabled={status === "copying"}
-              className="h-7.5 w-7 p-0 rounded-l-none border-l-0 border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-800 cursor-pointer"
+              className="h-8 w-7 p-0 rounded-l-none border-l-0 border-emerald-200 dark:border-emerald-800 bg-white dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 cursor-pointer"
               title="WhatsApp message options" aria-label="WhatsApp message options">
               <ChevronDown className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuContent align="end" className="w-64 dark:bg-slate-900 dark:border-slate-800">
             <DropdownMenuItem onClick={() => void handleCopy("update")} className="gap-2.5 cursor-pointer">
               <Ship className="h-4 w-4 text-blue-600" />
               <div className="flex flex-col">
@@ -149,7 +150,7 @@ export function CopyWhatsAppButton({ bol }: { bol: BillOfLadingFormData }) {
                 <span className="text-[10px] text-muted-foreground">Complete parties, rent, route & vessel</span>
               </div>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="dark:bg-slate-800" />
             <DropdownMenuItem onClick={() => setPreviewMode("update")} className="gap-2 cursor-pointer">
               <Eye className="h-4 w-4" />Preview All Formats
             </DropdownMenuItem>

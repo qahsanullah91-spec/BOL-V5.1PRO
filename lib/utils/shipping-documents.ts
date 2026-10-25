@@ -2129,7 +2129,7 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
 
   const { toCanvas } = await import("html-to-image")
   const canvas = await toCanvas(element, {
-    pixelRatio: 3.125, // True 300 DPI print-grade ultra-sharp resolution (300 / 96 = 3.125)
+    pixelRatio: 3.5, // Ultra-sharp 336+ DPI true high-resolution print quality
     quality: 1.0,
     cacheBust: false,
     skipFonts: Boolean(fontCSS),
@@ -2143,7 +2143,7 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
       visibility: "visible",
       WebkitFontSmoothing: "antialiased",
       MozOsxFontSmoothing: "grayscale",
-      textRendering: "optimizeLegibility",
+      textRendering: "geometricPrecision",
     } as any,
     filter: (node: HTMLElement) => {
       if (!node) return true
@@ -2152,6 +2152,7 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
       if (node.getAttribute?.("data-html2canvas-ignore") === "true") return false
       if (typeof node.className === "string" && (node.className.includes("no-print") || node.className.includes("print:hidden"))) return false
       if (node.classList?.contains?.("no-print")) return false
+      if (node.getAttribute?.("data-qr-code") === "true" || node.closest?.("[data-qr-code]")) return true
       if (node.tagName === "BUTTON") return false
       return true
     },
@@ -2160,7 +2161,7 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
   // Cooperative yield between rasterization and PDF embedding
   await new Promise((resolve) => setTimeout(resolve, 0))
 
-  const imageData = canvas.toDataURL("image/jpeg", 0.98)
+  const imageData = canvas.toDataURL("image/jpeg", 0.99)
   pdf.addImage(imageData, "JPEG", 0, 0, PAGE_WIDTH, PAGE_HEIGHT, undefined, "FAST")
 }
 

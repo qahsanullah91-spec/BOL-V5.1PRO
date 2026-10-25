@@ -157,10 +157,10 @@ export function AfghanVehiclePlate({
       container: "w-[166px] h-[63px] aspect-[2.62/1] rounded-[5px]",
       border: "border-[1.6px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[14pt] leading-none",
-      provFaLong: "text-[11.5pt] leading-none",
-      landmarkH: "h-[16px]",
-      provEn: "text-[12pt] leading-none tracking-[0.06em]",
+      provFa: "text-[12pt] leading-none",
+      provFaLong: "text-[10pt] leading-none",
+      landmarkH: "h-[14px]",
+      provEn: "text-[10.5pt] leading-none tracking-[0.06em]",
       numFa: "text-[20pt] leading-none",
       numEn: "text-[16pt] leading-none",
       digitGapFa: "0.12em",
@@ -172,10 +172,10 @@ export function AfghanVehiclePlate({
       container: "w-[194px] h-[74px] aspect-[2.62/1] rounded-[6px]",
       border: "border-[1.8px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[16pt] leading-none",
-      provFaLong: "text-[13pt] leading-none",
-      landmarkH: "h-[20px]",
-      provEn: "text-[14pt] leading-none tracking-[0.06em]",
+      provFa: "text-[14pt] leading-none",
+      provFaLong: "text-[11.5pt] leading-none",
+      landmarkH: "h-[18px]",
+      provEn: "text-[12pt] leading-none tracking-[0.06em]",
       numFa: "text-[24pt] leading-none",
       numEn: "text-[19pt] leading-none",
       digitGapFa: "0.14em",
@@ -187,10 +187,10 @@ export function AfghanVehiclePlate({
       container: "w-[240px] h-[91px] aspect-[2.62/1] rounded-[7px]",
       border: "border-[2px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[20pt] leading-none",
-      provFaLong: "text-[16.5pt] leading-none",
-      landmarkH: "h-[26px]",
-      provEn: "text-[17.5pt] leading-none tracking-[0.06em]",
+      provFa: "text-[17.5pt] leading-none",
+      provFaLong: "text-[14.5pt] leading-none",
+      landmarkH: "h-[22px]",
+      provEn: "text-[15pt] leading-none tracking-[0.06em]",
       numFa: "text-[29pt] leading-none",
       numEn: "text-[23.5pt] leading-none",
       digitGapFa: "0.15em",
@@ -202,10 +202,10 @@ export function AfghanVehiclePlate({
       container: "w-[275px] h-[105px] aspect-[2.62/1] rounded-[8px]",
       border: "border-[2.5px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[23pt] leading-none",
-      provFaLong: "text-[19pt] leading-none",
-      landmarkH: "h-[30px]",
-      provEn: "text-[20pt] leading-none tracking-[0.06em]",
+      provFa: "text-[20pt] leading-none",
+      provFaLong: "text-[17pt] leading-none",
+      landmarkH: "h-[26px]",
+      provEn: "text-[17.5pt] leading-none tracking-[0.06em]",
       numFa: "text-[34pt] leading-none",
       numEn: "text-[27.5pt] leading-none",
       digitGapFa: "0.15em",
@@ -217,10 +217,10 @@ export function AfghanVehiclePlate({
       container: "w-[330px] h-[126px] aspect-[2.62/1] rounded-[10px]",
       border: "border-[3px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[28pt] leading-none",
-      provFaLong: "text-[23pt] leading-none",
-      landmarkH: "h-[36px]",
-      provEn: "text-[24pt] leading-none tracking-[0.06em]",
+      provFa: "text-[24pt] leading-none",
+      provFaLong: "text-[20pt] leading-none",
+      landmarkH: "h-[32px]",
+      provEn: "text-[21pt] leading-none tracking-[0.06em]",
       numFa: "text-[41pt] leading-none",
       numEn: "text-[33pt] leading-none",
       digitGapFa: "0.16em",
@@ -232,10 +232,10 @@ export function AfghanVehiclePlate({
       container: "w-full max-w-[280px] aspect-[2.62/1] rounded-[6px]",
       border: "border-[2px] border-black",
       padding: "px-[3%] py-[2%]",
-      provFa: "text-[clamp(14px,4.6vw,23pt)] leading-none",
-      provFaLong: "text-[clamp(11px,3.8vw,19pt)] leading-none",
-      landmarkH: "h-[clamp(15px,4.8vw,30px)]",
-      provEn: "text-[clamp(12px,4.0vw,20pt)] leading-none tracking-[0.06em]",
+      provFa: "text-[clamp(12px,4.0vw,20pt)] leading-none",
+      provFaLong: "text-[clamp(10px,3.2vw,16pt)] leading-none",
+      landmarkH: "h-[clamp(12px,3.6vw,25px)]",
+      provEn: "text-[clamp(10px,3.4vw,17pt)] leading-none tracking-[0.06em]",
       numFa: "text-[clamp(16px,6.0vw,31pt)] leading-none",
       numEn: "text-[clamp(13px,4.8vw,25pt)] leading-none",
       digitGapFa: "0.14em",
@@ -291,15 +291,18 @@ export function AfghanVehiclePlate({
           </div>
 
           {/* Middle Left: Architectural Landmark Illustration */}
-          <div className="flex items-center justify-center w-full h-[34%] pointer-events-none" aria-hidden="true">
+          <div className="flex items-center justify-center w-full h-[34%] pointer-events-none overflow-hidden my-auto" aria-hidden="true">
             <img
               src={KABUL_LANDMARK_DATA_URI}
               alt=""
-              className={`${sizeStyles.landmarkH} w-auto object-contain select-none`}
+              className={`${sizeStyles.landmarkH} w-auto max-h-full max-w-[82%] object-contain select-none`}
               style={{
-                filter: "contrast(1.15) brightness(0.9)",
-                maxWidth: "100%",
+                filter: "contrast(1.15) brightness(0.92)",
+                opacity: 1,
+                display: "block",
               }}
+              draggable={false}
+              loading="eager"
             />
           </div>
 

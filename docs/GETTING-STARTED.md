@@ -1,6 +1,6 @@
 # Getting Started with AQ COMPANIES (Sky Ariana BOL)
 
-Welcome to **AQ COMPANIES (Sky Ariana BOL v5.1.2)** — an enterprise multi-modal Bill of Lading (BOL), logistics, inventory, and ledger accounting workspace for desktop and local networks.
+Welcome to **AQ COMPANIES (Sky Ariana BOL v5.2.3)** — an enterprise multi-modal Bill of Lading (BOL), logistics, inventory, and ledger accounting workspace for desktop and local networks.
 
 ---
 
@@ -92,4 +92,4 @@ npm run build
 npm run package:win
 ```
 
-The resulting installer `AQ-COMPANIES-Setup-5.1.2.exe` is output to the `release/` directory.
+The resulting installer `AQ-COMPANIES-Setup-5.2.3.exe` is output to the `release/` directory.

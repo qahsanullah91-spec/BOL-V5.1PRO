@@ -62,9 +62,11 @@ test('A4 Preview - Authorized Signature Block & Bottom Document Layout Suite', a
     assert.match(code, /export const SignatureChamber = BottomDocumentArea/, 'SignatureChamber must alias BottomDocumentArea');
   });
 
-  await t.test('12. Issue Date card formats Gregorian and Solar Hijri dates vertically with centered labels', () => {
+  await t.test('12. Issue Date card formats Gregorian and Solar Hijri dates vertically with centered labels and enlarged prominent typography', () => {
     assert.match(code, /ISSUE DATE[\s\S]*تاریخ صدور/, 'Issue date labels must be cleanly paired');
     assert.match(code, /flex\s+flex-col\s+items-center\s+justify-center[\s\S]*issueDate[\s\S]*persianDateNumeric/, 'Dates must be flex-col stacked vertically');
+    assert.match(code, /text-\[15\.4pt\]/, 'Gregorian issue date must use enlarged 15.4pt typography');
+    assert.match(code, /text-\[16\.0pt\]/, 'Solar Hijri date pill must use enlarged 16.0pt typography');
   });
 
   await t.test('13. Driver Rent card features enlarged prominent amount and styled note badge', () => {

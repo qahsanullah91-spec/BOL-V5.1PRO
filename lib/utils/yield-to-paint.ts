@@ -16,12 +16,25 @@ export function yieldToPaint(): Promise<void> {
   }
 
   return new Promise((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (!settled) {
+        settled = true
+        resolve()
+      }
+    }
+    // requestAnimationFrame never fires while the window is hidden/occluded,
+    // so a plain rAF wait would hang the deferred action forever. Cap the
+    // paint yield — visible windows still settle on the next frame (<16ms).
+    const timer = setTimeout(finish, 50)
     if (typeof requestAnimationFrame !== 'undefined') {
       requestAnimationFrame(() => {
-        setTimeout(resolve, 0)
+        clearTimeout(timer)
+        finish()
       })
     } else {
-      setTimeout(resolve, 0)
+      clearTimeout(timer)
+      setTimeout(finish, 0)
     }
   })
 }

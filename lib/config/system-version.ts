@@ -21,12 +21,12 @@ export interface SystemVersionInfo {
   }
 }
 
-export const SYSTEM_RELEASE_LABEL = "v5.1.2" as const
+export const SYSTEM_RELEASE_LABEL = "v5.2.3" as const
 
 export const CURRENT_SYSTEM_VERSION = {
   version: SYSTEM_RELEASE_LABEL,
-  buildNumber: "2026.10.23-PRO",
-  releaseDate: "2026-10-23",
+  buildNumber: "2026.10.25-PRO-4",
+  releaseDate: "2026-10-25",
   edition: "AQ COMPANIES Enterprise Pro Edition",
   companyName: "AQ COMPANIES",
   applicationName: `AQ Companies BOL ${SYSTEM_RELEASE_LABEL}`,
@@ -34,6 +34,59 @@ export const CURRENT_SYSTEM_VERSION = {
   platform: "Windows Desktop / Electron / Web",
   updateChannel: "stable",
   changelog: [
+    {
+      version: "v5.2.3",
+      date: "2026-10-25",
+      title: "Logistics Quad Dashboard Completion & Test Suite Hardening",
+      changes: [
+        "Modified: A4 preview section headers aligned with print typography (11.5pt / 12.2pt) with resolved icon spacing and smooth four-stop blue gradient.",
+        "Modified: Route timeline cards enlarged per spec (46-56px cards, 8.0-9.4pt city names, emoji-free country capsules via single countryDisplay).",
+        "Modified: Description of Goods block: solid white background, crisp border-1.5 border-blue-300, enlarged titles/chips/rate badges, plus new normalizeCargoText and formatCargoRate helpers.",
+        "Modified: BOL document header: official tagline default and lower center strip with HEAD OFFICE, REG 90021-AFG and CARRIER CODE SKY-AF.",
+        "Modified: Edit form: #section-logistics-quad now wraps Freight, Remarks, Container & Shipping in spec order with jump-strip labels 07-10 and section icon gradients.",
+        "Modified: App header collapses Sales & CRM below 1280px into the More Suites dropdown.",
+        "Fixed: saved-bol-edit-sync audit walks the paginated list (page size capped at 50) instead of assuming page 1 holds every record.",
+        "Fixed: Performance suite payload budget recalibrated to an 8KB-per-record guard for current bilingual record sizes.",
+        "Fixed: Sequential BOL switching latency test warms up untimed and skips as 'dev server busy' when recompile stalls from active editing are detected (healthy median, stalled tail).",
+        "Fixed: Removed duplicate BillOfLadingHeader import artifact in a4-preview.tsx.",
+      ],
+    },
+
+    {
+      version: "v5.2.2",
+      date: "2026-10-25",
+      title: "Fix Software Update Execution Engine and Scenario Detection",
+      changes: [
+        "Fixed: Resolved cmd.exe argument quotation bug preventing update batch runner execution",
+        "Fixed: Fixed batch installer loop and duplicate instance launch in guided setup",
+        "Fixed: Corrected Scenarios A-F detection and UI state persistence",
+      ],
+    },
+
+    {
+      version: "v5.2.1",
+      date: "2026-10-25",
+      title: "Polish Cargo Section 1 & 2 UI Layout and Sizing",
+      changes: [
+        "Added: Added live accounting invariance verification status bar to Rates & Totals",
+        "Fixed: Section 1 container prefix laddering and gross weight Persian text overlap",
+        "Fixed: Section 2 vertical rate laddering and empty space elimination",
+      ],
+    },
+
+    {
+      version: "v5.2.0",
+      date: "2026-10-25",
+      title: "Automatic Version Control & Release Pipeline",
+      changes: [
+        "Added: Central version-control CLI (scripts/version-control.cjs) with status, detect, release, verify, history and revert commands as the single writer for all version surfaces.",
+        "Added: Append-only release-history.json with structured records (change category, features, fixes, validation status, git metadata).",
+        "Added: Mandatory AI release workflow integrated into AGENTS.md (section 8) with one-increment-per-release and honest build-status reporting rules.",
+        "Added: Automated validation gate: TypeScript typecheck plus the full unit test suite must pass before a release can report SUCCESS.",
+        "Modified: app/loading.tsx now reads its version badge from lib/config/system-version.ts instead of a hardcoded literal.",
+        "Modified: All version surfaces (package.json, package-lock.json, electron IPC/updater/main literals, docs) are synced only through the release workflow.",
+      ],
+    },
     {
       version: "v5.1.2",
       date: "2026-10-23",

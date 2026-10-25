@@ -63,7 +63,7 @@ import { A4PreviewToolbar } from "./a4-preview-toolbar"
 import { useA4PreviewScale, A4_WIDTH_PX, A4_HEIGHT_PX, resetAllParentScrolls } from "./use-a4-preview-scale"
 import { parseSyncedCargoItems, shouldSplitToPage2 } from "@/lib/utils/cargo-grid"
 import { CopyWhatsAppButton } from "./copy-whatsapp-button"
-const PrintSafeBOL = dynamic(safeChunkDynamic(() => import("./print-safe-bol")), { ssr: false })
+import PrintSafeBOL from "./print-safe-bol"
 import { BillOfLadingFormData, initialFormData, RouteStop, AFGHANISTAN_DOCUMENT_OPTIONS, DOCUMENT_CATEGORIES, AfghanistanDocumentDetail, type DocumentCategory, NOTE_THEMES, type NoteTheme, CARGO_ROUTE_NOTE_OPTIONS } from "@/lib/types/bill-of-lading"
 import { isUUID, cleanBolNumber, normalizeBolRecord, parseBolSeq, formatCanonicalDriverRent } from "@/lib/utils/bol-filters"
 import { onlineSaveManager } from "@/lib/client/online-save-manager"
@@ -163,40 +163,37 @@ interface SavedParty {
 }
 
 function PrintPreviewPortal({ children }: { children: ReactNode }) {
-  const [isPrinting, setIsPrinting] = useState(false)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    const handleBeforePrint = () => setIsPrinting(true)
-    const handleAfterPrint = () => setIsPrinting(false)
+    const handleBeforePrint = () => {
+      document.body.setAttribute("data-print-active", "bol")
+    }
+    const handleAfterPrint = () => {
+      document.body.removeAttribute("data-print-active")
+    }
     window.addEventListener("beforeprint", handleBeforePrint)
     window.addEventListener("afterprint", handleAfterPrint)
     return () => {
       window.removeEventListener("beforeprint", handleBeforePrint)
       window.removeEventListener("afterprint", handleAfterPrint)
+      document.body.removeAttribute("data-print-active")
     }
   }, [])
 
   useEffect(() => {
-    if (!isPrinting) return
-    const existing = document.getElementById("bol-print-preview-root") as HTMLDivElement | null
-    const root = existing || document.createElement("div")
-
-    root.id = "bol-print-preview-root"
-    root.dataset.printRoot = "true"
-    if (!existing) {
+    let root = document.getElementById("bol-print-preview-root") as HTMLDivElement | null
+    if (!root) {
+      root = document.createElement("div")
+      root.id = "bol-print-preview-root"
+      root.className = "bol-print-root"
+      root.dataset.printRoot = "true"
       document.body.appendChild(root)
     }
     setContainer(root)
+  }, [])
 
-    return () => {
-      if (!existing && root.parentElement === document.body) {
-        document.body.removeChild(root)
-      }
-    }
-  }, [isPrinting])
-
-  if (!isPrinting || !container) return null
+  if (!container) return null
   return createPortal(children, container)
 }
 
@@ -502,12 +499,24 @@ function yieldToPaint(): Promise<void> {
     return (window as any).scheduler.yield()
   }
   return new Promise((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (!settled) {
+        settled = true
+        resolve()
+      }
+    }
+    // requestAnimationFrame never fires while the window is hidden/occluded —
+    // cap the paint yield so deferred actions cannot hang in that state.
+    const timer = setTimeout(finish, 50)
     if (typeof requestAnimationFrame !== "undefined") {
       requestAnimationFrame(() => {
-        setTimeout(resolve, 0)
+        clearTimeout(timer)
+        finish()
       })
     } else {
-      setTimeout(resolve, 0)
+      clearTimeout(timer)
+      setTimeout(finish, 0)
     }
   })
 }
@@ -1028,6 +1037,53 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   const [apiShippers, setApiShippers] = useState<SavedParty[]>([])
   const [apiConsignees, setApiConsignees] = useState<SavedParty[]>([])
   const [apiNotifyParties, setApiNotifyParties] = useState<SavedParty[]>([])
+  const [savedTruckPresets, setSavedTruckPresets] = useState<Array<{
+    id: string
+    label: string
+    truck_number: string
+    driver_name: string
+    driver_father_name: string
+    driver_contact: string
+    driver_rent: string
+  }>>([
+    {
+      id: "preset-kandahar",
+      label: "کندهار - هلمند | ۳۲۹۲ هلمند (محمد ولد عبدالله)",
+      truck_number: "3292 هلمند",
+      driver_name: "محمد",
+      driver_father_name: "عبدالله",
+      driver_contact: "+93 703751149",
+      driver_rent: "46,000 AFN - کرایه واپسی",
+    },
+    {
+      id: "preset-herat",
+      label: "هرات - اسلام قلعه | ۳۸۵۵۲ هرات (احمد ولد غلام‌سخی)",
+      truck_number: "38552 هرات",
+      driver_name: "احمد",
+      driver_father_name: "غلام‌سخی",
+      driver_contact: "+93 799123456",
+      driver_rent: "45,000 AFN - کرایه واپسی",
+    },
+    {
+      id: "preset-kabul",
+      label: "کابل - جلال‌آباد | ۲۸۷۷ کابل (نجیب‌الله ولد شیرخان)",
+      truck_number: "2877 کابل",
+      driver_name: "نجیب‌الله",
+      driver_father_name: "شیرخان",
+      driver_contact: "+93 788654321",
+      driver_rent: "53,000 AFN - کرایه واپسی",
+    },
+    {
+      id: "preset-nimroz",
+      label: "نیمروز - زرنج | ۱۹۴۳ نیمروز (عبدالحکیم ولد بسم‌الله)",
+      truck_number: "1943 نیمروز",
+      driver_name: "عبدالحکیم",
+      driver_father_name: "بسم‌الله",
+      driver_contact: "+93 777987654",
+      driver_rent: "38,500 AFN - کرایه واپسی",
+    },
+  ])
+  const [selectedTruckPresetId, setSelectedTruckPresetId] = useState<string>("")
   const [savedNotes1, setSavedNotes1] = useState<SavedNoteOption[]>([])
   const [selectedNote1Id, setSelectedNote1Id] = useState<string>("")
   const [savedNotes2, setSavedNotes2] = useState<SavedNoteOption[]>([])
@@ -2313,6 +2369,68 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     window.localStorage.setItem(storageKey, JSON.stringify(parties))
   }
 
+  const applyTruckPreset = (id: string) => {
+    const found = savedTruckPresets.find((p) => p.id === id)
+    if (!found) return
+    setSelectedTruckPresetId(id)
+    startTransition(() => {
+      setFormData((prev) => ({
+        ...prev,
+        truck_number: found.truck_number || prev.truck_number,
+        driver_name: found.driver_name || prev.driver_name,
+        driver_father_name: found.driver_father_name || prev.driver_father_name,
+        driver_contact: found.driver_contact || prev.driver_contact,
+        driver_rent: found.driver_rent || prev.driver_rent,
+      }))
+      setHasUnsavedChanges(true)
+    })
+    toast.success(`Applied vehicle preset: ${found.label}`)
+  }
+
+  const saveCurrentTruckPreset = () => {
+    const truckNo = (formData.truck_number || "").trim()
+    const rawDriverName = (formData.driver_name || "").replace(/^[\s,،-]+|[\s,،-]+$/g, "").trim()
+    if (!truckNo && !rawDriverName) {
+      toast.error("Enter a truck number or driver name before saving a preset.")
+      return
+    }
+    const label = `${truckNo || "Vehicle"} | ${rawDriverName || "Driver"}`
+    const newPreset = {
+      id: `truck-${Date.now()}`,
+      label,
+      truck_number: truckNo,
+      driver_name: rawDriverName,
+      driver_father_name: (formData.driver_father_name || "").trim(),
+      driver_contact: (formData.driver_contact || "").trim(),
+      driver_rent: (formData.driver_rent || "").trim(),
+    }
+    const nextList = [newPreset, ...savedTruckPresets.filter((p) => p.label !== label)]
+    setSavedTruckPresets(nextList)
+    setSelectedTruckPresetId(newPreset.id)
+    try {
+      window.localStorage.setItem("skybol:saved-truck-presets", JSON.stringify(nextList))
+    } catch {}
+    toast.success(`Saved truck & driver preset: ${label}`)
+  }
+
+  const splitDriverFatherName = () => {
+    const current = (formData.driver_name || "").replace(/^[\s,،-]+/, "").trim()
+    const match = current.match(/^(.*?)\s+(?:ولد|بن)\s+(.*)$/)
+    if (match) {
+      const driver = match[1].replace(/^[\s,،-]+|[\s,،-]+$/g, "").trim()
+      const father = match[2].replace(/^[\s,،-]+|[\s,،-]+$/g, "").trim()
+      startTransition(() => {
+        setFormData((prev) => ({
+          ...prev,
+          driver_name: driver,
+          driver_father_name: father,
+        }))
+        setHasUnsavedChanges(true)
+      })
+      toast.success(`Split: Driver = "${driver}", Father = "${father}"`)
+    }
+  }
+
   const applySavedNote1 = (id: string) => {
     const found = savedNotes1.find((n) => n.id === id)
     if (!found) return
@@ -3192,11 +3310,25 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     if (!desc.trim()) return
     const cleaned = desc
       .split("\n")
-      .map((line) => line.trim())
+      .map((line) => {
+        let l = line.trim()
+        if (!l) return ""
+        // Auto-correct common clerical cargo typos
+        l = l
+          .replace(/\braisnis\b/gi, (m) => (m === m.toUpperCase() ? "RAISINS" : m[0] === m[0].toUpperCase() ? "Raisins" : "raisins"))
+          .replace(/\bapricotes\b/gi, (m) => (m === m.toUpperCase() ? "APRICOTS" : "apricots"))
+          .replace(/\bfigues\b/gi, (m) => (m === m.toUpperCase() ? "FIGS" : "figs"))
+          .replace(/\bwalnutts\b/gi, (m) => (m === m.toUpperCase() ? "WALNUTS" : "walnuts"))
+          .replace(/\bpistachos\b/gi, (m) => (m === m.toUpperCase() ? "PISTACHIOS" : "pistachios"))
+          .replace(/\balmondes\b/gi, (m) => (m === m.toUpperCase() ? "ALMONDS" : "almonds"))
+          .replace(/(\d+)\s*-\s*(KGS?|KG|CTNS?|PKGS?|BAGS?|BOXES|PCS|UNITS|TONS?|LBS?)\b/gi, "$1 $2")
+          .replace(/@\s*([\d,]+(?:\.\d+)?)\s*\$/g, "@ $$$1")
+        return l
+      })
       .filter(Boolean)
       .join("\n")
     setFormData((prev) => ({ ...prev, cargo_description: cleaned }))
-    toast.success("Cargo description formatted cleanly")
+    toast.success("Cargo description formatted cleanly and verified")
   }
 
   const insertBilingualCargoHeader = () => {
@@ -5309,9 +5441,15 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     stickerLayout: StickerLayout = "single",
     onProgress?: (progress: number, message: string) => void,
   ) => {
-    const bolElement =
+    let bolElement =
       (document.querySelector('[data-pdf-export="true"]') as HTMLElement | null) ||
       (document.querySelector('[data-bol-a4="true"]') as HTMLElement | null)
+    if (!bolElement) {
+      await new Promise((resolve) => setTimeout(resolve, 80))
+      bolElement =
+        (document.querySelector('[data-pdf-export="true"]') as HTMLElement | null) ||
+        (document.querySelector('[data-bol-a4="true"]') as HTMLElement | null)
+    }
     return generateShippingDocumentsPDF({
       kind,
       data: shippingDocumentData,
@@ -5343,6 +5481,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
     setIsSaving(true)
     setIsShippingExporting(true)
+    setIsExportingPDF(true)
     await new Promise((resolve) => setTimeout(resolve, 80))
     const fileName = buildShippingDocumentFileName(kind, shippingDocumentData)
     const toastId = toast.loading("Building shipping documents...", {
@@ -5372,6 +5511,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     } finally {
       setIsSaving(false)
       setIsShippingExporting(false)
+      setIsExportingPDF(false)
     }
   }
 
@@ -5392,6 +5532,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     setIsSaving(true)
 
     setIsShippingExporting(true)
+    setIsExportingPDF(true)
     await new Promise((resolve) => setTimeout(resolve, 80))
     const toastId = toast.loading("Preparing print-ready PDF...", { description: fileName })
     try {
@@ -5415,6 +5556,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     } finally {
       setIsSaving(false)
       setIsShippingExporting(false)
+      setIsExportingPDF(false)
     }
   }
 
@@ -6033,11 +6175,12 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   { id: "section-shipper", label: "02 Shipper", icon: User },
                   { id: "section-consignee", label: "03 Consignee", icon: User },
                   { id: "section-notify", label: "04 Notify", icon: Bell },
-                  { id: "section-cargo", label: "05 Cargo", icon: Package },
-                  { id: "section-routes", label: "07 Routes", icon: MapPin },
-                  { id: "section-container", label: "08 Container", icon: Box },
-                  { id: "section-shipping", label: "09 Shipping", icon: Ship },
-                  { id: "section-freight", label: "10 Freight", icon: Receipt },
+                  { id: "section-routes", label: "05 Routes", icon: MapPin },
+                  { id: "section-cargo", label: "06 Cargo", icon: Package },
+                  { id: "section-freight", label: "07 Freight", icon: Receipt },
+                  { id: "section-remarks", label: "08 Remarks", icon: FileText },
+                  { id: "section-container", label: "09 Container", icon: Box },
+                  { id: "section-shipping", label: "10 Shipping", icon: Ship },
                   { id: "section-afghan", label: "11 Docs", icon: ScrollText },
                 ].map((sec) => {
                   const IconComponent = sec.icon
@@ -6059,395 +6202,216 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               </div>
             </div>
 
-            {/* 01 Document Information Card */}
-            <Card id="section-doc" className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white/90 dark:border-slate-800 shadow-[0_20px_50px_-15px_rgba(30,58,138,0.12)] dark:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all">
-              {/* Top Accent Strip */}
-              <div className="h-1 w-full bg-linear-to-r from-blue-600 via-indigo-600 to-cyan-500" />
-              
-              <CardHeader className="py-2 px-3 sm:py-2.5 sm:px-4 border-b border-slate-100/80 dark:border-slate-800 bg-linear-to-r from-blue-50/80 via-indigo-50/40 to-white/70 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
-                <CardTitle className="text-sm flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-linear-to-br from-blue-600 to-indigo-700 text-white text-[11px] font-black shadow-2xs">
-                      01
-                    </span>
-                    <div className="p-1.5 rounded-xl bg-linear-to-br from-blue-500/10 to-indigo-500/15 text-blue-700 dark:text-blue-400 border border-blue-200/70 dark:border-blue-800/70 shadow-2xs">
-                      <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-black text-slate-950 dark:text-slate-100 text-xs sm:text-sm tracking-tight select-none">Document Information</span>
-                        <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                          BOL Header
-                        </span>
-                      </div>
-                      <span className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
-                        BOL Reference, Serial & Issue Dates • <span className="font-[vazirmatn] text-blue-700 dark:text-blue-400">شماره و تاریخ‌های بارنامه</span>
-                      </span>
-                    </div>
-                  </div>
+{/* ══════════════════════════════════════════════════════════════════════════════════
+               REPOSITIONED LOGISTICS LAYOUT: 
+               Left Column: Document Notes & Contacts
+               Right Column TOP: Document Information
+               Right Column BELOW: Truck & Driver Details
+               ══════════════════════════════════════════════════════════════════════════════════ */}
+            <div id="section-doc" className="logistics-page-layout grid grid-cols-1 min-[1200px]:grid-cols-2 gap-[18px] items-start w-full max-w-full min-w-0">
+              {/* Left Column: Document Notes & Contacts */}
+              <div className="logistics-left-column min-w-0 w-full">
+                {/* Document Notes & Contacts Card */}
+                <Card id="section-notes" className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white/90 dark:border-slate-800 shadow-[0_20px_50px_-15px_rgba(30,58,138,0.12)] dark:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all flex flex-col justify-between">
+                  {/* Top Accent Strip */}
+                  <div className="h-1 w-full bg-linear-to-r from-blue-600 via-indigo-600 to-cyan-500" />
 
-                  {/* Header Actions & Badges */}
-                  <div className="flex items-center flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      onClick={handleSetToday}
-                      className="inline-flex items-center gap-1 h-6.5 px-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/60 border border-blue-200 text-[11px] font-bold transition shadow-2xs cursor-pointer"
-                      title="Set issue date to today / تنظیم به تاریخ امروز"
-                    >
-                      <Zap className="h-3 w-3 text-amber-500" />
-                      <span>Today / امروز</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleIncrementBolNumber}
-                      className="inline-flex items-center gap-1 h-6.5 px-2 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 dark:hover:bg-indigo-900/60 border border-indigo-200 text-[11px] font-bold transition shadow-2xs cursor-pointer"
-                      title="Generate next BOL sequence number / ایجاد شماره بارنامه بعدی"
-                    >
-                      <Plus className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
-                      <span>Next BOL #</span>
-                    </button>
-
-                    <span className="hidden sm:inline-flex text-[11px] font-extrabold text-blue-900 dark:text-blue-300 font-[vazirmatn] bg-white/90 dark:bg-slate-850 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800 shadow-2xs">
-                      اطلاعات سند و تاریخ‌ها
-                    </span>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-3 p-3 sm:p-4">
-                {/* 3-Column Grid for BOL Number & Issue Dates */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3.5">
-                  {/* 1. BOL Number */}
-                  <div className="p-2.5 sm:p-3 rounded-xl bg-linear-to-br from-blue-50/80 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border border-blue-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                          <span className="p-0.5 rounded-md bg-blue-600 text-white">
-                            <Hash className="w-3 h-3" />
+                  <CardHeader className="py-2.5 px-3 sm:py-3 sm:px-4 border-b border-slate-100/80 dark:border-slate-800 bg-linear-to-r from-blue-50/80 via-indigo-50/40 to-white/70 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
+                    <div className="flex flex-col gap-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center justify-center w-7 h-7 rounded-xl bg-blue-600 text-white shadow-xs">
+                            <Bookmark className="w-4 h-4" />
                           </span>
-                          <span>BOL Number</span>
-                        </label>
-                        <span className="font-[vazirmatn] text-blue-800 dark:text-blue-400 font-bold text-[11px]">شماره بارنامه</span>
-                      </div>
-
-                      {isEditingBolNumber ? (
-                        <div className="flex gap-1.5 mt-1">
-                          <Input
-                            value={bolNumber}
-                            onChange={(e) => setBolNumber(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") setIsEditingBolNumber(false)
-                            }}
-                            className="font-mono font-black text-xs sm:text-sm text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-700 shadow-inner rounded-xl h-8.5 sm:h-9 focus:ring-2 focus:ring-blue-500/20 uppercase"
-                            placeholder="BOL-2026-NSA685"
-                            autoFocus
-                          />
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => setIsEditingBolNumber(false)}
-                            className="rounded-xl h-8.5 sm:h-9 px-3 font-bold text-xs bg-blue-600 text-white hover:bg-blue-500 shadow-sm shadow-blue-500/20 shrink-0 cursor-pointer"
-                          >
-                            <Check className="h-3.5 w-3.5 mr-1" />
-                            Done
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <div className="flex-1 px-2.5 py-1 sm:py-1.5 bg-white dark:bg-slate-950 rounded-xl font-mono font-black text-xs sm:text-sm text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-slate-700 shadow-2xs flex items-center justify-between overflow-hidden">
-                            <span className="truncate tracking-wide">{isLoading ? <Loader2 className="h-3 w-3 animate-spin text-blue-600" /> : bolNumber || "BOL-000"}</span>
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800 uppercase">Live</span>
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-black text-slate-950 dark:text-slate-100 text-xs sm:text-sm tracking-tight uppercase select-none">
+                                Document Notes &amp; Contacts
+                              </span>
+                              <span className="text-slate-300 dark:text-slate-700">│</span>
+                              <span className="font-[vazirmatn] text-blue-700 dark:text-blue-400 font-extrabold text-xs sm:text-sm">
+                                یادداشت‌ها، مستندات و تماس‌های مربوطه
+                              </span>
+                            </div>
+                            <span className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
+                              BOL Reference, Serial &amp; Issue Dates • <span className="font-[vazirmatn] text-blue-700 dark:text-blue-400">شماره و تاریخ‌های بارنامه</span>
+                            </span>
                           </div>
+                        </div>
+
+                        {/* Top Action Buttons (Save to Presets, Sync with B/L, Reverse, Add Stop) */}
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setIsEditingBolNumber(true)}
-                            className="h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 border-blue-200 dark:border-slate-700 text-blue-700 dark:text-slate-200 shadow-2xs shrink-0 cursor-pointer"
-                            title="Edit BOL Number manually"
+                            type="button"
+                            size="sm"
+                            onClick={openSaveRouteModal}
+                            className="h-7 sm:h-7.5 rounded-lg border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 text-[10.5px] sm:text-xs font-black shadow-xs cursor-pointer transition-all gap-1"
+                            title="Save current route path into Quick Presets list for one-click reuse"
                           >
-                            <Edit3 className="h-3.5 w-3.5" />
+                            <BookmarkPlus className="h-3.5 w-3.5 text-white" />
+                            <span>Save to Presets / ذخیره مسیر</span>
                           </Button>
+
                           <Button
+                            type="button"
                             variant="outline"
-                            size="icon"
-                            onClick={handleCopyBolNumber}
-                            className="h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 border-blue-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs shrink-0 cursor-pointer"
-                            title="Copy BOL Number to clipboard"
+                            size="sm"
+                            onClick={syncRoutesWithBOLPorts}
+                            className="h-7 sm:h-7.5 rounded-lg border-blue-200 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/60 px-2.5 text-[10.5px] sm:text-xs font-extrabold text-blue-900 dark:text-blue-300 shadow-2xs hover:bg-blue-100 dark:hover:bg-blue-900/60 cursor-pointer transition-all"
+                            title="Synchronize Stop 1 with Port of Loading and Last Stop with Port of Discharge"
                           >
-                            <Copy className="h-3.5 w-3.5" />
+                            <ArrowLeftRight className="h-3 w-3 mr-1 text-blue-700 dark:text-blue-400" />
+                            <span>Sync with B/L / همگام‌سازی</span>
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={reverseRoutes}
+                            className="h-7 sm:h-7.5 rounded-lg border-purple-200 dark:border-purple-800 bg-purple-50/90 dark:bg-purple-950/60 px-2.5 text-[10.5px] sm:text-xs font-extrabold text-purple-900 dark:text-purple-300 shadow-2xs hover:bg-purple-100 dark:hover:bg-purple-900/60 cursor-pointer transition-all"
+                            title="Reverse the entire route sequence"
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1 text-purple-700 dark:text-purple-400" />
+                            <span>Reverse / معکوس مسیر</span>
+                          </Button>
+
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={addRouteStop}
+                            className="h-7 sm:h-7.5 rounded-lg bg-linear-to-r from-amber-500 to-orange-500 text-white px-2.5 text-[10.5px] sm:text-xs font-extrabold shadow-xs hover:from-amber-600 hover:to-orange-600 cursor-pointer transition-all"
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-0.5 text-white" />
+                            <span>Add Stop / افزودن توقف</span>
                           </Button>
                         </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-2 pt-1.5 border-t border-blue-100 dark:border-slate-800 flex items-center justify-between text-[10.5px] text-slate-500 dark:text-slate-400">
-                      <span>Unique Document ID</span>
-                      <button
-                        type="button"
-                        onClick={handleIncrementBolNumber}
-                        className="text-blue-600 dark:text-blue-400 font-bold hover:underline inline-flex items-center gap-0.5 cursor-pointer"
-                      >
-                        <Plus className="h-3 w-3" /> Auto +1
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 2. Issue Date (Gregorian) */}
-                  <div className="p-2.5 sm:p-3 rounded-xl bg-linear-to-br from-indigo-50/80 via-white to-indigo-50/30 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border border-indigo-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                          <span className="p-0.5 rounded-md bg-indigo-600 text-white">
-                            <Calendar className="w-3 h-3" />
-                          </span>
-                          <span>Issue Date (Gregorian)</span>
-                        </label>
-                        <span className="font-[vazirmatn] text-indigo-800 dark:text-indigo-400 font-bold text-[11px]">تاریخ میلادی</span>
                       </div>
 
-                      <div className="relative flex items-center mt-1">
-                        <div className="absolute left-2.5 text-indigo-600 dark:text-indigo-400 pointer-events-none">
-                          <Calendar className="w-3.5 h-3.5" />
-                        </div>
-                        <Input
-                          type="date"
-                          value={issueDate}
-                          onChange={(e) => handleDateChange(e.target.value)}
-                          className="pl-8 font-mono font-black text-xs sm:text-sm text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-indigo-200 dark:border-indigo-900/60 shadow-2xs rounded-xl h-8.5 sm:h-9 focus:bg-white dark:focus:bg-slate-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
-                        />
-                      </div>
-                    </div>
+                      {/* Quick Presets Strip */}
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10.5px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
+                          <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                          QUICK PRESETS:
+                        </span>
 
-                    <div className="mt-2 pt-1.5 border-t border-indigo-100 dark:border-slate-800 flex items-center justify-between text-[10.5px]">
-                      <span className="text-slate-500 dark:text-slate-400 truncate">
-                        {issueDate ? new Date(issueDate).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", year: "numeric", month: "short", day: "numeric" }) : "Select date"}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <button
+                        {savedRoutePresets.map((preset, pIdx) => (
+                          <div key={`left-saved-preset-${preset.id || pIdx}`} className="relative group inline-flex items-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => applyCustomRoutePreset(preset)}
+                              className="h-6.5 rounded-lg border border-amber-300 bg-linear-to-r from-amber-50 to-orange-50/80 pr-5 pl-2 text-[10.5px] font-black text-amber-950 shadow-2xs hover:border-amber-400 hover:from-amber-100 hover:to-orange-100 cursor-pointer transition-all gap-1"
+                              title={`Click to apply ${preset.title} (${preset.routes.length} stops)`}
+                            >
+                              <span className="pointer-events-none">{preset.icon || "⭐"}</span>
+                              <span className="max-w-[130px] truncate pointer-events-none">{preset.title}</span>
+                              <span className="rounded-full bg-amber-200/90 px-1 py-0.2 text-[8.5px] font-black text-amber-900 pointer-events-none">
+                                {preset.routes.length}
+                              </span>
+                            </Button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteRoutePreset(preset.id, e)}
+                              className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-0.5 rounded-full hover:bg-red-200 text-red-600 transition-all cursor-pointer"
+                              title="Delete this saved preset"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </div>
+                        ))}
+
+                        <Button
                           type="button"
-                          onClick={handleSetToday}
-                          className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
+                          variant="ghost"
+                          size="sm"
+                          onClick={applyHeratIslamQalaDougharounPreset}
+                          className="h-6.5 rounded-lg border border-amber-300/80 bg-amber-50/80 dark:bg-amber-950/40 text-[10px] font-extrabold text-amber-950 dark:text-amber-200 shadow-2xs hover:bg-amber-100 cursor-pointer transition-all gap-1"
                         >
-                          Today
-                        </button>
-                        <span className="text-slate-300 dark:text-slate-600">•</span>
-                        <button
+                          <span>Islam Qala, AF ➔ Nhava ...</span>
+                          <span className="rounded-full bg-amber-200 dark:bg-amber-800 px-1 text-[8.5px] font-black">5</span>
+                        </Button>
+
+                        <Button
                           type="button"
-                          onClick={handleSetYesterday}
-                          className="text-slate-500 dark:text-slate-400 font-bold hover:underline cursor-pointer"
+                          variant="ghost"
+                          size="sm"
+                          onClick={applyKandaharNimrozBandarAbbasDubaiIndiaPreset}
+                          className="h-6.5 rounded-lg border border-amber-300/80 bg-amber-50/80 dark:bg-amber-950/40 text-[10px] font-extrabold text-amber-950 dark:text-amber-200 shadow-2xs hover:bg-amber-100 cursor-pointer transition-all gap-1"
                         >
-                          -1d
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                          <span>Kandahar, AF ➔ Nhava S...</span>
+                          <span className="rounded-full bg-amber-200 dark:bg-amber-800 px-1 text-[8.5px] font-black">5</span>
+                        </Button>
 
-                  {/* 3. Issue Date (Persian Solar) */}
-                  <div className="p-2.5 sm:p-3 rounded-xl bg-linear-to-br from-emerald-50/80 via-white to-emerald-50/30 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border border-emerald-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                          <span className="p-0.5 rounded-md bg-emerald-600 text-white">
-                            <Globe className="w-3 h-3" />
-                          </span>
-                          <span>Issue Date (Persian)</span>
-                        </label>
-                        <span className="font-[vazirmatn] text-emerald-800 dark:text-emerald-400 font-bold text-[11px]">تاریخ هجری شمسی</span>
-                      </div>
-
-                      <div className="px-2.5 py-1 bg-white dark:bg-slate-950 rounded-xl border border-emerald-200/90 dark:border-emerald-800/60 shadow-2xs flex flex-col items-start justify-center h-8.5 sm:h-9">
-                        <p className="font-[vazirmatn] text-[11px] font-black text-slate-900 dark:text-slate-100 leading-tight truncate w-full" dir="ltr" style={{ unicodeBidi: "isolate" }}>
-                          {persianDate || "محاسبه خودکار..."}
-                        </p>
-                        <p className="font-[vazirmatn] text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 leading-tight font-mono" dir="ltr" style={{ unicodeBidi: "isolate" }}>
-                          {persianDateNumeric || "--/--/----"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-2 pt-1.5 border-t border-emerald-100 dark:border-slate-800 flex items-center justify-between text-[10.5px]">
-                      <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1 font-[vazirmatn]">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        محاسبه خودکار خورشیدی
-                      </span>
-                      <span className="text-[9.5px] text-slate-400 font-mono">Solar Hijri</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Truck & Driver Details Subsection */}
-                <div className="rounded-2xl border border-sky-200/90 dark:border-slate-800 bg-linear-to-br from-sky-50/70 via-blue-50/30 to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 p-4 sm:p-5 shadow-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3.5">
-                    <div className="flex items-center gap-2">
-                      <span className="p-1.5 rounded-xl bg-blue-600 text-white shadow-xs">
-                        <Truck className="w-4 h-4" />
-                      </span>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-1.5">
-                          <span>Truck & Driver Details</span>
-                          <span className="text-[10px] font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800 uppercase">
-                            Transport Vehicle
-                          </span>
-                        </h4>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium font-[vazirmatn]">
-                          اطلاعات موتر، راننده، شماره تماس و کرایه توافقی
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-1">
-                      {[
-                        { label: "46,000 AFN", value: "46,000 AFN - کرایه واپسی" },
-                        { label: "45,000 AFN", value: "45,000 AFN - کرایه واپسی" },
-                        { label: "53,000 AFN", value: "53,000 AFN - کرایه واپسی" },
-                        { label: "38,500 AFN", value: "38,500 AFN - کرایه واپسی" },
-                      ].map((preset, pIdx) => (
-                        <button
-                          key={`rent-preset-${preset.label}-${pIdx}`}
+                        <Button
                           type="button"
-                          onClick={() => {
-                            startTransition(() => {
-                              setFormData((prev) => ({ ...prev, driver_rent: preset.value }))
-                              setHasUnsavedChanges(true)
-                            })
-                            toast.success(`Set Driver Rent: ${preset.value}`)
-                          }}
-                          className="inline-flex rounded-lg border border-red-200 dark:border-red-900/60 bg-white/95 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-mono font-bold text-red-700 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white transition cursor-pointer [&_*]:pointer-events-none"
+                          variant="ghost"
+                          size="sm"
+                          onClick={applyDogharonToMersinReeferExportPreset}
+                          className="h-6.5 rounded-lg border border-cyan-300/80 bg-cyan-50/80 dark:bg-cyan-950/40 text-[10px] font-extrabold text-cyan-950 dark:text-cyan-200 shadow-2xs hover:bg-cyan-100 cursor-pointer transition-all"
                         >
-                          {preset.label} - کرایه واپسی
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                          <Ship className="h-3 w-3 mr-1 text-cyan-700" />
+                          <span>Route 3: Dogharon ➔ Mersin Reefer ($14,494)</span>
+                        </Button>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3">
-                    {/* 1. Truck No */}
-                    <div>
-                      <label className="mb-1 text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between gap-1">
-                        <span className="flex items-center gap-1">
-                          <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                          <span>Truck No.</span>
-                        </span>
-                        <span className="font-[vazirmatn] text-[10.5px] font-bold text-blue-800 dark:text-blue-400">شماره موتر/کامیون</span>
-                      </label>
-                      <Input
-                        name="truck_number"
-                        value={formData.truck_number}
-                        onChange={handleInputChange}
-                        placeholder="e.g. 2877 کابل"
-                        className="rounded-xl h-8.5 sm:h-9 font-mono text-xs sm:text-sm font-black uppercase text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                      />
-                      {formData.truck_number?.trim() && (
-                        <div className="mt-1.5 flex items-center justify-center">
-                          <AfghanTruckPlate value={formData.truck_number} size="compact" />
-                        </div>
-                      )}
-                    </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={applyDougharounToMersinExportPreset}
+                          className="h-6.5 rounded-lg border border-purple-300/80 bg-purple-50/80 dark:bg-purple-950/40 text-[10px] font-extrabold text-purple-950 dark:text-purple-200 shadow-2xs hover:bg-purple-100 cursor-pointer transition-all"
+                        >
+                          <Truck className="h-3 w-3 mr-1 text-purple-700" />
+                          <span>TR Route 1: Dougharoun ➡️ Mersin ($3,100)</span>
+                        </Button>
 
-                    {/* 2. Driver Name */}
-                    <div>
-                      <label className="mb-1 text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between gap-1">
-                        <span className="flex items-center gap-1">
-                          <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                          <span>Driver Name</span>
-                        </span>
-                        <span className="font-[vazirmatn] text-[10.5px] font-bold text-blue-800 dark:text-blue-400">نام راننده</span>
-                      </label>
-                      <Input
-                        name="driver_name"
-                        value={formData.driver_name}
-                        onChange={handleInputChange}
-                        placeholder="Enter driver name..."
-                        className="rounded-xl h-8.5 sm:h-9 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                      />
-                    </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={applyNimrozToBandarAbbasExportPreset}
+                          className="h-6.5 rounded-lg border border-amber-300/80 bg-amber-50/80 dark:bg-amber-950/40 text-[10px] font-extrabold text-amber-950 dark:text-amber-200 shadow-2xs hover:bg-amber-100 cursor-pointer transition-all"
+                        >
+                          <Ship className="h-3 w-3 mr-1 text-amber-700" />
+                          <span>TR Route 2: Nimroz ➡️ Bandar Abbas ($1,550)</span>
+                        </Button>
 
-                    {/* 3. Father Name */}
-                    <div>
-                      <label className="mb-1 text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between gap-1">
-                        <span className="flex items-center gap-1">
-                          <User className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Father Name</span>
-                        </span>
-                        <span className="font-[vazirmatn] text-[10.5px] font-bold text-blue-800 dark:text-blue-400">نام پدر</span>
-                      </label>
-                      <Input
-                        name="driver_father_name"
-                        value={formData.driver_father_name}
-                        onChange={handleInputChange}
-                        placeholder="Father's name..."
-                        className="rounded-xl h-8.5 sm:h-9 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                      />
-                    </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={applyMazarHairatanTashkentPreset}
+                          className="h-6.5 rounded-lg border border-emerald-300/80 bg-emerald-50/80 dark:bg-emerald-950/40 text-[10px] font-extrabold text-emerald-950 dark:text-emerald-200 shadow-2xs hover:bg-emerald-100 cursor-pointer transition-all"
+                        >
+                          <span>UZ Mazar ➔ Hairatan ➔ Tashkent</span>
+                        </Button>
 
-                    {/* 4. Driver Contact */}
-                    <div>
-                      <label className="mb-1 text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between gap-1">
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                          <span>Driver Contact</span>
-                        </span>
-                        <span className="font-[vazirmatn] text-[10.5px] font-bold text-blue-800 dark:text-blue-400">شماره تماس راننده</span>
-                      </label>
-                      <Input
-                        name="driver_contact"
-                        value={formData.driver_contact}
-                        onChange={handleInputChange}
-                        placeholder="+93 700 123 456"
-                        type="tel"
-                        className="rounded-xl h-8.5 sm:h-9 font-mono text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                      />
-                    </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={applyKabulDubaiAirPreset}
+                          className="h-6.5 rounded-lg border border-blue-300/80 bg-blue-50/80 dark:bg-blue-950/40 text-[10px] font-extrabold text-blue-950 dark:text-blue-200 shadow-2xs hover:bg-blue-100 cursor-pointer transition-all"
+                        >
+                          <span>Kabul ➔ Dubai (Air)</span>
+                        </Button>
 
-                    {/* 5. Driver Rent */}
-                    <div>
-                      <label className="mb-1 text-xs font-black text-slate-700 dark:text-slate-200 flex items-center justify-between gap-1">
-                        <span className="flex items-center gap-1">
-                          <Receipt className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                          <span>Driver Rent</span>
-                        </span>
-                        <span className="font-[vazirmatn] text-[10.5px] font-extrabold text-red-700 dark:text-red-400">کرایه راننده</span>
-                      </label>
-                      <Input
-                        name="driver_rent"
-                        dir="ltr"
-                        value={formData.driver_rent}
-                        onChange={handleInputChange}
-                        onBlur={() => {
-                          const formatted = formatCanonicalDriverRent(formData.driver_rent)
-                          if (formatted && formatted !== formData.driver_rent) {
-                            setFormData((prev) => ({ ...prev, driver_rent: formatted }))
-                          }
-                        }}
-                        placeholder="46,000 AFN - کرایه واپسی"
-                        className="rounded-xl h-8.5 sm:h-9 text-xs sm:text-sm font-extrabold text-red-700 dark:text-red-400 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-950 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 shadow-inner transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes Boxes Section — Redesigned Executive Cards for Note 1 & Note 2 */}
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80 dark:border-slate-800">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex items-center justify-center w-7 h-7 rounded-xl bg-blue-600 text-white shadow-xs">
-                        <Bookmark className="w-3.5 h-3.5" />
-                      </span>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
-                          <span>Document Notes & Contacts</span>
-                          <span className="text-slate-300 dark:text-slate-700">│</span>
-                          <span className="font-[vazirmatn] text-blue-700 dark:text-blue-400 font-extrabold normal-case">یادداشت‌ها، مسئولین بارگیری و نمایندگان مرزی</span>
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                          Custom print notes on master A4 BOL with highlight theme colors, border stations, and saved presets
-                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={applyKandaharChamanKarachiDubaiPreset}
+                          className="h-6.5 rounded-lg border border-indigo-300/80 bg-indigo-50/80 dark:bg-indigo-950/40 text-[10px] font-extrabold text-indigo-950 dark:text-indigo-200 shadow-2xs hover:bg-indigo-100 cursor-pointer transition-all"
+                        >
+                          <span>PK Kandahar ➔ Karachi ➔ Dubai</span>
+                        </Button>
                       </div>
                     </div>
-                  </div>
+                  </CardHeader>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <CardContent className="p-3 sm:p-4 space-y-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* ══════════════════════════════════════════════════════════════════
                         NOTE 1: Primary Loading & Dispatch Contact
                     ══════════════════════════════════════════════════════════════════ */}
@@ -7105,9 +7069,574 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                       </div>
                     </div>
                   </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Column: Document Information (TOP) + Truck & Driver Details (BELOW) */}
+              <div className="logistics-right-column min-w-0 w-full flex flex-col gap-[18px]">
+                            {/* 01 Document Information Card */}
+            <Card id="section-doc-info" className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white/90 dark:border-slate-800 shadow-[0_20px_50px_-15px_rgba(30,58,138,0.12)] dark:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all">
+              {/* Top Accent Strip */}
+              <div className="h-1 w-full bg-linear-to-r from-blue-600 via-indigo-600 to-cyan-500" />
+              
+              <CardHeader className="py-2 px-3 sm:py-2.5 sm:px-4 border-b border-slate-100/80 dark:border-slate-800 bg-linear-to-r from-blue-50/80 via-indigo-50/40 to-white/70 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
+                <CardTitle className="text-sm flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-linear-to-br from-blue-600 to-indigo-700 text-white text-[11px] font-black shadow-2xs">
+                      01
+                    </span>
+                    <div className="p-1.5 rounded-xl bg-linear-to-br from-blue-500/10 to-indigo-500/15 text-blue-700 dark:text-blue-400 border border-blue-200/70 dark:border-blue-800/70 shadow-2xs">
+                      <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-slate-950 dark:text-slate-100 text-xs sm:text-sm tracking-tight select-none">Document Information</span>
+                        <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          BOL Header
+                        </span>
+                      </div>
+                      <span className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
+                        BOL Reference, Serial & Issue Dates • <span className="font-[vazirmatn] text-blue-700 dark:text-blue-400">شماره و تاریخ‌های بارنامه</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Header Actions & Badges */}
+                  <div className="flex items-center flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleSetToday}
+                      className="inline-flex items-center gap-1 h-6.5 px-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/60 border border-blue-200 text-[11px] font-bold transition shadow-2xs cursor-pointer"
+                      title="Set issue date to today / تنظیم به تاریخ امروز"
+                    >
+                      <Zap className="h-3 w-3 text-amber-500" />
+                      <span>Today / امروز</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleIncrementBolNumber}
+                      className="inline-flex items-center gap-1 h-6.5 px-2 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 dark:hover:bg-indigo-900/60 border border-indigo-200 text-[11px] font-bold transition shadow-2xs cursor-pointer"
+                      title="Generate next BOL sequence number / ایجاد شماره بارنامه بعدی"
+                    >
+                      <Plus className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
+                      <span>Next BOL #</span>
+                    </button>
+
+                    <span className="hidden sm:inline-flex text-[11px] font-extrabold text-blue-900 dark:text-blue-300 font-[vazirmatn] bg-white/90 dark:bg-slate-850 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800 shadow-2xs">
+                      اطلاعات سند و تاریخ‌ها
+                    </span>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-3 p-3 sm:p-4">
+                {/* 3-Column Grid for BOL Number & Issue Dates */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3.5">
+                  {/* 1. BOL Number */}
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-linear-to-br from-blue-50/80 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border border-blue-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <span className="p-0.5 rounded-md bg-blue-600 text-white">
+                            <Hash className="w-3 h-3" />
+                          </span>
+                          <span>BOL Number</span>
+                        </label>
+                        <span className="font-[vazirmatn] text-blue-800 dark:text-blue-400 font-bold text-[11px]">شماره بارنامه</span>
+                      </div>
+
+                      {isEditingBolNumber ? (
+                        <div className="flex gap-1.5 mt-1">
+                          <Input
+                            value={bolNumber}
+                            onChange={(e) => setBolNumber(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") setIsEditingBolNumber(false)
+                            }}
+                            className="font-mono font-black text-xs sm:text-sm text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-700 shadow-inner rounded-xl h-8.5 sm:h-9 focus:ring-2 focus:ring-blue-500/20 uppercase"
+                            placeholder="BOL-2026-NSA685"
+                            autoFocus
+                          />
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => setIsEditingBolNumber(false)}
+                            className="rounded-xl h-8.5 sm:h-9 px-3 font-bold text-xs bg-blue-600 text-white hover:bg-blue-500 shadow-sm shadow-blue-500/20 shrink-0 cursor-pointer"
+                          >
+                            <Check className="h-3.5 w-3.5 mr-1" />
+                            Done
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <div className="flex-1 px-2.5 py-1 sm:py-1.5 bg-white dark:bg-slate-950 rounded-xl font-mono font-black text-xs sm:text-sm text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-slate-700 shadow-2xs flex items-center justify-between overflow-hidden">
+                            <span className="truncate tracking-wide">{isLoading ? <Loader2 className="h-3 w-3 animate-spin text-blue-600" /> : bolNumber || "BOL-000"}</span>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800 uppercase">Live</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setIsEditingBolNumber(true)}
+                            className="h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 border-blue-200 dark:border-slate-700 text-blue-700 dark:text-slate-200 shadow-2xs shrink-0 cursor-pointer"
+                            title="Edit BOL Number manually"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handleCopyBolNumber}
+                            className="h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 border-blue-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs shrink-0 cursor-pointer"
+                            title="Copy BOL Number to clipboard"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-2 pt-1.5 border-t border-blue-100 dark:border-slate-800 flex items-center justify-between text-[10.5px] text-slate-500 dark:text-slate-400">
+                      <span>Unique Document ID</span>
+                      <button
+                        type="button"
+                        onClick={handleIncrementBolNumber}
+                        className="text-blue-600 dark:text-blue-400 font-bold hover:underline inline-flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <Plus className="h-3 w-3" /> Auto +1
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. Issue Date (Gregorian) */}
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-linear-to-br from-indigo-50/80 via-white to-indigo-50/30 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border border-indigo-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <span className="p-0.5 rounded-md bg-indigo-600 text-white">
+                            <Calendar className="w-3 h-3" />
+                          </span>
+                          <span>Issue Date (Gregorian)</span>
+                        </label>
+                        <span className="font-[vazirmatn] text-indigo-800 dark:text-indigo-400 font-bold text-[11px]">تاریخ میلادی</span>
+                      </div>
+
+                      <div className="relative flex items-center mt-1">
+                        <div className="absolute left-2.5 text-indigo-600 dark:text-indigo-400 pointer-events-none">
+                          <Calendar className="w-3.5 h-3.5" />
+                        </div>
+                        <Input
+                          type="date"
+                          value={issueDate}
+                          onChange={(e) => handleDateChange(e.target.value)}
+                          className="pl-8 font-mono font-black text-xs sm:text-sm text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-indigo-200 dark:border-indigo-900/60 shadow-2xs rounded-xl h-8.5 sm:h-9 focus:bg-white dark:focus:bg-slate-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pt-1.5 border-t border-indigo-100 dark:border-slate-800 flex items-center justify-between text-[10.5px]">
+                      <span className="text-slate-500 dark:text-slate-400 truncate">
+                        {issueDate ? new Date(issueDate).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", year: "numeric", month: "short", day: "numeric" }) : "Select date"}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={handleSetToday}
+                          className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
+                        >
+                          Today
+                        </button>
+                        <span className="text-slate-300 dark:text-slate-600">•</span>
+                        <button
+                          type="button"
+                          onClick={handleSetYesterday}
+                          className="text-slate-500 dark:text-slate-400 font-bold hover:underline cursor-pointer"
+                        >
+                          -1d
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Issue Date (Persian Solar) */}
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-linear-to-br from-emerald-50/80 via-white to-emerald-50/30 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border border-emerald-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <span className="p-0.5 rounded-md bg-emerald-600 text-white">
+                            <Globe className="w-3 h-3" />
+                          </span>
+                          <span>Issue Date (Persian)</span>
+                        </label>
+                        <span className="font-[vazirmatn] text-emerald-800 dark:text-emerald-400 font-bold text-[11px]">تاریخ هجری شمسی</span>
+                      </div>
+
+                      <div className="px-2.5 py-1 bg-white dark:bg-slate-950 rounded-xl border border-emerald-200/90 dark:border-emerald-800/60 shadow-2xs flex flex-col items-start justify-center h-8.5 sm:h-9">
+                        <p className="font-[vazirmatn] text-[11px] font-black text-slate-900 dark:text-slate-100 leading-tight truncate w-full" dir="ltr" style={{ unicodeBidi: "isolate" }}>
+                          {persianDate || "محاسبه خودکار..."}
+                        </p>
+                        <p className="font-[vazirmatn] text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 leading-tight font-mono" dir="ltr" style={{ unicodeBidi: "isolate" }}>
+                          {persianDateNumeric || "--/--/----"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pt-1.5 border-t border-emerald-100 dark:border-slate-800 flex items-center justify-between text-[10.5px]">
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1 font-[vazirmatn]">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        محاسبه خودکار خورشیدی
+                      </span>
+                      <span className="text-[9.5px] text-slate-400 font-mono">Solar Hijri</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+                                {/* 02 Truck & Driver Details Card */}
+                <Card id="section-truck" className="relative bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-slate-200/90 dark:border-slate-800 shadow-[0_20px_50px_-15px_rgba(30,58,138,0.08)] dark:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all">
+                  {/* Top Accent Strip */}
+                  <div className="h-1 w-full bg-linear-to-r from-sky-500 via-blue-600 to-indigo-600" />
+
+                  <CardHeader className="py-2.5 px-3 sm:py-3 sm:px-4 border-b border-slate-100/80 dark:border-slate-800 bg-linear-to-r from-sky-50/80 via-blue-50/40 to-white/70 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
+                    <div className="flex flex-wrap items-center justify-between gap-2.5">
+                      {/* Left: Icon, Title & Badge */}
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 rounded-xl bg-blue-600 text-white shadow-xs">
+                          <Truck className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-1.5">
+                            <span>Truck & Driver Details</span>
+                            <span className="text-[10px] font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800 uppercase tracking-wide">
+                              Transport Vehicle
+                            </span>
+                          </h4>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium font-[vazirmatn]">
+                            اطلاعات موتر، راننده، شماره تماس و کرایه توافقی
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right: Quick Rent Presets */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {[
+                          { label: "46,000 AFN", value: "46,000 AFN - کرایه واپسی" },
+                          { label: "45,000 AFN", value: "45,000 AFN - کرایه واپسی" },
+                          { label: "53,000 AFN", value: "53,000 AFN - کرایه واپسی" },
+                          { label: "38,500 AFN", value: "38,500 AFN - کرایه واپسی" },
+                        ].map((preset, pIdx) => (
+                          <button
+                            key={`rent-preset-${pIdx}`}
+                            type="button"
+                            onClick={() => {
+                              startTransition(() => {
+                                setFormData((prev) => ({ ...prev, driver_rent: preset.value }))
+                                setHasUnsavedChanges(true)
+                              })
+                              toast.success(`Set Driver Rent: ${preset.value}`)
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10.5px] font-mono font-bold text-slate-700 dark:text-slate-300 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-400 shadow-2xs hover:scale-102 transition cursor-pointer"
+                          >
+                            <span className="text-amber-500 font-black">⚡</span>
+                            <span>{preset.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="p-3 sm:p-4 space-y-3.5">
+                    {/* Row 1: Vehicle & Driver Identity (3 Columns) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                      {/* 1. Truck No */}
+                      <div>
+                        <label className="mb-1 text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between gap-1">
+                          <span className="flex items-center gap-1">
+                            <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                            <span>Truck No.</span>
+                          </span>
+                          <span className="font-[vazirmatn] text-[10.5px] font-bold text-blue-800 dark:text-blue-400">شماره موتر/کامیون</span>
+                        </label>
+                        <Input
+                          name="truck_number"
+                          value={formData.truck_number}
+                          onChange={handleInputChange}
+                          placeholder="e.g. 3292 هلمند"
+                          className="rounded-xl h-8.5 sm:h-9 font-mono text-xs sm:text-sm font-black uppercase text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-[vazirmatn]"
+                        />
+                      </div>
+
+                      {/* 2. Driver Name */}
+                      <div>
+                        <div className="mb-1 flex items-center justify-between gap-1">
+                          <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                            <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                            <span>Driver Name</span>
+                          </label>
+                          <span className="font-[vazirmatn] text-[10.5px] font-bold text-blue-800 dark:text-blue-400">نام راننده</span>
+                        </div>
+                        <div className="relative">
+                          <Input
+                            name="driver_name"
+                            value={formData.driver_name}
+                            onChange={(e) => {
+                              const raw = e.target.value
+                              handleFieldChange("driver_name", raw)
+                            }}
+                            onBlur={() => {
+                              const sanitized = (formData.driver_name || "").replace(/^[\s,،-]+|[\s,،-]+$/g, "").trim()
+                              if (sanitized !== formData.driver_name) {
+                                setFormData((prev) => ({ ...prev, driver_name: sanitized }))
+                              }
+                            }}
+                            placeholder="Enter driver name..."
+                            className="rounded-xl h-8.5 sm:h-9 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-[vazirmatn]"
+                          />
+                        </div>
+                        {/* Auto-split Father Name when 'ولد' or 'بن' is present */}
+                        {Boolean(formData.driver_name && /(?:ولد|بن)\s+/i.test(formData.driver_name) && !formData.driver_father_name?.trim()) && (
+                          <button
+                            type="button"
+                            onClick={splitDriverFatherName}
+                            className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800 transition cursor-pointer"
+                            title="Automatically split 'ولد' into Father Name"
+                          >
+                            <Zap className="w-3 h-3 text-amber-500" />
+                            <span>Auto-split Father Name (ولد عبدالله)</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* 3. Father Name */}
+                      <div>
+                        <label className="mb-1 text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between gap-1">
+                          <span className="flex items-center gap-1">
+                            <User className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Father Name</span>
+                          </span>
+                          <span className="font-[vazirmatn] text-[10.5px] font-bold text-blue-800 dark:text-blue-400">نام پدر</span>
+                        </label>
+                        <Input
+                          name="driver_father_name"
+                          value={formData.driver_father_name}
+                          onChange={handleInputChange}
+                          placeholder="Father's name..."
+                          className="rounded-xl h-8.5 sm:h-9 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-[vazirmatn]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 2: Driver Contact & Generous Rent (2:3 Proportional Layout) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 sm:gap-3 items-start">
+                      {/* 4. Driver Contact (2 cols = ~40% width) */}
+                      <div className="sm:col-span-2">
+                        <label className="mb-1 text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between gap-1">
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                            <span>Driver Contact</span>
+                          </span>
+                          <span className="font-[vazirmatn] text-[10.5px] font-bold text-blue-800 dark:text-blue-400">شماره تماس راننده</span>
+                        </label>
+                        <Input
+                          name="driver_contact"
+                          value={formData.driver_contact}
+                          onChange={handleInputChange}
+                          placeholder="+93 700 123 456"
+                          type="tel"
+                          className="rounded-xl h-8.5 sm:h-9 font-mono text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        />
+                      </div>
+
+                      {/* 5. Driver Rent (3 cols = ~60% width - Full text visible without clipping) */}
+                      <div className="sm:col-span-3">
+                        <div className="mb-1 flex items-center justify-between gap-1">
+                          <label className="text-xs font-black text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                            <Receipt className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>Driver Rent (Agreed Freight)</span>
+                          </label>
+                          <span className="font-[vazirmatn] text-[10.5px] font-extrabold text-emerald-700 dark:text-emerald-400">کرایه راننده</span>
+                        </div>
+                        <div className="relative">
+                          <Input
+                            name="driver_rent"
+                            value={formData.driver_rent}
+                            onChange={handleInputChange}
+                            onBlur={() => {
+                              const formatted = formatCanonicalDriverRent(formData.driver_rent)
+                              if (formatted && formatted !== formData.driver_rent) {
+                                setFormData((prev) => ({ ...prev, driver_rent: formatted }))
+                              }
+                            }}
+                            placeholder="46,000 AFN - کرایه واپسی"
+                            className="rounded-xl h-8.5 sm:h-9 text-xs sm:text-sm font-black text-emerald-800 dark:text-emerald-300 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-inner transition-all font-mono"
+                            style={{ direction: "ltr", unicodeBidi: "plaintext" }}
+                          />
+                        </div>
+                        {/* Quick Suffix Modifiers */}
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+                          <span className="text-slate-400 font-medium">Quick suffix:</span>
+                          {["کرایه واپسی", "کرایه رفت", "صافی"].map((suffix) => (
+                            <button
+                              key={suffix}
+                              type="button"
+                              onClick={() => {
+                                const current = (formData.driver_rent || "").trim()
+                                const numMatch = current.match(/^([\d,]+(?:\.\d+)?\s*(?:AFN|USD)?)/i)
+                                const base = numMatch ? numMatch[1].trim() : current || "46,000 AFN"
+                                const nextRent = `${base} - ${suffix}`
+                                setFormData((prev) => ({ ...prev, driver_rent: nextRent }))
+                                setHasUnsavedChanges(true)
+                              }}
+                              className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 transition cursor-pointer font-[vazirmatn]"
+                            >
+                              +{suffix}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom: Official Afghan Vehicle Plate & Preset Manager */}
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col md:flex-row items-center gap-4">
+                      {/* Left: Afghan Plate Preview */}
+                      <div className="shrink-0 flex flex-col items-center gap-1">
+                        <div className="p-1.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+                          <AfghanTruckPlate value={formData.truck_number || "3292 هلمند"} size="compact" />
+                        </div>
+                        <span className="text-[9.5px] font-bold text-slate-400 font-[vazirmatn]">
+                          پلاک رسمی موتر • Official Afghan Plate
+                        </span>
+                      </div>
+
+                      {/* Right: Real Vehicle & Driver Preset Manager */}
+                      <div className="flex-1 min-w-0 w-full space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex-1 min-w-[200px]">
+                            <Select
+                              value={selectedTruckPresetId || "none"}
+                              onValueChange={(value) => {
+                                if (value === "none") {
+                                  setSelectedTruckPresetId("")
+                                  return
+                                }
+                                applyTruckPreset(value)
+                              }}
+                            >
+                              <SelectTrigger className="h-8 w-full text-xs border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl font-medium shadow-2xs">
+                                <SelectValue placeholder="🚚 Choose Vehicle Preset / الگوهای موتر" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-64 dark:bg-slate-900 dark:border-slate-800">
+                                <SelectItem value="none" className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                  📋 Choose saved vehicle... ({savedTruckPresets.length} available)
+                                </SelectItem>
+                                {savedTruckPresets.map((opt) => (
+                                  <SelectItem key={opt.id} value={opt.id} className="text-xs py-2">
+                                    <div className="flex flex-col gap-0.5 text-left max-w-[340px]">
+                                      <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{opt.label}</span>
+                                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate">
+                                        {opt.truck_number} • {opt.driver_name} • {opt.driver_rent}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={saveCurrentTruckPreset}
+                            className="h-8 px-3 text-xs font-bold border-blue-200 bg-white hover:bg-blue-50 text-blue-700 dark:bg-slate-900 dark:border-blue-800 dark:text-blue-300 rounded-xl shadow-2xs cursor-pointer"
+                            title="Save current truck and driver details as a reusable preset"
+                          >
+                            <Save className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+                            <span>Save preset</span>
+                          </Button>
+                        </div>
+
+                        {/* 1-Click Route & Vehicle Rent Bar */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <Zap className="h-3 w-3 text-amber-500 fill-amber-400" />
+                            <span>1-Click Route & Vehicle Rent / انتخاب سریع مسیر:</span>
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              {
+                                icon: "📍",
+                                label: "تخفیف (یارمل) - کندهار",
+                                truck: "3292 هلمند",
+                                driver: "محمد",
+                                father: "عبدالله",
+                                contact: "+93 703751149",
+                                rent: "46,000 AFN - کرایه واپسی",
+                                color: "text-blue-900 border-blue-200/90 bg-blue-50/50 hover:bg-blue-100/70",
+                              },
+                              {
+                                icon: "🏢",
+                                label: "دفتر مرکزی اسکای آریانا",
+                                truck: "38552 هرات",
+                                driver: "احمد",
+                                father: "غلام‌سخی",
+                                contact: "+93 799123456",
+                                rent: "45,000 AFN - کرایه واپسی",
+                                color: "text-emerald-900 border-emerald-200/90 bg-emerald-50/50 hover:bg-emerald-100/70",
+                              },
+                              {
+                                icon: "🚚",
+                                label: "RAHMAT NAZAR LTD",
+                                truck: "2877 کابل",
+                                driver: "نجیب‌الله",
+                                father: "شیرخان",
+                                contact: "+93 788654321",
+                                rent: "53,000 AFN - کرایه واپسی",
+                                color: "text-indigo-900 border-indigo-200/90 bg-indigo-50/50 hover:bg-indigo-100/70",
+                              },
+                              {
+                                icon: "🛡️",
+                                label: "نیمروز - زرنج (ترانزیت)",
+                                truck: "1943 نیمروز",
+                                driver: "عبدالحکیم",
+                                father: "بسم‌الله",
+                                contact: "+93 777987654",
+                                rent: "38,500 AFN - کرایه واپسی",
+                                color: "text-purple-900 border-purple-200/90 bg-purple-50/50 hover:bg-purple-100/70",
+                              },
+                            ].map((routeItem, rIdx) => (
+                              <button
+                                key={`route-preset-${rIdx}`}
+                                type="button"
+                                onClick={() => {
+                                  startTransition(() => {
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      truck_number: routeItem.truck,
+                                      driver_name: routeItem.driver,
+                                      driver_father_name: routeItem.father,
+                                      driver_contact: routeItem.contact,
+                                      driver_rent: routeItem.rent,
+                                    }))
+                                    setHasUnsavedChanges(true)
+                                  })
+                                  toast.success(`Applied vehicle & route: ${routeItem.label}`)
+                                }}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border shadow-2xs hover:scale-102 transition cursor-pointer dark:bg-slate-900 ${routeItem.color}`}
+                              >
+                                <span>{routeItem.icon}</span>
+                                <span>{routeItem.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
 
             {/* 02 Shipper, 03 Consignee & 04 Notify Party — 3-Column Side-by-Side Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
@@ -7226,7 +7755,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           applySavedShipper(value)
                         }}
                       >
-                        <SelectTrigger className="h-9.5 text-xs font-bold text-slate-900 dark:text-slate-100 border-white dark:border-slate-700 bg-white/95 dark:bg-slate-950 backdrop-blur-md rounded-xl shadow-2xs">
+                        <SelectTrigger className="h-9.5 w-full text-xs font-bold text-slate-900 dark:text-slate-100 border-white dark:border-slate-700 bg-white/95 dark:bg-slate-950 backdrop-blur-md rounded-xl shadow-2xs">
                           <SelectValue placeholder={shipperDirectorySearch ? `Select from ${filteredSavedShippers.length} matching...` : `Select from directory (${savedShippers.length} available)...`} />
                         </SelectTrigger>
                         <SelectContent className="max-h-80 dark:bg-slate-900 dark:border-slate-800">
@@ -7631,7 +8160,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           applySavedConsignee(value)
                         }}
                       >
-                        <SelectTrigger className="h-9.5 text-xs font-bold text-slate-900 dark:text-slate-100 border-white dark:border-slate-700 bg-white/95 dark:bg-slate-950 backdrop-blur-md rounded-xl shadow-2xs">
+                        <SelectTrigger className="h-9.5 w-full text-xs font-bold text-slate-900 dark:text-slate-100 border-white dark:border-slate-700 bg-white/95 dark:bg-slate-950 backdrop-blur-md rounded-xl shadow-2xs">
                           <SelectValue placeholder={consigneeDirectorySearch ? `Select from ${filteredSavedConsignees.length} matching...` : `Select from directory (${savedConsignees.length} available)...`} />
                         </SelectTrigger>
                         <SelectContent className="max-h-80 dark:bg-slate-900 dark:border-slate-800">
@@ -8016,7 +8545,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           applySavedNotifyParty(value)
                         }}
                       >
-                        <SelectTrigger className="h-9.5 text-xs font-bold text-slate-900 dark:text-slate-100 border-white dark:border-slate-700 bg-white/95 dark:bg-slate-950 backdrop-blur-md rounded-xl shadow-2xs">
+                        <SelectTrigger className="h-9.5 w-full text-xs font-bold text-slate-900 dark:text-slate-100 border-white dark:border-slate-700 bg-white/95 dark:bg-slate-950 backdrop-blur-md rounded-xl shadow-2xs">
                           <SelectValue placeholder={notifyDirectorySearch ? `Select from ${filteredSavedNotifyParties.length} matching...` : `Select from directory (${savedNotifyParties.length} available)...`} />
                         </SelectTrigger>
                         <SelectContent className="max-h-80 dark:bg-slate-900 dark:border-slate-800">
@@ -8252,853 +8781,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               </Card>
             </div>
 
-            {/* 05 Cargo Details Card */}
-            <Card id="section-cargo" className="overflow-hidden rounded-[28px] border border-purple-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-[0_20px_55px_-24px_rgba(88,28,135,0.28)] dark:shadow-[0_20px_55px_-24px_rgba(0,0,0,0.6)] backdrop-blur-2xl [content-visibility:auto] [contain-intrinsic-size:1px_600px]">
-              <CardHeader className="border-b border-purple-100 dark:border-slate-800 bg-linear-to-r from-purple-50/90 via-white to-indigo-50/60 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 px-4 py-4 sm:px-5">
-                <CardTitle className="flex flex-wrap items-center justify-between gap-3 text-base">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-purple-600 text-white text-[11px] font-black shadow-xs">
-                      05
-                    </span>
-                    <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
-                      <Package className="h-4.5 w-4.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-extrabold text-slate-950 dark:text-slate-100 text-base tracking-tight select-none">Cargo Details & Specifications</span>
-                      <span className="mt-0.5 block text-[11px] font-semibold text-purple-700 dark:text-purple-300">Packages, weights, rates and printable cargo description</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleAutoCalculateWeights}
-                      className="h-9 rounded-xl bg-linear-to-r from-purple-600 to-indigo-600 px-3.5 text-xs font-black text-white shadow-md shadow-purple-500/20 transition-all hover:from-purple-700 hover:to-indigo-700 active:scale-95 cursor-pointer"
-                      title="Calculate Net Weight, Gross Weight and Goods Value"
-                    >
-                      <Calculator className="h-3.5 w-3.5 mr-1" />
-                      Calculate totals
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearAllCargoFields}
-                      className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-[10.5px] font-bold text-slate-600 dark:text-slate-300 shadow-2xs hover:border-red-200 dark:hover:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-400"
-                      title="Clear all Cargo fields"
-                    >
-                      ✕ Clear All
-                    </Button>
-                    <span className="rounded-full border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/60 px-3 py-1 text-xs font-extrabold text-purple-900 dark:text-purple-300 font-[vazirmatn]" dir="rtl">
-                      مشخصات کالا و محموله
-                    </span>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 px-4 pb-5 pt-4 sm:px-5">
-                <RoutePresetSelector
-                  value={formData.cargo_route_note}
-                  onChange={(val) => setFormData((prev) => ({ ...prev, cargo_route_note: val }))}
-                />
-                {/* Quick Cargo Preset Selector Strip */}
-                <div className="rounded-2xl border border-purple-200/80 dark:border-purple-900/60 bg-linear-to-r from-purple-50/90 via-indigo-50/50 to-purple-50/80 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 p-3 shadow-2xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-purple-950 dark:text-purple-200 flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                      1-Click Cargo Commodity Presets
-                    </span>
-                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
-                      بارگذاری پیش‌فرض‌های آماده کالا
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {CARGO_PRESETS.map((preset, pIdx) => (
-                      <button
-                        key={`main-cargo-preset-${preset.name}-${pIdx}`}
-                        type="button"
-                        onClick={() => handleApplyCargoPreset(preset)}
-                        className="rounded-xl border border-purple-200 dark:border-purple-800/80 bg-white dark:bg-slate-900 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-purple-500 text-slate-800 dark:text-slate-200 px-2.5 py-1 text-[11px] font-black whitespace-nowrap transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 flex items-center gap-1 [&_*]:pointer-events-none"
-                        title={`Apply ${preset.name} (${preset.packages}, ${preset.kgsPerCarton} kg/ctn, ${preset.rate}/kg)`}
-                      >
-                        <span className="pointer-events-none">{preset.name}</span>
-                        <span className="text-[9.5px] opacity-75 font-mono pointer-events-none">({preset.packages})</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Live Weights & Calculation Metrics KPI Cards */}
-                {(() => {
-                  const isMulti = liveCargoCalc.isMultiItem && liveCargoCalc.items.length > 1
-                  const hasPackageInput = liveCargoCalc.totalPackages > 0
-                  const hasWeightInput = liveCargoCalc.items.some((item) => item.netPerCarton > 0 || item.grossPerCarton > 0)
-                  const calculationReady = hasPackageInput && hasWeightInput
-
-                  const netVal = parseNumericValue(formData.net_weight || "") || (liveCargoCalc.totalNetWeight > 0 ? liveCargoCalc.totalNetWeight : 0)
-                  const grossVal = parseNumericValue(formData.gross_weight || "") || (liveCargoCalc.totalGrossWeight > 0 ? liveCargoCalc.totalGrossWeight : 0)
-                  const tareVal = grossVal > netVal ? grossVal - netVal : 0
-                  const netCartonVal = parseFloat(formData.kgs_per_carton || "0") || 0
-                  const grossCartonVal = parseFloat(formData.gross_weight_per_carton || "0") || 0
-                  const tareCartonDiff = grossCartonVal > netCartonVal ? (grossCartonVal - netCartonVal).toFixed(2) : null
-                  const isContainerIsoValid = /^[A-Z]{4}\d{7}$/.test((formData.container_numbers || "").trim().replace(/[-\s]/g, ""))
-
-                  return (
-                    <div className="space-y-3">
-                      {/* Live Totals Header Bar */}
-                      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-linear-to-r from-slate-50 via-white to-purple-50/50 dark:from-slate-900 dark:via-slate-850 dark:to-purple-950/30 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-purple-600 text-white shadow-2xs">
-                            <Zap className="h-4 w-4" />
-                          </span>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-900 dark:text-slate-100">Live Shipment Intelligence</p>
-                              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${
-                                calculationReady
-                                  ? "border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
-                                  : "border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300"
-                              }`}>
-                                <span className={`h-1.5 w-1.5 rounded-full ${calculationReady ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-                                {calculationReady ? "⚡ Auto-Calculation Synced" : "Enter Packages + Carton Weight"}
-                              </span>
-                            </div>
-                            <p className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400">Real-time carton multiplication, payload tare analysis, and freight valuation</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={handleAutoCalculateWeights}
-                            className="h-8 rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-3 text-xs font-black shadow-2xs cursor-pointer transition-all"
-                            title="Recalculate weights & goods value from cartons"
-                          >
-                            <Calculator className="h-3.5 w-3.5 mr-1" />
-                            Recalculate
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* 4 Primary KPI Cards */}
-                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4" aria-live="polite">
-                        {/* 01 Total Packages */}
-                        <div className="relative overflow-hidden rounded-2xl border border-purple-200/90 dark:border-purple-900/60 bg-linear-to-br from-purple-50/80 via-white to-purple-50/40 dark:from-purple-950/40 dark:via-slate-900 dark:to-purple-950/20 p-4 shadow-2xs transition-all hover:shadow-md">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10.5px] font-black uppercase tracking-wider text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
-                              <Package className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                              Total Packages
-                            </span>
-                            <span className="text-[9.5px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100/90 dark:bg-purple-950/70 px-2 py-0.5 rounded-lg border border-purple-200 dark:border-purple-800">
-                              تعداد کل بسته‌ها
-                            </span>
-                          </div>
-                          <p className="text-xl sm:text-2xl font-black text-purple-950 dark:text-purple-100 truncate tracking-tight">
-                            {isMulti && liveCargoCalc.totalPackages > 0
-                              ? `${liveCargoCalc.totalPackages.toLocaleString("en-US")} CTNS`
-                              : formData.number_of_packages || "0 CTNS"}
-                          </p>
-                          <div className="mt-2 pt-2 border-t border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-[10px]">
-                            <span className="text-purple-700 dark:text-purple-400 font-semibold truncate">
-                              {isMulti
-                                ? liveCargoCalc.items.map((it, idx) => `#${idx + 1}: ${it.packages}`).join(" | ")
-                                : "Cartons / Units"}
-                            </span>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {["500", "1,000", "1,200"].map((qty, qIdx) => (
-                                <button
-                                  key={`cargo-qty-${qty}-${qIdx}`}
-                                  type="button"
-                                  onClick={() => handleCargoFieldChange("number_of_packages", `${qty} CTNS`)}
-                                  className="text-[9px] font-extrabold text-purple-800 dark:text-purple-300 bg-white dark:bg-slate-900 hover:bg-purple-200 dark:hover:bg-purple-900/60 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 transition cursor-pointer"
-                                >
-                                  {qty}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 02 Total Net Weight */}
-                        <div className="relative overflow-hidden rounded-2xl border border-blue-200/90 dark:border-blue-900/60 bg-linear-to-br from-blue-50/80 via-white to-blue-50/40 dark:from-blue-950/40 dark:via-slate-900 dark:to-blue-950/20 p-4 shadow-2xs transition-all hover:shadow-md">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10.5px] font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-                              <Scale className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                              Total Net Weight
-                            </span>
-                            <span className="text-[9.5px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100/90 dark:bg-blue-950/70 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800">
-                              وزن خالص کل
-                            </span>
-                          </div>
-                          <p className="text-xl sm:text-2xl font-black text-blue-950 dark:text-blue-100 truncate tracking-tight">
-                            {isMulti && liveCargoCalc.totalNetWeight > 0
-                              ? `${formatWeightValue(liveCargoCalc.totalNetWeight)} KG`
-                              : formData.net_weight || "0 KG"}
-                          </p>
-                          <div className="mt-2 pt-2 border-t border-blue-100 dark:border-blue-900/50 flex items-center justify-between text-[10px]">
-                            <span className="text-blue-700 dark:text-blue-400 font-semibold truncate">
-                              {netVal > 0 ? `≈ ${(netVal / 1000).toFixed(2)} Metric Tons (MT)` : "Net Cargo Weight"}
-                            </span>
-                            {netCartonVal > 0 && (
-                              <span className="text-[9.5px] font-black text-blue-800 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-950/70 px-1.5 py-0.5 rounded">
-                                {netCartonVal} kg/ctn
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 03 Total Gross Weight */}
-                        <div className="relative overflow-hidden rounded-2xl border border-indigo-200/90 dark:border-indigo-900/60 bg-linear-to-br from-indigo-50/80 via-white to-indigo-50/40 dark:from-indigo-950/40 dark:via-slate-900 dark:to-indigo-950/20 p-4 shadow-2xs transition-all hover:shadow-md">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10.5px] font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
-                              <Scale className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                              Total Gross Weight
-                            </span>
-                            <span className="text-[9.5px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100/90 dark:bg-indigo-950/70 px-2 py-0.5 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                              وزن ناخالص کل
-                            </span>
-                          </div>
-                          <p className="text-xl sm:text-2xl font-black text-indigo-950 dark:text-indigo-100 truncate tracking-tight">
-                            {isMulti && liveCargoCalc.totalGrossWeight > 0
-                              ? `${formatWeightValue(liveCargoCalc.totalGrossWeight)} KG`
-                              : formData.gross_weight || "0 KG"}
-                          </p>
-                          <div className="mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between text-[10px]">
-                            <span className="text-indigo-700 dark:text-indigo-400 font-semibold truncate">
-                              {tareVal > 0 ? `Packaging Tare: +${formatWeightValue(tareVal)} KG` : "Gross with Packaging"}
-                            </span>
-                            {tareCartonDiff && (
-                              <span className="text-[9.5px] font-black text-indigo-800 dark:text-indigo-300 bg-indigo-100/80 dark:bg-indigo-950/70 px-1.5 py-0.5 rounded">
-                                +{tareCartonDiff} kg tare
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 04 Estimated Goods Value */}
-                        <div className="relative overflow-hidden rounded-2xl border border-emerald-200/90 dark:border-emerald-900/60 bg-linear-to-br from-emerald-50/80 via-white to-emerald-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-emerald-950/20 p-4 shadow-2xs transition-all hover:shadow-md">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10.5px] font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
-                              <Receipt className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                              Est. Goods Value
-                            </span>
-                            <span className="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/70 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                              ارزش کل کالا
-                            </span>
-                          </div>
-                          <p className="text-xl sm:text-2xl font-black text-emerald-950 dark:text-emerald-100 truncate tracking-tight">
-                            {isMulti && liveCargoCalc.totalGoodsValue > 0
-                              ? formatUsdValue(liveCargoCalc.totalGoodsValue)
-                              : formData.goods_value || "$0.00"}
-                          </p>
-                          <div className="mt-2 pt-2 border-t border-emerald-100 dark:border-emerald-900/50 flex items-center justify-between text-[10px]">
-                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold truncate">
-                              {formData.rate_per_kgs ? `@ $${formData.rate_per_kgs.replace(/^\$/, "")} / KG Rate` : "Total Declared Value"}
-                            </span>
-                            {formData.rate_per_kgs && netVal > 0 && (
-                              <span className="text-[9.5px] font-black text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/70 px-1.5 py-0.5 rounded">
-                                USD
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tare & Payload Diagnostic Strip */}
-                      {(netVal > 0 || grossVal > 0) && (
-                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 px-3.5 py-2 text-xs text-slate-700 dark:text-slate-300 shadow-2xs">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                              <Box className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                              Payload Breakdown:
-                            </span>
-                            <span>
-                              Cargo Net: <strong className="text-blue-900 dark:text-blue-400">{formatWeightValue(netVal)} KG</strong>
-                            </span>
-                            <span>•</span>
-                            <span>
-                              Total Gross: <strong className="text-indigo-900 dark:text-indigo-400">{formatWeightValue(grossVal)} KG</strong>
-                            </span>
-                            <span>•</span>
-                            <span>
-                              Tare (Packaging): <strong className="text-amber-800 dark:text-amber-400">{formatWeightValue(tareVal)} KG</strong>
-                              {grossVal > 0 && tareVal > 0 && (
-                                <span className="ml-1 text-[10.5px] text-slate-500 dark:text-slate-400 font-medium">
-                                  ({((tareVal / grossVal) * 100).toFixed(1)}%)
-                                </span>
-                              )}
-                            </span>
-                          </div>
-
-                          {formData.measurement && (
-                            <span className="font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[11px]">
-                              Volume: {formData.measurement}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Multi-Item Cargo Breakdown Interactive Live Strip */}
-                      {isMulti && (
-                        <div className="rounded-2xl border border-purple-200 dark:border-purple-900/60 bg-linear-to-r from-purple-50/90 via-indigo-50/60 to-purple-50/90 dark:from-purple-950/50 dark:via-indigo-950/30 dark:to-purple-950/50 p-3.5 shadow-2xs space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="flex items-center justify-center w-5 h-5 rounded-md bg-purple-600 text-white text-[10px] font-black">
-                                2+
-                              </span>
-                              <span className="text-xs font-black text-purple-950 dark:text-purple-200">
-                                Multi-Item Shipment Breakdown ({liveCargoCalc.items.length} Cargo Items)
-                              </span>
-                            </div>
-                            <span className="text-[10.5px] font-black text-purple-700 dark:text-purple-300 bg-purple-200/70 dark:bg-purple-950/70 px-2 py-0.5 rounded-lg border border-purple-300 dark:border-purple-800">
-                              تفکیک اقلام چندگانه محموله
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                            {liveCargoCalc.items.map((it, idx) => (
-                              <div key={`cargo-item-${idx}`} className="rounded-xl bg-white/90 dark:bg-slate-900/90 p-3 border border-purple-200/80 dark:border-slate-800 shadow-2xs space-y-1.5">
-                                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                                  <span className="text-xs font-black text-purple-900 dark:text-purple-300 flex items-center gap-1">
-                                    <Package className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                                    Item #{idx + 1}
-                                  </span>
-                                  <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                                    {it.packages.toLocaleString("en-US")} CTNS
-                                  </span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                                  <div className="bg-blue-50/70 dark:bg-blue-950/50 p-1.5 rounded-lg border border-blue-100 dark:border-blue-900/50">
-                                    <span className="text-blue-600 dark:text-blue-400 block text-[9.5px] font-bold">Net Weight</span>
-                                    <span className="font-black text-blue-950 dark:text-blue-300 text-xs">{formatWeightValue(it.netWeight)} KG</span>
-                                    <span className="text-[9px] text-blue-500 dark:text-blue-400 block font-medium">({it.netPerCarton} kg/ctn)</span>
-                                  </div>
-                                  <div className="bg-indigo-50/70 dark:bg-indigo-950/50 p-1.5 rounded-lg border border-indigo-100 dark:border-indigo-900/50">
-                                    <span className="text-indigo-600 dark:text-indigo-400 block text-[9.5px] font-bold">Gross Weight</span>
-                                    <span className="font-black text-indigo-950 dark:text-indigo-300 text-xs">{formatWeightValue(it.grossWeight)} KG</span>
-                                    <span className="text-[9px] text-indigo-500 dark:text-indigo-400 block font-medium">({it.grossPerCarton} kg/ctn)</span>
-                                  </div>
-                                </div>
-                                <div className="border-t border-slate-100 dark:border-slate-800 pt-1.5 flex items-center justify-between bg-emerald-50/60 dark:bg-emerald-950/50 p-1.5 rounded-lg border border-emerald-100 dark:border-emerald-900/50">
-                                  <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300">Rate: ${it.rate}/kg</span>
-                                  <span className="text-xs font-black text-emerald-950 dark:text-emerald-200">
-                                    ${it.goodsValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()}
-
-                {/* Field Grid - Row 1: Container, Seal & Package Quantities */}
-                <div className="space-y-3 rounded-2xl border border-purple-200/90 dark:border-purple-900/50 bg-linear-to-b from-purple-50/40 via-white to-white dark:from-purple-950/30 dark:via-slate-900 dark:to-slate-900 p-3.5 sm:p-4.5 shadow-2xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-100 dark:border-purple-900/50 pb-2.5">
-                    <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-purple-950 dark:text-purple-200">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-600 text-white font-black text-xs shadow-2xs">1</span>
-                      Shipment & Packaging Inputs
-                    </span>
-                    <span className="font-[vazirmatn] text-xs font-bold text-purple-800 dark:text-purple-300" dir="rtl">مشخصات کانتینر و بسته‌بندی</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
-                    {/* Container No */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                          <span>Container No.</span>
-                          {/^[A-Z]{4}\d{7}$/.test((formData.container_numbers || "").trim().replace(/[-\s]/g, "")) && (
-                            <span className="text-[8.5px] font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 px-1 py-0.2 rounded border border-emerald-200 dark:border-emerald-800">✓ ISO</span>
-                          )}
-                        </label>
-                        <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300">شماره کانتینر</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-purple-500 pointer-events-none">
-                          <Box className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="container_numbers"
-                          value={formData.container_numbers}
-                          onChange={(e) => handleCargoFieldChange("container_numbers", e.target.value.toUpperCase())}
-                          placeholder="MSCU1234567"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold uppercase text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      {/* Popular Shipping Line Prefixes */}
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {["MSCU", "CMAU", "COSU", "MEDU", "MAEU", "TGHU"].map((pfx, pIdx) => (
-                          <button
-                            key={`pfx-${pfx}-${pIdx}`}
-                            type="button"
-                            onClick={() => applyContainerPrefix(pfx)}
-                            className="text-[9px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 hover:text-purple-900 dark:hover:text-purple-200 rounded px-1.5 py-0.5 transition cursor-pointer border border-transparent dark:border-slate-700"
-                          >
-                            +{pfx}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Seal No */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-slate-800 dark:text-slate-200">Seal No.</label>
-                        <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300">شماره پلمپ</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-purple-500 pointer-events-none">
-                          <ShieldCheck className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="seal_numbers"
-                          value={formData.seal_numbers}
-                          onChange={(e) => handleCargoFieldChange("seal_numbers", e.target.value.toUpperCase())}
-                          placeholder="SL-987654"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold uppercase text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      <div className="mt-1 flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={generateRandomSealNumber}
-                          className="text-[9px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 rounded px-1.5 py-0.5 border border-purple-200 dark:border-purple-800 transition cursor-pointer"
-                        >
-                          🎲 Gen Seal #
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleCargoFieldChange("seal_numbers", `AFG-CUSTOMS-${new Date().getFullYear()}`)}
-                          className="text-[9px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded px-1.5 py-0.5 border border-transparent dark:border-slate-700 transition cursor-pointer"
-                        >
-                          Customs Seal
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* No. of Packages */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-slate-800 dark:text-slate-200">No. of Packages</label>
-                        <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300">تعداد بسته</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-purple-500 pointer-events-none">
-                          <Package className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="number_of_packages"
-                          value={formData.number_of_packages}
-                          onChange={(e) => handleCargoFieldChange("number_of_packages", e.target.value)}
-                          placeholder="1,000 CTNS"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      {/* Package Unit Chips */}
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {["CTNS", "BAGS", "BOXES", "PALLETS", "ROLLS", "DRUMS"].map((unit, uIdx) => (
-                          <button
-                            key={`unit-${unit}-${uIdx}`}
-                            type="button"
-                            onClick={() => applyPackageUnit(unit)}
-                            className="text-[9px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 hover:text-purple-900 dark:hover:text-purple-200 rounded px-1 py-0.5 border border-transparent dark:border-slate-700 transition cursor-pointer"
-                          >
-                            {unit}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Net Wt. / Carton */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-slate-800 dark:text-slate-200">Net Wt. / Carton</label>
-                        <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300">کیلو فی کارتن (خالص)</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-purple-500 pointer-events-none">
-                          <Scale className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="kgs_per_carton"
-                          value={formData.kgs_per_carton}
-                          onChange={(e) => handleCargoFieldChange("kgs_per_carton", e.target.value)}
-                          placeholder="10.0 or 12.5"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {["10.0", "12.5", "15.0", "20.0"].map((w, wIdx) => (
-                          <button
-                            key={`weight-${w}-${wIdx}`}
-                            type="button"
-                            onClick={() => handleCargoFieldChange("kgs_per_carton", w)}
-                            className="text-[9px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 hover:text-purple-900 dark:hover:text-purple-200 rounded px-1.5 py-0.5 border border-transparent dark:border-slate-700 transition cursor-pointer"
-                          >
-                            {w} kg
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Gross Wt. / Carton */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                          <span>Gross Wt. / Carton</span>
-                          {parseFloat(formData.gross_weight_per_carton || "0") > parseFloat(formData.kgs_per_carton || "0") && (
-                            <span className="text-[8.5px] font-black bg-indigo-100 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-300 px-1 py-0.2 rounded border border-indigo-200 dark:border-indigo-800">
-                              +{(parseFloat(formData.gross_weight_per_carton || "0") - parseFloat(formData.kgs_per_carton || "0")).toFixed(2)} tare
-                            </span>
-                          )}
-                        </label>
-                        <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300">وزن ناخالص کارتن</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-purple-500 pointer-events-none">
-                          <Scale className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="gross_weight_per_carton"
-                          value={formData.gross_weight_per_carton}
-                          onChange={(e) => handleCargoFieldChange("gross_weight_per_carton", e.target.value)}
-                          placeholder="10.5 or 13.0"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {[
-                          { n: "10.0", g: "10.5" },
-                          { n: "12.5", g: "13.0" },
-                          { n: "15.0", g: "15.5" },
-                          { n: "20.0", g: "20.4" },
-                        ].map((pair, pIdx) => (
-                          <button
-                            key={`pair-${pair.g}-${pIdx}`}
-                            type="button"
-                            onClick={() => applyCartonWeightPreset(pair.n, pair.g)}
-                            className="text-[9px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 hover:text-purple-900 dark:hover:text-purple-200 rounded px-1.5 py-0.5 border border-transparent dark:border-slate-700 transition cursor-pointer"
-                          >
-                            {pair.g} kg
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Field Grid - Row 2: Rates, Weights & Valuation */}
-                <div className="space-y-3 rounded-2xl border border-emerald-200/90 dark:border-emerald-900/50 bg-linear-to-b from-emerald-50/40 via-white to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 p-3.5 sm:p-4.5 shadow-2xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 dark:border-emerald-900/50 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black text-white shadow-2xs">2</span>
-                      <div>
-                        <span className="block text-xs font-black uppercase tracking-wider text-emerald-950 dark:text-emerald-200">Rates & Calculated Totals</span>
-                        <span className="block text-[10px] font-medium text-emerald-700 dark:text-emerald-400">Calculated values update live with instant manual override support</span>
-                      </div>
-                    </div>
-                    <span className="font-[vazirmatn] text-xs font-bold text-emerald-800 dark:text-emerald-300" dir="rtl">ارزش‌گذاری، نرخ و اوزان کل</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
-                    {/* Rate per KGS */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-emerald-950 dark:text-slate-200">Rate per KG</label>
-                        <span className="font-[vazirmatn] text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400">نرخ فی کیلو</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-emerald-600 dark:text-emerald-400 pointer-events-none">
-                          <Receipt className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="rate_per_kgs"
-                          value={formData.rate_per_kgs}
-                          onChange={(e) => handleCargoFieldChange("rate_per_kgs", e.target.value)}
-                          placeholder="1.20 or 4.50"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-emerald-950 dark:text-emerald-300 bg-white dark:bg-slate-950 border-emerald-200 dark:border-emerald-800/80 focus:bg-white dark:focus:bg-slate-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {["0.85", "1.20", "2.50", "3.80", "4.50"].map((r, rIdx) => (
-                          <button
-                            key={`rate-${r}-${rIdx}`}
-                            type="button"
-                            onClick={() => handleCargoFieldChange("rate_per_kgs", r)}
-                            className="text-[9px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-slate-900 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 rounded px-1.5 py-0.5 border border-emerald-200 dark:border-emerald-800 transition cursor-pointer"
-                          >
-                            ${r}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Goods Value */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-emerald-950 dark:text-slate-200 flex items-center gap-1">
-                          <span>Goods Value (USD)</span>
-                          {formData.goods_value && (
-                            <span className="text-[8.5px] font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 px-1 py-0.2 rounded border border-emerald-200 dark:border-emerald-800">Auto</span>
-                          )}
-                        </label>
-                        <span className="font-[vazirmatn] text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400">ارزش کالا</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-emerald-600 dark:text-emerald-400 pointer-events-none">
-                          <Building2 className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="goods_value"
-                          value={formData.goods_value}
-                          onChange={(e) => handleCargoFieldChange("goods_value", e.target.value)}
-                          placeholder="$10,000.00"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-emerald-950 dark:text-emerald-300 bg-white dark:bg-slate-950 border-emerald-200 dark:border-emerald-800/80 focus:bg-white dark:focus:bg-slate-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-[9px] text-emerald-700 dark:text-emerald-400 font-semibold px-0.5">
-                        <span>Net Wt × Rate</span>
-                        <button
-                          type="button"
-                          onClick={handleAutoCalculateWeights}
-                          className="hover:underline font-bold text-emerald-800 dark:text-emerald-300 cursor-pointer"
-                        >
-                          ⚡ Recalculate
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Net Weight */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-blue-950 dark:text-slate-200">Total Net Weight</label>
-                        <span className="font-[vazirmatn] text-[11px] font-extrabold text-blue-700 dark:text-blue-400">وزن خالص کل</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-blue-600 dark:text-blue-400 pointer-events-none">
-                          <Scale className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="net_weight"
-                          value={formData.net_weight}
-                          onChange={(e) => handleCargoFieldChange("net_weight", e.target.value)}
-                          placeholder="4,800 KG"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-blue-950 dark:text-blue-300 bg-white dark:bg-slate-950 border-blue-200 dark:border-blue-800/80 focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-[9px] text-blue-700 dark:text-blue-400 font-semibold px-0.5">
-                        <span>Cartons × Net/Ctn</span>
-                        <button
-                          type="button"
-                          onClick={handleAutoCalculateWeights}
-                          className="hover:underline font-bold text-blue-800 dark:text-blue-300 cursor-pointer"
-                        >
-                          ↺ Sync
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Gross Weight */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-indigo-950 dark:text-slate-200">Total Gross Weight</label>
-                        <span className="font-[vazirmatn] text-[11px] font-extrabold text-indigo-700 dark:text-indigo-400">وزن ناخالص کل</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-indigo-600 dark:text-indigo-400 pointer-events-none">
-                          <Scale className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="gross_weight"
-                          value={formData.gross_weight}
-                          onChange={(e) => handleCargoFieldChange("gross_weight", e.target.value)}
-                          placeholder="5,000 KG"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-indigo-950 dark:text-indigo-300 bg-white dark:bg-slate-950 border-indigo-200 dark:border-indigo-800/80 focus:bg-white dark:focus:bg-slate-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-[9px] text-indigo-700 dark:text-indigo-400 font-semibold px-0.5">
-                        <span>Cartons × Gross/Ctn</span>
-                        <button
-                          type="button"
-                          onClick={handleAutoCalculateWeights}
-                          className="hover:underline font-bold text-indigo-800 dark:text-indigo-300 cursor-pointer"
-                        >
-                          ↺ Sync
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Volume (CBM) */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <label className="text-xs font-black text-slate-800 dark:text-slate-200">Volume (CBM)</label>
-                        <span className="font-[vazirmatn] text-[11px] font-bold text-amber-800 dark:text-amber-400">حجم کانتینر</span>
-                      </div>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-amber-600 dark:text-amber-400 pointer-events-none">
-                          <FileText className="w-4 h-4" />
-                        </div>
-                        <Input
-                          name="measurement"
-                          value={formData.measurement}
-                          onChange={(e) => handleCargoFieldChange("measurement", e.target.value)}
-                          placeholder="25.0 CBM"
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs transition-all"
-                        />
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {[
-                          { label: "20' STD", cbm: "33.0 CBM" },
-                          { label: "40' STD", cbm: "67.0 CBM" },
-                          { label: "40' HQ", cbm: "76.0 CBM" },
-                          { label: "LCL", cbm: "15.0 CBM" },
-                        ].map((box, bIdx) => (
-                          <button
-                            key={`box-${box.label}-${bIdx}`}
-                            type="button"
-                            onClick={() => applyVolumeCbmPreset(box.cbm)}
-                            className="text-[9px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-850 hover:bg-amber-100 dark:hover:bg-amber-950/60 hover:text-amber-900 dark:hover:text-amber-300 rounded px-1.5 py-0.5 border border-transparent dark:border-slate-700 transition cursor-pointer"
-                          >
-                            {box.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Field Grid - Row 3: Cargo Description Studio */}
-                <div className="space-y-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-linear-to-b from-slate-50/60 via-white to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 p-3.5 sm:p-4.5 shadow-2xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-800 dark:bg-slate-700 text-xs font-black text-white shadow-2xs">3</span>
-                      <div>
-                        <label className="text-xs font-black text-slate-900 dark:text-slate-100 block">
-                          Cargo Description & Document Studio
-                        </label>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Print-ready commodity description with automated customs clauses</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                        {formData.cargo_description ? `${formData.cargo_description.length} chars • ${formData.cargo_description.trim().split(/\s+/).filter(Boolean).length} words` : "Empty"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={applyDefaultCargoDescription}
-                        className="text-[10.5px] font-extrabold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 bg-white dark:bg-slate-850 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800 transition cursor-pointer"
-                        title="Apply default cargo particulars template"
-                      >
-                        📦 Default Template
-                      </button>
-                      <button
-                        type="button"
-                        onClick={formatCleanCargoDescription}
-                        className="text-[10.5px] font-extrabold text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/50 bg-white dark:bg-slate-850 px-2 py-0.5 rounded-lg border border-purple-200 dark:border-purple-800 transition cursor-pointer"
-                        title="Tidy line breaks and formatting"
-                      >
-                        🧹 Clean Format
-                      </button>
-                      <button
-                        type="button"
-                        onClick={insertBilingualCargoHeader}
-                        className="text-[10.5px] font-extrabold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/50 bg-white dark:bg-slate-850 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800 transition cursor-pointer"
-                        title="Add bilingual English/Dari header"
-                      >
-                        🌐 Bilingual Header
-                      </button>
-                      <button
-                        type="button"
-                        onClick={clearCargoDescription}
-                        className="text-[10.5px] font-extrabold text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 bg-white hover:bg-red-50 dark:bg-slate-850 dark:hover:bg-red-950/50 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 transition cursor-pointer"
-                        title="Clear description text"
-                      >
-                        ✕ Clear
-                      </button>
-                      <span className="font-[vazirmatn] text-[11px] font-extrabold text-purple-900 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
-                        شرح کامل کالا و محموله
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Quick Tag Snippets Bar */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0 flex items-center gap-1">
-                      <Sparkles className="h-3 w-3 text-amber-500" />
-                      Quick Tags:
-                    </span>
-                    {[
-                      {
-                        label: "+ Default Template",
-                        text: `📦 CONTAINER & CARGO PARTICULARS:
-• Description: 
-• Transit Date: ${new Date().toLocaleDateString("en-CA")}
-• INV-`,
-                      },
-                      { label: "+ Transit Date", text: `• Transit Date: ${new Date().toLocaleDateString("en-CA")}` },
-                      { label: "+ Description", text: "• Description: " },
-                      { label: "+ INV-", text: "• INV-" },
-                      { label: "+ HS Code", text: "• HS Code: 0806.20" },
-                      { label: "+ Afghan TC No", text: "• Afghan Transit TC No: TC-" },
-                      { label: "+ Temp Controlled (+4°C)", text: "• Temperature Controlled Reefer Cargo (+4°C to +8°C)" },
-                      { label: "+ Customs Seal Verified", text: "• Customs Seal Intact & Verified at Border Station" },
-                      { label: "+ Fragile", text: "• FRAGILE - HANDLE WITH CARE - STOW AWAY FROM HEAT" },
-                      { label: "+ Non-Hazardous", text: "• NON-HAZARDOUS GENERAL DRY COMMERCIAL CARGO" },
-                    ].map((snippet, sIdx) => (
-                      <button
-                        key={`snip-${snippet.label}-${sIdx}`}
-                        type="button"
-                        onClick={() => insertCargoTagSnippet(snippet.text)}
-                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-purple-50 dark:hover:bg-purple-950/60 hover:border-purple-300 dark:hover:border-purple-800 text-slate-700 dark:text-slate-300 hover:text-purple-900 dark:hover:text-purple-200 px-2 py-1 text-[10.5px] font-extrabold whitespace-nowrap transition cursor-pointer shadow-2xs active:scale-95 shrink-0"
-                      >
-                        {snippet.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <Textarea
-                    name="cargo_description"
-                    value={formData.cargo_description}
-                    onChange={(e) => handleCargoFieldChange("cargo_description", e.target.value)}
-                    dir="auto"
-                    placeholder={`📦 CONTAINER & CARGO PARTICULARS:\n• Description: \n• Transit Date: ${new Date().toLocaleDateString("en-CA")}\n• INV-`}
-                    rows={4}
-                    className="min-h-32 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3.5 text-xs sm:text-sm font-semibold leading-relaxed text-slate-950 dark:text-slate-100 shadow-inner transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 dark:focus:bg-slate-950"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Routes are optional and remain collapsed until the user adds one. */}
-            {formData.routes.length === 0 ? (
-              <button
-                id="section-routes"
-                type="button"
-                onClick={addRouteStop}
-                className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-dashed border-blue-200 dark:border-slate-800 bg-white/55 dark:bg-slate-900/60 px-5 py-3 text-left shadow-sm transition hover:border-blue-400 dark:hover:border-blue-700 hover:bg-blue-50/70 dark:hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 transition group-hover:bg-blue-600 group-hover:text-white">
-                    <MapPin className="h-4 w-4" />
-                  </span>
-                  <span>
-                    <span className="block text-sm font-extrabold text-blue-950 dark:text-blue-200">Add transit route (optional)</span>
-                    <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 font-[vazirmatn]" dir="rtl">افزودن مسیر ترانزیت در صورت نیاز</span>
-                  </span>
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white shadow-sm transition group-hover:bg-blue-700">
-                  <Plus className="h-4 w-4" />
-                  Add Route
-                </span>
-              </button>
-            ) : (
-            <Card id="section-routes" className="bg-white/80 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_600px]">
+                        {/* Side-by-Side Route & Cargo Dashboard */}
+            <div className="route-cargo-dashboard w-full">
+              {/* Left Column — Route Stops & Transit Pathway */}
+              <div className="route-section w-full min-w-0">
+                <Card id="section-routes" className="bg-white/85 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-blue-100/80 dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_600px]">
               <CardHeader className="pb-4 border-b border-slate-100/80 dark:border-slate-800 bg-linear-to-r from-blue-50/50 via-indigo-50/30 to-slate-50/50 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-600 text-white text-[11px] font-black shadow-xs shrink-0">
+                        05
+                      </span>
                       <div className="p-3 rounded-2xl bg-linear-to-br from-blue-600 via-indigo-600 to-cyan-500 shadow-lg shadow-blue-500/25 text-white">
                         <MapPin className="h-5 w-5" />
                       </div>
@@ -9323,6 +9017,26 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               </CardHeader>
               
               <CardContent className="space-y-6 pt-5 pb-6">
+                {formData.routes.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-blue-200 dark:border-slate-800 bg-white/55 dark:bg-slate-900/60 p-6 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 mx-auto mb-3 shadow-inner">
+                      <MapPin className="h-6 w-6" />
+                    </div>
+                    <p className="text-sm font-extrabold text-blue-950 dark:text-blue-200">No transit route stops configured</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-[vazirmatn] mt-1" dir="rtl">
+                      برای شروع یک توقفگاه اضافه نمایید یا از پیش‌فرض‌های سریع بالا انتخاب کنید
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={addRouteStop}
+                      className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-linear-to-r from-amber-500 to-orange-500 text-white px-4 py-2 text-xs font-black shadow-md shadow-amber-500/20 hover:from-amber-600 hover:to-orange-600 cursor-pointer transition-all"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add First Stop / افزودن اولین توقفگاه
+                    </Button>
+                  </div>
+                ) : (
+                  <>
                 {/* Visual Route Pathway Stepper Timeline */}
                 <div className="rounded-2xl border border-blue-200/80 bg-linear-to-r from-blue-50/90 via-indigo-50/50 to-cyan-50/90 p-4 shadow-inner overflow-hidden">
                   <div className="flex items-center justify-between pb-2 mb-2 border-b border-blue-100">
@@ -9566,7 +9280,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         </div>
 
                         {/* Location and Transport Inputs */}
-                        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1.4fr]">
+                        <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-[1fr_1fr_1.35fr]">
                           {/* English Location */}
                           <div className="relative">
                             <label className="text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
@@ -9858,7 +9572,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           </div>
 
                           {/* Transport Mode Selector */}
-                          <div>
+                          <div className="sm:col-span-2 2xl:col-span-1">
                             <label className="text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5 block">
                               Transport Mode / حالت حمل و نقل
                             </label>
@@ -10243,7 +9957,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     )}
                   </div>
 
-                  <div className="grid max-h-96 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 overflow-y-auto pr-1">
+                  <div className="grid max-h-96 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-2.5 overflow-y-auto pr-1">
                     {quickLocationMatches.map((loc, locIndex) => (
                       <div
                         key={`quick-loc-catalog-${loc.name}-${loc.code || locIndex}-${locIndex}`}
@@ -10330,16 +10044,984 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     )}
                   </div>
                 </div>
+                  </>
+                )}
               </CardContent>
             </Card>
-            )}
+              </div>
+
+              {/* Right Column — Cargo Details & Specifications */}
+              <div className="cargo-section w-full min-w-0">
+                <Card id="section-cargo" className="overflow-hidden rounded-[28px] sm:rounded-[32px] w-full border border-purple-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-[0_20px_55px_-24px_rgba(88,28,135,0.28)] dark:shadow-[0_20px_55px_-24px_rgba(0,0,0,0.6)] backdrop-blur-2xl [content-visibility:auto] [contain-intrinsic-size:1px_600px]">
+              <CardHeader className="border-b border-purple-100 dark:border-slate-800 bg-linear-to-r from-purple-50/90 via-white to-indigo-50/60 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 px-4 py-4 sm:px-5">
+                <CardTitle className="flex flex-wrap items-center justify-between gap-3 text-base">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-purple-600 text-white text-[11px] font-black shadow-xs">
+                      06
+                    </span>
+                    <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
+                      <Package className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-extrabold text-slate-950 dark:text-slate-100 text-base tracking-tight select-none">Cargo Details & Specifications</span>
+                      <span className="mt-0.5 block text-[11px] font-semibold text-purple-700 dark:text-purple-300">Packages, weights, rates and printable cargo description</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleAutoCalculateWeights}
+                      className="h-9 rounded-xl bg-linear-to-r from-purple-600 to-indigo-600 px-3.5 text-xs font-black text-white shadow-md shadow-purple-500/20 transition-all hover:from-purple-700 hover:to-indigo-700 active:scale-95 cursor-pointer"
+                      title="Calculate Net Weight, Gross Weight and Goods Value"
+                    >
+                      <Calculator className="h-3.5 w-3.5 mr-1" />
+                      Calculate totals
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAllCargoFields}
+                      className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-[10.5px] font-bold text-slate-600 dark:text-slate-300 shadow-2xs hover:border-red-200 dark:hover:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-400"
+                      title="Clear all Cargo fields"
+                    >
+                      ✕ Clear All
+                    </Button>
+                    <span className="rounded-full border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/60 px-3 py-1 text-xs font-extrabold text-purple-900 dark:text-purple-300 font-[vazirmatn]" dir="rtl">
+                      مشخصات کالا و محموله
+                    </span>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 px-4 pb-5 pt-4 sm:px-5">
+                <RoutePresetSelector
+                  value={formData.cargo_route_note}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, cargo_route_note: val }))}
+                />
+                {/* Quick Cargo Preset Selector Strip */}
+                <div className="rounded-2xl border border-purple-200/80 dark:border-purple-900/60 bg-linear-to-r from-purple-50/90 via-indigo-50/50 to-purple-50/80 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 p-3 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-purple-950 dark:text-purple-200 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      1-Click Cargo Commodity Presets
+                    </span>
+                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
+                      بارگذاری پیش‌فرض‌های آماده کالا
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {CARGO_PRESETS.map((preset, pIdx) => (
+                      <button
+                        key={`main-cargo-preset-${preset.name}-${pIdx}`}
+                        type="button"
+                        onClick={() => handleApplyCargoPreset(preset)}
+                        className="rounded-xl border border-purple-200 dark:border-purple-800/80 bg-white dark:bg-slate-900 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-purple-500 text-slate-800 dark:text-slate-200 px-2.5 py-1 text-[11px] font-black whitespace-nowrap transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 flex items-center gap-1 [&_*]:pointer-events-none"
+                        title={`Apply ${preset.name} (${preset.packages}, ${preset.kgsPerCarton} kg/ctn, ${preset.rate}/kg)`}
+                      >
+                        <span className="pointer-events-none">{preset.name}</span>
+                        <span className="text-[9.5px] opacity-75 font-mono pointer-events-none">({preset.packages})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Weights & Calculation Metrics KPI Cards */}
+                {(() => {
+                  const isMulti = liveCargoCalc.isMultiItem && liveCargoCalc.items.length > 1
+                  const hasPackageInput = liveCargoCalc.totalPackages > 0
+                  const hasWeightInput = liveCargoCalc.items.some((item) => item.netPerCarton > 0 || item.grossPerCarton > 0)
+                  const calculationReady = hasPackageInput && hasWeightInput
+
+                  const netVal = parseNumericValue(formData.net_weight || "") || (liveCargoCalc.totalNetWeight > 0 ? liveCargoCalc.totalNetWeight : 0)
+                  const grossVal = parseNumericValue(formData.gross_weight || "") || (liveCargoCalc.totalGrossWeight > 0 ? liveCargoCalc.totalGrossWeight : 0)
+                  const tareVal = grossVal > netVal ? grossVal - netVal : 0
+                  const netCartonVal = parseFloat(formData.kgs_per_carton || "0") || 0
+                  const grossCartonVal = parseFloat(formData.gross_weight_per_carton || "0") || 0
+                  const tareCartonDiff = grossCartonVal > netCartonVal ? (grossCartonVal - netCartonVal).toFixed(2) : null
+                  const isContainerIsoValid = /^[A-Z]{4}\d{7}$/.test((formData.container_numbers || "").trim().replace(/[-\s]/g, ""))
+
+                  return (
+                    <div className="space-y-3">
+                      {/* Live Totals Header Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-linear-to-r from-slate-50 via-white to-purple-50/50 dark:from-slate-900 dark:via-slate-850 dark:to-purple-950/30 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-purple-600 text-white shadow-2xs">
+                            <Zap className="h-4 w-4" />
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-900 dark:text-slate-100">Live Shipment Intelligence</p>
+                              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${
+                                calculationReady
+                                  ? "border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+                                  : "border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300"
+                              }`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${calculationReady ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+                                {calculationReady ? "⚡ Auto-Calculation Synced" : "Enter Packages + Carton Weight"}
+                              </span>
+                            </div>
+                            <p className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400">Real-time carton multiplication, payload tare analysis, and freight valuation</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleAutoCalculateWeights}
+                            className="h-8 rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-3 text-xs font-black shadow-2xs cursor-pointer transition-all"
+                            title="Recalculate weights & goods value from cartons"
+                          >
+                            <Calculator className="h-3.5 w-3.5 mr-1" />
+                            Recalculate
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* 4 Primary KPI Cards */}
+                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2" aria-live="polite">
+                        {/* 01 Total Packages */}
+                        <div className="relative overflow-hidden rounded-2xl border border-purple-200/90 dark:border-purple-900/60 bg-linear-to-br from-purple-50/80 via-white to-purple-50/40 dark:from-purple-950/40 dark:via-slate-900 dark:to-purple-950/20 p-4 shadow-2xs transition-all hover:shadow-md">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10.5px] font-black uppercase tracking-wider text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
+                              <Package className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                              Total Packages
+                            </span>
+                            <span className="text-[9.5px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100/90 dark:bg-purple-950/70 px-2 py-0.5 rounded-lg border border-purple-200 dark:border-purple-800">
+                              تعداد کل بسته‌ها
+                            </span>
+                          </div>
+                          <p className="text-xl sm:text-2xl font-black text-purple-950 dark:text-purple-100 truncate tracking-tight">
+                            {isMulti && liveCargoCalc.totalPackages > 0
+                              ? `${liveCargoCalc.totalPackages.toLocaleString("en-US")} CTNS`
+                              : formData.number_of_packages || "0 CTNS"}
+                          </p>
+                          <div className="mt-2 pt-2 border-t border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-[10px]">
+                            <span className="text-purple-700 dark:text-purple-400 font-semibold truncate">
+                              {isMulti
+                                ? liveCargoCalc.items.map((it, idx) => `#${idx + 1}: ${it.packages}`).join(" | ")
+                                : "Cartons / Units"}
+                            </span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {["500", "1,000", "1,200"].map((qty, qIdx) => (
+                                <button
+                                  key={`cargo-qty-${qty}-${qIdx}`}
+                                  type="button"
+                                  onClick={() => handleCargoFieldChange("number_of_packages", `${qty} CTNS`)}
+                                  className="text-[9px] font-extrabold text-purple-800 dark:text-purple-300 bg-white dark:bg-slate-900 hover:bg-purple-200 dark:hover:bg-purple-900/60 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 transition cursor-pointer"
+                                >
+                                  {qty}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 02 Total Net Weight */}
+                        <div className="relative overflow-hidden rounded-2xl border border-blue-200/90 dark:border-blue-900/60 bg-linear-to-br from-blue-50/80 via-white to-blue-50/40 dark:from-blue-950/40 dark:via-slate-900 dark:to-blue-950/20 p-4 shadow-2xs transition-all hover:shadow-md">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10.5px] font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+                              <Scale className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              Total Net Weight
+                            </span>
+                            <span className="text-[9.5px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100/90 dark:bg-blue-950/70 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800">
+                              وزن خالص کل
+                            </span>
+                          </div>
+                          <p className="text-xl sm:text-2xl font-black text-blue-950 dark:text-blue-100 truncate tracking-tight">
+                            {isMulti && liveCargoCalc.totalNetWeight > 0
+                              ? `${formatWeightValue(liveCargoCalc.totalNetWeight)} KG`
+                              : formData.net_weight || "0 KG"}
+                          </p>
+                          <div className="mt-2 pt-2 border-t border-blue-100 dark:border-blue-900/50 flex items-center justify-between text-[10px]">
+                            <span className="text-blue-700 dark:text-blue-400 font-semibold truncate">
+                              {netVal > 0 ? `≈ ${(netVal / 1000).toFixed(2)} Metric Tons (MT)` : "Net Cargo Weight"}
+                            </span>
+                            {netCartonVal > 0 && (
+                              <span className="text-[9.5px] font-black text-blue-800 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-950/70 px-1.5 py-0.5 rounded">
+                                {netCartonVal} kg/ctn
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 03 Total Gross Weight */}
+                        <div className="relative overflow-hidden rounded-2xl border border-indigo-200/90 dark:border-indigo-900/60 bg-linear-to-br from-indigo-50/80 via-white to-indigo-50/40 dark:from-indigo-950/40 dark:via-slate-900 dark:to-indigo-950/20 p-4 shadow-2xs transition-all hover:shadow-md">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10.5px] font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                              <Scale className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                              Total Gross Weight
+                            </span>
+                            <span className="text-[9.5px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100/90 dark:bg-indigo-950/70 px-2 py-0.5 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                              وزن ناخالص کل
+                            </span>
+                          </div>
+                          <p className="text-xl sm:text-2xl font-black text-indigo-950 dark:text-indigo-100 truncate tracking-tight">
+                            {isMulti && liveCargoCalc.totalGrossWeight > 0
+                              ? `${formatWeightValue(liveCargoCalc.totalGrossWeight)} KG`
+                              : formData.gross_weight || "0 KG"}
+                          </p>
+                          <div className="mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between text-[10px]">
+                            <span className="text-indigo-700 dark:text-indigo-400 font-semibold truncate">
+                              {tareVal > 0 ? `Packaging Tare: +${formatWeightValue(tareVal)} KG` : "Gross with Packaging"}
+                            </span>
+                            {tareCartonDiff && (
+                              <span className="text-[9.5px] font-black text-indigo-800 dark:text-indigo-300 bg-indigo-100/80 dark:bg-indigo-950/70 px-1.5 py-0.5 rounded">
+                                +{tareCartonDiff} kg tare
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 04 Estimated Goods Value */}
+                        <div className="relative overflow-hidden rounded-2xl border border-emerald-200/90 dark:border-emerald-900/60 bg-linear-to-br from-emerald-50/80 via-white to-emerald-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-emerald-950/20 p-4 shadow-2xs transition-all hover:shadow-md">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10.5px] font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                              <Receipt className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                              Est. Goods Value
+                            </span>
+                            <span className="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/70 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                              ارزش کل کالا
+                            </span>
+                          </div>
+                          <p className="text-xl sm:text-2xl font-black text-emerald-950 dark:text-emerald-100 truncate tracking-tight">
+                            {isMulti && liveCargoCalc.totalGoodsValue > 0
+                              ? formatUsdValue(liveCargoCalc.totalGoodsValue)
+                              : formData.goods_value || "$0.00"}
+                          </p>
+                          <div className="mt-2 pt-2 border-t border-emerald-100 dark:border-emerald-900/50 flex items-center justify-between text-[10px]">
+                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold truncate">
+                              {formData.rate_per_kgs ? `@ $${formData.rate_per_kgs.replace(/^\$/, "")} / KG Rate` : "Total Declared Value"}
+                            </span>
+                            {formData.rate_per_kgs && netVal > 0 && (
+                              <span className="text-[9.5px] font-black text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/70 px-1.5 py-0.5 rounded">
+                                USD
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tare & Payload Diagnostic Strip */}
+                      {(netVal > 0 || grossVal > 0) && (
+                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 px-3.5 py-2 text-xs text-slate-700 dark:text-slate-300 shadow-2xs">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                              <Box className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                              Payload Breakdown:
+                            </span>
+                            <span>
+                              Cargo Net: <strong className="text-blue-900 dark:text-blue-400">{formatWeightValue(netVal)} KG</strong>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              Total Gross: <strong className="text-indigo-900 dark:text-indigo-400">{formatWeightValue(grossVal)} KG</strong>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              Tare (Packaging): <strong className="text-amber-800 dark:text-amber-400">{formatWeightValue(tareVal)} KG</strong>
+                              {grossVal > 0 && tareVal > 0 && (
+                                <span className="ml-1 text-[10.5px] text-slate-500 dark:text-slate-400 font-medium">
+                                  ({((tareVal / grossVal) * 100).toFixed(1)}%)
+                                </span>
+                              )}
+                            </span>
+                          </div>
+
+                          {formData.measurement && (
+                            <span className="font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[11px]">
+                              Volume: {formData.measurement}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Multi-Item Cargo Breakdown Interactive Live Strip */}
+                      {isMulti && (
+                        <div className="rounded-2xl border border-purple-200 dark:border-purple-900/60 bg-linear-to-r from-purple-50/90 via-indigo-50/60 to-purple-50/90 dark:from-purple-950/50 dark:via-indigo-950/30 dark:to-purple-950/50 p-3.5 shadow-2xs space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="flex items-center justify-center w-5 h-5 rounded-md bg-purple-600 text-white text-[10px] font-black">
+                                2+
+                              </span>
+                              <span className="text-xs font-black text-purple-950 dark:text-purple-200">
+                                Multi-Item Shipment Breakdown ({liveCargoCalc.items.length} Cargo Items)
+                              </span>
+                            </div>
+                            <span className="text-[10.5px] font-black text-purple-700 dark:text-purple-300 bg-purple-200/70 dark:bg-purple-950/70 px-2 py-0.5 rounded-lg border border-purple-300 dark:border-purple-800">
+                              تفکیک اقلام چندگانه محموله
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {liveCargoCalc.items.map((it, idx) => (
+                              <div key={`cargo-item-${idx}`} className="rounded-xl bg-white/90 dark:bg-slate-900/90 p-3 border border-purple-200/80 dark:border-slate-800 shadow-2xs space-y-1.5">
+                                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                                  <span className="text-xs font-black text-purple-900 dark:text-purple-300 flex items-center gap-1">
+                                    <Package className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                                    Item #{idx + 1}
+                                  </span>
+                                  <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                    {it.packages.toLocaleString("en-US")} CTNS
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                  <div className="bg-blue-50/70 dark:bg-blue-950/50 p-1.5 rounded-lg border border-blue-100 dark:border-blue-900/50">
+                                    <span className="text-blue-600 dark:text-blue-400 block text-[9.5px] font-bold">Net Weight</span>
+                                    <span className="font-black text-blue-950 dark:text-blue-300 text-xs">{formatWeightValue(it.netWeight)} KG</span>
+                                    <span className="text-[9px] text-blue-500 dark:text-blue-400 block font-medium">({it.netPerCarton} kg/ctn)</span>
+                                  </div>
+                                  <div className="bg-indigo-50/70 dark:bg-indigo-950/50 p-1.5 rounded-lg border border-indigo-100 dark:border-indigo-900/50">
+                                    <span className="text-indigo-600 dark:text-indigo-400 block text-[9.5px] font-bold">Gross Weight</span>
+                                    <span className="font-black text-indigo-950 dark:text-indigo-300 text-xs">{formatWeightValue(it.grossWeight)} KG</span>
+                                    <span className="text-[9px] text-indigo-500 dark:text-indigo-400 block font-medium">({it.grossPerCarton} kg/ctn)</span>
+                                  </div>
+                                </div>
+                                <div className="border-t border-slate-100 dark:border-slate-800 pt-1.5 flex items-center justify-between bg-emerald-50/60 dark:bg-emerald-950/50 p-1.5 rounded-lg border border-emerald-100 dark:border-emerald-900/50">
+                                  <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300">Rate: ${it.rate}/kg</span>
+                                  <span className="text-xs font-black text-emerald-950 dark:text-emerald-200">
+                                    ${it.goodsValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* Side-by-Side: Section 1 (Shipment & Packaging Inputs) & Section 2 (Rates & Calculated Totals) */}
+                <div className="cargo-inputs-rates-grid grid grid-cols-1 lg:grid-cols-2 gap-4 xl:gap-5 items-stretch w-full min-w-0">
+                  {/* Field Grid - Section 1: Shipment & Packaging Inputs */}
+                  <div className="h-full space-y-4 rounded-2xl border border-purple-200/90 dark:border-purple-900/50 bg-linear-to-b from-purple-50/40 via-white to-white dark:from-purple-950/30 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-5 shadow-2xs flex flex-col justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-100 dark:border-purple-900/50 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-linear-to-br from-purple-600 to-indigo-700 text-white font-black text-xs shadow-xs">
+                        1
+                      </span>
+                      <div>
+                        <span className="block text-xs sm:text-sm font-black uppercase tracking-wider text-purple-950 dark:text-purple-100">
+                          Shipment & Packaging Inputs
+                        </span>
+                        <span className="block text-[10.5px] font-medium text-purple-700/80 dark:text-purple-400">
+                          Container identification, customs seal, package quantity and unit carton weights
+                        </span>
+                      </div>
+                    </div>
+                    <span className="font-[vazirmatn] text-xs sm:text-sm font-bold text-purple-800 dark:text-purple-300" dir="rtl">
+                      مشخصات کانتینر، پلمپ و بسته‌بندی
+                    </span>
+                  </div>
+
+                  {/* Row 1: Container No & Seal No (2 Balanced Columns) */}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 cargo-adaptive-subgrid">
+                    {/* Container No */}
+                    <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/60 p-3.5 shadow-2xs transition-all hover:border-purple-200 dark:hover:border-purple-800/60">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 flex-wrap">
+                          <span>Container No.</span>
+                          {/^[A-Z]{4}\d{7}$/.test((formData.container_numbers || "").trim().replace(/[-\s]/g, "")) && (
+                            <span className="text-[9px] font-black bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800 whitespace-nowrap">
+                              ✓ ISO VALID
+                            </span>
+                          )}
+                        </label>
+                        <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300 shrink-0" dir="rtl">
+                          شماره کانتینر
+                        </span>
+                      </div>
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3.5 text-purple-600 dark:text-purple-400 pointer-events-none">
+                          <Box className="w-4.5 h-4.5 stroke-[2.2]" />
+                        </div>
+                        <Input
+                          name="container_numbers"
+                          value={formData.container_numbers}
+                          onChange={(e) => handleCargoFieldChange("container_numbers", e.target.value.toUpperCase())}
+                          placeholder="MSCU1234567"
+                          className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold uppercase text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all tracking-wider"
+                        />
+                      </div>
+                      {/* Popular Shipping Line Prefixes */}
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 mr-0.5">Prefix:</span>
+                        {["MSCU", "CMAU", "COSU", "MEDU", "MAEU", "TGHU"].map((pfx, pIdx) => (
+                          <button
+                            key={`pfx-${pfx}-${pIdx}`}
+                            type="button"
+                            onClick={() => applyContainerPrefix(pfx)}
+                            className="text-[9.5px] font-extrabold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-purple-100 dark:bg-slate-800 dark:hover:bg-purple-900/60 hover:text-purple-900 dark:hover:text-purple-200 rounded-lg px-2 py-0.5 transition cursor-pointer border border-slate-200/60 dark:border-slate-700 shadow-2xs active:scale-95 whitespace-nowrap"
+                          >
+                            +{pfx}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Seal No */}
+                    <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/60 p-3.5 shadow-2xs transition-all hover:border-purple-200 dark:hover:border-purple-800/60">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200">Seal No.</label>
+                        <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300 shrink-0" dir="rtl">
+                          شماره پلمپ
+                        </span>
+                      </div>
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3.5 text-purple-600 dark:text-purple-400 pointer-events-none">
+                          <ShieldCheck className="w-4.5 h-4.5 stroke-[2.2]" />
+                        </div>
+                        <Input
+                          name="seal_numbers"
+                          value={formData.seal_numbers}
+                          onChange={(e) => handleCargoFieldChange("seal_numbers", e.target.value.toUpperCase())}
+                          placeholder="SL-987654"
+                          className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold uppercase text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all tracking-wider"
+                        />
+                      </div>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={generateRandomSealNumber}
+                          className="text-[9.5px] font-extrabold text-purple-800 dark:text-purple-200 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/70 dark:hover:bg-purple-900/70 rounded-lg px-2.5 py-0.5 border border-purple-200 dark:border-purple-800/80 transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1 whitespace-nowrap"
+                        >
+                          <span>🎲</span>
+                          <span>Gen Seal #</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCargoFieldChange("seal_numbers", `AFG-CUSTOMS-${new Date().getFullYear()}`)}
+                          className="text-[9.5px] font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 rounded-lg px-2.5 py-0.5 border border-slate-200/60 dark:border-slate-700 transition cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                        >
+                          Customs Seal
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: No. of Packages (Generous Full-Width to Prevent Text Clipping) */}
+                  <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/60 p-3.5 shadow-2xs transition-all hover:border-purple-200 dark:hover:border-purple-800/60">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 flex-wrap">
+                        <Package className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>No. of Packages & Specification</span>
+                        <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500">(Quantity + Unit + Cargo Details)</span>
+                      </label>
+                      <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300 shrink-0" dir="rtl">
+                        تعداد و مشخصات بسته
+                      </span>
+                    </div>
+                    <div className="relative flex items-center">
+                      <div className="absolute left-3.5 text-purple-600 dark:text-purple-400 pointer-events-none">
+                        <Package className="w-4.5 h-4.5 stroke-[2.2]" />
+                      </div>
+                      <Input
+                        name="number_of_packages"
+                        value={formData.number_of_packages}
+                        onChange={(e) => handleCargoFieldChange("number_of_packages", e.target.value)}
+                        placeholder="e.g. 1,475 CTNS GOLDEN RAISINS (GRADE AAA)"
+                        className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all"
+                      />
+                    </div>
+                    {/* Package Unit Chips */}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 mr-0.5">Quick Unit:</span>
+                      {["CTNS", "BAGS", "BOXES", "PALLETS", "ROLLS", "DRUMS"].map((unit, uIdx) => (
+                        <button
+                          key={`unit-${unit}-${uIdx}`}
+                          type="button"
+                          onClick={() => applyPackageUnit(unit)}
+                          className="text-[9.5px] font-extrabold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-purple-100 dark:bg-slate-800 dark:hover:bg-purple-900/60 hover:text-purple-900 dark:hover:text-purple-200 rounded-lg px-2.5 py-0.5 border border-slate-200/60 dark:border-slate-700 transition cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                        >
+                          {unit}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Row 3: Net Wt. / Carton & Gross Wt. / Carton (2 Balanced Columns - Tare Badge Never Wraps) */}
+                  <div className="grid grid-cols-1 gap-3.5">
+                    {/* Net Wt. / Carton */}
+                    <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/60 p-3.5 shadow-2xs transition-all hover:border-purple-200 dark:hover:border-purple-800/60">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200">Net Wt. / Carton</label>
+                        <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300 shrink-0" dir="rtl">
+                          کیلو فی کارتن (خالص)
+                        </span>
+                      </div>
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3.5 text-purple-600 dark:text-purple-400 pointer-events-none">
+                          <Scale className="w-4.5 h-4.5 stroke-[2.2]" />
+                        </div>
+                        <Input
+                          name="kgs_per_carton"
+                          value={formData.kgs_per_carton}
+                          onChange={(e) => handleCargoFieldChange("kgs_per_carton", e.target.value)}
+                          placeholder="10.0 or 12.5"
+                          className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all font-mono"
+                        />
+                      </div>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 mr-0.5">Presets:</span>
+                        {["10.0", "12.5", "15.0", "20.0"].map((w, wIdx) => (
+                          <button
+                            key={`weight-${w}-${wIdx}`}
+                            type="button"
+                            onClick={() => handleCargoFieldChange("kgs_per_carton", w)}
+                            className="text-[9.5px] font-extrabold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-purple-100 dark:bg-slate-800 dark:hover:bg-purple-900/60 hover:text-purple-900 dark:hover:text-purple-200 rounded-lg px-2.5 py-0.5 border border-slate-200/60 dark:border-slate-700 transition cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                          >
+                            {w} kg
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Gross Wt. / Carton */}
+                    <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/60 p-3.5 shadow-2xs transition-all hover:border-purple-200 dark:hover:border-purple-800/60">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <label className="text-xs font-black text-slate-800 dark:text-slate-200">
+                            Gross Wt. / Carton
+                          </label>
+                          {parseFloat(formData.gross_weight_per_carton || "0") > parseFloat(formData.kgs_per_carton || "0") && (
+                            <span className="text-[9px] font-black bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 whitespace-nowrap">
+                              +{(parseFloat(formData.gross_weight_per_carton || "0") - parseFloat(formData.kgs_per_carton || "0")).toFixed(2)} tare
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-[vazirmatn] text-[11px] font-bold text-purple-800 dark:text-purple-300 shrink-0" dir="rtl">
+                          وزن ناخالص کارتن
+                        </span>
+                      </div>
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3.5 text-purple-600 dark:text-purple-400 pointer-events-none">
+                          <Scale className="w-4.5 h-4.5 stroke-[2.2]" />
+                        </div>
+                        <Input
+                          name="gross_weight_per_carton"
+                          value={formData.gross_weight_per_carton}
+                          onChange={(e) => handleCargoFieldChange("gross_weight_per_carton", e.target.value)}
+                          placeholder="10.5 or 13.0"
+                          className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-2xs transition-all font-mono"
+                        />
+                      </div>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 mr-0.5">Presets:</span>
+                        {[
+                          { n: "10.0", g: "10.5" },
+                          { n: "12.5", g: "13.0" },
+                          { n: "15.0", g: "15.5" },
+                          { n: "20.0", g: "20.4" },
+                        ].map((pair, pIdx) => (
+                          <button
+                            key={`pair-${pair.g}-${pIdx}`}
+                            type="button"
+                            onClick={() => applyCartonWeightPreset(pair.n, pair.g)}
+                            className="text-[9.5px] font-extrabold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-purple-100 dark:bg-slate-800 dark:hover:bg-purple-900/60 hover:text-purple-900 dark:hover:text-purple-200 rounded-lg px-2.5 py-0.5 border border-slate-200/60 dark:border-slate-700 transition cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                          >
+                            {pair.g} kg
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  </div>
+
+                  {/* Field Grid - Row 2: Rates, Weights & Valuation */}
+                  <div className="h-full space-y-4 rounded-2xl border-2 border-emerald-300/80 dark:border-emerald-800/80 bg-linear-to-b from-emerald-50/50 via-white to-white dark:from-emerald-950/20 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-5 shadow-2xs transition-all flex flex-col justify-between">
+                    {/* Section Header */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 dark:border-emerald-900/60 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-600 text-xs font-black text-white shadow-xs">2</span>
+                        <div>
+                          <span className="block text-xs sm:text-sm font-black uppercase tracking-wider text-emerald-950 dark:text-emerald-100">Rates & Calculated Totals</span>
+                          <span className="block text-[10.5px] font-medium text-emerald-700/80 dark:text-emerald-400">Calculated values update live with instant manual override support</span>
+                        </div>
+                      </div>
+                      <span className="font-[vazirmatn] text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-300" dir="rtl">ارزش‌گذاری، نرخ و اوزان کل</span>
+                    </div>
+
+                    <div className="space-y-3.5">
+                      {/* Row A: Financial Valuation & Rates */}
+                      <div className="grid grid-cols-1 gap-3.5">
+                        {/* Rate per KG */}
+                        <div className="rounded-xl border border-emerald-200/90 dark:border-emerald-900/60 bg-white/90 dark:bg-slate-950/80 p-3.5 shadow-2xs hover:border-emerald-300 transition-all">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <label className="text-xs font-black text-emerald-950 dark:text-slate-100">Rate per KG</label>
+                            <span className="font-[vazirmatn] text-[11px] font-bold text-emerald-700 dark:text-emerald-400 shrink-0" dir="rtl">نرخ فی کیلو</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <div className="absolute left-3.5 text-emerald-600 dark:text-emerald-400 pointer-events-none">
+                              <Receipt className="w-4.5 h-4.5 stroke-[2.2]" />
+                            </div>
+                            <Input
+                              name="rate_per_kgs"
+                              value={formData.rate_per_kgs}
+                              onChange={(e) => handleCargoFieldChange("rate_per_kgs", e.target.value)}
+                              placeholder="1.20 or 4.50"
+                              className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold text-emerald-950 dark:text-emerald-200 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all font-mono"
+                            />
+                          </div>
+                          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                            <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 mr-0.5">Rate Presets:</span>
+                            {["0.85", "1.20", "2.50", "3.80", "4.50"].map((r, rIdx) => (
+                              <button
+                                key={`rate-${r}-${rIdx}`}
+                                type="button"
+                                onClick={() => handleCargoFieldChange("rate_per_kgs", r)}
+                                className="text-[9.5px] font-extrabold text-emerald-900 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 rounded-lg px-2.5 py-0.5 border border-emerald-200 dark:border-emerald-800 shadow-2xs active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                              >
+                                ${r}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Goods Value (USD) */}
+                        <div className="rounded-xl border border-emerald-200/90 dark:border-emerald-900/60 bg-white/90 dark:bg-slate-950/80 p-3.5 shadow-2xs hover:border-emerald-300 transition-all">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <label className="text-xs font-black text-emerald-950 dark:text-slate-100 flex items-center gap-1.5 flex-wrap">
+                              <span>Goods Value (USD)</span>
+                              {formData.goods_value && (
+                                <span className="text-[9px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800 whitespace-nowrap">Auto</span>
+                              )}
+                            </label>
+                            <span className="font-[vazirmatn] text-[11px] font-bold text-emerald-700 dark:text-emerald-400 shrink-0" dir="rtl">ارزش کالا</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <div className="absolute left-3.5 text-emerald-600 dark:text-emerald-400 pointer-events-none">
+                              <Building2 className="w-4.5 h-4.5 stroke-[2.2]" />
+                            </div>
+                            <Input
+                              name="goods_value"
+                              value={formData.goods_value}
+                              onChange={(e) => handleCargoFieldChange("goods_value", e.target.value)}
+                              placeholder="$10,000.00"
+                              className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold font-mono text-emerald-950 dark:text-emerald-200 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
+                            />
+                          </div>
+                          <div className="mt-2.5 flex items-center justify-between text-[10px] text-emerald-800 dark:text-emerald-400 font-bold px-0.5">
+                            <span className="font-semibold text-emerald-700/80 dark:text-emerald-400">Formula: Net Wt × Rate</span>
+                            <button
+                              type="button"
+                              onClick={handleAutoCalculateWeights}
+                              className="font-extrabold text-emerald-900 dark:text-emerald-200 bg-emerald-100/70 hover:bg-emerald-100 dark:bg-emerald-950/80 px-2.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800 active:scale-95 transition-all cursor-pointer shadow-2xs whitespace-nowrap"
+                            >
+                              ⚡ Recalculate
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Row B: Physical Weights & Container Volume */}
+                      <div className="grid grid-cols-1 gap-3.5">
+                        {/* Total Net Weight */}
+                        <div className="rounded-xl border border-blue-200/90 dark:border-blue-900/60 bg-white/90 dark:bg-slate-950/80 p-3.5 shadow-2xs hover:border-blue-300 transition-all">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <label className="text-xs font-black text-blue-950 dark:text-slate-100">Total Net Weight</label>
+                            <span className="font-[vazirmatn] text-[11px] font-bold text-blue-700 dark:text-blue-400 shrink-0" dir="rtl">وزن خالص کل</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <div className="absolute left-3.5 text-blue-600 dark:text-blue-400 pointer-events-none">
+                              <Scale className="w-4.5 h-4.5 stroke-[2.2]" />
+                            </div>
+                            <Input
+                              name="net_weight"
+                              value={formData.net_weight}
+                              onChange={(e) => handleCargoFieldChange("net_weight", e.target.value)}
+                              placeholder="4,800 KG"
+                              className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold font-mono text-blue-950 dark:text-blue-200 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-all"
+                            />
+                          </div>
+                          <div className="mt-2.5 flex items-center justify-between text-[10px] text-blue-800 dark:text-blue-400 font-bold px-0.5">
+                            <span className="font-semibold text-blue-700/80 dark:text-blue-400">Cartons × Net/Ctn</span>
+                            <button
+                              type="button"
+                              onClick={handleAutoCalculateWeights}
+                              className="font-extrabold text-blue-900 dark:text-blue-200 bg-blue-100/70 hover:bg-blue-100 dark:bg-blue-950/80 px-2.5 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800 active:scale-95 transition-all cursor-pointer shadow-2xs whitespace-nowrap"
+                            >
+                              ↺ Sync
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Total Gross Weight */}
+                        <div className="rounded-xl border border-indigo-200/90 dark:border-indigo-900/60 bg-white/90 dark:bg-slate-950/80 p-3.5 shadow-2xs hover:border-indigo-300 transition-all">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <label className="text-xs font-black text-indigo-950 dark:text-slate-100">Total Gross Weight</label>
+                              {(() => {
+                                const n = parseFloat((formData.net_weight || "").replace(/[^0-9.]/g, "")) || 0
+                                const g = parseFloat((formData.gross_weight || "").replace(/[^0-9.]/g, "")) || 0
+                                if (g > n && n > 0) {
+                                  return (
+                                    <span className="text-[9px] font-black bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 whitespace-nowrap">
+                                      +{(g - n).toLocaleString()} kg tare
+                                    </span>
+                                  )
+                                }
+                                return null
+                              })()}
+                            </div>
+                            <span className="font-[vazirmatn] text-[11px] font-bold text-indigo-700 dark:text-indigo-400 shrink-0" dir="rtl">وزن ناخالص کل</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <div className="absolute left-3.5 text-indigo-600 dark:text-indigo-400 pointer-events-none">
+                              <Scale className="w-4.5 h-4.5 stroke-[2.2]" />
+                            </div>
+                            <Input
+                              name="gross_weight"
+                              value={formData.gross_weight}
+                              onChange={(e) => handleCargoFieldChange("gross_weight", e.target.value)}
+                              placeholder="5,000 KG"
+                              className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold font-mono text-indigo-950 dark:text-indigo-200 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition-all"
+                            />
+                          </div>
+                          <div className="mt-2.5 flex items-center justify-between text-[10px] text-indigo-800 dark:text-indigo-400 font-bold px-0.5">
+                            <span className="font-semibold text-indigo-700/80 dark:text-indigo-400">Cartons × Gross/Ctn</span>
+                            <button
+                              type="button"
+                              onClick={handleAutoCalculateWeights}
+                              className="font-extrabold text-indigo-900 dark:text-indigo-200 bg-indigo-100/70 hover:bg-indigo-100 dark:bg-indigo-950/80 px-2.5 py-0.5 rounded-lg border border-indigo-200 dark:border-indigo-800 active:scale-95 transition-all cursor-pointer shadow-2xs whitespace-nowrap"
+                            >
+                              ↺ Sync
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Volume (CBM) */}
+                        <div className="rounded-xl border border-amber-200/90 dark:border-amber-900/60 bg-white/90 dark:bg-slate-950/80 p-3.5 shadow-2xs hover:border-amber-300 transition-all flex flex-col justify-between min-w-0">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <label className="text-xs font-black text-amber-950 dark:text-slate-100">Volume (CBM)</label>
+                            <span className="font-[vazirmatn] text-[11px] font-bold text-amber-700 dark:text-amber-400 shrink-0" dir="rtl">حجم کانتینر</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <div className="absolute left-3.5 text-amber-600 dark:text-amber-400 pointer-events-none">
+                              <FileText className="w-4.5 h-4.5 stroke-[2.2]" />
+                            </div>
+                            <Input
+                              name="measurement"
+                              value={formData.measurement}
+                              onChange={(e) => handleCargoFieldChange("measurement", e.target.value)}
+                              placeholder="25.0 CBM"
+                              className="pl-10.5 pr-3.5 rounded-xl h-11 text-sm font-extrabold font-mono text-amber-950 dark:text-amber-200 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs transition-all"
+                            />
+                          </div>
+                          <div className="mt-2.5 grid grid-cols-4 gap-1.5">
+                            {[
+                              { label: "20' STD", cbm: "33.0 CBM" },
+                              { label: "40' STD", cbm: "67.0 CBM" },
+                              { label: "40' HQ", cbm: "76.0 CBM" },
+                              { label: "LCL", cbm: "15.0 CBM" },
+                            ].map((box, bIdx) => (
+                              <button
+                                key={`box-${box.label}-${bIdx}`}
+                                type="button"
+                                onClick={() => applyVolumeCbmPreset(box.cbm)}
+                                className="text-[9.5px] font-extrabold text-amber-900 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/80 rounded-lg py-1 px-1 border border-amber-200 dark:border-amber-800 shadow-2xs active:scale-95 transition-all cursor-pointer text-center whitespace-nowrap"
+                              >
+                                {box.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Live Accounting Invariance & Calculation Status Bar */}
+                    <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-xs shadow-2xs">
+                      <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-200 font-bold">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>Live Calculation Active</span>
+                        <span className="text-[10.5px] font-semibold text-emerald-700/80 dark:text-emerald-400/80">(Net Wt × Rate = Valuation)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 font-mono font-black text-emerald-800 dark:text-emerald-300 text-xs">
+                        <span>Net Valuation:</span>
+                        <span className="bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                          {formData.goods_value || "$0.00"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Field Grid - Row 3: Cargo Description Studio */}
+                <div className="space-y-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-linear-to-b from-slate-50/60 via-white to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 p-3.5 sm:p-4.5 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-800 dark:bg-slate-700 text-xs font-black text-white shadow-2xs">3</span>
+                      <div>
+                        <label className="text-xs font-black text-slate-900 dark:text-slate-100 block">
+                          Cargo Description & Document Studio
+                        </label>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Print-ready commodity description with automated customs clauses</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                        {formData.cargo_description ? `${formData.cargo_description.length} chars • ${formData.cargo_description.trim().split(/\s+/).filter(Boolean).length} words` : "Empty"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={applyDefaultCargoDescription}
+                        className="text-[10.5px] font-extrabold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 bg-white dark:bg-slate-850 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800 transition cursor-pointer"
+                        title="Apply default cargo particulars template"
+                      >
+                        📦 Default Template
+                      </button>
+                      <button
+                        type="button"
+                        onClick={formatCleanCargoDescription}
+                        className="text-[10.5px] font-extrabold text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/50 bg-white dark:bg-slate-850 px-2 py-0.5 rounded-lg border border-purple-200 dark:border-purple-800 transition cursor-pointer"
+                        title="Tidy line breaks and formatting"
+                      >
+                        🧹 Clean Format
+                      </button>
+                      <button
+                        type="button"
+                        onClick={insertBilingualCargoHeader}
+                        className="text-[10.5px] font-extrabold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/50 bg-white dark:bg-slate-850 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800 transition cursor-pointer"
+                        title="Add bilingual English/Dari header"
+                      >
+                        🌐 Bilingual Header
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearCargoDescription}
+                        className="text-[10.5px] font-extrabold text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 bg-white hover:bg-red-50 dark:bg-slate-850 dark:hover:bg-red-950/50 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                        title="Clear description text"
+                      >
+                        ✕ Clear
+                      </button>
+                      <span className="font-[vazirmatn] text-[11px] font-extrabold text-purple-900 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
+                        شرح کامل کالا و محموله
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Quick Tag Snippets Bar */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-amber-500" />
+                      Quick Tags:
+                    </span>
+                    {[
+                      {
+                        label: "+ Default Template",
+                        text: `📦 CONTAINER & CARGO PARTICULARS:
+• Description: 
+• Transit Date: ${new Date().toLocaleDateString("en-CA")}
+• INV-`,
+                      },
+                      { label: "+ Transit Date", text: `• Transit Date: ${new Date().toLocaleDateString("en-CA")}` },
+                      { label: "+ Description", text: "• Description: " },
+                      { label: "+ INV-", text: "• INV-" },
+                      { label: "+ HS Code", text: "• HS Code: 0806.20" },
+                      { label: "+ Afghan TC No", text: "• Afghan Transit TC No: TC-" },
+                      { label: "+ Temp Controlled (+4°C)", text: "• Temperature Controlled Reefer Cargo (+4°C to +8°C)" },
+                      { label: "+ Customs Seal Verified", text: "• Customs Seal Intact & Verified at Border Station" },
+                      { label: "+ Fragile", text: "• FRAGILE - HANDLE WITH CARE - STOW AWAY FROM HEAT" },
+                      { label: "+ Non-Hazardous", text: "• NON-HAZARDOUS GENERAL DRY COMMERCIAL CARGO" },
+                    ].map((snippet, sIdx) => (
+                      <button
+                        key={`snip-${snippet.label}-${sIdx}`}
+                        type="button"
+                        onClick={() => insertCargoTagSnippet(snippet.text)}
+                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-purple-50 dark:hover:bg-purple-950/60 hover:border-purple-300 dark:hover:border-purple-800 text-slate-700 dark:text-slate-300 hover:text-purple-900 dark:hover:text-purple-200 px-2 py-1 text-[10.5px] font-extrabold whitespace-nowrap transition cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                      >
+                        {snippet.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <Textarea
+                    name="cargo_description"
+                    value={formData.cargo_description}
+                    onChange={(e) => handleCargoFieldChange("cargo_description", e.target.value)}
+                    dir="auto"
+                    placeholder={`📦 CONTAINER & CARGO PARTICULARS:\n• Description: \n• Transit Date: ${new Date().toLocaleDateString("en-CA")}\n• INV-`}
+                    rows={4}
+                    className="min-h-32 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3.5 text-xs sm:text-sm font-semibold leading-relaxed text-slate-950 dark:text-slate-100 shadow-inner transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 dark:focus:bg-slate-950"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+              </div>
+            </div>
+
+            {/* Logistics Quad dashboard: Freight, Remarks, Container & Shipping */}
+            <div id="section-logistics-quad" className="edit-form-dashboard">
+
+            {/* Freight Information */}
+            <Card id="section-freight" className="bg-white/70 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-none overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_300px]">
+              <CardHeader className="pb-4 border-b border-white/50 dark:border-slate-800/80 bg-white/40 dark:bg-slate-800/40">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/30">
+                      <Receipt className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="font-semibold text-gray-800 dark:text-slate-100">Freight Information</span>
+                  </div>
+                  <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 font-[vazirmatn]">اطلاعات حمل</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4 pt-5 pb-6">
+                <div>
+                  <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Freight Payable At / محل پرداخت کرایه</label>
+                  <Input
+                    name="freight_payable_at"
+                    value={formData.freight_payable_at}
+                    onChange={handleInputChange}
+                    placeholder="Payment location"
+                    className="glass-input rounded-xl h-11 text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Freight Terms / شرایط حمل</label>
+                  <Input
+                    name="freight_terms"
+                    value={formData.freight_terms}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Prepaid, Collect"
+                    className="glass-input rounded-xl h-11 text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Remarks */}
+            <Card id="section-remarks" className="bg-white/70 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-none overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_250px]">
+              <CardHeader className="pb-4 border-b border-white/50 dark:border-slate-800/80 bg-white/40 dark:bg-slate-800/40">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-linear-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/30">
+                      <FileText className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="font-semibold text-gray-800 dark:text-slate-100">Remarks</span>
+                  </div>
+                  <span className="text-sm font-normal text-blue-600/80 dark:text-blue-400 font-[vazirmatn]">توضیحات</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col pt-5 pb-6">
+                <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Additional Notes / یادداشت‌های اضافی</label>
+                <Textarea
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleInputChange}
+                  placeholder="Additional notes or special instructions"
+                  rows={3}
+                  className="glass-input rounded-xl min-h-20 w-full flex-1 text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
+                />
+              </CardContent>
+            </Card>
 
             {/* Container Details */}
             <Card id="section-container" className="bg-white/70 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
               <CardHeader className="pb-4 border-b border-white/50 dark:border-slate-800 bg-white/40 dark:bg-slate-800/40">
                 <CardTitle className="text-base flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+                    <div className="p-2 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
                       <Package className="h-4 w-4 text-white" />
                     </div>
                     <span className="font-semibold text-gray-800 dark:text-slate-100">Container Details</span>
@@ -10409,7 +11091,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               <CardHeader className="pb-4 border-b border-white/50 dark:border-slate-800 bg-white/40 dark:bg-slate-800/40">
                 <CardTitle className="text-base flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-linear-to-br from-cyan-500 to-cyan-600 shadow-md shadow-cyan-500/30">
+                    <div className="p-1.5 rounded-lg bg-linear-to-br from-cyan-500 to-blue-600 shadow-md shadow-cyan-500/30">
                       <Ship className="h-4 w-4 text-white" />
                     </div>
                     <span className="font-semibold text-gray-800 dark:text-slate-100">Shipping Details</span>
@@ -10699,7 +11381,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                       className="glass-input rounded-xl h-11 text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
                     />
                   </div>
-                  <div className="md:col-span-2 lg:col-span-4">
+                  <div className="full-width md:col-span-2 lg:col-span-4">
                     <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Place of Delivery / محل تحویل</label>
                     <Input
                       name="place_of_delivery"
@@ -10733,67 +11415,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               </CardContent>
             </Card>
 
-            {/* Freight Information */}
-            <Card id="section-freight" className="bg-white/70 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-none overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_300px]">
-              <CardHeader className="pb-4 border-b border-white/50 dark:border-slate-800/80 bg-white/40 dark:bg-slate-800/40">
-                <CardTitle className="text-base flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-linear-to-br from-emerald-500 to-emerald-600 shadow-md shadow-emerald-500/30">
-                      <ScrollText className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="font-semibold text-gray-800 dark:text-slate-100">Freight Information</span>
-                  </div>
-                  <span className="text-sm font-normal text-blue-600/80 dark:text-blue-400 font-[vazirmatn]">اطلاعات حمل</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-4 pt-5 pb-6">
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Freight Payable At / محل پرداخت کرایه</label>
-                  <Input
-                    name="freight_payable_at"
-                    value={formData.freight_payable_at}
-                    onChange={handleInputChange}
-                    placeholder="Payment location"
-                    className="glass-input rounded-xl h-11 text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Freight Terms / شرایط حمل</label>
-                  <Input
-                    name="freight_terms"
-                    value={formData.freight_terms}
-                    onChange={handleInputChange}
-                    placeholder="e.g., Prepaid, Collect"
-                    className="glass-input rounded-xl h-11 text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Remarks */}
-            <Card id="section-remarks" className="bg-white/70 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-none overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_250px]">
-              <CardHeader className="pb-4 border-b border-white/50 dark:border-slate-800/80 bg-white/40 dark:bg-slate-800/40">
-                <CardTitle className="text-base flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-linear-to-br from-gray-500 to-gray-600 shadow-md shadow-gray-500/30">
-                      <FileText className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="font-semibold text-gray-800 dark:text-slate-100">Remarks</span>
-                  </div>
-                  <span className="text-sm font-normal text-blue-600/80 dark:text-blue-400 font-[vazirmatn]">توضیحات</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-5 pb-6">
-                <Textarea
-                  name="remarks"
-                  value={formData.remarks}
-                  onChange={handleInputChange}
-                  placeholder="Additional notes or special instructions"
-                  rows={3}
-                  className="glass-input rounded-xl min-h-20 text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
-                />
-              </CardContent>
-            </Card>
+            </div>
 
             {/* Afghanistan Documents */}
             <Card id="section-afghan" className="bg-white/70 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-none overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_350px]">
@@ -11450,7 +12072,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         </PrintPreviewPortal>
 
         {/* Dedicated PDF export source. Mounted on-demand during export. */}
-        {isExportingPDF && (
+        {(isExportingPDF || isShippingExporting) && (
           <div
             data-pdf-export-container="true"
             aria-hidden="true"

@@ -46,6 +46,7 @@
     "dist-electron",
     "release",
     "build",
-    "release-desktop"
+    "release-desktop",
+    "scratch"
   ]
 }

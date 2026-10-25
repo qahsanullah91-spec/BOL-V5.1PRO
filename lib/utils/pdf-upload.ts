@@ -353,10 +353,10 @@ function blueSectionHeader(
   doc.roundedRect(x, y, width, height, 2.2, 2.2, "F")
   setColor(doc, CYAN, "fill")
   doc.rect(x + width * 0.58, y, width * 0.42, height, "F")
-  drawText(doc, title, x + 4, y + 2.1, { size: 9, weight: "bold", color: [255, 255, 255] })
+  drawText(doc, title, x + 4, y + 2.1, { size: 9.8, weight: "bold", color: [255, 255, 255] })
   if (subtitle) {
     drawText(doc, subtitle, x + width - 4, y + 1.8, {
-      size: 7,
+      size: 10,
       weight: "bold",
       color: [255, 255, 255],
       align: "right",
@@ -1362,7 +1362,7 @@ export async function generatePDFBlob(
       }
       const pageEl = pagesToRender[pIdx]
       const canvas = await toCanvas(pageEl, {
-        pixelRatio: 3.125, // True 300 DPI print-grade ultra-sharp resolution (300 / 96 = 3.125)
+        pixelRatio: 3.5, // Ultra-sharp 336+ DPI true high-resolution print quality
         quality: 1.0,
         cacheBust: false,
         skipFonts: true, // Embedded via fontEmbedCSS to avoid stylesheet CORS/SecurityError crashes
@@ -1377,7 +1377,7 @@ export async function generatePDFBlob(
           outline: "none",
           WebkitFontSmoothing: "antialiased",
           MozOsxFontSmoothing: "grayscale",
-          textRendering: "optimizeLegibility",
+          textRendering: "geometricPrecision",
         } as any,
         filter: (node: HTMLElement) => {
           if (!node) return true
@@ -1386,12 +1386,13 @@ export async function generatePDFBlob(
           if (node.getAttribute?.("data-html2canvas-ignore") === "true") return false
           if (typeof node.className === "string" && (node.className.includes("no-print") || node.className.includes("print:hidden"))) return false
           if (node.classList?.contains?.("no-print")) return false
+          if (node.getAttribute?.("data-qr-code") === "true" || node.closest?.("[data-qr-code]")) return true
           if (node.tagName === "BUTTON") return false
           return true
         },
       })
 
-      const imageData = canvas.toDataURL("image/jpeg", 0.94)
+      const imageData = canvas.toDataURL("image/jpeg", 0.99)
       pdf.addImage(imageData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
     }
 
@@ -1522,7 +1523,7 @@ export async function generatePDFBlob(
                   -webkit-backdrop-filter: none !important;
                 }
 
-                .no-print, [data-print-ignore="true"], [data-pdf-ignore="true"], [data-html2canvas-ignore="true"], button {
+                .no-print, [data-print-ignore="true"], [data-pdf-ignore="true"], [data-html2canvas-ignore="true"], button:not([data-qr-code]) {
                   display: none !important;
                 }
 
@@ -1540,7 +1541,7 @@ export async function generatePDFBlob(
         },
       })
 
-      const imageData = canvas.toDataURL("image/jpeg", 0.94)
+      const imageData = canvas.toDataURL("image/jpeg", 0.99)
       pdf.addImage(imageData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
 
       wrapper.remove()

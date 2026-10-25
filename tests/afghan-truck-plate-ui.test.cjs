@@ -112,3 +112,19 @@ test('Afghan Vehicle Plate UI: Compound inputs like 2142نیمروز and Pashto 
   assert.equal(nangarharPlate.provinceCode, 'NGR')
 })
 
+test('Afghan Vehicle Plate UI: Trademark/landmark emblem sizing is calibrated to match plate hierarchy without text collision', () => {
+  const vehicleComponentPath = path.resolve(__dirname, '..', 'components', 'ui', 'afghan-vehicle-plate.tsx')
+  const code = fs.readFileSync(vehicleComponentPath, 'utf8')
+
+  // Verify compact landmark height is enlarged (18px) for prominent legibility
+  assert.match(code, /compact:\s*\{[^}]*landmarkH:\s*"h-\[18px\]"/, 'Compact landmark height must be calibrated bigger (18px)');
+
+  // Verify sm landmark height is scaled up (14px)
+  assert.match(code, /sm:\s*\{[^}]*landmarkH:\s*"h-\[14px\]"/, 'Small landmark height must be calibrated bigger (14px)');
+
+  // Verify overflow-hidden and bounding constraints are present on landmark slot
+  assert.ok(code.includes('overflow-hidden my-auto'), 'Landmark container must enforce overflow containment and vertical centering');
+  assert.ok(code.includes('max-w-[82%]'), 'Landmark image must enforce maximum width constraint to prevent horizontal collision');
+})
+
+

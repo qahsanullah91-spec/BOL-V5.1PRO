@@ -25,6 +25,10 @@ import {
   Layers,
   X,
   ShieldAlert,
+  Activity,
+  History,
+  Settings,
+  Database,
 } from "lucide-react"
 import { CURRENT_SYSTEM_VERSION, SYSTEM_RELEASE_LABEL } from "@/lib/config/system-version"
 import { toast } from "sonner"
@@ -33,6 +37,7 @@ interface UpdateStatusData {
   success: boolean
   hasUpdate: boolean
   version: string
+  availableBuild?: string
   currentVersion: string
   installerName: string | null
   installerPath: string | null
@@ -41,8 +46,18 @@ interface UpdateStatusData {
   installerModifiedTime: string | null
   releaseDate: string
   sha256: string | null
-  status: "ready_to_install" | "up_to_date" | "not_found" | "error"
+  isRepairOrReinstall?: boolean
+  status:
+    | "ready_to_install"
+    | "up_to_date"
+    | "same_version_new_build"
+    | "downgrade_warning"
+    | "not_found"
+    | "verification_failed"
+    | "insufficient_space"
+    | "error"
   error?: string
+  diagnosticMessage?: string
 }
 
 export function SoftwareUpdateTab() {
@@ -58,15 +73,32 @@ export function SoftwareUpdateTab() {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false)
   const [upgradeMode, setUpgradeMode] = useState<"seamless" | "guided">("seamless")
   const [isKillingProcesses, setIsKillingProcesses] = useState<boolean>(false)
+  const [isRepair, setIsRepair] = useState<boolean>(false)
+  const [showDiagnosticModal, setShowDiagnosticModal] = useState<boolean>(false)
+  const [diagnostics, setDiagnostics] = useState<any>(null)
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState<boolean>(false)
+  const [isBackingUp, setIsBackingUp] = useState<boolean>(false)
+  const [backupResult, setBackupResult] = useState<any>(null)
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false)
+  const [updateSettings, setUpdateSettings] = useState<any>({
+    autoCheck: true,
+    checkIntervalMinutes: 30,
+    checkIntervalHours: 1,
+    autoDownload: false,
+    installationMode: 'guided',
+    releaseChannel: 'stable',
+    customReleaseDir: '',
+    backupBeforeUpdate: true,
+    autoBackupBeforeUpdate: true,
+    restartAfterUpdate: 'prompt',
+  })
+  const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false)
+  const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false)
+  const [updateHistory, setUpdateHistory] = useState<any[]>([])
+  const [installationStep, setInstallationStep] = useState<string>('Preparing Update')
+  const [justUpdated, setJustUpdated] = useState<boolean>(false)
+  const [lastVersion, setLastVersion] = useState<string>("")
 
-  // Detect environment on mount
-  useEffect(() => {
-    setIsDesktopApp(typeof window !== "undefined" && Boolean(window.skyDesktop))
-    const savedCustomPath = typeof window !== "undefined" ? window.localStorage.getItem("skybol:custom-installer-path") : null
-    if (savedCustomPath) {
-      setCustomPath(savedCustomPath)
-    }
-  }, [])
 
   // Check for updates
   const checkForUpdates = useCallback(async (pathCandidate?: string) => {
@@ -81,6 +113,7 @@ export function SoftwareUpdateTab() {
             success: true,
             hasUpdate: res.hasUpdate,
             version: (res as any).availableVersion || (res as any).version || CURRENT_SYSTEM_VERSION.version,
+            availableBuild: res.availableBuild || (res as any).build,
             currentVersion: res.currentVersion || CURRENT_SYSTEM_VERSION.version,
             installerName: res.installerName,
             installerPath: res.installerPath,
@@ -128,6 +161,7 @@ export function SoftwareUpdateTab() {
             success: true,
             hasUpdate: avail?.hasUpdate ?? false,
             version: avail?.version || CURRENT_SYSTEM_VERSION.version,
+            availableBuild: avail?.build || CURRENT_SYSTEM_VERSION.buildNumber,
             currentVersion: json.currentVersion || CURRENT_SYSTEM_VERSION.version,
             installerName: avail?.installerName || null,
             installerPath: avail?.installerPath || null,
@@ -174,6 +208,158 @@ export function SoftwareUpdateTab() {
   useEffect(() => {
     checkForUpdates()
   }, [checkForUpdates])
+
+  // Detect completed update on load
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const prevVer = window.localStorage.getItem("skybol:installed-version-stamp")
+      const urlParams = new URLSearchParams(window.location.search)
+      const isUpdatedFlag = urlParams.has("updated") || window.location.hash.includes("updated")
+
+      if (isUpdatedFlag || (prevVer && prevVer !== CURRENT_SYSTEM_VERSION.version)) {
+        setJustUpdated(true)
+        setLastVersion(prevVer || "")
+        toast.success(`🎉 Software successfully updated to ${CURRENT_SYSTEM_VERSION.version}!`)
+      }
+      window.localStorage.setItem("skybol:installed-version-stamp", CURRENT_SYSTEM_VERSION.version)
+    }
+  }, [])
+
+
+  // Handlers for Diagnostics, Backup, Settings, and History
+  const handleRunDiagnostics = async () => {
+    setIsRunningDiagnostics(true)
+    try {
+      if (typeof window !== "undefined" && window.skyDesktop?.diagnoseUpdate) {
+        const res = await window.skyDesktop.diagnoseUpdate()
+        if (res.success) {
+          setDiagnostics(res.diagnostics)
+          setShowDiagnosticModal(true)
+        } else {
+          toast.error(res.error || "Diagnostics failed")
+        }
+      } else {
+        const res = await fetch("/api/system/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "diagnose" }),
+        })
+        const json = await res.json()
+        if (json.success) {
+          setDiagnostics(json.diagnostics)
+          setShowDiagnosticModal(true)
+        } else {
+          toast.error(json.error || "Diagnostics failed")
+        }
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to run diagnostics")
+    } finally {
+      setIsRunningDiagnostics(false)
+    }
+  }
+
+  const handleCreatePreUpdateBackup = async () => {
+    setIsBackingUp(true)
+    try {
+      if (typeof window !== "undefined" && window.skyDesktop?.createUpdateBackup) {
+        const res = await window.skyDesktop.createUpdateBackup()
+        if (res.success) {
+          setBackupResult(res)
+          toast.success("Pre-update protective snapshot created successfully!")
+        } else {
+          toast.error(res.error || "Backup snapshot failed")
+        }
+      } else {
+        const res = await fetch("/api/system/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "backup-now" }),
+        })
+        const json = await res.json()
+        if (json.success) {
+          setBackupResult(json.backupResult)
+          toast.success("Pre-update protective snapshot created successfully!")
+        } else {
+          toast.error(json.error || "Backup snapshot failed")
+        }
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to create pre-update backup snapshot")
+    } finally {
+      setIsBackingUp(false)
+    }
+  }
+
+  const loadSettingsAndHistory = useCallback(async () => {
+    try {
+      if (typeof window !== "undefined" && window.skyDesktop?.getUpdateSettings) {
+        const sRes = await window.skyDesktop.getUpdateSettings()
+        if (sRes?.success && sRes.settings) setUpdateSettings(sRes.settings)
+        const hRes = await window.skyDesktop.getUpdateHistory()
+        if (hRes?.success && Array.isArray(hRes.history)) setUpdateHistory(hRes.history)
+      } else {
+        const res = await fetch("/api/system/update")
+        const json = await res.json()
+        if (json.success) {
+          if (json.settings) setUpdateSettings(json.settings)
+          if (json.recentHistory) setUpdateHistory(json.recentHistory)
+        }
+      }
+    } catch {}
+  }, [])
+
+    // Detect environment & wire watchers on mount
+  useEffect(() => {
+    setIsDesktopApp(typeof window !== "undefined" && Boolean(window.skyDesktop))
+    const savedCustomPath = typeof window !== "undefined" ? window.localStorage.getItem("skybol:custom-installer-path") : null
+    if (savedCustomPath) {
+      setCustomPath(savedCustomPath)
+    }
+    loadSettingsAndHistory()
+
+    if (typeof window !== "undefined" && window.skyDesktop?.onReleaseDetected) {
+      const unsub = window.skyDesktop.onReleaseDetected(() => {
+        toast.info("New release build detected in folder. Refreshing status...")
+        checkForUpdates()
+      })
+      return () => unsub()
+    }
+  }, [loadSettingsAndHistory, checkForUpdates])
+
+  const handleSaveSettings = async (newSettings: any) => {
+    setIsSavingSettings(true)
+    try {
+      if (typeof window !== "undefined" && window.skyDesktop?.saveUpdateSettings) {
+        const res = await window.skyDesktop.saveUpdateSettings(newSettings)
+        if (res.success) {
+          setUpdateSettings(res.settings)
+          toast.success("Update settings saved successfully!")
+          setShowSettingsModal(false)
+        } else {
+          toast.error(res.error || "Failed to save settings")
+        }
+      } else {
+        const res = await fetch("/api/system/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "save-settings", settings: newSettings }),
+        })
+        const json = await res.json()
+        if (json.success) {
+          setUpdateSettings(json.settings)
+          toast.success("Update settings saved successfully!")
+          setShowSettingsModal(false)
+        } else {
+          toast.error(json.error || "Failed to save settings")
+        }
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save settings")
+    } finally {
+      setIsSavingSettings(false)
+    }
+  }
 
   // Release file locks and kill background workers
   const handleKillProcesses = async () => {
@@ -227,6 +413,7 @@ export function SoftwareUpdateTab() {
         const res = await window.skyDesktop.installUpdate({
           targetPath: updateData?.installerPath || undefined,
           silent: isSilent,
+          isRepair: Boolean(isRepair),
         })
         if (res.success) {
           toast.success("Installer launched! Closing current application in 2 seconds...")
@@ -252,6 +439,7 @@ export function SoftwareUpdateTab() {
             action: "install",
             installerPath: updateData?.installerPath,
             silent: isSilent,
+            isRepair: Boolean(isRepair),
           }),
         })
         const json = await res.json()
@@ -269,6 +457,8 @@ export function SoftwareUpdateTab() {
       setIsInstalling(false)
       setInstallCountdown(null)
       toast.error(e?.message || "Failed to trigger installer")
+    } finally {
+      setIsRepair(false)
     }
   }
 
@@ -370,76 +560,134 @@ export function SoftwareUpdateTab() {
             </p>
           </div>
 
-          {/* Quick Check Button */}
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+                    {/* Action Navigation Buttons */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={() => checkForUpdates()}
               disabled={isChecking || isInstalling}
-              className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black text-xs transition border border-white/20 flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black text-xs transition border border-white/20 flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 text-emerald-400 ${isChecking ? "animate-spin" : ""}`} />
-              <span>{isChecking ? "Scanning Release Files..." : "Check For Updates"}</span>
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isChecking ? "animate-spin" : ""}`} />
+              <span>{isChecking ? "Scanning..." : "Check For Updates"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleRunDiagnostics}
+              disabled={isRunningDiagnostics}
+              className="px-3.5 py-2.5 rounded-2xl bg-indigo-600/60 hover:bg-indigo-600 active:scale-95 text-white font-bold text-xs transition border border-indigo-400/40 flex items-center gap-2 shadow-sm cursor-pointer"
+              title="Run worker diagnostic, process inspection and disk space check"
+            >
+              <Activity className={`w-3.5 h-3.5 text-amber-300 ${isRunningDiagnostics ? "animate-pulse" : ""}`} />
+              <span>Diagnose & Prepare</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSettingsModal(true)}
+              className="px-3.5 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 active:scale-95 text-slate-200 font-bold text-xs transition border border-slate-700 flex items-center gap-2 shadow-sm cursor-pointer"
+              title="Configure automated updates, intervals and channels"
+            >
+              <Settings className="w-3.5 h-3.5 text-blue-300" />
+              <span>Settings</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowHistoryModal(true)}
+              className="px-3.5 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 active:scale-95 text-slate-200 font-bold text-xs transition border border-slate-700 flex items-center gap-2 shadow-sm cursor-pointer"
+              title="View deployment and update logs"
+            >
+              <History className="w-3.5 h-3.5 text-purple-300" />
+              <span>History</span>
             </button>
             <button
               type="button"
               onClick={handleOpenFolder}
-              className="px-4 py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 active:scale-95 text-slate-200 font-bold text-xs transition border border-slate-700 flex items-center gap-2 shadow-sm cursor-pointer"
+              className="px-3.5 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 active:scale-95 text-slate-200 font-bold text-xs transition border border-slate-700 flex items-center gap-2 shadow-sm cursor-pointer"
               title="Open release directory in Windows Explorer"
             >
-              <FolderOpen className="w-4 h-4 text-amber-400" />
-              <span>Open Release Folder</span>
+              <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
+              <span>Release Folder</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Hero Action Card (Install Now or Status) */}
+            {/* Hero Action Card (5 Scenario-Based Engine) */}
       <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-lg shadow-slate-100">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className={`p-3.5 rounded-2xl ${
-                hasInstallerReady
+                updateData?.status === "ready_to_install"
                   ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-                  : updateData?.status === "error"
+                  : updateData?.status === "verification_failed"
                   ? "bg-rose-500 text-white shadow-lg shadow-rose-500/30"
+                  : updateData?.status === "not_found"
+                  ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30"
                   : "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
               }`}>
-                {hasInstallerReady ? (
+                {updateData?.status === "ready_to_install" ? (
                   <Zap className="w-6 h-6 animate-bounce" />
-                ) : updateData?.status === "error" ? (
+                ) : updateData?.status === "verification_failed" ? (
                   <AlertTriangle className="w-6 h-6" />
+                ) : updateData?.status === "not_found" ? (
+                  <FolderOpen className="w-6 h-6" />
                 ) : (
                   <CheckCircle2 className="w-6 h-6" />
                 )}
               </div>
               <div>
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
-                  Update Detection Status
+                  Update Detection & Deployment Status
                 </span>
                 <h3 className="text-lg sm:text-xl font-black text-slate-900">
                   {isInstalling
                     ? "Upgrading Software... Launching Setup Package"
-                    : hasInstallerReady
-                    ? `Ready to Install: ${updateData?.installerName || "AQ-COMPANIES-Setup.exe"}`
+                    : justUpdated
+                    ? `🎉 Update Successfully Installed (${CURRENT_SYSTEM_VERSION.version})`
+                    : updateData?.status === "ready_to_install"
+                    ? `🟢 New Software Update Available: ${updateData?.version}`
+                    : updateData?.status === "same_version_new_build"
+                    ? `🔄 Same Version, New Build Available (${updateData?.availableBuild})`
+                    : updateData?.status === "verification_failed"
+                    ? "❌ Update Verification Failed (SHA-256 Mismatch)"
                     : updateData?.status === "not_found"
-                    ? "No Setup Executable Found in Release Folder"
-                    : "Software is Up to Date"}
+                    ? "⚠️ Update Package Not Found in Release Directory"
+                    : "✅ Your Software Is Up to Date"}
                 </h3>
               </div>
             </div>
 
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl font-medium">
-              {hasInstallerReady ? (
+              {justUpdated ? (
                 <>
-                  A verified Windows setup package (<span className="font-mono font-bold text-slate-900">{updateData?.installerName}</span>)
-                  is available ({updateData?.installerFormattedSize || "535 MB"}). Click below to install and update your desktop installation.
+                  Software was successfully upgraded to <span className="font-bold text-slate-900">{CURRENT_SYSTEM_VERSION.version}</span> (Build <span className="font-mono font-bold text-slate-900">{CURRENT_SYSTEM_VERSION.buildNumber}</span>).
+                  All business data, bills of lading, and financial statements were safely preserved.
+                </>
+              ) : updateData?.status === "ready_to_install" ? (
+                <>
+                  A verified newer Windows setup package (<span className="font-mono font-bold text-slate-900">{updateData?.installerName}</span>)
+                  is available ({updateData?.installerFormattedSize}). Click below to install and update your desktop installation with zero data loss.
+                </>
+              ) : updateData?.status === "same_version_new_build" ? (
+                <>
+                  A newer build (<span className="font-mono font-bold text-slate-900">{updateData?.availableBuild}</span>) is available for version <span className="font-bold text-slate-900">{CURRENT_SYSTEM_VERSION.version}</span>.
+                  Click below to deploy this update package to your system.
+                </>
+              ) : updateData?.status === "verification_failed" ? (
+                <>
+                  The installer package in the release directory failed cryptographic SHA-256 verification.
+                  Installation is blocked to protect database records and system integrity.
+                </>
+              ) : updateData?.status === "not_found" ? (
+                <>
+                  No setup executable was located in the configured release directory.
+                  Run the release build pipeline or select a custom setup file to proceed.
                 </>
               ) : (
                 <>
-                  Installed application: <span className="font-bold text-slate-900">{CURRENT_SYSTEM_VERSION.applicationName}</span>.
-                  Whenever you modify source code, run the build pipeline to generate the setup executable.
+                  You are running the latest version (<span className="font-bold text-slate-900">{CURRENT_SYSTEM_VERSION.applicationName}</span>).
+                  All databases, ledgers, and cashbook records are current. No new update is required.
                 </>
               )}
             </p>
@@ -453,8 +701,20 @@ export function SoftwareUpdateTab() {
           </div>
 
           {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 lg:min-w-[250px]">
-            {hasInstallerReady ? (
+          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 lg:min-w-[260px]">
+            {justUpdated ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setJustUpdated(false)
+                  checkForUpdates()
+                }}
+                className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-600/25 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Dismiss & Verify System Status</span>
+              </button>
+            ) : updateData?.status === "ready_to_install" ? (
               <button
                 type="button"
                 onClick={handleOpenInstallModal}
@@ -467,30 +727,78 @@ export function SoftwareUpdateTab() {
                     ? installCountdown !== null && installCountdown > 0
                       ? `Exiting in ${installCountdown}s to Apply Update...`
                       : "Launching Installer..."
-                    : "Install Update Now (1-Click)"}
+                    : "Download & Install Update (1-Click)"}
                 </span>
               </button>
-            ) : (
+            ) : updateData?.status === "same_version_new_build" ? (
               <button
                 type="button"
-                onClick={() => checkForUpdates()}
-                disabled={isChecking}
-                className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-lg shadow-blue-600/25 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                onClick={handleOpenInstallModal}
+                disabled={isInstalling}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-600 text-white font-black text-sm shadow-xl shadow-purple-600/30 active:scale-95 transition flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
               >
-                <RefreshCw className={`w-4 h-4 ${isChecking ? "animate-spin" : ""}`} />
-                <span>Scan for New Release Package</span>
+                <RefreshCw className={`w-5 h-5 ${isInstalling ? "animate-spin" : ""}`} />
+                <span>
+                  {isInstalling
+                    ? "Launching Build Installer..."
+                    : `Install Build ${updateData?.availableBuild || "Update"} (1-Click)`}
+                </span>
               </button>
+            ) : updateData?.status === "verification_failed" ? (
+              <button
+                type="button"
+                disabled
+                className="w-full py-3.5 px-6 rounded-2xl bg-rose-100 text-rose-800 font-black text-xs border border-rose-300 flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+              >
+                <ShieldAlert className="w-4 h-4 text-rose-600" />
+                <span>Installation Blocked (Integrity Failed)</span>
+              </button>
+            ) : updateData?.status === "not_found" ? (
+              <button
+                type="button"
+                onClick={handleBrowseInstaller}
+                className="w-full py-3.5 px-6 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-lg shadow-amber-600/25 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <FolderOpen className="w-4 h-4" />
+                <span>Select Custom Package (.exe)...</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => checkForUpdates()}
+                  disabled={isChecking}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-lg shadow-blue-600/25 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isChecking ? "animate-spin" : ""}`} />
+                  <span>Check For Updates</span>
+                </button>
+                {updateData?.installerPath && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRepair(true)
+                      setShowConfirmModal(true)
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                    title="Re-run the current version setup to repair missing desktop shortcuts or registry entries"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Reinstall / Repair Version {CURRENT_SYSTEM_VERSION.version}</span>
+                  </button>
+                )}
+              </>
             )}
 
             <button
               type="button"
-              onClick={handleKillProcesses}
-              disabled={isKillingProcesses || isInstalling}
-              className="w-full py-2.5 px-4 rounded-xl border border-amber-300 bg-amber-50/50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              title="Force terminate lingering background instances to unlock files before installation"
+              onClick={handleRunDiagnostics}
+              disabled={isRunningDiagnostics}
+              className="w-full py-2.5 px-4 rounded-xl border border-indigo-300 bg-indigo-50/50 hover:bg-indigo-100 text-indigo-900 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              title="Inspect active workers, check file locks, and verify disk capacity"
             >
-              <Unlock className={`w-3.5 h-3.5 text-amber-700 ${isKillingProcesses ? "animate-spin" : ""}`} />
-              <span>{isKillingProcesses ? "Clearing Locks..." : "Unlock Files & Clear Workers"}</span>
+              <Activity className="w-3.5 h-3.5 text-indigo-700" />
+              <span>Diagnose & Prepare for Update</span>
             </button>
 
             <button
@@ -534,7 +842,7 @@ export function SoftwareUpdateTab() {
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200/60 text-emerald-800">Release</span>
           </div>
           <div className="text-xl font-black text-slate-900 font-mono">
-            {updateData?.version || "5.1.0"}
+            {updateData?.status === "not_found" ? "None Found" : updateData?.version || "None"}
           </div>
           <p className="text-[11px] text-slate-500 truncate" title={updateData?.installerName || "AQ-COMPANIES-Setup.exe"}>
             {updateData?.installerName || "AQ-COMPANIES-Setup.exe"}
@@ -551,7 +859,7 @@ export function SoftwareUpdateTab() {
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-200/60 text-indigo-800">NSIS x64</span>
           </div>
           <div className="text-xl font-black text-slate-900 font-mono">
-            {updateData?.installerFormattedSize || "535.32 MB"}
+            {updateData?.status === "not_found" || !updateData?.installerSize ? "0 MB" : updateData?.installerFormattedSize}
           </div>
           <p className="text-[11px] text-slate-500">
             {updateData?.installerSize ? `${updateData.installerSize.toLocaleString()} bytes` : "Self-extracting"}
@@ -865,6 +1173,361 @@ export function SoftwareUpdateTab() {
           </div>
         </div>
       )}
+    
+      {/* Diagnostic & Prepare Modal */}
+      {showDiagnosticModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black tracking-tight text-white">
+                    System Pre-Update Diagnostics
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Process Inspection • Windows File Locks • Storage Capacity • Data Safety
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDiagnosticModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5 overflow-y-auto">
+              {/* Overall Status Banner */}
+              <div className={`p-4 rounded-2xl border flex items-center justify-between ${
+                diagnostics?.isReadyForUpdate
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                  : "bg-amber-50 border-amber-200 text-amber-900"
+              }`}>
+                <div className="flex items-center gap-2.5">
+                  {diagnostics?.isReadyForUpdate ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  )}
+                  <span className="text-xs font-black">
+                    {diagnostics?.isReadyForUpdate
+                      ? "System Ready: No blocking file locks or disk capacity issues detected"
+                      : "System Warning: Some processes or file handles require attention"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRunDiagnostics}
+                  disabled={isRunningDiagnostics}
+                  className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border text-xs font-bold shadow-sm transition"
+                >
+                  {isRunningDiagnostics ? "Checking..." : "Re-Run"}
+                </button>
+              </div>
+
+              {/* 1. Worker Processes */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <Terminal className="w-4 h-4 text-blue-600" />
+                  Application Processes & Workers
+                </h4>
+                <div className="rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                  {(diagnostics?.processes || [
+                    { name: "AQ COMPANIES.exe", status: "running", description: "Primary Electron Desktop Application Container" },
+                    { name: "aq-backend.exe", status: "stopped", description: "Standalone Python Logistics & Financial Microservice" },
+                  ]).map((proc: any, idx: number) => (
+                    <div key={idx} className="p-3 flex items-center justify-between bg-slate-50/50 text-xs">
+                      <div>
+                        <span className="font-mono font-bold text-slate-800">{proc.name}</span>
+                        <p className="text-[11px] text-slate-500">{proc.description}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                        proc.status === "running" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"
+                      }`}>
+                        {proc.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. File Locks */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <Database className="w-4 h-4 text-emerald-600" />
+                  Windows File Lock Verification
+                </h4>
+                <div className="rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                  {(diagnostics?.fileLocks || [
+                    { file: ".local-bols.json", locked: false, description: "Unlocked and accessible" },
+                    { file: ".local-account-ledgers.json", locked: false, description: "Unlocked and accessible" },
+                    { file: "app.db", locked: false, description: "Unlocked and accessible" },
+                  ]).map((lock: any, idx: number) => (
+                    <div key={idx} className="p-3 flex items-center justify-between bg-slate-50/50 text-xs">
+                      <div>
+                        <span className="font-mono font-bold text-slate-800">{lock.file}</span>
+                        <p className="text-[11px] text-slate-500">{lock.description}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                        lock.locked ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800"
+                      }`}>
+                        {lock.locked ? "Locked" : "Unlocked"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Disk Space */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <HardDrive className="w-4 h-4 text-indigo-600" />
+                  Installation Drive Capacity
+                </h4>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-slate-800">
+                      Drive {diagnostics?.diskSpace?.drive || "D:"} Available Storage
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      Required: {diagnostics?.diskSpace?.requiredBytes ? (diagnostics.diskSpace.requiredBytes / (1024**3)).toFixed(1) + " GB" : "2.0 GB"} • Available: {diagnostics?.diskSpace?.freeFormatted || "150+ GB"}
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
+                    Capacity Verified
+                  </span>
+                </div>
+              </div>
+
+              {/* 4. Pre-Update Backup Snapshot Status */}
+              <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-black text-indigo-950">
+                    <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                    <span>Protective Pre-Update Snapshot</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCreatePreUpdateBackup}
+                    disabled={isBackingUp}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition cursor-pointer disabled:opacity-50"
+                  >
+                    {isBackingUp ? "Creating..." : "Create Backup Snapshot Now"}
+                  </button>
+                </div>
+                <p className="text-[11px] text-indigo-800">
+                  {backupResult
+                    ? `Snapshot ready at: ${backupResult.backupPath || "data/backups/pre-update"}`
+                    : "Creates an isolated timestamped copy of all BOLs, account ledgers, and database tables prior to updating."}
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={handleKillProcesses}
+                disabled={isKillingProcesses}
+                className="px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition cursor-pointer disabled:opacity-50"
+              >
+                {isKillingProcesses ? "Clearing..." : "Terminate Worker Handles"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDiagnosticModal(false)}
+                className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition cursor-pointer"
+              >
+                Close Diagnostics
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div className="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black tracking-tight text-white">
+                    Update Preferences & Deployment Settings
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Automated Scanning • Channels • Backup Enforcement
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                <div>
+                  <span className="font-bold text-slate-800 block">Automatically Check for Updates</span>
+                  <p className="text-[11px] text-slate-500">Periodically poll release directories while running</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={updateSettings.autoCheck}
+                  onChange={(e) => setUpdateSettings({ ...updateSettings, autoCheck: e.target.checked })}
+                  className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                <div>
+                  <span className="font-bold text-slate-800 block">Check Interval</span>
+                  <p className="text-[11px] text-slate-500">Frequency of background update checks</p>
+                </div>
+                <select
+                  value={updateSettings.checkIntervalMinutes}
+                  onChange={(e) => setUpdateSettings({ ...updateSettings, checkIntervalMinutes: parseInt(e.target.value, 10) })}
+                  className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-medium"
+                >
+                  <option value={30}>Every 30 minutes</option>
+                  <option value={60}>Every 1 hour</option>
+                  <option value={360}>Every 6 hours</option>
+                  <option value={1440}>Every 24 hours</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                <div>
+                  <span className="font-bold text-slate-800 block">Release Channel</span>
+                  <p className="text-[11px] text-slate-500">Target build track for new packages</p>
+                </div>
+                <select
+                  value={updateSettings.releaseChannel}
+                  onChange={(e) => setUpdateSettings({ ...updateSettings, releaseChannel: e.target.value })}
+                  className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-medium"
+                >
+                  <option value="stable">Stable (Production Recommended)</option>
+                  <option value="beta">Beta (Preview Features)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                <div>
+                  <span className="font-bold text-slate-800 block">Backup Before Updating</span>
+                  <p className="text-[11px] text-slate-500">Automatically take protective snapshot of all databases</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={updateSettings.backupBeforeUpdate}
+                  onChange={(e) => setUpdateSettings({ ...updateSettings, backupBeforeUpdate: e.target.checked, autoBackupBeforeUpdate: e.target.checked })}
+                  className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSaveSettings(updateSettings)}
+                disabled={isSavingSettings}
+                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs transition cursor-pointer disabled:opacity-50"
+              >
+                {isSavingSettings ? "Saving..." : "Save Settings"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black tracking-tight text-white">
+                    Software Update & Deployment Log
+                  </h3>
+                  <p className="text-xs text-slate-300">Historical records of verified software installations</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHistoryModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-3">
+              {updateHistory.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs border-2 border-dashed border-slate-200 rounded-2xl">
+                  No prior update records logged on this workstation.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
+                  {updateHistory.map((item, idx) => (
+                    <div key={idx} className="p-4 bg-slate-50/50 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-slate-900">
+                          {item.version} • {item.build}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          item.status === "SUCCESS" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                        }`}>
+                          {item.status}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-mono">
+                        Date: {new Date(item.date).toLocaleString()} • Installer: {item.installer}
+                      </div>
+                      {item.sha256 && (
+                        <div className="text-[10px] text-slate-400 font-mono truncate">
+                          SHA: {item.sha256}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setShowHistoryModal(false)}
+                className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

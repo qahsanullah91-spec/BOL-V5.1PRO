@@ -80,6 +80,8 @@ export function BOLPdfPage({
         backgroundOpacity={backgroundOpacity}
         showStampSignature={showStampSignature}
         onToggleStampSignature={onToggleStampSignature}
+        pdfExport
+        exportTarget
       />
     </div>
   )

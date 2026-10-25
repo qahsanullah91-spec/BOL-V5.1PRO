@@ -63,11 +63,13 @@ export interface SystemUpdateInfo {
 export interface UpdateSettings {
   autoCheck: boolean
   checkIntervalMinutes: number
+  checkIntervalHours?: number
   autoDownload: boolean
   installationMode: "seamless" | "guided"
   releaseChannel: "stable" | "beta"
   customReleaseDir: string
   backupBeforeUpdate: boolean
+  autoBackupBeforeUpdate?: boolean
   restartAfterUpdate: "prompt" | "auto"
 }
 
@@ -87,9 +89,18 @@ export interface UpdateHistoryItem {
 export interface SystemDiagnosticResult {
   timestamp: string
   isReadyForUpdate: boolean
+  isHealthy: boolean
   processes: Array<{ name: string; pid?: number; status: "running" | "idle" | "stopped"; description: string }>
+  workers: Array<{ name: string; pid?: number; status: "running" | "idle" | "stopped"; description: string }>
   fileLocks: Array<{ file: string; locked: boolean; description: string }>
-  diskSpace: { drive: string; freeBytes: number; freeFormatted: string; requiredBytes: number; isSufficient: boolean }
+  diskSpace: {
+    drive: string
+    freeBytes: number
+    freeFormatted: string
+    requiredBytes: number
+    isSufficient: boolean
+    hasSufficientSpace: boolean
+  }
   databaseHealth: { ok: boolean; message: string; recordCount?: number }
   warnings: string[]
   recommendations: string[]
@@ -98,11 +109,13 @@ export interface SystemDiagnosticResult {
 const DEFAULT_SETTINGS: UpdateSettings = {
   autoCheck: true,
   checkIntervalMinutes: 30,
+  checkIntervalHours: 1,
   autoDownload: false,
   installationMode: "guided",
   releaseChannel: "stable",
   customReleaseDir: "",
   backupBeforeUpdate: true,
+  autoBackupBeforeUpdate: true,
   restartAfterUpdate: "prompt",
 }
 
@@ -207,21 +220,25 @@ export function findInstallerCandidate(customCandidate?: string | null): {
   manifest: ReleaseManifest | null
 } | null {
   // If specific file candidate passed
-  if (customCandidate && fs.existsSync(customCandidate)) {
-    const stats = fs.statSync(customCandidate)
-    if (stats.isFile() && customCandidate.toLowerCase().endsWith(".exe")) {
-      const installerDir = path.dirname(customCandidate)
-      const manifest = readReleaseManifest(installerDir)
-      return {
-        installerPath: path.resolve(customCandidate),
-        installerName: path.basename(customCandidate),
-        installerDir,
-        manifest,
+  if (customCandidate !== undefined && customCandidate !== null && customCandidate !== "") {
+    if (fs.existsSync(customCandidate)) {
+      const stats = fs.statSync(customCandidate)
+      if (stats.isFile() && customCandidate.toLowerCase().endsWith(".exe")) {
+        const installerDir = path.dirname(customCandidate)
+        const manifest = readReleaseManifest(installerDir)
+        return {
+          installerPath: path.resolve(customCandidate),
+          installerName: path.basename(customCandidate),
+          installerDir,
+          manifest,
+        }
+      } else if (stats.isDirectory()) {
+        const found = scanDirectoryForInstaller(customCandidate)
+        if (found) return found
       }
-    } else if (stats.isDirectory()) {
-      const found = scanDirectoryForInstaller(customCandidate)
-      if (found) return found
     }
+    // Explicit candidate path provided but not found or not valid
+    return null
   }
 
   // Scan settings custom directory if configured
@@ -282,7 +299,7 @@ export function readReleaseManifest(dir: string): ReleaseManifest | null {
 // ---------------------------------------------------------------------------
 
 export async function evaluateSystemUpdate(customCandidate?: string | null): Promise<SystemUpdateInfo> {
-  const currentVersion = CURRENT_SYSTEM_VERSION.version.replace(/^v/i, "")
+  const currentVersion = CURRENT_SYSTEM_VERSION.version
   const currentBuild = CURRENT_SYSTEM_VERSION.buildNumber
 
   const candidate = findInstallerCandidate(customCandidate)
@@ -342,7 +359,7 @@ export async function evaluateSystemUpdate(customCandidate?: string | null): Pro
         const raw = fs.readFileSync(latestYmlPath, "utf8")
         const vMatch = raw.match(/version:\s*([^\s]+)/)
         const dMatch = raw.match(/releaseDate:\s*['"]?([^'"\n]+)/)
-        if (vMatch) availableVersion = vMatch[1].replace(/^v/i, "")
+        if (vMatch) availableVersion = vMatch[1]
         if (dMatch) releaseDate = dMatch[1]
       } catch {}
     }
@@ -352,6 +369,9 @@ export async function evaluateSystemUpdate(customCandidate?: string | null): Pro
     // Fallback: match version in filename or assume current
     const match = installerName.match(/(\d+\.\d+\.\d+)/)
     availableVersion = match ? match[1] : currentVersion
+  }
+  if (currentVersion.startsWith("v") && !availableVersion.startsWith("v")) {
+    availableVersion = `v${availableVersion}`
   }
   if (!releaseDate) {
     releaseDate = installerModifiedTime
@@ -525,6 +545,7 @@ export async function createPreUpdateBackup(): Promise<{
     const manifest = {
       backupType: "PRE_UPDATE_PROTECTIVE_SNAPSHOT",
       appName: "AQ-COMPANIES",
+      appVersion: CURRENT_SYSTEM_VERSION.version,
       currentVersion: CURRENT_SYSTEM_VERSION.version,
       buildNumber: CURRENT_SYSTEM_VERSION.buildNumber,
       createdAt: new Date().toISOString(),
@@ -634,10 +655,10 @@ export async function runSystemDiagnostics(): Promise<SystemDiagnosticResult> {
     }
   } catch {}
 
-  const requiredBytes = 1.5 * 1024 * 1024 * 1024 // 1.5 GB
+  const requiredBytes = 2 * 1024 * 1024 * 1024 // 2.0 GB recommended
   const isSufficient = freeBytes >= requiredBytes
   if (!isSufficient) {
-    warnings.push(`Low disk space on ${driveLetter}: Only ${formatBytes(freeBytes)} free (1.5 GB required).`)
+    warnings.push(`Low disk space on ${driveLetter}: Only ${formatBytes(freeBytes)} free (2.0 GB required).`)
     recommendations.push("Free up disk space on target installation drive before upgrading.")
   }
 
@@ -662,7 +683,9 @@ export async function runSystemDiagnostics(): Promise<SystemDiagnosticResult> {
   return {
     timestamp,
     isReadyForUpdate,
+    isHealthy: isReadyForUpdate,
     processes,
+    workers: processes,
     fileLocks,
     diskSpace: {
       drive: driveLetter,
@@ -670,6 +693,7 @@ export async function runSystemDiagnostics(): Promise<SystemDiagnosticResult> {
       freeFormatted: formatBytes(freeBytes),
       requiredBytes,
       isSufficient,
+      hasSufficientSpace: isSufficient,
     },
     databaseHealth: {
       ok: dbHealthOk,
@@ -758,6 +782,8 @@ export async function prepareAndExecuteUpdate(options: {
     "AQ COMPANIES.exe"
   )
 
+  const nsisArgs = isSilent ? "/S" : ""
+
   const runnerScript = `@echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -766,10 +792,11 @@ echo ================================================================= > "${logP
 echo      AQ COMPANIES - SECURE SOFTWARE UPDATER RUNNER >> "${logPath}"
 echo      Timestamp: %DATE% %TIME% >> "${logPath}"
 echo      Target Installer: "${installerPath}" >> "${logPath}"
+echo      Mode: ${isSilent ? "Seamless / Silent" : "Guided Setup Wizard"} >> "${logPath}"
 echo ================================================================= >> "${logPath}"
 
-echo [1/3] Waiting for parent AQ COMPANIES processes to exit cleanly... >> "${logPath}"
-for /L %%i in (1,1,12) do (
+echo [1/3] Waiting for parent application processes to exit cleanly... >> "${logPath}"
+for /L %%i in (1,1,10) do (
   tasklist /FI "IMAGENAME eq AQ COMPANIES.exe" 2>nul | find /I /N "AQ COMPANIES.exe">nul
   if errorlevel 1 (
     goto :PROCESS_CLEARED
@@ -777,39 +804,54 @@ for /L %%i in (1,1,12) do (
   timeout /t 1 /nobreak >nul
 )
 
-:: Graceful wait expired. Release any remaining backend worker process
+:: Forcibly release any lingering locks if application hasn't exited yet
+taskkill /F /T /IM "AQ COMPANIES.exe" >nul 2>&1
 taskkill /F /T /IM "aq-backend.exe" >nul 2>&1
 timeout /t 1 /nobreak >nul
 
 :PROCESS_CLEARED
-echo [2/3] All application locks cleared. Executing installer... >> "${logPath}"
-start /wait "" "${installerPath}" ${args}
-set INSTALLER_EXIT=%ERRORLEVEL%
-echo [3/3] Installer finished with exit code: %INSTALLER_EXIT% >> "${logPath}"
+echo [2/3] Executing installer package... >> "${logPath}"
+${
+  isSilent
+    ? `start /wait "" "${installerPath}" ${nsisArgs}
+set INSTALLER_EXIT=!ERRORLEVEL!
+echo [3/3] Installer finished with exit code: !INSTALLER_EXIT! >> "${logPath}"
 
-if "%INSTALLER_EXIT%"=="0" (
-  echo Installation succeeded. Relaunching AQ COMPANIES... >> "${logPath}"
-  if exist "${installedAppExe}" (
-    start "" "${installedAppExe}" --updated
+if "!INSTALLER_EXIT!"=="0" (
+  echo Installation succeeded. Locating installed AQ COMPANIES.exe to relaunch... >> "${logPath}"
+  set "APP_EXE="
+  if exist "%LOCALAPPDATA%\\Programs\\AQ COMPANIES\\AQ COMPANIES.exe" (
+    set "APP_EXE=%LOCALAPPDATA%\\Programs\\AQ COMPANIES\\AQ COMPANIES.exe"
+  ) else if exist "%ProgramFiles%\\AQ COMPANIES\\AQ COMPANIES.exe" (
+    set "APP_EXE=%ProgramFiles%\\AQ COMPANIES\\AQ COMPANIES.exe"
+  ) else if exist "%ProgramFiles(x86)%\\AQ COMPANIES\\AQ COMPANIES.exe" (
+    set "APP_EXE=%ProgramFiles(x86)%\\AQ COMPANIES\\AQ COMPANIES.exe"
+  )
+  if defined APP_EXE (
+    echo Launching: !APP_EXE! >> "${logPath}"
+    start "" "!APP_EXE!" --updated
   ) else (
-    start "" "${installerPath}" --updated
+    echo Note: Installed executable not in default paths; user can launch from desktop shortcut. >> "${logPath}"
   )
 ) else (
-  echo Installation did not return code 0. Check Windows installer logs. >> "${logPath}"
-)
+  echo Installer returned non-zero exit code: !INSTALLER_EXIT! >> "${logPath}"
+)`
+    : `start "" "${installerPath}"
+echo [3/3] Guided installer launched into user session. >> "${logPath}"`
+}
 
-:: Self-destruct temporary batch runner after 3 seconds
+timeout /t 2 /nobreak >nul
 (goto) 2>nul & del "%~f0"
-exit /b %INSTALLER_EXIT%
+exit /b 0
 `
 
   fs.writeFileSync(runnerPath, runnerScript, "utf8")
 
-  // Step 6: Spawn runner detached via cmd.exe
-  const child = spawn("cmd.exe", ["/c", `"${runnerPath}"`], {
+  // Spawn runner detached without extra quotes that trigger cmd.exe syntax error
+  const child = spawn("cmd.exe", ["/c", runnerPath], {
     detached: true,
     stdio: "ignore",
-    windowsHide: true,
+    windowsHide: false,
   })
   child.unref()
 
@@ -870,18 +912,38 @@ function getSettingsFilePath(): string {
 
 export function getUpdateSettings(): UpdateSettings {
   const file = getSettingsFilePath()
+  let settings: UpdateSettings = { ...DEFAULT_SETTINGS }
   if (fs.existsSync(file)) {
     try {
       const raw = fs.readFileSync(file, "utf8")
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+      const parsed = JSON.parse(raw)
+      settings = { ...settings, ...parsed }
     } catch {}
   }
-  return { ...DEFAULT_SETTINGS }
+  if (typeof settings.autoBackupBeforeUpdate !== "boolean") {
+    settings.autoBackupBeforeUpdate = settings.backupBeforeUpdate ?? true
+  }
+  if (typeof settings.backupBeforeUpdate !== "boolean") {
+    settings.backupBeforeUpdate = settings.autoBackupBeforeUpdate ?? true
+  }
+  if (typeof settings.checkIntervalHours !== "number") {
+    settings.checkIntervalHours = Math.round((settings.checkIntervalMinutes || 30) / 60) || 1
+  }
+  return settings
 }
 
 export function saveUpdateSettings(settings: Partial<UpdateSettings>): UpdateSettings {
   const current = getUpdateSettings()
   const updated: UpdateSettings = { ...current, ...settings }
+  if (settings.autoBackupBeforeUpdate !== undefined) {
+    updated.backupBeforeUpdate = settings.autoBackupBeforeUpdate
+  }
+  if (settings.backupBeforeUpdate !== undefined) {
+    updated.autoBackupBeforeUpdate = settings.backupBeforeUpdate
+  }
+  if (settings.checkIntervalHours !== undefined) {
+    updated.checkIntervalMinutes = settings.checkIntervalHours * 60
+  }
   const file = getSettingsFilePath()
   const tempPath = `${file}.tmp.${Date.now()}`
   fs.writeFileSync(tempPath, JSON.stringify(updated, null, 2), "utf8")

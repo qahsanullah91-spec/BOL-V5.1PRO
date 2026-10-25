@@ -227,7 +227,7 @@
 
 .mac-topbar-right {
   flex: 0 0 auto;
-  gap: 8px;
+  gap: 5px;
 }
 
 .mac-menu-strip {
@@ -361,7 +361,7 @@
   flex-direction: column;
   font-size: 12px;
   font-weight: 900;
-  gap: 8px;
+  gap: 5px;
   min-height: 92px;
   justify-content: center;
   padding: 10px;
@@ -823,7 +823,7 @@
   }
 
   .mac-window-titlebar {
-    gap: 8px;
+    gap: 5px;
     padding: 0 12px;
   }
 
@@ -846,7 +846,7 @@
   }
 
   .mac-dock {
-    gap: 8px;
+    gap: 5px;
     max-width: calc(100% - 16px);
     padding: 8px 10px;
   }
@@ -1028,7 +1028,7 @@
 .ledger-row-cell {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
   min-height: 58px;
   width: 100%;
 }
@@ -1117,7 +1117,7 @@
 .ledger-media-card--compact .ledger-media-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 5px;
 }
 
 .ledger-media-card--compact .ledger-media-actions button,
@@ -1375,7 +1375,7 @@
 
 .draggable-window__controls {
   display: flex;
-  gap: 8px;
+  gap: 5px;
   align-items: center;
 }
 
@@ -1470,7 +1470,7 @@
   display: inline-flex;
   font-size: 13px;
   font-weight: 900;
-  gap: 8px;
+  gap: 5px;
   height: 44px;
   justify-content: center;
   padding: 0 16px;
@@ -3312,7 +3312,7 @@
   align-items: stretch;
   display: flex;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
   overflow: hidden;
   width: 100%;
@@ -3954,7 +3954,7 @@
 
 .party-card-title {
   margin: 0;
-  font-size: 8.5pt;
+  font-size: 9.6pt;
   font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -3963,7 +3963,7 @@
 
 .party-card-subtitle {
   margin: 0;
-  font-size: 8.5pt;
+  font-size: 9.6pt;
   font-weight: 700;
   color: #2563eb;
   line-height: 1.2;
@@ -3976,14 +3976,31 @@
   gap: 0.5rem;
 }
 
-.party-card-name {
+/* Business information: authentic black typewriter font */
+.business-information,
+.exporter-details,
+.consignee-details,
+.notify-party-details,
+.party-card-typewriter {
+  font-family: "Courier New", Courier, monospace !important;
+  color: #000000 !important;
+  letter-spacing: 0 !important;
+  font-variant-ligatures: none !important;
+}
+
+/* Company names */
+.company-name,
+.party-card-name,
+.party-card-name span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
   margin: 0;
-  font-family: inherit;
-  font-size: 8.8pt !important;
-  font-weight: 900 !important;
+  font-family: "Courier New", Courier, monospace !important;
+  font-size: 10.4pt !important;
+  font-weight: 700 !important;
   text-transform: uppercase;
-  color: #0f172a;
+  color: #000000 !important;
   line-height: 1.25;
+  letter-spacing: 0 !important;
+  font-variant-ligatures: none !important;
   word-break: break-word;
   overflow-wrap: break-word;
 }
@@ -4008,15 +4025,98 @@
   margin-top: 0.12rem;
 }
 
-.party-card-info-text {
-  margin: 0;
-  font-family: inherit;
-  font-size: 7.8pt !important;
-  line-height: 1.35;
-  color: #1e293b;
+/* Business addresses */
+.business-address,
+.party-card-address,
+.party-card-address span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
+  font-family: "Courier New", Courier, monospace !important;
+  color: #000000 !important;
   font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  font-variant-ligatures: none !important;
+  overflow-wrap: anywhere;
+}
+
+/* Registration information (GST, IEC, FSSAI, PAN) */
+.registration-details,
+.party-card-registration,
+.party-card-registration span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
+  font-family: "Courier New", Courier, monospace !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  font-variant-ligatures: none !important;
+}
+
+/* Contact information (Phone & Email) */
+.contact-details,
+.party-card-contact,
+.party-card-phone,
+.party-card-email,
+.party-card-contact span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+.party-card-phone span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+.party-card-email span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
+  font-family: "Courier New", Courier, monospace !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  font-variant-ligatures: none !important;
+  overflow-wrap: anywhere;
+}
+
+/* Default party card info text */
+.party-card-info-text,
+.party-card-info-text span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
+  margin: 0;
+  font-family: "Courier New", Courier, monospace !important;
+  font-size: 9.0pt !important;
+  line-height: 1.35;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  font-variant-ligatures: none !important;
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+/* Specific Phone & Email rows in info list */
+.party-card-info-row:has(.lucide-phone) .party-card-info-text,
+.party-card-info-row:has(.lucide-phone) .party-card-info-text span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+.party-card-info-row:has(.lucide-mail) .party-card-info-text,
+.party-card-info-row:has(.lucide-mail) .party-card-info-text span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
+  font-weight: 700 !important;
+  color: #000000 !important;
+}
+
+/* Preserve Persian labels, subtitles, and Arabic script text */
+.party-card-subtitle,
+.party-card-body .persian-text,
+.party-card-body .persian-text *,
+.party-card-body .bol-persian-text,
+.party-card-body .bol-persian-text *,
+.party-card-body [dir="rtl"],
+.party-card-body [dir="rtl"] *,
+.party-card-body [lang="fa"],
+.party-card-body [lang="ps"] {
+  font-family: var(--font-vazirmatn, "Vazirmatn", "Noto Sans Arabic", Tahoma, Arial, sans-serif) !important;
+  direction: rtl !important;
+  font-variant-ligatures: normal !important;
+}
+
+.party-card-subtitle {
+  color: #2563eb !important;
+  font-weight: 700 !important;
+}
+
+/* Section Headings: Modern Bold Navy Sans-serif */
+.party-card-title {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 8.5pt;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #0f172a;
 }
 
 .exporter-contact-detail-card {
@@ -4426,6 +4526,140 @@
   }
 }
 
+/* --- Upgraded A4 Bill of Lading Header with Large QR Code --- */
+.bol-header {
+  position: relative;
+  overflow: visible !important;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f0f7ff, #ffffff 40%, #f0f7ff);
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bol-card {
+  position: relative;
+  overflow: visible !important;
+  border: 1px solid rgba(37, 99, 235, 0.9);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12);
+  box-sizing: border-box;
+}
+
+.bol-header-top {
+  position: relative;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6);
+  color: #fff;
+  border-radius: 14px 14px 0 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.bol-header-bottom {
+  position: relative;
+  background: #ffffff;
+  border-radius: 0 0 14px 14px;
+  border-top: 1px solid #bfdbfe;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.bol-qr-container {
+  position: absolute;
+  z-index: 20;
+  aspect-ratio: 1 / 1;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ffffff;
+  border: 2px solid #93c5fd;
+  border-radius: 3.2mm;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.18);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.bol-qr-container img,
+.bol-qr-container canvas,
+.bol-qr-container svg {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+}
+
+.bol-header .bol-company-title {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 20pt;
+  font-weight: 900 !important;
+  letter-spacing: 0.035em !important;
+  line-height: 1.1 !important;
+  text-transform: uppercase !important;
+  color: #1e293b !important;
+  text-align: center !important;
+}
+
+.bol-header .bol-company-tagline {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 7.5pt;
+  font-weight: 900 !important;
+  letter-spacing: 0.14em !important;
+  line-height: 1.1 !important;
+  text-transform: uppercase !important;
+  color: #475569 !important;
+  text-align: center !important;
+}
+
+.bol-header .bol-company-fa {
+  font-family: var(--font-vazirmatn, "Vazirmatn"), "NotoNaskhArabic", Tahoma, Arial, sans-serif !important;
+  font-size: 9.8pt;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+  color: #2563eb !important;
+}
+
+.bol-header .bol-title-en {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 8.5pt;
+  font-weight: 900 !important;
+  letter-spacing: 0.03em !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  color: #ffffff !important;
+  text-align: left !important;
+}
+
+.bol-header .bol-title-fa {
+  font-family: var(--font-vazirmatn, "Vazirmatn"), "NotoNaskhArabic", Tahoma, Arial, sans-serif !important;
+  font-size: 8pt;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  text-align: right !important;
+  color: #ffffff !important;
+}
+
+.bol-header .bol-number-text {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 11.5pt !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow: visible !important;
+  color: #1d68eb !important;
+}
+
+
 .bol-title-card {
   border-color: #3b82f6;
   border-radius: 6px;
@@ -4509,7 +4743,7 @@
 
 .bol-number-text {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-  font-size: 8.5pt !important;
+  font-size: 11.5pt !important;
   font-weight: 900 !important;
   line-height: 1.1 !important;
   text-align: center !important;
@@ -5757,7 +5991,7 @@
   }
 
   [data-print-root="true"] .bol-number-text {
-    font-size: 8pt !important;
+    font-size: 11.5pt !important;
   }
 
   [data-print-root="true"] .english-text {
@@ -5991,7 +6225,7 @@
     opacity: 1 !important;
   }
 
-  [data-bol-header="true"] > div {
+  [data-bol-page2-header="true"] > div {
     display: grid !important;
     grid-template-columns: 32mm minmax(0, 1fr) 46mm !important;
     column-gap: 2mm !important;
@@ -6002,13 +6236,120 @@
   [data-bol-header="true"] img {
     display: block !important;
     visibility: visible !important;
-    max-width: 30mm !important;
-    max-height: 20mm !important;
+    max-width: 40mm !important;
+    max-height: 40mm !important;
     height: auto !important;
     width: auto !important;
     object-fit: contain !important;
     image-rendering: -webkit-optimize-contrast !important;
     image-rendering: high-quality !important;
+  }
+
+  
+    .bol-header,
+  [data-pdf-export="true"] .bol-header,
+  [data-print-root="true"] .bol-header {
+    position: relative !important;
+    overflow: visible !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 14px !important;
+    background: #f8fbff !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .bol-card,
+  [data-pdf-export="true"] .bol-card,
+  [data-print-root="true"] .bol-card {
+    position: relative !important;
+    overflow: visible !important;
+    border: 1px solid #2563eb !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .bol-header-top,
+  [data-pdf-export="true"] .bol-header-top,
+  [data-print-root="true"] .bol-header-top {
+    background: linear-gradient(135deg, #1d68eb, #2563eb, #3b82f6) !important;
+    color: #fff !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .bol-header-bottom,
+  [data-pdf-export="true"] .bol-header-bottom,
+  [data-print-root="true"] .bol-header-bottom {
+    background: #ffffff !important;
+    border-top: 1px solid #bfdbfe !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .bol-qr-container,
+  [data-pdf-export="true"] .bol-qr-container,
+  [data-print-root="true"] .bol-qr-container {
+    position: absolute !important;
+    z-index: 20 !important;
+    background: #ffffff !important;
+    border: 2px solid #93c5fd !important;
+    border-radius: 3.2mm !important;
+    box-shadow: none !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  [data-pdf-export="true"] .bol-header .bol-company-title,
+  [data-print-root="true"] .bol-header .bol-company-title {
+    font-size: 20pt !important;
+    color: #1e293b !important;
+    line-height: 1.1 !important;
+    text-align: center !important;
+  }
+
+  [data-pdf-export="true"] .bol-header .bol-company-tagline,
+  [data-print-root="true"] .bol-header .bol-company-tagline {
+    font-size: 7.5pt !important;
+    color: #475569 !important;
+    line-height: 1.1 !important;
+    text-align: center !important;
+  }
+
+  [data-pdf-export="true"] .bol-header .bol-company-fa,
+  [data-print-root="true"] .bol-header .bol-company-fa {
+    font-size: 9.8pt !important;
+    color: #2563eb !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+  }
+
+  [data-pdf-export="true"] .bol-header .bol-title-en,
+  [data-print-root="true"] .bol-header .bol-title-en {
+    font-size: 8.5pt !important;
+    color: #ffffff !important;
+    line-height: 1 !important;
+    text-align: left !important;
+  }
+
+  [data-pdf-export="true"] .bol-header .bol-title-fa,
+  [data-print-root="true"] .bol-header .bol-title-fa {
+    font-size: 8pt !important;
+    color: #ffffff !important;
+    line-height: 1 !important;
+    text-align: right !important;
+  }
+
+  [data-pdf-export="true"] .bol-header .bol-number-text,
+  [data-print-root="true"] .bol-header .bol-number-text {
+    font-size: 11.5pt !important;
+    color: #1d68eb !important;
+    font-weight: 900 !important;
   }
 
   [data-print-root="true"] .bol-title-card,
@@ -6119,7 +6460,7 @@
     color: #1e3a8a !important;
     display: block !important;
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-    font-size: 8.5pt !important;
+    font-size: 11.5pt !important;
     font-weight: 900 !important;
     line-height: 1.1 !important;
     text-align: center !important;
@@ -6171,18 +6512,40 @@
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    height: 5.6mm !important;
-    min-height: 5.6mm !important;
-    padding: 0.6mm 2mm !important;
+    min-height: 7.2mm !important;
+    height: auto !important;
+    padding: 1.2mm 3.2mm !important;
     overflow: hidden !important;
     background: linear-gradient(
       90deg,
-      #1d4ed8 0%,
-      #2563eb 58%,
+      #1e40af 0%,
+      #2563eb 55%,
+      #0284c7 90%,
       #0891b2 100%
     ) !important;
     color: #ffffff !important;
-    border-radius: 2mm 2mm 0 0 !important;
+    border-radius: 2.2mm 2.2mm 0 0 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+    border-bottom: 0.2mm solid rgba(96, 165, 250, 0.35) !important;
+  }
+
+  [data-print-section] > div:first-child h3 {
+    font-size: 11.5pt !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.1 !important;
+    text-transform: uppercase !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+  }
+
+  [data-print-section] > div:first-child p.bol-persian-text {
+    font-size: 12.2pt !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    font-family: var(--font-vazirmatn, "Vazirmatn"), "NotoNaskhArabic", Tahoma, Arial, sans-serif !important;
   }
 
   [data-print-section] > div:last-child {
@@ -6494,7 +6857,7 @@
 [data-bol-a4="true"] .party-card-title,
 [data-pdf-export="true"] .party-card-title {
   margin: 0 !important;
-  font-size: 6.8pt !important;
+  font-size: 8.4pt !important;
   font-weight: 900 !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
@@ -6505,7 +6868,7 @@
 [data-bol-a4="true"] .party-card-subtitle,
 [data-pdf-export="true"] .party-card-subtitle {
   margin: 0 !important;
-  font-size: 6.8pt !important;
+  font-size: 8.4pt !important;
   font-weight: 700 !important;
   color: #2563eb !important;
   line-height: 1.1 !important;
@@ -6520,12 +6883,17 @@
 }
 
 [data-bol-a4="true"] .party-card-name,
-[data-pdf-export="true"] .party-card-name {
+[data-pdf-export="true"] .party-card-name,
+[data-bol-a4="true"] .party-card-name span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+[data-pdf-export="true"] .party-card-name span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
   margin: 0 !important;
-  font-size: 7.4pt !important;
-  font-weight: 900 !important;
+  font-family: "Courier New", Courier, monospace !important;
+  font-size: 9.2pt !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  font-variant-ligatures: none !important;
   text-transform: uppercase !important;
-  color: #0f172a !important;
+  color: #000000 !important;
   line-height: 1.15 !important;
   word-break: break-word !important;
 }
@@ -6546,21 +6914,68 @@
 
 [data-bol-a4="true"] .party-card-info-icon,
 [data-pdf-export="true"] .party-card-info-icon {
-  width: 9px !important;
-  min-width: 9px !important;
-  height: 9px !important;
+  width: 10.5px !important;
+  min-width: 10.5px !important;
+  height: 10.5px !important;
   color: #2563eb !important;
   margin-top: 1px !important;
 }
 
 [data-bol-a4="true"] .party-card-info-text,
-[data-pdf-export="true"] .party-card-info-text {
+[data-pdf-export="true"] .party-card-info-text,
+[data-bol-a4="true"] .party-card-info-text span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+[data-pdf-export="true"] .party-card-info-text span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
   margin: 0 !important;
-  font-size: 6.6pt !important;
+  font-family: "Courier New", Courier, monospace !important;
+  font-size: 8.0pt !important;
   line-height: 1.2 !important;
-  color: #1e293b !important;
+  color: #000000 !important;
   font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  font-variant-ligatures: none !important;
   word-break: break-word !important;
+}
+
+[data-bol-a4="true"] .party-card-contact,
+[data-pdf-export="true"] .party-card-contact,
+[data-bol-a4="true"] .party-card-phone,
+[data-pdf-export="true"] .party-card-phone,
+[data-bol-a4="true"] .party-card-email,
+[data-pdf-export="true"] .party-card-email,
+[data-bol-a4="true"] .party-card-contact span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+[data-pdf-export="true"] .party-card-contact span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+[data-bol-a4="true"] .party-card-phone span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+[data-pdf-export="true"] .party-card-phone span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+[data-bol-a4="true"] .party-card-email span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+[data-pdf-export="true"] .party-card-email span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+[data-bol-a4="true"] .party-card-info-row:has(.lucide-phone) .party-card-info-text,
+[data-bol-a4="true"] .party-card-info-row:has(.lucide-phone) .party-card-info-text *,
+[data-bol-a4="true"] .party-card-info-row:has(.lucide-mail) .party-card-info-text,
+[data-bol-a4="true"] .party-card-info-row:has(.lucide-mail) .party-card-info-text *,
+[data-pdf-export="true"] .party-card-info-row:has(.lucide-phone) .party-card-info-text,
+[data-pdf-export="true"] .party-card-info-row:has(.lucide-phone) .party-card-info-text *,
+[data-pdf-export="true"] .party-card-info-row:has(.lucide-mail) .party-card-info-text,
+[data-pdf-export="true"] .party-card-info-row:has(.lucide-mail) .party-card-info-text * {
+  font-size: 8.5pt !important;
+  font-weight: 700 !important;
+  color: #000000 !important;
+}
+
+[data-bol-a4="true"] .party-card-body .persian-text,
+[data-pdf-export="true"] .party-card-body .persian-text,
+[data-bol-a4="true"] .party-card-body .persian-text *,
+[data-pdf-export="true"] .party-card-body .persian-text *,
+[data-bol-a4="true"] .party-card-body .bol-persian-text,
+[data-pdf-export="true"] .party-card-body .bol-persian-text,
+[data-bol-a4="true"] .party-card-body .bol-persian-text *,
+[data-pdf-export="true"] .party-card-body .bol-persian-text *,
+[data-bol-a4="true"] .party-card-body [dir="rtl"],
+[data-pdf-export="true"] .party-card-body [dir="rtl"],
+[data-bol-a4="true"] .party-card-body [dir="rtl"] *,
+[data-pdf-export="true"] .party-card-body [dir="rtl"] * {
+  font-family: var(--font-vazirmatn, "Vazirmatn", "Noto Sans Arabic", Tahoma, Arial, sans-serif) !important;
+  direction: rtl !important;
+  font-variant-ligatures: normal !important;
 }
 
 [data-bol-a4="true"] .exporter-contact-detail-card,
@@ -7030,3 +7445,455 @@
   .a4-preview-viewport { display: none !important; }
   .a4-scale-wrapper { transform: none !important; }
 }
+
+
+/* ==========================================================================
+   Side-by-Side Route & Cargo Dashboard Layout
+   ========================================================================== */
+.route-cargo-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.route-cargo-dashboard > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.route-cargo-dashboard .route-section,
+.route-cargo-dashboard .cargo-section {
+  width: 100%;
+  min-width: 0;
+  align-self: start;
+}
+
+@media (min-width: 1200px) {
+  .route-cargo-dashboard {
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .route-cargo-dashboard {
+    gap: 18px;
+  }
+}
+
+/* ==========================================================================
+   Edit Form Quad Dashboard Layout
+   (Freight, Remarks, Container & Shipping Details)
+   ========================================================================== */
+.edit-form-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.edit-form-dashboard > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.shipping-fields-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.shipping-fields-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  .shipping-fields-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1599px) {
+  .edit-form-dashboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .edit-form-dashboard {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr)
+      minmax(0, 0.9fr)
+      minmax(0, 2.1fr);
+    gap: 16px;
+  }
+}
+
+/* ==========================================================================
+   BOL Editor Toolbar - Responsive Executive Redesign
+   ========================================================================== */
+
+.bol-editor-toolbar {
+  display: flex;
+  flex-direction: row;
+  /* Wrap to a second tidy row instead of silently clipping controls behind a
+     hidden-scrollbar horizontal scroll — every control must stay reachable. */
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dbe5f1;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(30, 64, 175, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: relative;
+  z-index: 20;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+  overflow-x: visible;
+}
+
+.dark .bol-editor-toolbar {
+  background: rgba(15, 23, 42, 0.96);
+  border-color: #1e293b;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+}
+
+.toolbar-cluster-row-1 {
+  display: contents;
+}
+
+.toolbar-cluster-row-2 {
+  display: contents;
+  border-top: none;
+  padding-top: 0;
+}
+
+.toolbar-group-nav-appearance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.toolbar-group {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-size: 12px;
+}
+
+.toolbar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.toolbar-divider-desktop {
+  display: block;
+  width: 1px;
+  height: 20px;
+  background-color: #cbd5e1;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.dark .toolbar-divider-desktop {
+  background-color: #334155;
+}
+
+/* Large Desktop (1600px and above): Single Unified Compact Row */
+@media (min-width: 1600px) {
+  .bol-editor-toolbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+    padding: 6px 14px;
+    min-height: 48px;
+  }
+
+  .toolbar-cluster-row-1 {
+    display: contents;
+  }
+
+  .toolbar-cluster-row-2 {
+    display: contents;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .toolbar-divider-desktop {
+    display: block;
+  }
+}
+
+/* Laptop (1024px - 1599px): tight single row when it fits, graceful second
+   row otherwise. Nothing may be pushed into a clipped horizontal scroll. */
+@media (min-width: 1024px) and (max-width: 1599px) {
+  .bol-editor-toolbar {
+    justify-content: flex-start;
+    gap: 4px 7px;
+    padding: 5px 10px;
+  }
+
+  .toolbar-group,
+  .toolbar-group-nav-appearance {
+    gap: 4px;
+  }
+
+  .toolbar-divider-desktop {
+    display: none;
+  }
+}
+
+/* Tablet & Compact Viewports (768px - 1023px): Two Full-Width Balanced Rows */
+@media (max-width: 1023px) {
+  .bol-editor-toolbar {
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 10px;
+    min-height: auto;
+  }
+
+  .toolbar-cluster-row-1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-cluster-row-2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 5px;
+    flex-wrap: wrap;
+    padding-top: 6px;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .dark .toolbar-cluster-row-2 {
+    border-top-color: #1e293b;
+  }
+
+  /* Wrap inside the nav+appearance cluster instead of letting the zoom pill
+     overflow past the right edge on narrow tablets. */
+  .toolbar-group-nav-appearance {
+    width: auto;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    row-gap: 5px;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .toolbar-group-export {
+    width: auto;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+
+  .toolbar-divider-desktop {
+    display: none;
+  }
+}
+
+/* Mobile (below 768px): Responsive Stacking & Touch Targets */
+@media (max-width: 767px) {
+  .bol-editor-toolbar {
+    padding: 8px 10px;
+    gap: 5px;
+    border-radius: 12px;
+    flex-direction: column;
+  }
+
+  .toolbar-cluster-row-1,
+  .toolbar-cluster-row-2 {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .toolbar-cluster-row-2 {
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .dark .toolbar-cluster-row-2 {
+    border-top-color: #1e293b;
+  }
+
+  .toolbar-group {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-group-identity {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .toolbar-group-save {
+    width: 100%;
+  }
+
+  .toolbar-group-save > button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toolbar-group-nav {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* The zoom pill + watermark/stamp cluster must wrap onto its own centered
+     lines — nowrap here is what pushed "100%" off the right edge of phones. */
+  .toolbar-group-nav-appearance {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 5px;
+  }
+
+  .toolbar-group-appearance {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .toolbar-group-export {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toolbar-button {
+    min-height: 38px;
+  }
+
+  .toolbar-divider-desktop {
+    display: none;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Logistics Page Layout: Left (Notes) vs Right (Doc Info + Truck Details)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.logistics-page-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.logistics-left-column,
+.logistics-right-column {
+  min-width: 0;
+  width: 100%;
+}
+
+.logistics-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.logistics-left-column > *,
+.logistics-right-column > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 1199px) {
+  .logistics-page-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* ==========================================================================
+   Cargo Section 1 & Section 2 Side-by-Side Layout
+   (Shipment & Packaging Inputs + Rates & Calculated Totals)
+   ========================================================================== */
+.cargo-inputs-rates-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.cargo-inputs-rates-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .cargo-inputs-rates-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .cargo-inputs-rates-grid {
+    gap: 18px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1599px) {
+  .cargo-inputs-rates-grid .cargo-adaptive-subgrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
