@@ -173,3 +173,25 @@ test("TEST 10: Desktop Window Interface API Contract", () => {
     )
   }
 })
+
+test("TEST 11: Non-Hanging Updater Runner Architecture & Hidden Window Guarantee", () => {
+  const electronUpdaterPath = path.join(process.cwd(), "electron", "services", "updater.ts")
+  const libUpdaterPath = path.join(process.cwd(), "lib", "services", "system-update-service.ts")
+
+  for (const file of [electronUpdaterPath, libUpdaterPath]) {
+    assert.equal(fs.existsSync(file), true, `File must exist: ${file}`)
+    const code = fs.readFileSync(file, "utf8")
+
+    // Must NOT contain deadlocking piped commands on stdin
+    assert.equal(code.includes("find /I /N"), false, `${file} must not contain pipe to 'find /I /N'`)
+    assert.equal(code.includes("tasklist /FI"), false, `${file} must not pipe tasklist into find`)
+
+    // Must use hidden window to prevent black terminal popup
+    assert.equal(code.includes("windowsHide: true"), true, `${file} must spawn detached updater with windowsHide: true`)
+
+    // Must include robust process termination
+    assert.equal(code.includes('taskkill /F /T /IM "AQ COMPANIES.exe"'), true, `${file} must terminate application before update`)
+    assert.equal(code.includes('taskkill /F /T /IM "aq-backend.exe"'), true, `${file} must terminate backend workers before update`)
+  }
+})
+

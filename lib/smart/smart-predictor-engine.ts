@@ -85,6 +85,20 @@ function normalizeKey(v: string): string {
   return v.toLowerCase().replace(/\s+/g, " ").trim()
 }
 
+/** Robust Persian/Dari & English search text normalizer. */
+export function cleanSearchText(text: string): string {
+  if (!text) return ""
+  return text
+    .toLowerCase()
+    .replace(/[\u200c\u200b\u200e\u200f]/g, "") // remove zero-width chars (ZWNJ)
+    .replace(/[\u064B-\u065F\u0670]/g, "") // remove Arabic/Persian diacritics
+    .replace(/ي/g, "ی")
+    .replace(/ك/g, "ک")
+    .replace(/ة/g, "ه")
+    .replace(/[\s,;/().•|\-_]+/g, " ")
+    .trim()
+}
+
 /** Extracts a "EN (FA)" bilingual pair, e.g. "Dry Figs (انجیر خشک)". */
 export function splitBilingual(value: string): { en?: string; fa?: string } {
   const m = value.match(/^(.*?)\s*\(([^)]+[\u0600-\u06FF][^)]*)\)\s*$/)
@@ -105,7 +119,7 @@ class SmartPredictorEngineImpl {
 
   // ---------------------------------------------------------------- settings
   getSettings(): SmartTypingSettings {
-    return { ...this.settings }
+    return this.settings
   }
 
   updateSettings(patch: Partial<SmartTypingSettings>) {
@@ -264,19 +278,33 @@ class SmartPredictorEngineImpl {
   suggest(
     category: FieldCategory,
     query: string,
-    opts: { limit?: number; includePopular?: boolean } = {},
+    opts: { limit?: number; includePopular?: boolean; allowEmpty?: boolean } = {},
   ): SmartSuggestion[] {
-    const t0 = performance.now()
     const limit = opts.limit ?? 8
-    const q = normalizeKey(query)
+    const rawQ = String(query || "").trim()
+    const q = normalizeKey(rawQ)
+
+    // CORE: Only show recommendations when words/characters are actually written!
+    if (!q && !opts.allowEmpty) {
+      return []
+    }
+
     const now = Date.now()
     const scored = new Map<string, SmartSuggestion>()
+    const cleanQ = cleanSearchText(q)
+    const qWords = cleanQ.split(" ").filter((w) => w.length > 0)
 
     const push = (key: string, matched: SmartSuggestion["matched"], base: number) => {
       const rec = this.values.get(key)
       if (!rec) return
       const recency = Math.max(0, 1 - (now - rec.lastUsed) / (1000 * 60 * 60 * 24 * 45)) // 45-day decay
-      const score = base * 1000 + rec.freq * 12 + recency * 220
+      const isExactCategory = rec.category === category
+      const isRelatedParty =
+        ["shipper", "consignee", "notify"].includes(category) &&
+        ["shipper", "consignee", "notify"].includes(rec.category)
+      const categoryBonus = isExactCategory ? 1500 : isRelatedParty ? 400 : 0
+
+      const score = base * 1000 + categoryBonus + rec.freq * 12 + recency * 220
       const prev = scored.get(key)
       if (!prev || prev.score < score) {
         const bi = splitBilingual(rec.value)
@@ -293,40 +321,80 @@ class SmartPredictorEngineImpl {
       }
     }
 
-    const scanSet = (pred: (rec: ValueRecord) => boolean, matched: SmartSuggestion["matched"], base: number) => {
-      for (const [key, rec] of this.values) {
-        if (rec.category === category && pred(rec)) push(key, matched, base)
-      }
-    }
-
     if (!q) {
-      // Zero-character focus suggestions: most frequent + most recent.
-      scanSet(() => true, "popular", 0)
+      // Zero-character focus suggestions: ONLY when allowEmpty is explicitly true
+      for (const [key, rec] of this.values) {
+        if (rec.category === category) push(key, "popular", 0)
+      }
     } else {
-      // 1. Prefix matches (whole value or any token) — strongest signal.
-      scanSet((r) => r.lower.startsWith(q), "prefix", 6)
-      for (const token of this.tokenize(q)) {
-        const set = this.tokenIndex.get(token)
-        if (set) for (const key of set) {
-          const rec = this.values.get(key)
-          if (rec && rec.category === category && rec.lower !== q) push(key, "prefix", 4)
+      // 1. Scan primary category records first
+      for (const [key, rec] of this.values) {
+        if (rec.category !== category) continue
+        const cleanTarget = cleanSearchText(rec.lower)
+        const targetWords = cleanTarget.split(" ").filter((w) => w.length > 0)
+
+        // A. Direct full prefix match (e.g. "manik" starts "manik traders")
+        if (cleanTarget.startsWith(cleanQ)) {
+          push(key, "prefix", 10)
+          continue
+        }
+
+        // B. Multi-word search (e.g. "rca ex" or "manik tra")
+        if (qWords.length > 1) {
+          const allPrefix = qWords.every((qw) => targetWords.some((tw) => tw.startsWith(qw)))
+          if (allPrefix) {
+            push(key, "prefix", 9.5)
+            continue
+          }
+          const allInclude = qWords.every((qw) => targetWords.some((tw) => tw.includes(qw)))
+          if (allInclude) {
+            push(key, "prefix", 8.5)
+            continue
+          }
+        }
+
+        // C. Word-level prefix match (e.g. "tra" matches "traders" in "manik traders")
+        if (qWords.length === 1 && targetWords.some((tw) => tw.startsWith(cleanQ))) {
+          push(key, "prefix", 8.8)
+          continue
+        }
+
+        // D. Substring match
+        if (cleanTarget.includes(cleanQ)) {
+          push(key, "prefix", 5.5)
+          continue
+        }
+
+        // E. Fuzzy match for 3+ letter queries
+        if (cleanQ.length >= 3) {
+          const isNearWord = targetWords.some((tw) => tw.length >= 3 && this.editDistance(cleanQ, tw, 1) <= 1)
+          if (isNearWord || this.editDistance(cleanQ, cleanTarget, 2) <= 2) {
+            push(key, "fuzzy", 3.0)
+          }
         }
       }
-      // 2. Contains query (mid-word).
-      scanSet((r) => r.lower.includes(q), "prefix", 2)
-      // 3. Fuzzy typo tolerance on the whole query (<= 2 edits).
-      const fuzzyScan = q.length >= 4
-      if (fuzzyScan) {
-        scanSet((r) => {
-          const d = this.editDistance(q, r.lower, 2)
-          return d !== Infinity && d > 0
-        }, "fuzzy", 1)
+
+      // 2. Cross-category scan for shared entities (e.g. consignee matching a known shipper/account)
+      const primaryResults = scored.size
+      if (primaryResults < limit) {
+        const pool: FieldCategory[] = ["shipper", "consignee", "notify", "commodity", "route", "truck", "driver"]
+        for (const [key, rec] of this.values) {
+          if (rec.category === category || !pool.includes(rec.category)) continue
+          const cleanTarget = cleanSearchText(rec.lower)
+          const targetWords = cleanTarget.split(" ").filter((w) => w.length > 0)
+
+          if (cleanTarget.startsWith(cleanQ)) {
+            push(key, "prefix", 7.5)
+          } else if (qWords.length === 1 && targetWords.some((tw) => tw.startsWith(cleanQ))) {
+            push(key, "prefix", 6.8)
+          } else if (cleanTarget.includes(cleanQ)) {
+            push(key, "prefix", 4.2)
+          }
+        }
       }
     }
 
-    const results = Array.from(scored.values()).sort((a, b) => b.score - a.score)
-    // perf guard (dev asserts): typical scan of a few thousand records stays well under 2ms
-    return results.slice(0, limit)
+    return Array.from(scored.values()).sort((a, b) => b.score - a.score).slice(0, limit)
   }
 
   /** Best completion for inline ghost text: value must start with the full query. */
@@ -334,13 +402,17 @@ class SmartPredictorEngineImpl {
     const q = normalizeKey(valueSoFar)
     if (!q || q.length < 2) return null
     let best: ValueRecord | null = null
+    let fallback: ValueRecord | null = null
     for (const rec of this.values.values()) {
-      if (rec.category !== category) continue
       if (!rec.lower.startsWith(q) || rec.lower === q) continue
+      // Prefer same-category records; otherwise keep the most frequent
+      // cross-category candidate (generic fields get full benefit).
       if (!best || rec.freq > best.freq || (rec.freq === best.freq && rec.lastUsed > best.lastUsed)) best = rec
+      if (rec.category === category && (!fallback || rec.freq > fallback.freq)) fallback = rec
     }
-    if (!best) return null
-    const tail = best.value.slice(valueSoFar.length)
+    const winner = fallback || best
+    if (!winner) return null
+    const tail = winner.value.slice(valueSoFar.length)
     return tail.length > 0 ? tail : null
   }
 
@@ -369,6 +441,34 @@ class SmartPredictorEngineImpl {
       } catch {}
     }
     for (const d of docs) this.ingestDocument(d)
+
+    // Ingest Directory Parties (Shippers, Consignees, Notify Parties)
+    for (const item of [
+      { key: "sky-bol-saved-shippers", cat: "shipper" as FieldCategory },
+      { key: "sky-bol-saved-consignees", cat: "consignee" as FieldCategory },
+      { key: "sky-bol-saved-notify-parties", cat: "notify" as FieldCategory },
+    ]) {
+      try {
+        const raw = localStorage.getItem(item.key)
+        if (raw) {
+          const list = JSON.parse(raw)
+          if (Array.isArray(list)) {
+            for (const p of list) {
+              if (p?.name && String(p.name).trim()) {
+                const name = String(p.name).trim()
+                this.learn(name, item.cat)
+                this.enrichProfile(name, {
+                  addresses: p.address ? [String(p.address).trim()] : [],
+                  phones: p.contact ? [String(p.contact).trim()] : [],
+                  emails: p.email ? [String(p.email).trim()] : [],
+                  taxIds: p.taxId ? [{ label: "TIN", value: String(p.taxId).trim() }] : [],
+                })
+              }
+            }
+          }
+        }
+      } catch {}
+    }
 
     // Ledger descriptions live inside accounts JSON in app-context; try caches.
     try {

@@ -1624,6 +1624,40 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
     setFormData(nextFormData)
     setHasUnsavedChanges(false)
+
+    // Synchronize or reset directory preset selections to match the loaded document
+    const sName = (nextFormData.shipper_name || "").trim().toLowerCase()
+    const matchShipper = sName ? savedShippers.find((s) => s.name.trim().toLowerCase() === sName) : null
+    setSelectedShipperId(matchShipper ? matchShipper.id : "")
+
+    const cName = (nextFormData.consignee_name || "").trim().toLowerCase()
+    const matchConsignee = cName ? savedConsignees.find((c) => c.name.trim().toLowerCase() === cName) : null
+    setSelectedConsigneeId(matchConsignee ? matchConsignee.id : "")
+
+    const nName = (nextFormData.notify_party || "").trim().toLowerCase()
+    const matchNotify = nName ? savedNotifyParties.find((n) => n.name.trim().toLowerCase() === nName) : null
+    setSelectedNotifyPartyId(matchNotify ? matchNotify.id : "")
+
+    const n1Label = (nextFormData.notes_1_label || "").trim().toLowerCase()
+    const n1Content = (nextFormData.notes_1 || "").trim()
+    const matchNote1 = (n1Label || n1Content) ? savedNotes1.find((n) => (n1Label && n.label.trim().toLowerCase() === n1Label) || (n1Content && n.content.trim() === n1Content)) : null
+    setSelectedNote1Id(matchNote1 ? matchNote1.id : "")
+
+    const n2Label = (nextFormData.notes_2_label || "").trim().toLowerCase()
+    const n2Content = (nextFormData.notes_2 || "").trim()
+    const matchNote2 = (n2Label || n2Content) ? savedNotes2.find((n) => (n2Label && n.label.trim().toLowerCase() === n2Label) || (n2Content && n.content.trim() === n2Content)) : null
+    setSelectedNote2Id(matchNote2 ? matchNote2.id : "")
+
+    const truckNum = (nextFormData.truck_number || "").trim().toLowerCase()
+    const matchTruck = truckNum ? savedTruckPresets.find((t) => t.truck_number.trim().toLowerCase() === truckNum) : null
+    setSelectedTruckPresetId(matchTruck ? matchTruck.id : "")
+
+    setShipperDirectorySearch("")
+    setConsigneeDirectorySearch("")
+    setNotifyDirectorySearch("")
+    setShipperSearchQuery("")
+    setConsigneeSearchQuery("")
+    setNotifyPartySearchQuery("")
     try {
       if (docBolNumber) {
         window.localStorage.setItem("skybol:last-active-document-id", docBolNumber)
@@ -1636,7 +1670,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       }
     }
     onDocumentLoaded?.()
-  }, [onDocumentLoaded])
+  }, [onDocumentLoaded, savedShippers, savedConsignees, savedNotifyParties, savedNotes1, savedNotes2, savedTruckPresets])
 
   const loadBolDocument = useCallback(async (
     rawId: string,
@@ -2058,6 +2092,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         if (lastActiveId === "__NEW__") {
           initialized = true
           setCheckingDraft(false)
+          setSelectedShipperId("")
+          setSelectedConsigneeId("")
+          setSelectedNotifyPartyId("")
+          setSelectedNote1Id("")
+          setSelectedNote2Id("")
+          setSelectedTruckPresetId("")
+          setShipperDirectorySearch("")
+          setConsigneeDirectorySearch("")
+          setNotifyDirectorySearch("")
+          setShipperSearchQuery("")
+          setConsigneeSearchQuery("")
+          setNotifyPartySearchQuery("")
           const highestKnown = getHighestKnownBolSequence()
           const nextInitSeq = Math.max(highestKnown + 1, 685)
           setBolNumber(`BOL-2026-NSA${nextInitSeq}`)
@@ -2098,6 +2144,15 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       } finally {
         setCheckingDraft(false)
         if (!initialized) {
+          setSelectedShipperId("")
+          setSelectedConsigneeId("")
+          setSelectedNotifyPartyId("")
+          setSelectedNote1Id("")
+          setSelectedNote2Id("")
+          setSelectedTruckPresetId("")
+          setShipperDirectorySearch("")
+          setConsigneeDirectorySearch("")
+          setNotifyDirectorySearch("")
           void fetchNextBolNumber()
           const today = new Date().toISOString().split("T")[0]
           setIssueDate(today)
@@ -2593,42 +2648,124 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     toast.success("Saved Note 2 option deleted")
   }
 
-  const selectedSavedNote1 = savedNotes1.find((note) => note.id === selectedNote1Id)
-  const selectedSavedNote2 = savedNotes2.find((note) => note.id === selectedNote2Id)
-  const isNote1PresetDirty = Boolean(selectedSavedNote1 && (
+  // Decoupled / Form-Validated Selected Entity IDs:
+  // An entity ID is only considered actively selected if the corresponding form field actually contains that entity's data.
+  // This guarantees that when a new blank BOL is created or fields are cleared, phantom directory selections never linger.
+  const isShipperSelected = Boolean(
+    selectedShipperId &&
+    formData.shipper_name?.trim() &&
+    (savedShippers.some((s) => s.id === selectedShipperId && s.name.trim().toLowerCase() === formData.shipper_name.trim().toLowerCase()) ||
+     apiShippers.some((s) => s.id === selectedShipperId && s.name.trim().toLowerCase() === formData.shipper_name.trim().toLowerCase()))
+  )
+
+  const isConsigneeSelected = Boolean(
+    selectedConsigneeId &&
+    formData.consignee_name?.trim() &&
+    (savedConsignees.some((c) => c.id === selectedConsigneeId && c.name.trim().toLowerCase() === formData.consignee_name.trim().toLowerCase()) ||
+     apiConsignees.some((c) => c.id === selectedConsigneeId && c.name.trim().toLowerCase() === formData.consignee_name.trim().toLowerCase()))
+  )
+
+  const isNotifyPartySelected = Boolean(
+    selectedNotifyPartyId &&
+    formData.notify_party?.trim() &&
+    (savedNotifyParties.some((n) => n.id === selectedNotifyPartyId && n.name.trim().toLowerCase() === formData.notify_party.trim().toLowerCase()) ||
+     apiNotifyParties.some((n) => n.id === selectedNotifyPartyId && n.name.trim().toLowerCase() === formData.notify_party.trim().toLowerCase()))
+  )
+
+  const isNote1Selected = Boolean(
+    selectedNote1Id &&
+    (formData.notes_1?.trim() || formData.notes_1_label?.trim()) &&
+    savedNotes1.some((n) => n.id === selectedNote1Id)
+  )
+
+  const isNote2Selected = Boolean(
+    selectedNote2Id &&
+    (formData.notes_2?.trim() || formData.notes_2_label?.trim()) &&
+    savedNotes2.some((n) => n.id === selectedNote2Id)
+  )
+
+  const isTruckPresetSelected = Boolean(
+    selectedTruckPresetId &&
+    formData.truck_number?.trim() &&
+    savedTruckPresets.some((t) => t.id === selectedTruckPresetId && t.truck_number.trim().toLowerCase() === formData.truck_number.trim().toLowerCase())
+  )
+
+  const selectedSavedNote1 = isNote1Selected ? savedNotes1.find((note) => note.id === selectedNote1Id) : undefined
+  const selectedSavedNote2 = isNote2Selected ? savedNotes2.find((note) => note.id === selectedNote2Id) : undefined
+  const isNote1PresetDirty = Boolean(isNote1Selected && selectedSavedNote1 && (
     selectedSavedNote1.label !== (formData.notes_1_label || "").trim()
     || selectedSavedNote1.content !== (formData.notes_1 || "").trim()
     || (selectedSavedNote1.theme || "red") !== (formData.notes_1_theme || "red")
   ))
-  const isNote2PresetDirty = Boolean(selectedSavedNote2 && (
+  const isNote2PresetDirty = Boolean(isNote2Selected && selectedSavedNote2 && (
     selectedSavedNote2.label !== (formData.notes_2_label || "").trim()
     || selectedSavedNote2.content !== (formData.notes_2 || "").trim()
     || (selectedSavedNote2.theme || "green") !== (formData.notes_2_theme || "green")
   ))
 
   const isShipperExisting = Boolean(
-    savedShippers.find(
+    formData.shipper_name?.trim() &&
+    savedShippers.some(
       (s) =>
         s.name.trim().toLowerCase() === formData.shipper_name.trim().toLowerCase() ||
-        (selectedShipperId && s.id === selectedShipperId)
+        (isShipperSelected && s.id === selectedShipperId)
     )
   )
 
   const isConsigneeExisting = Boolean(
-    savedConsignees.find(
+    formData.consignee_name?.trim() &&
+    savedConsignees.some(
       (c) =>
         c.name.trim().toLowerCase() === formData.consignee_name.trim().toLowerCase() ||
-        (selectedConsigneeId && c.id === selectedConsigneeId)
+        (isConsigneeSelected && c.id === selectedConsigneeId)
     )
   )
 
   const isNotifyPartyExisting = Boolean(
-    savedNotifyParties.find(
+    formData.notify_party?.trim() &&
+    savedNotifyParties.some(
       (n) =>
         n.name.trim().toLowerCase() === formData.notify_party.trim().toLowerCase() ||
-        (selectedNotifyPartyId && n.id === selectedNotifyPartyId)
+        (isNotifyPartySelected && n.id === selectedNotifyPartyId)
     )
   )
+
+  // Self-Healing Synchronization: Clear phantom preset IDs whenever corresponding form fields are empty
+  useEffect(() => {
+    if (!formData.shipper_name?.trim() && selectedShipperId) {
+      setSelectedShipperId("")
+    }
+    if (!formData.consignee_name?.trim() && selectedConsigneeId) {
+      setSelectedConsigneeId("")
+    }
+    if (!formData.notify_party?.trim() && selectedNotifyPartyId) {
+      setSelectedNotifyPartyId("")
+    }
+    if (!formData.notes_2?.trim() && !formData.notes_2_label?.trim() && selectedNote2Id) {
+      setSelectedNote2Id("")
+    }
+    if (!formData.notes_1?.trim() && !formData.notes_1_label?.trim() && selectedNote1Id) {
+      setSelectedNote1Id("")
+    }
+    if (!formData.truck_number?.trim() && selectedTruckPresetId) {
+      setSelectedTruckPresetId("")
+    }
+  }, [
+    formData.shipper_name,
+    formData.consignee_name,
+    formData.notify_party,
+    formData.notes_2,
+    formData.notes_2_label,
+    formData.notes_1,
+    formData.notes_1_label,
+    formData.truck_number,
+    selectedShipperId,
+    selectedConsigneeId,
+    selectedNotifyPartyId,
+    selectedNote2Id,
+    selectedNote1Id,
+    selectedTruckPresetId,
+  ])
 
   const filteredSavedConsignees = useMemo(() => {
     const q = consigneeDirectorySearch.trim().toLowerCase()
@@ -2666,7 +2803,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         unique.push(item)
       }
     }
-    if (!q) return unique.slice(0, 25)
+    if (!q) return []
     return unique
       .filter((s) => [s.name, s.address, s.contact, s.email].filter(Boolean).some((field) => field.toLowerCase().includes(q)))
       .slice(0, 25)
@@ -2684,7 +2821,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         unique.push(item)
       }
     }
-    if (!q) return unique.slice(0, 25)
+    if (!q) return []
     return unique
       .filter((c) => [c.name, c.address, c.contact, c.email].filter(Boolean).some((field) => field.toLowerCase().includes(q)))
       .slice(0, 25)
@@ -2702,7 +2839,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         unique.push(item)
       }
     }
-    if (!q) return unique.slice(0, 25)
+    if (!q) return []
     return unique
       .filter((n) => [n.name, n.address, n.contact, n.email].filter(Boolean).some((field) => field.toLowerCase().includes(q)))
       .slice(0, 25)
@@ -2718,6 +2855,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }))
     setSelectedShipperId("")
     setShipperSearchQuery("")
+    setShipperDirectorySearch("")
     toast.info("Shipper fields cleared", { description: "اطلاعات فرستنده پاک شد" })
   }
 
@@ -2731,6 +2869,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }))
     setSelectedConsigneeId("")
     setConsigneeSearchQuery("")
+    setConsigneeDirectorySearch("")
     toast.info("Consignee fields cleared", { description: "اطلاعات گیرنده پاک شد" })
   }
 
@@ -2742,6 +2881,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }))
     setSelectedNotifyPartyId("")
     setNotifyPartySearchQuery("")
+    setNotifyDirectorySearch("")
     toast.info("Notify party cleared", { description: "اطلاعات طرف اطلاع پاک شد" })
   }
 
@@ -5088,6 +5228,22 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       setHasRecoverableDraft(false)
       setIsEditMode(false)
       setEditDocumentId(null)
+      setSelectedShipperId("")
+      setSelectedConsigneeId("")
+      setSelectedNotifyPartyId("")
+      setSelectedNote1Id("")
+      setSelectedNote2Id("")
+      setSelectedTruckPresetId("")
+      setShipperDirectorySearch("")
+      setConsigneeDirectorySearch("")
+      setNotifyDirectorySearch("")
+      setShipperSearchQuery("")
+      setConsigneeSearchQuery("")
+      setNotifyPartySearchQuery("")
+      setShowShipperDropdown(false)
+      setShowConsigneeDropdown(false)
+      setShowNotifyPartyDropdown(false)
+      setHasUnsavedChanges(false)
       const today = new Date().toISOString().split("T")[0]
       setFormData({
         ...initialFormData,
@@ -6508,7 +6664,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         <div className="flex flex-wrap items-center gap-1.5">
                           <div className="flex-1 min-w-[170px]">
                             <Select
-                              value={selectedNote1Id || "none"}
+                              value={isNote1Selected ? selectedNote1Id : "none"}
                               onValueChange={(value) => {
                                 if (value === "none") {
                                   setSelectedNote1Id("")
@@ -6552,7 +6708,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               {selectedSavedNote1 ? "Update" : "Save preset"}
                             </Button>
 
-                            {selectedNote1Id && (
+                            {isNote1Selected && (
                               <>
                                 <Button
                                   type="button"
@@ -6818,7 +6974,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         <div className="flex flex-wrap items-center gap-1.5">
                           <div className="flex-1 min-w-[170px]">
                             <Select
-                              value={selectedNote2Id || "none"}
+                              value={isNote2Selected ? selectedNote2Id : "none"}
                               onValueChange={(value) => {
                                 if (value === "none") {
                                   setSelectedNote2Id("")
@@ -6862,7 +7018,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               {selectedSavedNote2 ? "Update" : "Save preset"}
                             </Button>
 
-                            {selectedNote2Id && (
+                            {isNote2Selected && (
                               <>
                                 <Button
                                   type="button"
@@ -6893,7 +7049,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                         {/* Preset Status Indicator */}
                         <div className="flex items-center justify-between text-[10px] px-1 font-semibold">
-                          {selectedSavedNote2 ? (
+                          {isNote2Selected && selectedSavedNote2 ? (
                             isNote2PresetDirty ? (
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
@@ -6939,7 +7095,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               )
                             }
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                              formData.notes_2?.includes("عبدالوهاب ریگوال") || selectedNote2Id === "n2-dougharoun-islamqala"
+                              formData.notes_2?.includes("عبدالوهاب ریگوال") || (isNote2Selected && selectedNote2Id === "n2-dougharoun-islamqala")
                                 ? "border-blue-500 bg-blue-100 text-blue-950 ring-2 ring-blue-400/40 shadow-xs dark:bg-blue-950 dark:border-blue-400 dark:text-blue-100"
                                 : "border-blue-200/90 bg-white hover:bg-blue-50 text-blue-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-blue-800 dark:text-blue-200"
                             }`}
@@ -6959,7 +7115,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               )
                             }
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                              formData.notes_2?.includes("نیمروز و میلک") || selectedNote2Id === "n2-nimroz-milak"
+                              formData.notes_2?.includes("نیمروز و میلک") || (isNote2Selected && selectedNote2Id === "n2-nimroz-milak")
                                 ? "border-rose-500 bg-rose-100 text-rose-950 ring-2 ring-rose-400/40 shadow-xs dark:bg-rose-950 dark:border-rose-400 dark:text-rose-100"
                                 : "border-rose-200/90 bg-white hover:bg-rose-50 text-rose-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-rose-800 dark:text-rose-200"
                             }`}
@@ -6979,7 +7135,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               )
                             }
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                              formData.notes_2?.includes("تورغندی و هرات") || selectedNote2Id === "n2-torghundi"
+                              formData.notes_2?.includes("تورغندی و هرات") || (isNote2Selected && selectedNote2Id === "n2-torghundi")
                                 ? "border-purple-500 bg-purple-100 text-purple-950 ring-2 ring-purple-400/40 shadow-xs dark:bg-purple-950 dark:border-purple-400 dark:text-purple-100"
                                 : "border-purple-200/90 bg-white hover:bg-purple-50 text-purple-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-purple-800 dark:text-purple-200"
                             }`}
@@ -6999,7 +7155,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               )
                             }
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                              formData.notes_2?.includes("حیرتان و بلخ") || selectedNote2Id === "n2-hairatan"
+                              formData.notes_2?.includes("حیرتان و بلخ") || (isNote2Selected && selectedNote2Id === "n2-hairatan")
                                 ? "border-emerald-500 bg-emerald-100 text-emerald-950 ring-2 ring-emerald-400/40 shadow-xs dark:bg-emerald-950 dark:border-emerald-400 dark:text-emerald-100"
                                 : "border-emerald-200/90 bg-white hover:bg-emerald-50 text-emerald-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-emerald-800 dark:text-emerald-200"
                             }`}
@@ -7019,7 +7175,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               )
                             }
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                              formData.notes_2?.includes("اسپین بولدک") || selectedNote2Id === "n2-spinboldak"
+                              formData.notes_2?.includes("اسپین بولدک") || (isNote2Selected && selectedNote2Id === "n2-spinboldak")
                                 ? "border-amber-500 bg-amber-100 text-amber-950 ring-2 ring-amber-400/40 shadow-xs dark:bg-amber-950 dark:border-amber-400 dark:text-amber-100"
                                 : "border-amber-200/90 bg-white hover:bg-amber-50 text-amber-900 shadow-2xs hover:scale-102 dark:bg-slate-900 dark:border-amber-800 dark:text-amber-200"
                             }`}
@@ -7514,7 +7670,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         <div className="flex flex-wrap items-center gap-2">
                           <div className="flex-1 min-w-[200px]">
                             <Select
-                              value={selectedTruckPresetId || "none"}
+                              value={isTruckPresetSelected ? selectedTruckPresetId : "none"}
                               onValueChange={(value) => {
                                 if (value === "none") {
                                   setSelectedTruckPresetId("")
@@ -7746,7 +7902,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                       {/* Select Dropdown */}
                       <Select
-                        value={selectedShipperId || "none"}
+                        value={isShipperSelected ? selectedShipperId : "none"}
                         onValueChange={(value) => {
                           if (value === "none") {
                             setSelectedShipperId("")
@@ -7798,7 +7954,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             <Building2 className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
                             <span>Full Directory</span>
                           </Button>
-                          {selectedShipperId && (
+                          {isShipperSelected && (
                             <Button
                               type="button"
                               size="sm"
@@ -7827,7 +7983,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             <Save className="h-3 w-3 mr-1" />
                             {isShipperExisting ? "Update" : "Save New"}
                           </Button>
-                          {selectedShipperId && (
+                          {isShipperSelected && (
                             <Button
                               type="button"
                               variant="outline"
@@ -8151,7 +8307,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                       {/* Select Dropdown */}
                       <Select
-                        value={selectedConsigneeId || "none"}
+                        value={isConsigneeSelected ? selectedConsigneeId : "none"}
                         onValueChange={(value) => {
                           if (value === "none") {
                             setSelectedConsigneeId("")
@@ -8203,7 +8359,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             <Building2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                             <span>Full Directory</span>
                           </Button>
-                          {selectedConsigneeId && (
+                          {isConsigneeSelected && (
                             <Button
                               type="button"
                               size="sm"
@@ -8232,7 +8388,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             <Save className="h-3 w-3 mr-1" />
                             {isConsigneeExisting ? "Update" : "Save New"}
                           </Button>
-                          {selectedConsigneeId && (
+                          {isConsigneeSelected && (
                             <Button
                               type="button"
                               variant="outline"
@@ -8536,7 +8692,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                       {/* Select Dropdown */}
                       <Select
-                        value={selectedNotifyPartyId || "none"}
+                        value={isNotifyPartySelected ? selectedNotifyPartyId : "none"}
                         onValueChange={(value) => {
                           if (value === "none") {
                             setSelectedNotifyPartyId("")
@@ -8588,7 +8744,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             <Building2 className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
                             <span>Full Directory</span>
                           </Button>
-                          {selectedNotifyPartyId && (
+                          {isNotifyPartySelected && (
                             <Button
                               type="button"
                               size="sm"
@@ -8617,7 +8773,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             <Save className="h-3 w-3 mr-1" />
                             {isNotifyPartyExisting ? "Update" : "Save New"}
                           </Button>
-                          {selectedNotifyPartyId && (
+                          {isNotifyPartySelected && (
                             <Button
                               type="button"
                               variant="outline"
@@ -11017,11 +11173,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             </Card>
 
             {/* Container Details */}
-            <Card id="section-container" className="bg-white/70 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_400px]">
+            <Card id="section-container" className="bg-white/70 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_400px] flex flex-col">
               <CardHeader className="pb-4 border-b border-white/50 dark:border-slate-800 bg-white/40 dark:bg-slate-800/40">
                 <CardTitle className="text-base flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
+                    <div className="p-1.5 rounded-lg bg-linear-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/25">
                       <Package className="h-4 w-4 text-white" />
                     </div>
                     <span className="font-semibold text-gray-800 dark:text-slate-100">Container Details</span>
@@ -11029,8 +11185,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   <span className="text-sm font-normal text-blue-600/80 dark:text-blue-400 font-[vazirmatn]">جزئیات کانتینر</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4 pb-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <CardContent className="pt-4 pb-6 flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 min-[1600px]:grid-cols-1 gap-3.5">
                   <div>
                     <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block font-medium">Container Type / نوع کانتینر</label>
                     <Select value={formData.container_type || "none"} onValueChange={(value) => setFormData((prev) => ({ ...prev, container_type: value === "none" ? "" : value }))}>
@@ -11069,7 +11225,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                       value={formData.container_numbers}
                       onChange={handleInputChange}
                       placeholder="e.g., MSCU1234567"
-                      className="h-11 glass-input rounded-xl font-mono text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
+                      className="h-11 glass-input rounded-xl font-mono text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700 uppercase"
                     />
                   </div>
                   <div>
@@ -11079,7 +11235,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                       value={formData.seal_numbers}
                       onChange={handleInputChange}
                       placeholder="e.g., SL12345"
-                      className="h-11 glass-input rounded-xl font-mono text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
+                      className="h-11 glass-input rounded-xl font-mono text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700 uppercase"
                     />
                   </div>
                 </div>
@@ -11338,9 +11494,9 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="shipping-fields-grid">
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Vessel / کشتی</label>
+                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block font-medium">Vessel / کشتی</label>
                     <Input
                       name="vessel_name"
                       value={formData.vessel_name}
@@ -11350,7 +11506,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Voyage No. / سفر</label>
+                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block font-medium">Voyage No. / سفر</label>
                     <Input
                       name="voyage_number"
                       value={formData.voyage_number}
@@ -11360,7 +11516,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Port of Loading / بندر بارگیری</label>
+                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block font-medium">Port of Loading / بندر بارگیری</label>
                     <Input
                       name="port_of_loading"
                       list="world-seaports-list"
@@ -11371,7 +11527,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Port of Discharge / بندر تخلیه</label>
+                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block font-medium">Port of Discharge / بندر تخلیه</label>
                     <Input
                       name="port_of_discharge"
                       list="world-seaports-list"
@@ -11381,8 +11537,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                       className="glass-input rounded-xl h-11 text-slate-900 dark:text-slate-100 dark:bg-slate-950 dark:border-slate-700"
                     />
                   </div>
-                  <div className="full-width md:col-span-2 lg:col-span-4">
-                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block">Place of Delivery / محل تحویل</label>
+                  <div className="full-width">
+                    <label className="text-sm text-gray-600 dark:text-slate-300 mb-2 block font-medium">Place of Delivery / محل تحویل</label>
                     <Input
                       name="place_of_delivery"
                       list="world-places-list"
@@ -12387,7 +12543,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         onOpenChange={setIsBrowseConsigneeModalOpen}
         role="CONSIGNEE"
         parties={savedConsignees}
-        selectedPartyId={selectedConsigneeId}
+        selectedPartyId={isConsigneeSelected ? selectedConsigneeId : ""}
         onSelectParty={(party) => {
           applySavedConsignee(party.id)
         }}
@@ -12418,7 +12574,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         onOpenChange={setIsBrowseShipperModalOpen}
         role="SHIPPER"
         parties={savedShippers}
-        selectedPartyId={selectedShipperId}
+        selectedPartyId={isShipperSelected ? selectedShipperId : ""}
         onSelectParty={(party) => {
           applySavedShipper(party.id)
         }}
@@ -12450,7 +12606,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         onOpenChange={setIsBrowseNotifyModalOpen}
         role="NOTIFY_PARTY"
         parties={savedNotifyParties}
-        selectedPartyId={selectedNotifyPartyId}
+        selectedPartyId={isNotifyPartySelected ? selectedNotifyPartyId : ""}
         onSelectParty={(party) => {
           applySavedNotifyParty(party.id)
         }}

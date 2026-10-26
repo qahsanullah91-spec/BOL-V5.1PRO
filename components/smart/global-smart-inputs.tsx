@@ -17,7 +17,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { Sparkles, Wand2, Languages, CheckCheck, ChevronRight, UserRoundCheck, X } from "lucide-react"
+import { Sparkles, Wand2, Languages, CheckCheck, ChevronRight, UserRoundCheck, X, MapPin, Phone } from "lucide-react"
 import {
   SmartPredictorEngine,
   detectCategory,
@@ -103,6 +103,44 @@ function measureCaretEndGhost(el: HTMLInputElement): { top: number; left: number
   return { top: 0, left: Math.max(0, textW + csPad + csBorder) }
 }
 
+function HighlightedMatch({ text, query }: { text: string; query: string }) {
+  if (!query || !query.trim()) {
+    return <span>{text}</span>
+  }
+
+  const cleanQ = query.trim().toLowerCase()
+  const qWords = cleanQ.split(/\s+/).filter(Boolean)
+  if (qWords.length === 0) return <span>{text}</span>
+
+  const escaped = qWords.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")
+  if (!escaped) return <span>{text}</span>
+
+  try {
+    const regex = new RegExp(`(${escaped})`, "gi")
+    const parts = text.split(regex)
+    return (
+      <span>
+        {parts.map((part, idx) => {
+          const isMatch = qWords.some((w) => w.toLowerCase() === part.toLowerCase())
+          if (isMatch) {
+            return (
+              <span
+                key={idx}
+                className="text-[#2563EB] dark:text-blue-400 font-black bg-blue-500/10 dark:bg-blue-400/20 rounded-xs px-0.5"
+              >
+                {part}
+              </span>
+            )
+          }
+          return <span key={idx}>{part}</span>
+        })}
+      </span>
+    )
+  } catch {
+    return <span>{text}</span>
+  }
+}
+
 export function GlobalSmartInputLayer() {
   const [settings, setSettings] = useState<SmartTypingSettings>(() => SmartPredictorEngine.getSettings())
   const [active, setActive] = useState<ActiveField | null>(null)
@@ -125,6 +163,9 @@ export function GlobalSmartInputLayer() {
   // ------------------------------------------------------------- bootstrap
   useEffect(() => {
     setMounted(true)
+    if (typeof window !== "undefined") {
+      ;(window as any).__smartInputLayer = { mounted: true, at: Date.now() }
+    }
     SmartPredictorEngine.loadPersisted()
     SmartPredictorEngine.ensureSourcesStarted()
     const t = setTimeout(() => void SmartPredictorEngine.fetchRemoteSources(), 3000)
@@ -145,10 +186,32 @@ export function GlobalSmartInputLayer() {
     const { el, category, isTextarea } = a
     const rect = el.getBoundingClientRect()
     if (rect.width === 0) return
-    setPopoverPos({ top: rect.bottom + 6, left: rect.left, width: Math.max(rect.width, 340) })
+
+    const popoverWidth = Math.min(480, Math.max(rect.width, 360))
+    // Calculate smart popover position with screen collision detection
+    const spaceBelow = window.innerHeight - rect.bottom
+    const popoverHeight = 360
+    const fitsBelow = spaceBelow >= 220 || spaceBelow >= rect.top
+    const top = fitsBelow ? rect.bottom + 6 : Math.max(10, rect.top - popoverHeight - 6)
+    const left = Math.max(12, Math.min(rect.left, window.innerWidth - popoverWidth - 16))
+
+    setPopoverPos({ top, left, width: popoverWidth })
     setPillPos({ top: rect.top + 2, left: rect.right - 8 })
 
     const value = el.value
+    const trimmed = value.trim()
+
+    // CORE: Only show recommendations when words/characters are actually written!
+    if (trimmed.length === 0) {
+      setSuggestions([])
+      setGhost(null)
+      setSelected(0)
+      if (isTextarea && settings.grammarLevel !== "off") {
+        setIssues(checkText(value, settings.grammarLevel))
+      }
+      return
+    }
+
     if (!isTextarea) {
       const atEnd = el.selectionStart === value.length
       const g = settings.ghostText && atEnd ? SmartPredictorEngine.ghostCompletion(category, value) : null
@@ -157,7 +220,7 @@ export function GlobalSmartInputLayer() {
       setGhost(null)
     }
     const token = value.slice(0, el.selectionStart ?? value.length)
-    setSuggestions(SmartPredictorEngine.suggest(category, token, { limit: 8, includePopular: true }))
+    setSuggestions(SmartPredictorEngine.suggest(category, token, { limit: 8 }))
     setSelected(0)
 
     if (isTextarea && settings.grammarLevel !== "off") {
@@ -167,10 +230,18 @@ export function GlobalSmartInputLayer() {
 
   const scheduleRefresh = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    rafRef.current = requestAnimationFrame(() => {
+    let settled = false
+    const run = () => {
+      if (settled) return
+      settled = true
       rafRef.current = null
       refresh()
-    })
+    }
+    // requestAnimationFrame never fires in hidden/occluded windows — cap the
+    // paint yield so suggestions cannot stall there (visible windows still
+    // settle on the next frame, keeping typing lag-free).
+    rafRef.current = requestAnimationFrame(run)
+    setTimeout(run, 50)
   }, [refresh])
 
   const attachField = useCallback(
@@ -287,23 +358,42 @@ export function GlobalSmartInputLayer() {
 
   const autoFillProfile = (el: HTMLInputElement | HTMLTextAreaElement, profile: NonNullable<SmartSuggestion["profile"]>, role: FieldCategory) => {
     const container = el.closest("form") || el.closest("div[class]")?.parentElement || document.body
+    const rolePrefix = role === "consignee" ? "consignee" : role === "shipper" ? "shipper" : role === "notify" ? "notify" : ""
+
     const fill = (cat: FieldCategory, value: string) => {
-      const fields = Array.from(container.querySelectorAll("input, textarea")).filter(
+      const allFields = Array.from(container.querySelectorAll("input, textarea")).filter(
         (f) => f !== el && isEnhanceable(f) && detectCategory(f as HTMLInputElement) === cat && !(f as HTMLInputElement).value.trim(),
-      ) as HTMLInputElement[]
-      if (fields[0]) setNativeValue(fields[0], value)
+      ) as (HTMLInputElement | HTMLTextAreaElement)[]
+
+      // Prioritize field belonging to this role (e.g. consignee_address for consignee)
+      let targetField = allFields.find((f) => {
+        const nameOrId = ((f.getAttribute("name") || "") + " " + (f.id || "")).toLowerCase()
+        return rolePrefix && nameOrId.includes(rolePrefix)
+      })
+
+      if (!targetField && !rolePrefix) {
+        targetField = allFields[0]
+      }
+
+      if (targetField) setNativeValue(targetField, value)
     }
+
     for (const addr of profile.addresses.slice(0, 1)) fill("address", addr)
     for (const p of profile.phones.slice(0, 1)) fill("phone", p)
     for (const e of profile.emails.slice(0, 1)) fill("email", e)
     for (const t of profile.taxIds.slice(0, 3)) {
-      const fields = Array.from(container.querySelectorAll("input")).filter(
+      const allTaxFields = Array.from(container.querySelectorAll("input")).filter(
         (f) => f !== el && isEnhanceable(f) && detectCategory(f) === "taxid",
       ) as HTMLInputElement[]
-      const byLabel = fields.find((f) => (f.labels?.[0]?.textContent || "").toUpperCase().includes(t.label))
-        || fields.find((f) => (f.name + f.id + f.placeholder).toLowerCase().includes(t.label.toLowerCase()))
-        || fields.find((f) => !f.value.trim())
-      if (byLabel) setNativeValue(byLabel, t.value)
+
+      const matchingTaxField = allTaxFields.find((f) => {
+        const nameOrId = ((f.getAttribute("name") || "") + " " + (f.id || "")).toLowerCase()
+        if (rolePrefix && !nameOrId.includes(rolePrefix)) return false
+        const labelText = (f.labels?.[0]?.textContent || "").toUpperCase()
+        return labelText.includes(t.label.toUpperCase()) || nameOrId.includes(t.label.toLowerCase()) || !f.value.trim()
+      })
+
+      if (matchingTaxField) setNativeValue(matchingTaxField, t.value)
     }
   }
 
@@ -421,37 +511,42 @@ export function GlobalSmartInputLayer() {
     if (!a || !settings.masterEnabled || dismissed) return null
     if (!popoverPos) return null
     const isTextEmpty = a.el.value.trim() === ""
-    if (!isTextEmpty && suggestions.length === 0) return null
-    if (isTextEmpty && suggestions.length === 0) return null
+    // CORE REQUIREMENT: Only show recommendations when words/characters are actually written!
+    if (isTextEmpty || suggestions.length === 0) return null
     const categoryLabel = CATEGORY_LABELS[a.category]
 
     return createPortal(
       <div
         data-smart-popover="true"
-        className="fixed z-[70] rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/85 backdrop-blur-2xl shadow-2xl shadow-slate-900/10 overflow-hidden animate-in fade-in zoom-in-98 duration-100"
-        style={{ top: popoverPos.top, left: popoverPos.left, width: Math.min(480, popoverPos.width + 140), maxHeight: 380 }}
+        className="fixed z-[70] rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl shadow-2xl shadow-slate-900/15 overflow-hidden animate-in fade-in zoom-in-98 duration-100"
+        style={{ top: popoverPos.top, left: popoverPos.left, width: popoverPos.width, maxHeight: 380 }}
         onMouseDown={(e) => e.preventDefault()}
       >
-        <div className="flex items-center justify-between px-3 pt-2 pb-1.5">
-          <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">
-            Smart Recommendations {categoryLabel ? `• ${categoryLabel}` : ""}
-          </span>
+        <div className="flex items-center justify-between px-3 pt-2.5 pb-2 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-800/40">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 truncate">
+              Smart Recommendations {categoryLabel ? `• ${categoryLabel}` : ""}
+            </span>
+            <span className="text-[9px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-950 px-1.5 py-0.2 rounded-full shrink-0">
+              {suggestions.length}
+            </span>
+          </div>
           <button
             type="button"
-            className="text-slate-300 hover:text-slate-500 cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5 rounded-md hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition ml-2 shrink-0"
             onMouseDown={(e) => {
               e.preventDefault()
               e.stopPropagation()
               setDismissed(true)
             }}
+            title="Dismiss (Esc)"
           >
-            <X className="w-3 h-3" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
-        <div className="overflow-y-auto scrollbar-thin px-1.5 pb-1.5 space-y-0.5" style={{ maxHeight: 320 }}>
+        <div className="overflow-y-auto scrollbar-thin px-1.5 py-1.5 space-y-1" style={{ maxHeight: 310 }}>
           {suggestions.map((s, i) => {
-            const q = a.el.value.trim().toLowerCase()
-            const start = s.value.toLowerCase().startsWith(q) ? q.length : 0
             const isSel = i === selected
             const hasProfile =
               settings.autoFillProfiles &&
@@ -468,30 +563,44 @@ export function GlobalSmartInputLayer() {
                     commitSuggestion(s)
                   }}
                   onMouseEnter={() => setSelected(i)}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center justify-between gap-2 ${
-                    isSel ? "bg-blue-500/10 dark:bg-blue-400/10" : "hover:bg-slate-100/70 dark:hover:bg-slate-800/60"
+                  className={`w-full text-left px-2.5 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                    isSel
+                      ? "bg-blue-500/10 dark:bg-blue-400/15 border border-blue-400/30 dark:border-blue-500/30"
+                      : "hover:bg-slate-100/70 dark:hover:bg-slate-800/60 border border-transparent"
                   }`}
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                      <span className="text-[#2563EB] dark:text-blue-400 font-black">{s.value.slice(0, start)}</span>
-                      <span>{s.value.slice(start)}</span>
+                      <HighlightedMatch text={s.value} query={a.el.value} />
                     </div>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-[9.5px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.1 rounded-md">
-                        Used {s.freq}×
+                    {s.profile?.addresses?.[0] && (
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-2.5 h-2.5 shrink-0 text-slate-400" />
+                        <span className="truncate">{s.profile.addresses[0]}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className="text-[9.5px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 px-1.5 py-0.2 rounded-md">
+                        Used {s.freq.toLocaleString()}×
                       </span>
+                      {s.category !== a.category && CATEGORY_LABELS[s.category] && (
+                        <span className="text-[9.5px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 dark:text-indigo-300 px-1.5 py-0.2 rounded-md">
+                          {CATEGORY_LABELS[s.category]}
+                        </span>
+                      )}
                       {s.translation && (
-                        <span className="text-[9.5px] font-semibold text-blue-600/80 dark:text-blue-300/80 font-[vazirmatn]" dir="rtl">
+                        <span className="text-[9.5px] font-semibold text-blue-600/90 dark:text-blue-300/90 font-[vazirmatn]" dir="rtl">
                           {s.translation}
                         </span>
                       )}
                       {s.matched === "fuzzy" && (
-                        <span className="text-[9.5px] font-bold text-amber-500">did you mean?</span>
+                        <span className="text-[9.5px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.2 rounded">
+                          did you mean?
+                        </span>
                       )}
                     </div>
                   </div>
-                  <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${isSel ? "text-blue-500" : "text-slate-300"}`} />
+                  <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${isSel ? "text-blue-600 dark:text-blue-400" : "text-slate-300"}`} />
                 </button>
                 {isSel && hasProfile && (
                   <button
@@ -501,12 +610,12 @@ export function GlobalSmartInputLayer() {
                       e.stopPropagation()
                       commitSuggestion(s)
                     }}
-                    className="w-full mx-1 mb-1.5 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 transition-colors cursor-pointer"
+                    className="w-full mx-1 mt-1 mb-1 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-300/60 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer shadow-xs"
                     style={{ width: "calc(100% - 0.5rem)" }}
                   >
-                    <UserRoundCheck className="w-3.5 h-3.5 shrink-0" />
+                    <UserRoundCheck className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                     <span className="text-[10.5px] font-black">Auto-Fill Full Profile &amp; Tax IDs</span>
-                    <span className="text-[10px] font-bold font-[vazirmatn]" dir="rtl">
+                    <span className="text-[10px] font-bold font-[vazirmatn] text-emerald-700 dark:text-emerald-400" dir="rtl">
                       / تکمیل خودکار مشخصات کامل
                     </span>
                   </button>
@@ -515,11 +624,16 @@ export function GlobalSmartInputLayer() {
             )
           })}
         </div>
-        <div className="px-3 py-1.5 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center gap-2 text-[9.5px] font-bold text-slate-400">
-          <kbd className="px-1 rounded border border-slate-200 dark:border-slate-700">↑↓</kbd> navigate
-          <kbd className="px-1 rounded border border-slate-200 dark:border-slate-700">Tab</kbd> accept
-          <kbd className="px-1 rounded border border-slate-200 dark:border-slate-700">Enter</kbd> select
-          <kbd className="px-1 rounded border border-slate-200 dark:border-slate-700">Esc</kbd> dismiss
+        <div className="px-3 py-1.5 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-850/40 flex items-center justify-between text-[9.5px] font-medium text-slate-400">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <kbd className="px-1 py-0.2 text-[9px] font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300">↑↓</kbd> navigate
+            <kbd className="px-1 py-0.2 text-[9px] font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300">Tab</kbd> accept
+            <kbd className="px-1 py-0.2 text-[9px] font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300">Enter</kbd> select
+            <kbd className="px-1 py-0.2 text-[9px] font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300">Esc</kbd> dismiss
+          </div>
+          <span className="text-[9px] font-bold text-slate-400 font-[vazirmatn] hidden sm:inline" dir="rtl">
+            پیشنهادات هوشمند
+          </span>
         </div>
       </div>,
       document.body,

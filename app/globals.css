@@ -3968,7 +3968,7 @@
 
 .party-card-title {
   margin: 0;
-  font-size: 9.6pt;
+  font-size: 10.2pt;
   font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -3977,7 +3977,7 @@
 
 .party-card-subtitle {
   margin: 0;
-  font-size: 9.6pt;
+  font-size: 10.2pt;
   font-weight: 700;
   color: #2563eb;
   line-height: 1.2;
@@ -4008,7 +4008,7 @@
 .party-card-name span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
   margin: 0;
   font-family: "Courier New", Courier, monospace !important;
-  font-size: 10.4pt !important;
+  font-size: 11.2pt !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   color: #000000 !important;
@@ -4083,7 +4083,7 @@
 .party-card-info-text span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
   margin: 0;
   font-family: "Courier New", Courier, monospace !important;
-  font-size: 9.0pt !important;
+  font-size: 9.6pt !important;
   line-height: 1.35;
   color: #000000 !important;
   font-weight: 600 !important;
@@ -6551,6 +6551,8 @@
     text-transform: uppercase !important;
     color: #ffffff !important;
     margin: 0 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
   }
 
   [data-print-section] > div:first-child p.bol-persian-text {
@@ -6560,6 +6562,8 @@
     color: #ffffff !important;
     margin: 0 !important;
     font-family: var(--font-vazirmatn, "Vazirmatn"), "NotoNaskhArabic", Tahoma, Arial, sans-serif !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
   }
 
   [data-print-section] > div:last-child {
@@ -6871,7 +6875,7 @@
 [data-bol-a4="true"] .party-card-title,
 [data-pdf-export="true"] .party-card-title {
   margin: 0 !important;
-  font-size: 8.4pt !important;
+  font-size: 9.6pt !important;
   font-weight: 900 !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
@@ -6882,10 +6886,11 @@
 [data-bol-a4="true"] .party-card-subtitle,
 [data-pdf-export="true"] .party-card-subtitle {
   margin: 0 !important;
-  font-size: 8.4pt !important;
+  font-size: 9.6pt !important;
   font-weight: 700 !important;
   color: #2563eb !important;
   line-height: 1.1 !important;
+  direction: rtl !important;
 }
 
 [data-bol-a4="true"] .party-card-body,
@@ -6902,13 +6907,13 @@
 [data-pdf-export="true"] .party-card-name span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
   margin: 0 !important;
   font-family: "Courier New", Courier, monospace !important;
-  font-size: 9.2pt !important;
+  font-size: 10.8pt !important;
   font-weight: 700 !important;
   letter-spacing: 0 !important;
   font-variant-ligatures: none !important;
   text-transform: uppercase !important;
   color: #000000 !important;
-  line-height: 1.15 !important;
+  line-height: 1.2 !important;
   word-break: break-word !important;
 }
 
@@ -6941,8 +6946,8 @@
 [data-pdf-export="true"] .party-card-info-text span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
   margin: 0 !important;
   font-family: "Courier New", Courier, monospace !important;
-  font-size: 8.0pt !important;
-  line-height: 1.2 !important;
+  font-size: 9.4pt !important;
+  line-height: 1.25 !important;
   color: #000000 !important;
   font-weight: 600 !important;
   letter-spacing: 0 !important;
@@ -6970,7 +6975,7 @@
 [data-pdf-export="true"] .party-card-info-row:has(.lucide-phone) .party-card-info-text *,
 [data-pdf-export="true"] .party-card-info-row:has(.lucide-mail) .party-card-info-text,
 [data-pdf-export="true"] .party-card-info-row:has(.lucide-mail) .party-card-info-text * {
-  font-size: 8.5pt !important;
+  font-size: 9.8pt !important;
   font-weight: 700 !important;
   color: #000000 !important;
 }

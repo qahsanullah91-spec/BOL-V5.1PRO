@@ -5,6 +5,8 @@ import { useEffect, useState, startTransition } from 'react'
 import dynamic from 'next/dynamic'
 import { safeLazy, createSafeModule } from '@/lib/safe-lazy'
 import { AppProvider, useApp } from '@/lib/app-context'
+import { SecurityLockProvider } from '@/lib/security/use-security-lock'
+import { WorkspaceLockOverlay } from '@/components/security/workspace-lock-overlay'
 import { Header } from '@/components/header'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { GlobalSmartInputLayer } from '@/components/smart/global-smart-inputs'
@@ -710,8 +712,11 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <AppProvider>
-        <MainContent />
-        <GlobalSmartInputLayer />
+        <SecurityLockProvider>
+          <MainContent />
+          <GlobalSmartInputLayer />
+          <WorkspaceLockOverlay />
+        </SecurityLockProvider>
       </AppProvider>
     </ErrorBoundary>
   )

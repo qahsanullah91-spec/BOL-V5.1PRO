@@ -1,8 +1,24 @@
 ; ==============================================================================
 ; AQ COMPANIES - Enterprise NSIS Installer Customization Hook
-; Automatically terminates any remaining application and backend process trees
-; to prevent "AQ COMPANIES cannot be closed" error during upgrades.
+; Enhanced Visual Branding, Modern UI Layout & Process Termination Shield
 ; ==============================================================================
+
+!macro customHeader
+  BrandingText "AQ COMPANIES • Logistics & Financial Management Portal"
+!macroend
+
+!macro customWelcomePage
+  !define MUI_WELCOMEPAGE_TITLE "Welcome to AQ COMPANIES Setup"
+  !define MUI_WELCOMEPAGE_TITLE_3LINES
+  !define MUI_WELCOMEPAGE_TEXT "Setup will guide you through the installation of AQ COMPANIES ${VERSION}.\r\n\r\nAQ COMPANIES delivers enterprise-grade Bill of Lading (BOL) management, multi-modal transport dispatching, border station customs documentation, financial ledger audits, and real-time cloud data synchronization.\r\n\r\nClick Next to continue."
+  !insertmacro MUI_PAGE_WELCOME
+!macroend
+
+!macro customUnWelcomePage
+  !define MUI_WELCOMEPAGE_TITLE "Uninstall AQ COMPANIES"
+  !define MUI_WELCOMEPAGE_TEXT "This wizard will cleanly remove AQ COMPANIES from your computer.\r\n\r\nApplication executables and background services will be removed. Your business database, account ledgers, and saved BOL archives will remain safely preserved.\r\n\r\nClick Next to continue."
+  !insertmacro MUI_UNPAGE_WELCOME
+!macroend
 
 !macro customCheckAppRunning
   DetailPrint "Terminating any running instances of ${PRODUCT_NAME}..."

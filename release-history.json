@@ -594,6 +594,525 @@
       },
       "backupPath": "scratch\\version-control-backups\\v5.3.3-to-v5.3.4-2026.10.25-PRO-17",
       "createdAt": "2026-10-25T20:21:50.290Z"
+    },
+    {
+      "previousVersion": "v5.3.4",
+      "newVersion": "v5.3.5",
+      "build": "2026.10.25-PRO-18",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "BOL editor watermark gallery aligned with settings panel card design",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Editor watermark picker cards: Selected pill replaces the format tag (matching Settings), titles clamp to two lines with tooltip, Recommended label spelled out"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.3.4-to-v5.3.5-2026.10.25-PRO-18",
+      "createdAt": "2026-10-25T20:39:24.962Z"
+    },
+    {
+      "previousVersion": "v5.3.5",
+      "newVersion": "v5.3.6",
+      "build": "2026.10.25-PRO-19",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "BOL editor watermark gallery aligned with settings panel card design",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Editor watermark picker cards: Selected pill replaces the format tag (matching Settings), titles clamp to two lines with tooltip, Recommended label spelled out"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.3.5-to-v5.3.6-2026.10.25-PRO-19",
+      "createdAt": "2026-10-25T20:50:23.150Z"
+    },
+    {
+      "previousVersion": "v5.3.6",
+      "newVersion": "v5.4.0",
+      "build": "2026.10.25-PRO-20",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "MINOR",
+      "title": "Multi-Modal Biometric Security Vault, IndexedDB Engine & Settings Redesign",
+      "summary": "",
+      "featuresAdded": [
+        "Enterprise 12-column Bento Grid Security & Passwords suite with WebAuthn Touch ID, Face Recognition, Quick PIN, and Action Gates",
+        "Full-screen un-bypassable frosted glass WorkspaceLockOverlay with Cmd+L hotkey and inactivity auto-lock",
+        "Zero-loss dual-layer saving state machine with instant IndexedDB persistence, floating save bar, and sync queue popover",
+        "Modernized macOS Sequoia settings shell with Cmd+K search highlighting and live sidebar micro-badges"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.3.6-to-v5.4.0-2026.10.25-PRO-20",
+      "createdAt": "2026-10-25T21:58:18.252Z"
+    },
+    {
+      "previousVersion": "v5.4.0",
+      "newVersion": "v5.4.1",
+      "build": "2026.10.25-PRO-21",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Race-tolerant BOL sequence test for live-data environments",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "bol-sequence test #8 retries the scan/peek pair and asserts the hard invariant (next number never behind highest+1), so BOLs created by the running app during validation no longer flake releases"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.0-to-v5.4.1-2026.10.25-PRO-21",
+      "createdAt": "2026-10-25T22:13:26.318Z"
+    },
+    {
+      "previousVersion": "v5.4.1",
+      "newVersion": "v5.4.2",
+      "build": "2026.10.25-PRO-22",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Race-tolerant BOL sequence test for live-data environments",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "bol-sequence test #8 retries the scan/peek pair and asserts the hard invariant (next number never behind highest+1), so BOLs created by the running app during validation no longer flake releases"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.1-to-v5.4.2-2026.10.25-PRO-22",
+      "createdAt": "2026-10-25T22:22:14.125Z"
+    },
+    {
+      "previousVersion": "v5.4.2",
+      "newVersion": "v5.4.3",
+      "build": "2026.10.25-PRO-23",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Race-tolerant BOL sequence tests for live-data environments",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "bol-sequence tests #8 and #9 now tolerate live BOL allocation during validation: #8 retries the scan/peek pair, #9 asserts the hard invariant (next strictly greater than the advanced target) instead of an exact +1",
+        "Both suites keep the hard anti-collision invariant: next available BOL never falls behind highest existing + 1"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.2-to-v5.4.3-2026.10.25-PRO-23",
+      "createdAt": "2026-10-25T22:29:35.052Z"
+    },
+    {
+      "previousVersion": "v5.4.3",
+      "newVersion": "v5.4.4",
+      "build": "2026.10.25-PRO-24",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Container Details & Shipping Details Ergonomic Responsive Grid Fix",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved horizontal squash of Container Details inputs into spacious responsive grid",
+        "Resolved text truncation of Port of Loading and Discharge via shipping-fields-grid"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.3-to-v5.4.4-2026.10.25-PRO-24",
+      "createdAt": "2026-10-26T03:13:30.681Z"
+    },
+    {
+      "previousVersion": "v5.4.4",
+      "newVersion": "v5.4.5",
+      "build": "2026.10.25-PRO-25",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Enlarge and improve A4 Preview cargo row typography and pills",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged A4 preview cargo sub-card typography for NET, GROSS, NET WT, GROSS WT, RATE, and VALUE labels and numeric values"
+      ],
+      "featuresModified": [
+        "Upgraded pill containers with rounded-md and distinct high-contrast color borders, tabular numbers, and font-black weights"
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.4-to-v5.4.5-2026.10.25-PRO-25",
+      "createdAt": "2026-10-26T03:32:57.611Z"
+    },
+    {
+      "previousVersion": "v5.4.5",
+      "newVersion": "v5.4.6",
+      "build": "2026.10.25-PRO-26",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Fix header navigation overflow clipping and suite active icons",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [
+        "Calibrated Dashboard and Protection pill breakpoints, dynamic suite icons for active modules, and ServerStatusPill text display"
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved navigation horizontal overflow clipping of Settings/Docs & Tools on 1536px laptop screens"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.5-to-v5.4.6-2026.10.25-PRO-26",
+      "createdAt": "2026-10-26T04:42:48.377Z"
+    },
+    {
+      "previousVersion": "v5.4.6",
+      "newVersion": "v5.4.7",
+      "build": "2026.10.25-PRO-27",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Refine Afghan Truck License Plate Font, Proportions, and Column Alignment",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Modernized Latin plate font stack to Bahnschrift/DIN stamped plate typography",
+        "Harmonized Persian and Latin numeral optical size proportions",
+        "Enforced 1:1 vertical column alignment for individual plate digits"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.6-to-v5.4.7-2026.10.25-PRO-27",
+      "createdAt": "2026-10-26T04:55:37.531Z"
+    },
+    {
+      "previousVersion": "v5.4.7",
+      "newVersion": "v5.4.8",
+      "build": "2026.10.25-PRO-28",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Fix Minified React Error #185 in Settings View",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved infinite re-render loop in useSyncExternalStore by stabilizing settings snapshot",
+        "Wrapped localStorage storageStats in resilient try-catch"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.7-to-v5.4.8-2026.10.25-PRO-28",
+      "createdAt": "2026-10-26T05:03:33.698Z"
+    },
+    {
+      "previousVersion": "v5.4.8",
+      "newVersion": "v5.4.9",
+      "build": "2026.10.25-PRO-29",
+      "releaseDate": "2026-10-25",
+      "changeCategory": "PATCH",
+      "title": "Fix Download PDF Text Wrapping & Section Header UI Clipping",
+      "summary": "",
+      "featuresAdded": [
+        "Enforce strict whitespace-nowrap and flex-shrink-0 across PDF and A4 print section headers, rebalance cargo grid proportions for optimal weight value fitting, and eliminate line breaking in high-DPI canvas exports"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent text wrapping and bottom-edge clipping in downloaded PDF for TOTAL WEIGHTS (NET WT / GROSS WT), Description of Goods header, Route / Transportation Path, Cargo Description, and Exporter Contacts blue section bars"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.8-to-v5.4.9-2026.10.25-PRO-29",
+      "createdAt": "2026-10-26T06:10:57.341Z"
+    },
+    {
+      "previousVersion": "v5.4.9",
+      "newVersion": "v5.4.10",
+      "build": "2026.10.26-PRO",
+      "releaseDate": "2026-10-26",
+      "changeCategory": "PATCH",
+      "title": "Fix Lingering Directory and Preset Selections on New BOL",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Cleared lingering party, preset, and border station selections when creating a new BOL",
+        "Guarded directory dropdowns and action buttons so empty form fields never display lingering selections",
+        "Synchronized preset selection state with loaded BOL document records"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.9-to-v5.4.10-2026.10.26-PRO",
+      "createdAt": "2026-10-26T07:02:17.032Z"
+    },
+    {
+      "previousVersion": "v5.4.10",
+      "newVersion": "v5.4.11",
+      "build": "2026.10.26-PRO-2",
+      "releaseDate": "2026-10-26",
+      "changeCategory": "PATCH",
+      "title": "Release v5.4.11 with PDF Download & A4 Header Text Fixes",
+      "summary": "",
+      "featuresAdded": [
+        "Package production Windows installer (AQ-COMPANIES-Setup.exe) and publish update manifest for 1-click in-app update delivery"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent text wrapping and bottom-edge clipping in downloaded PDF for TOTAL WEIGHTS (NET WT / GROSS WT), Description of Goods header, Route / Transportation Path, Cargo Description, and Exporter Contacts blue section bars"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.10-to-v5.4.11-2026.10.26-PRO-2",
+      "createdAt": "2026-10-26T07:18:06.479Z"
+    },
+    {
+      "previousVersion": "v5.4.11",
+      "newVersion": "v5.4.12",
+      "build": "2026.10.26-PRO-3",
+      "releaseDate": "2026-10-26",
+      "changeCategory": "PATCH",
+      "title": "Fix Software Updater Hanging on Stdin Pipe and Black Window",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated deadlocking tasklist/find pipe on detached stdin in external update runner",
+        "Suppressed black terminal window popup by enabling windowsHide on background update runner",
+        "Replaced input-redirection sensitive timeout with reliable non-blocking network ping delay"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.11-to-v5.4.12-2026.10.26-PRO-3",
+      "createdAt": "2026-10-26T09:05:54.945Z"
+    },
+    {
+      "previousVersion": "v5.4.12",
+      "newVersion": "v5.4.13",
+      "build": "2026.10.26-PRO-4",
+      "releaseDate": "2026-10-26",
+      "changeCategory": "PATCH",
+      "title": "Smart Recommendations on Word Typing & Autocomplete Optimization",
+      "summary": "",
+      "featuresAdded": [
+        "Multi-word and word-boundary prefix matching with highlighted search matches",
+        "Bilingual Dari/Persian unicode normalization and directory party profile auto-fill"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent recommendations popover from opening on empty input focus",
+        "Trigger smart recommendations dynamically only when words are typed"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.12-to-v5.4.13-2026.10.26-PRO-4",
+      "createdAt": "2026-10-26T09:14:53.641Z"
+    },
+    {
+      "previousVersion": "v5.4.13",
+      "newVersion": "v5.4.14",
+      "build": "2026.10.26-PRO-5",
+      "releaseDate": "2026-10-26",
+      "changeCategory": "PATCH",
+      "title": "Enlarge A4 preview Exporter, Consignee, and Notify Party typography",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged business information typography in Exporter, Consignee, and Notify Party cards (titles, company names, addresses, contacts)"
+      ],
+      "featuresModified": [
+        "Scaled up party card typography in app/globals.css and components/bill-of-lading/a4-preview.tsx"
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.13-to-v5.4.14-2026.10.26-PRO-5",
+      "createdAt": "2026-10-26T10:22:39.859Z"
     }
   ]
 }

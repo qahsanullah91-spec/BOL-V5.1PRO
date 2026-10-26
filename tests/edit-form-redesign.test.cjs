@@ -118,6 +118,7 @@ test('Edit Form Redesign - Quad Dashboard (Freight, Remarks, Container & Shippin
 
     assert.match(containerSub, /name="container_numbers"/, 'Must bind container_numbers');
     assert.match(containerSub, /name="seal_numbers"/, 'Must bind seal_numbers');
+    assert.match(containerSub, /min-\[1600px\]:grid-cols-1/, 'Container fields must stack vertically on >=1600px screens');
   });
 
   await t.test('8. Shipping Details: widest column with presets, 2-col inputs & full-width delivery', () => {
@@ -158,6 +159,7 @@ test('Edit Form Redesign - Quad Dashboard (Freight, Remarks, Container & Shippin
     }
 
     // Check shipping inputs
+    assert.match(shippingSub, /shipping-fields-grid/, 'Shipping inputs container must use shipping-fields-grid');
     assert.match(shippingSub, /name="vessel_name"/, 'Must bind vessel_name');
     assert.match(shippingSub, /name="voyage_number"/, 'Must bind voyage_number');
     assert.match(shippingSub, /name="port_of_loading"/, 'Must bind port_of_loading');

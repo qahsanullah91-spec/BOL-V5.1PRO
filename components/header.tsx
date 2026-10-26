@@ -664,12 +664,12 @@ export function Header({ title, subtitle }: HeaderProps) {
         {currentUser && currentUser.role !== 'shipper' && (
           <nav className="hidden md:flex items-center gap-0.5 xl:gap-1 min-w-0 flex-1 overflow-x-auto no-scrollbar">
 
-            {/* Direct Dashboard Quick Pill (>= 1500px; below that the logo, workspace
+            {/* Direct Dashboard Quick Pill (>= 1680px; below that the logo, workspace
                 switcher and Operations menu all provide one-click Dashboard access) */}
             <button
               type="button"
               onClick={() => handleNavigate('dashboard')}
-              className={`hidden min-[1500px]:flex items-center gap-1.5 h-7.5 px-2.5 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
+              className={`hidden min-[1680px]:flex items-center gap-1.5 h-7.5 px-2.5 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
                 view === 'dashboard'
                   ? 'bg-sky-600 text-white shadow-xs shadow-sky-500/30'
                   : 'bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 shadow-2xs'
@@ -1035,13 +1035,18 @@ export function Header({ title, subtitle }: HeaderProps) {
                   <button
                     type="button"
                     className={`flex items-center gap-1 h-7.5 px-2 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer active:scale-[0.98] select-none [&_span]:pointer-events-none [&_svg]:pointer-events-none shrink-0 whitespace-nowrap ${
-                      isOpsActive
+                      isOpsSuiteActive
                         ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/30'
                         : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                     }`}
                     title="Freight & Transport Operations Suite"
                   >
-                    <Truck className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isOpsSuiteActive ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
+                    {(() => {
+                      const OpsIcon = (isOpsSuiteActive && currentModule?.category === 'ops' && currentModule.icon)
+                        ? currentModule.icon
+                        : Truck
+                      return <OpsIcon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isOpsSuiteActive ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
+                    })()}
                     <span className="pointer-events-none select-none">
                       {isOpsSuiteActive && currentModule?.category === 'ops' ? (
                         currentModule.shortLabel
@@ -1093,7 +1098,12 @@ export function Header({ title, subtitle }: HeaderProps) {
                     }`}
                     title="Finance, Ledger & Accounting Suite"
                   >
-                    <Landmark className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isFinanceActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                    {(() => {
+                      const FinanceIcon = (isFinanceActive && currentModule?.category === 'finance' && currentModule.icon)
+                        ? currentModule.icon
+                        : Landmark
+                      return <FinanceIcon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isFinanceActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                    })()}
                     <span className="pointer-events-none select-none">
                       {isFinanceActive && currentModule?.category === 'finance'
                         ? currentModule.shortLabel
@@ -1141,7 +1151,12 @@ export function Header({ title, subtitle }: HeaderProps) {
                       }`}
                       title="Commercial, Sales Pipeline & Pricing Suite"
                     >
-                      <Tag className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isCommercialActive ? 'text-white' : 'text-amber-500 dark:text-amber-400'}`} />
+                      {(() => {
+                        const CrmIcon = (isCommercialActive && currentModule?.category === 'commercial' && currentModule.icon)
+                          ? currentModule.icon
+                          : Tag
+                        return <CrmIcon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isCommercialActive ? 'text-white' : 'text-amber-500 dark:text-amber-400'}`} />
+                      })()}
                       <span className="pointer-events-none select-none">
                         {isCommercialActive && currentModule?.category === 'commercial'
                           ? currentModule.shortLabel
@@ -1190,7 +1205,12 @@ export function Header({ title, subtitle }: HeaderProps) {
                       }`}
                       title="Compliance, Documents & System Tools"
                     >
-                      <FileCheck2 className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isSystemActive ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
+                      {(() => {
+                        const SystemIcon = (isSystemActive && currentModule?.category === 'system' && currentModule.icon)
+                          ? currentModule.icon
+                          : FileCheck2
+                        return <SystemIcon className={`h-3.5 w-3.5 shrink-0 pointer-events-none ${isSystemActive ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
+                      })()}
                       <span className="pointer-events-none select-none">
                         {isSystemActive && currentModule?.category === 'system' ? (
                           currentModule.shortLabel
@@ -1493,8 +1513,8 @@ export function Header({ title, subtitle }: HeaderProps) {
               <ServerStatusPill onOpenSettings={() => handleNavigate('settings')} />
             </div>
 
-            {/* Data Protection Pill (2xl+, matching the Server Status pill — preserves menu space on laptops) */}
-            <div className="hidden 2xl:block shrink-0">
+            {/* Data Protection Pill (1680px+, matching wide display layout — preserves menu space on laptops) */}
+            <div className="hidden min-[1680px]:block shrink-0">
               <HeaderProtectionPill onOpenBackupCenter={() => handleNavigate('data-protection')} />
             </div>
 

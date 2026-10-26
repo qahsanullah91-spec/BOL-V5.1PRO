@@ -69,6 +69,7 @@ import { GoogleDriveSyncSettings } from "@/components/sync/google-drive-sync-set
 import { RecentlyDeletedView } from "@/components/sync/recently-deleted-view"
 import { ClientPortalTab } from "./settings/client-portal-tab"
 import { UsersPermissionsTab } from "./settings/users-permissions-tab"
+import { SecuritySettingsView } from "@/components/security/security-settings-view"
 import { ServerModeCard } from "@/components/server/server-mode-card"
 import { ServerConnectionTab } from "./settings/server-connection-tab"
 import { BackupRecoveryView } from "@/components/backup/backup-recovery-view"
@@ -282,31 +283,38 @@ export function SettingsView() {
       return { totalKB: "0.0", percent: 0, bolCount: 0, customCompaniesCount: 0, ledgerCount: 0 }
     }
     let totalBytes = 0
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i)
-      if (key) {
-        const val = window.localStorage.getItem(key) || ""
-        totalBytes += (key.length + val.length) * 2
+    try {
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i)
+        if (key) {
+          const val = window.localStorage.getItem(key) || ""
+          totalBytes += (key.length + val.length) * 2
+        }
       }
-    }
-    const rawBols = window.localStorage.getItem("skybol:saved-documents") || window.localStorage.getItem("sky-bol-browser-documents")
-    const bols = rawBols ? JSON.parse(rawBols) : []
-    const rawCos = window.localStorage.getItem("skybol:account-custom-companies")
-    const cos = rawCos ? JSON.parse(rawCos) : []
-    const rawLedgers = window.localStorage.getItem("skybol:account-ledgers")
-    const ledgers = rawLedgers ? JSON.parse(rawLedgers) : {}
-    let ledgerCount = 0
-    if (ledgers && typeof ledgers === "object") {
-      for (const k in ledgers) {
-        if (Array.isArray(ledgers[k])) ledgerCount += ledgers[k].length
+      const rawBols = window.localStorage.getItem("skybol:saved-documents") || window.localStorage.getItem("sky-bol-browser-documents")
+      let bols = []
+      try { bols = rawBols ? JSON.parse(rawBols) : [] } catch {}
+      const rawCos = window.localStorage.getItem("skybol:account-custom-companies")
+      let cos = []
+      try { cos = rawCos ? JSON.parse(rawCos) : [] } catch {}
+      const rawLedgers = window.localStorage.getItem("skybol:account-ledgers")
+      let ledgers: Record<string, any> = {}
+      try { ledgers = rawLedgers ? JSON.parse(rawLedgers) : {} } catch {}
+      let ledgerCount = 0
+      if (ledgers && typeof ledgers === "object") {
+        for (const k in ledgers) {
+          if (Array.isArray(ledgers[k])) ledgerCount += ledgers[k].length
+        }
       }
-    }
-    return {
-      totalKB: (totalBytes / 1024).toFixed(1),
-      percent: Math.min(100, Math.max(1, Math.round((totalBytes / (5 * 1024 * 1024)) * 100))),
-      bolCount: Array.isArray(bols) ? bols.length : 0,
-      customCompaniesCount: Array.isArray(cos) ? cos.length : 0,
-      ledgerCount,
+      return {
+        totalKB: (totalBytes / 1024).toFixed(1),
+        percent: Math.min(100, Math.max(1, Math.round((totalBytes / (5 * 1024 * 1024)) * 100))),
+        bolCount: Array.isArray(bols) ? bols.length : 0,
+        customCompaniesCount: Array.isArray(cos) ? cos.length : 0,
+        ledgerCount,
+      }
+    } catch {
+      return { totalKB: "0.0", percent: 0, bolCount: 0, customCompaniesCount: 0, ledgerCount: 0 }
     }
   }, [activeTab])
 
@@ -401,8 +409,10 @@ export function SettingsView() {
           id: "security" as SettingsTab,
           label: "Security & Passwords",
           labelFa: "امنیت و کلمات عبور",
-          icon: Key,
-          desc: "Update administrator password and security credentials",
+          icon: ShieldCheck,
+          badge: "Protected",
+          badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold",
+          desc: "Multi-modal biometric vault, passkeys, and action gates",
         },
       ],
     },
@@ -464,6 +474,8 @@ export function SettingsView() {
           label: "Browser Data Vault",
           labelFa: "خزانه داده محلی",
           icon: HardDrive,
+          badge: `${storageStats.totalKB} KB`,
+          badgeColor: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-mono font-bold",
           desc: "Local database quota analytics and JSON export files",
         },
         {
@@ -953,11 +965,6 @@ export function SettingsView() {
           </div>
         </div>
       </header>
-
-      {/* MODULE 4: Smart Typing & AI Recommendations Control Card (always visible) */}
-      <div className="mb-4">
-        <SmartTypingSettingsCard />
-      </div>
 
       {/* Responsive Mobile / Tablet Category & Item Selector */}
       <div className="lg:hidden w-full space-y-2.5 bg-white/95 dark:bg-slate-900/95 p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm">
@@ -2283,7 +2290,7 @@ export function SettingsView() {
       {/* TAB 5: SECURITY & PASSWORDS                                               */}
       {/* ========================================================================= */}
       {(activeTab === "all" || activeTab === "security") && (
-        <div id="section-security" className="max-w-2xl mx-auto bg-white/90 backdrop-blur-2xl rounded-3xl border border-slate-200/80 shadow-lg shadow-slate-200/50 p-5 sm:p-8 space-y-6 animate-in fade-in duration-300 scroll-mt-28">
+        <div id="section-security" className="scroll-mt-28 space-y-4 animate-in fade-in duration-300">
           {activeTab === "all" && (
             <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white shadow-md border border-slate-700/60 -mt-1 mb-2">
               <div className="flex items-center gap-3">
@@ -2297,7 +2304,7 @@ export function SettingsView() {
                       امنیت، کلمات عبور و پین کد
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-300 hidden sm:block">Update your current administrator password and strengthen security keys</p>
+                  <p className="text-[11px] text-slate-300 hidden sm:block">Enterprise multi-modal security vault, biometrics, PIN and access gates</p>
                 </div>
               </div>
               <button
@@ -2311,116 +2318,7 @@ export function SettingsView() {
               </button>
             </div>
           )}
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-md shadow-amber-500/30">
-              <Key className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg sm:text-xl font-black tracking-tight text-slate-900">Change Account Password</h3>
-              <p className="text-xs font-bold text-slate-500 font-[vazirmatn]" dir="rtl">
-                تغییر رمز عبور حساب کاربری فعلی
-              </p>
-            </div>
-          </div>
-
-          {passMsg && (
-            <div
-              className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 ${
-                passMsg.type === "success"
-                  ? "bg-emerald-50 text-emerald-900 border border-emerald-200"
-                  : "bg-red-50 text-red-900 border border-red-200"
-              }`}
-            >
-              {passMsg.type === "success" ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />}
-              <span>{passMsg.text}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1.5">
-                Current Password / رمز عبور فعلی
-              </label>
-              <div className="relative">
-                <input
-                  type={showOldPass ? "text" : "password"}
-                  required
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  placeholder="Enter current password"
-                  className="w-full h-11 px-4 text-xs sm:text-sm font-bold text-slate-900 bg-slate-50/80 border border-slate-300 rounded-2xl focus:bg-white focus:border-amber-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowOldPass(!showOldPass)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  {showOldPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1.5">
-                New Password / رمز عبور جدید
-              </label>
-              <div className="relative">
-                <input
-                  type={showNewPass ? "text" : "password"}
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new strong password"
-                  className="w-full h-11 px-4 text-xs sm:text-sm font-bold text-slate-900 bg-slate-50/80 border border-slate-300 rounded-2xl focus:bg-white focus:border-amber-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPass(!showNewPass)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              {/* Password Strength Meter */}
-              {newPassword && (
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center justify-between text-[11px] font-black">
-                    <span className="text-slate-500">Password Strength:</span>
-                    <span className={passStrength.color.split(" ")[1] || "text-slate-700"}>{passStrength.label}</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${passStrength.color.split(" ")[0]} transition-all duration-300`}
-                      style={{ width: `${passStrength.score}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1.5">
-                Confirm New Password / تایید رمز عبور جدید
-              </label>
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-                className="w-full h-11 px-4 text-xs sm:text-sm font-bold text-slate-900 bg-slate-50/80 border border-slate-300 rounded-2xl focus:bg-white focus:border-amber-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full h-12 mt-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Lock className="w-4 h-4" />
-              <span>Update Password / تغییر رمز عبور</span>
-            </button>
-          </form>
+          <SecuritySettingsView />
         </div>
       )}
 
@@ -2736,6 +2634,7 @@ export function SettingsView() {
               </button>
             </div>
           )}
+          <SmartTypingSettingsCard />
           <AIAssistantSettingsTab />
         </div>
       )}

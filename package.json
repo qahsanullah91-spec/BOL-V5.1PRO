@@ -1,7 +1,7 @@
 {
   "name": "aq-companies",
   "productName": "AQ COMPANIES",
-  "version": "5.3.4",
+  "version": "5.4.14",
   "description": "AQ COMPANIES - Logistics and BOL Management Desktop Workspace",
   "author": "Ahsanullah Qureshi",
   "copyright": "Copyright © Ahsanullah Qureshi",
@@ -256,7 +256,13 @@
       "shortcutName": "AQ COMPANIES",
       "uninstallDisplayName": "AQ COMPANIES",
       "deleteAppDataOnUninstall": false,
-      "include": "build/installer.nsh"
+      "include": "build/installer.nsh",
+      "installerIcon": "public/app-icon.ico",
+      "uninstallerIcon": "public/app-icon.ico",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerHeaderIcon": "public/app-icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/uninstallerSidebar.bmp"
     }
   }
 }

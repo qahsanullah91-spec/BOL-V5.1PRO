@@ -53,7 +53,7 @@ export function ServerStatusPill({ onOpenSettings }: ServerStatusPillProps) {
           <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
         </span>
         <Laptop className="h-3 w-3 text-blue-600 dark:text-blue-400 shrink-0" />
-        <span className="font-mono text-[11px] font-bold hidden min-[1600px]:inline">LOCAL</span>
+        <span className="font-mono text-[11px] font-bold hidden min-[1500px]:inline">LOCAL</span>
       </button>
     )
   }
@@ -72,7 +72,7 @@ export function ServerStatusPill({ onOpenSettings }: ServerStatusPillProps) {
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
         </span>
         <Wifi className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-        <span className="font-mono text-[11px] font-bold hidden min-[1600px]:inline">
+        <span className="font-mono text-[11px] font-bold hidden min-[1500px]:inline">
           SERVER {displayLatency ? `(${displayLatency}ms)` : ""}
         </span>
         {pendingCount > 0 && (
@@ -93,7 +93,7 @@ export function ServerStatusPill({ onOpenSettings }: ServerStatusPillProps) {
         title="Connecting to Central Office Server..."
       >
         <RefreshCw className="h-3 w-3 text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
-        <span className="font-mono text-[11px] font-bold hidden min-[1600px]:inline">CONNECTING</span>
+        <span className="font-mono text-[11px] font-bold hidden min-[1500px]:inline">CONNECTING</span>
       </button>
     )
   }
@@ -106,7 +106,7 @@ export function ServerStatusPill({ onOpenSettings }: ServerStatusPillProps) {
       title="Disconnected from Central Office Server. Click to configure connection."
     >
       <WifiOff className="h-3 w-3 text-rose-600 dark:text-rose-400 shrink-0" />
-      <span className="font-mono text-[11px] font-bold hidden min-[1600px]:inline">OFFLINE</span>
+      <span className="font-mono text-[11px] font-bold hidden min-[1500px]:inline">OFFLINE</span>
     </button>
   )
 }

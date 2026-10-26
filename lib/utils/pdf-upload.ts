@@ -1527,6 +1527,12 @@ export async function generatePDFBlob(
                   display: none !important;
                 }
 
+                [data-print-section] > div:first-child h3,
+                [data-print-section] > div:first-child p.bol-persian-text {
+                  white-space: nowrap !important;
+                  flex-shrink: 0 !important;
+                }
+
                 [data-pdf-export-fixed="true"] {
                   width: 210mm !important;
                   height: 297mm !important;

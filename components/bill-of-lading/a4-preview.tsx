@@ -371,7 +371,7 @@ function renderLineContent(line: string, forceLTR = false, parentClass?: string)
   if (isPureNumericPhone) {
     return (
       <span
-        className="block party-card-typewriter party-card-phone contact-details font-bold text-black tracking-normal text-[10.5pt] leading-tight text-left"
+        className="block party-card-typewriter party-card-phone contact-details font-bold text-black tracking-normal text-[11.0pt] leading-tight text-left"
         dir="ltr"
         style={{
           direction: "ltr",
@@ -393,7 +393,7 @@ function renderLineContent(line: string, forceLTR = false, parentClass?: string)
   if (isPureEmail) {
     return (
       <span
-        className="block party-card-typewriter party-card-email contact-details font-bold text-black tracking-normal text-[9.6pt] leading-tight text-left"
+        className="block party-card-typewriter party-card-email contact-details font-bold text-black tracking-normal text-[10.2pt] leading-tight text-left"
         dir="ltr"
         style={{
           direction: "ltr",
@@ -565,15 +565,15 @@ function renderLineContent(line: string, forceLTR = false, parentClass?: string)
     <span
       className={`block ${
         isPersian
-          ? "persian-text bol-persian-text font-[vazirmatn] text-[9.2pt] font-extrabold text-slate-900"
+          ? "persian-text bol-persian-text font-[vazirmatn] text-[10.0pt] font-extrabold text-slate-900"
           : `party-card-typewriter text-black font-typewriter ${
               isCompanyName
-                ? "company-name font-bold text-[10.4pt]"
+                ? "company-name font-bold text-[11.2pt]"
                 : isExplicitContact
-                ? "contact-details font-bold text-[9.4pt]"
+                ? "contact-details font-bold text-[9.8pt]"
                 : isRegistrationLine
-                ? "registration-details party-card-registration font-semibold text-[9.0pt]"
-                : "business-address party-card-address font-semibold text-[9.0pt]"
+                ? "registration-details party-card-registration font-semibold text-[9.6pt]"
+                : "business-address party-card-address font-semibold text-[9.6pt]"
             }`
       } ${isPersianDigitsOnly ? "persian-digits" : ""} leading-snug text-left break-words`}
       dir={isPersianDigitsOnly ? "ltr" : isPersian ? "rtl" : "ltr"}
@@ -677,7 +677,7 @@ function Section({
             dir="ltr"
             className={`${
               titleClassName || "!text-[11.5pt]"
-            } font-black uppercase leading-none tracking-wide`}
+            } font-black uppercase leading-none tracking-wide whitespace-nowrap shrink-0`}
           >
             {title}
           </h3>
@@ -689,7 +689,7 @@ function Section({
         )}
         {subtitle && (
           <p
-            className={`persian-text bol-persian-text font-[vazirmatn] !text-[12.2pt] font-bold leading-none`}
+            className={`persian-text bol-persian-text font-[vazirmatn] !text-[12.2pt] font-bold leading-none whitespace-nowrap shrink-0`}
             dir="rtl"
           >
             {subtitle}
@@ -1058,31 +1058,31 @@ function PartyCard({
       <div className={`party-card-header ${glass ? 'party-card-header-glass' : 'party-card-header-solid'} ${isUltra ? "!py-0.8 !px-1.5" : isCompact ? "!py-1 !px-2" : ""}`}>
         <span className={`party-card-icon ${isUltra ? "!w-4 !h-4 !min-w-4 rounded" : ""}`}>{icon}</span>
         <div className="party-card-header-text">
-          <h4 className={`party-card-title ${isUltra ? "!text-[7.6pt]" : isCompact ? "!text-[8.4pt]" : "!text-[9.6pt]"}`}>{title}</h4>
-          <p className={`party-card-subtitle ${isUltra ? "!text-[7.6pt]" : isCompact ? "!text-[8.4pt]" : "!text-[9.6pt]"}`} dir="rtl">
+          <h4 className={`party-card-title ${isUltra ? "!text-[8.2pt]" : isCompact ? "!text-[9.2pt]" : "!text-[10.2pt]"}`}>{title}</h4>
+          <p className={`party-card-subtitle ${isUltra ? "!text-[8.2pt]" : isCompact ? "!text-[9.2pt]" : "!text-[10.2pt]"}`} dir="rtl">
             {subtitle}
           </p>
         </div>
       </div>
       <div className={`party-card-body ${isUltra ? "!p-1.2 !gap-0.5" : isCompact ? "!p-1.5 !gap-1" : ""}`}>
-        <TextLines value={name} className={`party-card-name company-name ${isUltra ? "!text-[8.2pt] leading-tight" : isCompact ? "!text-[9.0pt] leading-tight" : "!text-[10.4pt]"}`} />
+        <TextLines value={name} className={`party-card-name company-name ${isUltra ? "!text-[8.8pt] leading-tight" : isCompact ? "!text-[9.8pt] leading-tight" : "!text-[11.2pt]"}`} />
         <div className={`party-card-info-list ${isUltra ? "!gap-0.3" : ""}`}>
           {hasValue(address) && (
             <div className="party-card-info-row">
-              <MapPin className={`party-card-info-icon ${isUltra ? "!w-2.5 !min-w-2.5 !h-2.5 !mt-0.1" : ""}`} />
-              <TextLines value={address} className={`party-card-info-text party-card-address business-address ${isUltra ? "!text-[7.0pt] leading-tight" : "!text-[9.0pt]"}`} />
+              <MapPin className={`party-card-info-icon ${isUltra ? "!w-2.8 !min-w-2.8 !h-2.8 !mt-0.1" : "!w-3.2 !min-w-3.2 !h-3.2 !mt-0.5"}`} />
+              <TextLines value={address} className={`party-card-info-text party-card-address business-address ${isUltra ? "!text-[7.6pt] leading-tight" : "!text-[9.6pt]"}`} />
             </div>
           )}
           {hasValue(contact) && (
             <div className="party-card-info-row">
-              <Phone className={`party-card-info-icon ${isUltra ? "!w-2.5 !min-w-2.5 !h-2.5 !mt-0.1" : ""}`} />
-              <TextLines value={contact} className={`party-card-info-text party-card-contact contact-details party-card-phone ${isUltra ? "!text-[7.0pt] leading-tight" : "!text-[9.4pt]"}`} />
+              <Phone className={`party-card-info-icon ${isUltra ? "!w-2.8 !min-w-2.8 !h-2.8 !mt-0.1" : "!w-3.2 !min-w-3.2 !h-3.2 !mt-0.5"}`} />
+              <TextLines value={contact} className={`party-card-info-text party-card-contact contact-details party-card-phone ${isUltra ? "!text-[7.6pt] leading-tight" : "!text-[9.8pt]"}`} />
             </div>
           )}
           {hasValue(email) && (
             <div className="party-card-info-row">
-              <Mail className={`party-card-info-icon ${isUltra ? "!w-2.5 !min-w-2.5 !h-2.5 !mt-0.1" : ""}`} />
-              <TextLines value={email} className={`party-card-info-text party-card-contact contact-details party-card-email ${isUltra ? "!text-[7.0pt] leading-tight" : "!text-[9.4pt]"}`} />
+              <Mail className={`party-card-info-icon ${isUltra ? "!w-2.8 !min-w-2.8 !h-2.8 !mt-0.1" : "!w-3.2 !min-w-3.2 !h-3.2 !mt-0.5"}`} />
+              <TextLines value={email} className={`party-card-info-text party-card-contact contact-details party-card-email ${isUltra ? "!text-[7.6pt] leading-tight" : "!text-[9.8pt]"}`} />
             </div>
           )}
         </div>
@@ -2133,11 +2133,11 @@ function CargoRow({
   const isUltra = densityTier === "ultra"
   const isCompact = densityTier === "compact" || isUltra
 
-  const packageQtyFont = isUltra ? "text-[9.5pt]" : isCompact ? "text-[11.8pt]" : "text-[13.8pt]"
-  const qtyFont = isUltra ? "text-[8.5pt]" : isCompact ? "text-[10.5pt]" : "text-[12.4pt]"
-  const commFont = isUltra ? "text-[6.8pt]" : isCompact ? "text-[7.8pt]" : "text-[9pt]"
-  const valFont = isUltra ? "text-[7.2pt]" : isCompact ? "text-[8.2pt]" : "text-[9.4pt]"
-  const subLabelFont = isUltra ? "text-[4.8pt]" : isCompact ? "text-[5.5pt]" : "text-[5.8pt]"
+  const packageQtyFont = isUltra ? "text-[10pt]" : isCompact ? "text-[12pt]" : "text-[14pt]"
+  const qtyFont = isUltra ? "text-[9pt]" : isCompact ? "text-[11pt]" : "text-[12.8pt]"
+  const commFont = isUltra ? "text-[7.2pt]" : isCompact ? "text-[8.2pt]" : "text-[9.4pt]"
+  const valFont = isUltra ? "text-[8.8pt]" : isCompact ? "text-[10.2pt]" : "text-[11.8pt]"
+  const subLabelFont = isUltra ? "text-[5.6pt]" : isCompact ? "text-[6.6pt]" : "text-[7.5pt]"
 
   // Separate quantity from commodity in packageText
   const pkgClean = cleanText(item.packageText)
@@ -2149,17 +2149,17 @@ function CargoRow({
 
   const cellBoxStyle: CSSProperties = {
     backgroundColor: "#ffffff",
-    padding: isUltra ? "1px 2px" : isCompact ? "1.8px 2.5px" : "2.5px 4px",
+    padding: isUltra ? "1.5px 2px" : isCompact ? "2px 3px" : "3px 4.5px",
     boxSizing: "border-box",
   }
 
-  const cellMinHeight = isUltra ? "min-h-[20px]" : isCompact ? "min-h-[22px]" : "min-h-[24px]"
-  const innerSubRowPad = isUltra ? "px-1 py-[1px]" : "px-1.5 py-0.2"
-  const innerGap = isUltra ? "gap-[1px]" : "gap-0.3"
+  const cellMinHeight = isUltra ? "min-h-[22px]" : isCompact ? "min-h-[25px]" : "min-h-[28px]"
+  const innerSubRowPad = isUltra ? "px-1 py-[0.8px]" : isCompact ? "px-1.5 py-[1.2px]" : "px-1.8 py-[1.5px]"
+  const innerGap = isUltra ? "gap-[1px]" : isCompact ? "gap-[1.5px]" : "gap-[2px]"
 
   return (
     <div
-      className={`grid grid-cols-[minmax(0,24fr)_minmax(0,23fr)_minmax(0,25fr)_minmax(0,28fr)] gap-1 items-stretch break-inside-avoid page-break-inside-avoid w-full box-border ${
+      className={`grid grid-cols-[minmax(0,23fr)_minmax(0,21fr)_minmax(0,27fr)_minmax(0,29fr)] gap-1 items-stretch break-inside-avoid page-break-inside-avoid w-full box-border ${
         pdfMode ? "bg-white" : ""
       }`}
     >
@@ -2198,22 +2198,22 @@ function CargoRow({
       >
         {hasValue(item.netPerCarton) && hasValue(item.grossPerCarton) ? (
           <div className={`flex flex-col justify-center items-center w-full ${innerGap} my-auto`}>
-            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80`}>
-              <span className={`${subLabelFont} font-black uppercase text-blue-900 tracking-tight shrink-0`}>NET</span>
-              <span className={`font-mono font-bold ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-blue-50/70 border border-blue-200/80`}>
+              <span className={`${subLabelFont} font-black uppercase text-blue-900 whitespace-nowrap keep-all tracking-wider shrink-0`}>NET</span>
+              <span className={`font-mono font-black ${valFont} text-blue-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
                 {item.netPerCarton}
               </span>
             </div>
-            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80`}>
-              <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>GROSS</span>
-              <span className={`font-mono font-bold ${valFont} text-slate-800 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-slate-50 border border-slate-200/80`}>
+              <span className={`${subLabelFont} font-black uppercase text-slate-700 whitespace-nowrap keep-all tracking-wider shrink-0`}>GROSS</span>
+              <span className={`font-mono font-black ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
                 {item.grossPerCarton}
               </span>
             </div>
           </div>
         ) : hasValue(item.netPerCarton) || hasValue(item.grossPerCarton) ? (
-          <div className={`flex items-center justify-center w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80 my-auto`}>
-            <span className={`font-mono font-bold ${qtyFont} text-slate-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+          <div className={`flex items-center justify-center w-full ${innerSubRowPad} rounded-md bg-slate-50 border border-slate-200/80 my-auto`}>
+            <span className={`font-mono font-black ${qtyFont} text-slate-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
               {item.netPerCarton || item.grossPerCarton}
             </span>
           </div>
@@ -2229,22 +2229,22 @@ function CargoRow({
       >
         {hasValue(item.netWeight) && hasValue(item.grossWeight) ? (
           <div className={`flex flex-col justify-center items-center w-full ${innerGap} my-auto`}>
-            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-blue-50/70 border border-blue-200/80`}>
-              <span className={`${subLabelFont} font-black uppercase text-blue-900 tracking-tight shrink-0`}>NET WT</span>
-              <span className={`font-mono font-black ${valFont} text-blue-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-blue-50/80 border border-blue-300/80`}>
+              <span className={`${subLabelFont} font-black uppercase text-blue-900 whitespace-nowrap keep-all tracking-wider shrink-0`}>NET WT</span>
+              <span className={`font-mono font-black ${valFont} text-blue-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
                 {item.netWeight}
               </span>
             </div>
-            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80`}>
-              <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>GROSS WT</span>
-              <span className={`font-mono font-bold ${valFont} text-slate-800 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+            <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-slate-50 border border-slate-200/80`}>
+              <span className={`${subLabelFont} font-black uppercase text-slate-700 whitespace-nowrap keep-all tracking-wider shrink-0`}>GROSS WT</span>
+              <span className={`font-mono font-black ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
                 {item.grossWeight}
               </span>
             </div>
           </div>
         ) : hasValue(item.netWeight) || hasValue(item.grossWeight) ? (
-          <div className={`flex items-center justify-center w-full ${innerSubRowPad} rounded bg-blue-50/70 border border-blue-200/80 my-auto`}>
-            <span className={`font-mono font-black ${qtyFont} text-blue-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+          <div className={`flex items-center justify-center w-full ${innerSubRowPad} rounded-md bg-blue-50/70 border border-blue-200/80 my-auto`}>
+            <span className={`font-mono font-black ${qtyFont} text-blue-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
               {item.netWeight || item.grossWeight}
             </span>
           </div>
@@ -2272,15 +2272,15 @@ function CargoRow({
           if (hasRate && hasGoodsVal) {
             return (
               <div className={`flex flex-col justify-center items-center w-full ${innerGap} my-auto`}>
-                <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80`}>
-                  <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>RATE</span>
-                  <span className={`font-mono font-bold ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+                <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-slate-50 border border-slate-200/80`}>
+                  <span className={`${subLabelFont} font-black uppercase text-slate-700 whitespace-nowrap keep-all tracking-wider shrink-0`}>RATE</span>
+                  <span className={`font-mono font-black ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
                     {displayRate}
                   </span>
                 </div>
-                <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-emerald-50/90 border border-emerald-200/90`}>
-                  <span className={`${subLabelFont} font-black uppercase text-emerald-800 tracking-tight shrink-0`}>VALUE</span>
-                  <span className={`font-mono font-black ${valFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+                <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-emerald-50/90 border border-emerald-300/90`}>
+                  <span className={`${subLabelFont} font-black uppercase text-emerald-800 whitespace-nowrap keep-all tracking-wider shrink-0`}>VALUE</span>
+                  <span className={`font-mono font-black ${valFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
                     {item.goodsValue}
                   </span>
                 </div>
@@ -2290,9 +2290,9 @@ function CargoRow({
 
           if (hasGoodsVal) {
             return (
-              <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-emerald-50/90 border border-emerald-200/90 my-auto`}>
-                <span className={`${subLabelFont} font-black uppercase text-emerald-800 tracking-tight shrink-0`}>VALUE</span>
-                <span className={`font-mono font-black ${qtyFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+              <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-emerald-50/90 border border-emerald-300/90 my-auto`}>
+                <span className={`${subLabelFont} font-black uppercase text-emerald-800 whitespace-nowrap keep-all tracking-wider shrink-0`}>VALUE</span>
+                <span className={`font-mono font-black ${qtyFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
                   {item.goodsValue}
                 </span>
               </div>
@@ -2301,9 +2301,9 @@ function CargoRow({
 
           if (hasRate) {
             return (
-              <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded bg-slate-50 border border-slate-200/80 my-auto`}>
-                <span className={`${subLabelFont} font-black uppercase text-slate-600 tracking-tight shrink-0`}>RATE</span>
-                <span className={`font-mono font-bold ${qtyFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate`}>
+              <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-slate-50 border border-slate-200/80 my-auto`}>
+                <span className={`${subLabelFont} font-black uppercase text-slate-700 whitespace-nowrap keep-all tracking-wider shrink-0`}>RATE</span>
+                <span className={`font-mono font-black ${qtyFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
                   {displayRate}
                 </span>
               </div>
@@ -2329,12 +2329,12 @@ function CargoTotalsRow({
   const isUltra = densityTier === "ultra"
   const isCompact = densityTier === "compact" || isUltra
 
-  const totalValFont = isUltra ? "text-[9pt]" : isCompact ? "text-[11pt]" : "text-[13pt]"
-  const subLabelFont = isUltra ? "text-[5.5pt]" : isCompact ? "text-[6.5pt]" : "text-[7.8pt]"
+  const totalValFont = isUltra ? "text-[9.8pt]" : isCompact ? "text-[12pt]" : "text-[14pt]"
+  const subLabelFont = isUltra ? "text-[6pt]" : isCompact ? "text-[7.2pt]" : "text-[8.2pt]"
 
   return (
     <div
-      className="grid grid-cols-[minmax(0,24fr)_minmax(0,23fr)_minmax(0,25fr)_minmax(0,28fr)] gap-1 items-center rounded-lg border-2 border-blue-400/90 bg-blue-50/95 shadow-2xs mt-0.5 break-inside-avoid page-break-inside-avoid w-full box-border"
+      className="grid grid-cols-[minmax(0,23fr)_minmax(0,21fr)_minmax(0,27fr)_minmax(0,29fr)] gap-1 items-center rounded-lg border-2 border-blue-400/90 bg-blue-50/95 shadow-2xs mt-0.5 break-inside-avoid page-break-inside-avoid w-full box-border"
       style={{
         backgroundColor: "#f0f7ff",
         backgroundImage: "linear-gradient(90deg, #edf5ff 0%, #f0f7ff 55%, #edfaf2 100%)",
@@ -2483,7 +2483,7 @@ function UnifiedCargoGrid({
         <div className="flex items-center justify-between px-2 py-0.8 rounded-lg bg-blue-50/90 border border-blue-200 text-blue-900 mb-0.5 shadow-2xs">
           <div className="flex items-center gap-1.5">
             <Package className="h-3.5 w-3.5 text-blue-700" />
-            <span className="text-[7pt] font-black uppercase tracking-wider">CARGO DESCRIPTION — CONTINUED</span>
+            <span className="text-[7pt] font-black uppercase tracking-wider whitespace-nowrap shrink-0">CARGO DESCRIPTION — CONTINUED</span>
           </div>
           <span className="font-[vazirmatn] text-[6.2pt] font-bold text-blue-800" dir="rtl">
             ادامه مشخصات کالا و محموله
@@ -2492,7 +2492,7 @@ function UnifiedCargoGrid({
       )}
 
       {/* Synchronized 4-Column Header Row */}
-      <div className="grid grid-cols-[minmax(0,24fr)_minmax(0,23fr)_minmax(0,25fr)_minmax(0,28fr)] gap-1 items-stretch w-full box-border">
+      <div className="grid grid-cols-[minmax(0,23fr)_minmax(0,21fr)_minmax(0,27fr)_minmax(0,29fr)] gap-1 items-stretch w-full box-border">
         {/* 1. NO. OF PACKAGES */}
         <div
           className={`rounded-lg border-t-[2.5px] border-t-blue-700 border-x border-b border-blue-200/90 bg-linear-to-b from-blue-50/90 via-blue-50/50 to-white text-center flex flex-col justify-center items-center overflow-hidden ${
@@ -3337,14 +3337,14 @@ function CargoDescriptionBlock({
     >
       {/* Header bar with balanced optical scaling */}
       <div className={`mb-0.5 flex items-center justify-between gap-1 text-blue-900 border-b border-blue-100 ${isUltra ? "pb-0.2" : "pb-0.5"}`}>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 shrink-0">
           <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3.2 w-3.2"} text-blue-600 shrink-0`} />
-          <p className={`${isUltra ? "text-[8.2pt]" : isCompact ? "text-[9.0pt]" : "text-[9.8pt]"} font-black uppercase tracking-wider text-blue-950 leading-tight`}>
+          <p className={`${isUltra ? "text-[8.2pt]" : isCompact ? "text-[9.0pt]" : "text-[9.8pt]"} font-black uppercase tracking-wider text-blue-950 leading-tight whitespace-nowrap shrink-0`}>
             Description of Goods
           </p>
         </div>
         <p
-          className={`font-[vazirmatn] ${isUltra ? "text-[8.5pt]" : isCompact ? "text-[9.4pt]" : "text-[10.2pt]"} font-black text-blue-900 leading-tight`}
+          className={`font-[vazirmatn] ${isUltra ? "text-[8.5pt]" : isCompact ? "text-[9.4pt]" : "text-[10.2pt]"} font-black text-blue-900 leading-tight whitespace-nowrap shrink-0`}
           dir="rtl"
           style={{ direction: "rtl", unicodeBidi: "isolate" }}
         >
@@ -3741,7 +3741,7 @@ function TransitRouteHeaderBadge({ isUltra = false }: { isUltra?: boolean }) {
     <div
       className={`inline-flex items-center gap-1.5 ${
         isUltra ? "px-2 py-0.5 text-[6.8pt]" : "px-2.5 py-0.5 text-[7.5pt]"
-      } rounded-full bg-white/20 border border-white/35 backdrop-blur-xs text-white font-[vazirmatn] font-black shadow-2xs select-none`}
+      } rounded-full bg-white/20 border border-white/35 backdrop-blur-xs text-white font-[vazirmatn] font-black shadow-2xs select-none whitespace-nowrap shrink-0`}
     >
       <Route className={`${isUltra ? "w-2.8 h-2.8" : "w-3.2 h-3.2"} text-cyan-200 shrink-0 stroke-[2.4]`} />
       <span className="bol-persian-text" dir="rtl" style={{ unicodeBidi: "isolate" }}>
@@ -3903,11 +3903,11 @@ function ExporterConsigneeSection({
                       <Building2 className={`${isUltraCompact ? "h-2.8 w-2.8" : "h-3.5 w-3.5"}`} />
                     </span>
                     <div className="party-card-header-text text-left" dir="ltr">
-                      <h4 className={`party-card-title text-left ${isUltraCompact ? "!text-[7.6pt]" : "!text-[9.6pt]"}`} dir="ltr">
+                      <h4 className={`party-card-title text-left ${isUltraCompact ? "!text-[8.2pt]" : "!text-[10.2pt]"}`} dir="ltr">
                         Exporter Info
                       </h4>
                       <p
-                        className={`party-card-subtitle text-left ${isUltraCompact ? "!text-[7.6pt]" : "!text-[9.6pt]"}`}
+                        className={`party-card-subtitle text-left ${isUltraCompact ? "!text-[8.2pt]" : "!text-[10.2pt]"}`}
                         dir="ltr"
                       >
                         {labels.exporterInfoFa}
@@ -3920,20 +3920,20 @@ function ExporterConsigneeSection({
                   >
                     <TextLines
                       value={formData.shipper_name}
-                      className={`party-card-name company-name text-left ${isUltraCompact ? "!text-[8.2pt] leading-tight" : "!text-[10.4pt]"}`}
+                      className={`party-card-name company-name text-left ${isUltraCompact ? "!text-[8.8pt] leading-tight" : "!text-[11.2pt]"}`}
                     />
                     <div className={`party-card-info-list text-left ${isUltraCompact ? "!gap-0.2" : ""}`} dir="ltr">
                       {hasValue(formData.shipper_address) && (
                         <div className="party-card-info-row text-left" dir="ltr">
                           <MapPin
                             className={`party-card-info-icon ${
-                              isUltraCompact ? "!w-2.5 !min-w-2.5 !h-2.5 !mt-0.1" : ""
+                              isUltraCompact ? "!w-2.8 !min-w-2.8 !h-2.8 !mt-0.1" : "!w-3.2 !min-w-3.2 !h-3.2 !mt-0.5"
                             }`}
                           />
                           <TextLines
                             value={formData.shipper_address}
                             className={`party-card-info-text party-card-address business-address text-left ${
-                              isUltraCompact ? "!text-[7.0pt] leading-tight" : "!text-[9.0pt]"
+                              isUltraCompact ? "!text-[7.6pt] leading-tight" : "!text-[9.6pt]"
                             }`}
                           />
                         </div>
@@ -3942,13 +3942,13 @@ function ExporterConsigneeSection({
                         <div className="party-card-info-row text-left" dir="ltr">
                           <Phone
                             className={`party-card-info-icon ${
-                              isUltraCompact ? "!w-2.5 !min-w-2.5 !h-2.5 !mt-0.1" : ""
+                              isUltraCompact ? "!w-2.8 !min-w-2.8 !h-2.8 !mt-0.1" : "!w-3.2 !min-w-3.2 !h-3.2 !mt-0.5"
                             }`}
                           />
                           <TextLines
                             value={formData.shipper_contact}
                             className={`party-card-info-text party-card-contact contact-details party-card-phone text-left ${
-                              isUltraCompact ? "!text-[7.0pt] leading-tight" : "!text-[9.4pt]"
+                              isUltraCompact ? "!text-[7.6pt] leading-tight" : "!text-[9.8pt]"
                             }`}
                           />
                         </div>
@@ -3957,13 +3957,13 @@ function ExporterConsigneeSection({
                         <div className="party-card-info-row text-left" dir="ltr">
                           <Mail
                             className={`party-card-info-icon ${
-                              isUltraCompact ? "!w-2.5 !min-w-2.5 !h-2.5 !mt-0.1" : ""
+                              isUltraCompact ? "!w-2.8 !min-w-2.8 !h-2.8 !mt-0.1" : "!w-3.2 !min-w-3.2 !h-3.2 !mt-0.5"
                             }`}
                           />
                           <TextLines
                             value={formData.shipper_email}
                             className={`party-card-info-text party-card-contact contact-details party-card-email text-left ${
-                              isUltraCompact ? "!text-[7.0pt] leading-tight" : "!text-[9.4pt]"
+                              isUltraCompact ? "!text-[7.6pt] leading-tight" : "!text-[9.8pt]"
                             }`}
                           />
                         </div>
@@ -3985,8 +3985,8 @@ function ExporterConsigneeSection({
                       <Mail className={`${isUltraCompact ? "h-2.8 w-2.8" : "h-3.5 w-3.5"}`} />
                     </span>
                     <div className="party-card-header-text">
-                      <h4 className={`party-card-title ${isUltraCompact ? "!text-[7.6pt]" : "!text-[9.6pt]"}`}>Notify Party</h4>
-                      <p className={`party-card-subtitle ${isUltraCompact ? "!text-[7.6pt]" : "!text-[9.6pt]"}`} dir="rtl">
+                      <h4 className={`party-card-title ${isUltraCompact ? "!text-[8.2pt]" : "!text-[10.2pt]"}`}>Notify Party</h4>
+                      <p className={`party-card-subtitle ${isUltraCompact ? "!text-[8.2pt]" : "!text-[10.2pt]"}`} dir="rtl">
                         {labels.notifyPartyFa}
                       </p>
                     </div>
@@ -3994,20 +3994,20 @@ function ExporterConsigneeSection({
                   <div className={`party-card-body ${isUltraCompact ? "!p-1.2 !gap-0.5" : ""}`}>
                     <TextLines
                       value={formData.notify_party}
-                      className={`party-card-name company-name ${isUltraCompact ? "!text-[8.2pt] leading-tight" : "!text-[10.4pt]"}`}
+                      className={`party-card-name company-name ${isUltraCompact ? "!text-[8.8pt] leading-tight" : "!text-[11.2pt]"}`}
                     />
                     <div className={`party-card-info-list ${isUltraCompact ? "!gap-0.2" : ""}`}>
                       {hasValue(formData.notify_party_address) && (
                         <div className="party-card-info-row">
                           <MapPin
                             className={`party-card-info-icon ${
-                              isUltraCompact ? "!w-2.5 !min-w-2.5 !h-2.5 !mt-0.1" : ""
+                              isUltraCompact ? "!w-2.8 !min-w-2.8 !h-2.8 !mt-0.1" : "!w-3.2 !min-w-3.2 !h-3.2 !mt-0.5"
                             }`}
                           />
                           <TextLines
                             value={formData.notify_party_address}
                             className={`party-card-info-text party-card-address business-address ${
-                              isUltraCompact ? "!text-[7.0pt] leading-tight" : "!text-[9.0pt]"
+                              isUltraCompact ? "!text-[7.6pt] leading-tight" : "!text-[9.6pt]"
                             }`}
                           />
                         </div>

@@ -28,6 +28,16 @@ let failedTests = 0;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const nativeFetch = globalThis.fetch;
+async function safeFetch(url, options = {}) {
+  let res = await nativeFetch(url, options);
+  if (res.status === 500) {
+    await sleep(250);
+    res = await nativeFetch(url, options);
+  }
+  return res;
+}
+
 async function test(name, fn) {
   totalTests++;
   try {
@@ -111,7 +121,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
 (async () => {
   // Pre-flight check: Is dev server online?
   try {
-    await fetch(`${BASE_URL}/api/health`, { signal: AbortSignal.timeout(500) });
+    await safeFetch(`${BASE_URL}/api/health`, { signal: AbortSignal.timeout(500) });
   } catch {
     console.log(`ℹ Skipping live server integration test: Server not running at ${BASE_URL}\n`);
     process.exit(0);
@@ -122,7 +132,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
 
   // 0. Setup & Baseline Verification
   await test('0.1 Baseline verification of database state', async () => {
-    const res = await fetch(`${BASE_URL}/api/bol?status=all`);
+    const res = await safeFetch(`${BASE_URL}/api/bol?status=all`);
     assert.strictEqual(res.status, 200, `Expected 200 from /api/bol?status=all, got ${res.status}`);
     const json = await res.json();
     assert.ok(Array.isArray(json.data), 'Expected json.data to be an array');
@@ -178,7 +188,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
 
   await test('1.3 Server PDF route returns 404 with status "none" when no PDF is attached', async () => {
     const fakeBolId = 'NONEXISTENT-BOL-FILE-TEST';
-    const res = await fetch(`${BASE_URL}/api/bol/pdf?bol_id=${fakeBolId}&download=true`);
+    const res = await safeFetch(`${BASE_URL}/api/bol/pdf?bol_id=${fakeBolId}&download=true`);
     assert.strictEqual(res.status, 404, `Expected 404 for unattached PDF, got ${res.status}`);
     const json = await res.json();
     assert.strictEqual(json.status, 'none');
@@ -193,24 +203,24 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
       pdf_url: '/uploads/bol-pdfs/does-not-exist-on-disk.pdf',
       pdf_status: 'ready',
     };
-    await fetch(`${BASE_URL}/api/bol/${testDocId}`, {
+    await safeFetch(`${BASE_URL}/api/bol/${testDocId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tempPayload),
     });
 
-    const res = await fetch(`${BASE_URL}/api/bol/pdf?bol_id=${testDocId}&download=true`);
+    const res = await safeFetch(`${BASE_URL}/api/bol/pdf?bol_id=${testDocId}&download=true`);
     assert.strictEqual(res.status, 404);
     const json = await res.json();
     assert.strictEqual(json.pdf_status, 'missing', 'Missing physical file should report pdf_status: "missing"');
 
     // Clean up temporary record
-    await fetch(`${BASE_URL}/api/bol/${testDocId}`, { method: 'DELETE' });
+    await safeFetch(`${BASE_URL}/api/bol/${testDocId}`, { method: 'DELETE' });
   });
 
   // 2. Atomic Duplication
   await test('2.1 Server sequence service allocates official next number with advance=true', async () => {
-    const res = await fetch(`${BASE_URL}/api/bol?action=next-number&advance=true`);
+    const res = await safeFetch(`${BASE_URL}/api/bol?action=next-number&advance=true`);
     assert.strictEqual(res.status, 200);
     const json = await res.json();
     assert.ok(json.bolNumber, 'Expected allocated bolNumber in response');
@@ -223,7 +233,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
     assert.ok(createdTestBolNumber, 'Test BOL number must be allocated');
     
     // Fetch a real source BOL to clone
-    const listRes = await fetch(`${BASE_URL}/api/bol?status=active`);
+    const listRes = await safeFetch(`${BASE_URL}/api/bol?status=active`);
     const listJson = await listRes.json();
     const sourceDoc = listJson.data[0];
     assert.ok(sourceDoc, 'Source document must exist');
@@ -231,7 +241,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
     const newPayload = buildDuplicatedBolPayload(sourceDoc, createdTestBolNumber);
     newPayload.remarks = 'AUTOMATED_TEST_LIFECYCLE_RECORD';
 
-    const saveRes = await fetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
+    const saveRes = await safeFetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newPayload),
@@ -247,7 +257,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
   });
 
   await test('2.3 Verify duplicated BOL appears in active list and total count is incremented', async () => {
-    const activeRes = await fetch(`${BASE_URL}/api/bol?status=active`);
+    const activeRes = await safeFetch(`${BASE_URL}/api/bol?status=active`);
     const activeJson = await activeRes.json();
     const found = activeJson.data.find(b => b.bol_number === createdTestBolNumber);
     assert.ok(found, `Duplicated BOL ${createdTestBolNumber} should appear in active list`);
@@ -265,7 +275,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
       archive_reason: 'Testing safe archive lifecycle',
     };
 
-    const res = await fetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
+    const res = await safeFetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(archivePayload),
@@ -279,21 +289,21 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
   });
 
   await test('3.2 Verify archived BOL is excluded from active list', async () => {
-    const activeRes = await fetch(`${BASE_URL}/api/bol?status=active`);
+    const activeRes = await safeFetch(`${BASE_URL}/api/bol?status=active`);
     const activeJson = await activeRes.json();
     const found = activeJson.data.find(b => b.bol_number === createdTestBolNumber);
     assert.strictEqual(found, undefined, 'Archived BOL must NOT appear in active list');
   });
 
   await test('3.3 Verify archived BOL is excluded from recent creations', async () => {
-    const recentRes = await fetch(`${BASE_URL}/api/bol/recent?limit=20`);
+    const recentRes = await safeFetch(`${BASE_URL}/api/bol/recent?limit=20`);
     const recentJson = await recentRes.json();
     const found = recentJson.data.find(b => b.bol_number === createdTestBolNumber);
     assert.strictEqual(found, undefined, 'Archived BOL must NOT appear in recent creations');
   });
 
   await test('3.4 Verify archived BOL appears in archived list', async () => {
-    const archRes = await fetch(`${BASE_URL}/api/bol?status=archived`);
+    const archRes = await safeFetch(`${BASE_URL}/api/bol?status=archived`);
     const archJson = await archRes.json();
     const found = archJson.data.find(b => b.bol_number === createdTestBolNumber);
     assert.ok(found, 'Archived BOL MUST appear in archived list');
@@ -312,7 +322,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
       archive_reason: null,
     };
 
-    const res = await fetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
+    const res = await safeFetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(restorePayload),
@@ -326,7 +336,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
   });
 
   await test('4.2 Verify restored BOL reappears in active list', async () => {
-    const activeRes = await fetch(`${BASE_URL}/api/bol?status=active`);
+    const activeRes = await safeFetch(`${BASE_URL}/api/bol?status=active`);
     const activeJson = await activeRes.json();
     const found = activeJson.data.find(b => b.bol_number === createdTestBolNumber);
     assert.ok(found, 'Restored BOL must reappear in active list');
@@ -338,7 +348,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
     // BOL-2025-NSA151 is known to be referenced in .local-account-ledgers.json
     const referencedBol = 'BOL-2025-NSA151';
 
-    const res = await fetch(`${BASE_URL}/api/bol/${encodeURIComponent(referencedBol)}`, {
+    const res = await safeFetch(`${BASE_URL}/api/bol/${encodeURIComponent(referencedBol)}`, {
       method: 'DELETE',
     });
 
@@ -355,7 +365,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
   });
 
   await test('5.2 Verify referenced BOL was NOT deleted and remains intact in database', async () => {
-    const res = await fetch(`${BASE_URL}/api/bol/BOL-2025-NSA151`);
+    const res = await safeFetch(`${BASE_URL}/api/bol/BOL-2025-NSA151`);
     if (res.status !== 200) {
       const errText = await res.text();
       console.error('     5.2 Error Response Body:', res.status, errText);
@@ -383,13 +393,13 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
   await test('7.1 Hard delete temporary test BOL (unreferenced in ledgers)', async () => {
     assert.ok(createdTestBolNumber, 'Temporary test BOL must exist');
 
-    let res = await fetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
+    let res = await safeFetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
       method: 'DELETE',
     });
 
     if (res.status === 500) {
       await new Promise(r => setTimeout(r, 300));
-      res = await fetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
+      res = await safeFetch(`${BASE_URL}/api/bol/${encodeURIComponent(createdTestBolNumber)}`, {
         method: 'DELETE',
       });
     }
@@ -405,7 +415,7 @@ function buildDuplicatedBolPayload(sourceDoc, newBolNumber) {
   });
 
   await test('7.2 Verify database returns to pristine baseline count', async () => {
-    const res = await fetch(`${BASE_URL}/api/bol?status=all`);
+    const res = await safeFetch(`${BASE_URL}/api/bol?status=all`);
     const json = await res.json();
     assert.strictEqual(json.data.length, baselineTotalBols, `Expected ${baselineTotalBols} total BOLs, got ${json.data.length}`);
     const found = json.data.find(b => b.bol_number === createdTestBolNumber);

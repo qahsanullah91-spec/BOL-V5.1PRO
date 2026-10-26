@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import type { SyncStatusState, SyncDevice } from "@/lib/sync/types"
+import { SyncQueuePopover } from "./sync-queue-popover"
 
 interface SyncStateResponse {
   connected: boolean
@@ -186,103 +187,12 @@ export function HeaderCloudSyncButton({ onOpenSettings }: HeaderCloudSyncButtonP
         )}
       </Button>
 
-      {/* Popover Dropdown Panel */}
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 slide-in-from-top-1.5 duration-180 ease-out text-left">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
-            <div className="flex items-center gap-1.5">
-              <Cloud className="w-4.5 h-4.5 text-blue-600" />
-              <span className="text-xs font-bold text-slate-900">Google Drive</span>
-            </div>
-            <span
-              className={`inline-flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-full ${
-                isConnected ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
-              {isConnected ? "Connected" : "Offline"}
-            </span>
-          </div>
-
-          {/* Quick Metrics */}
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between items-center text-slate-600">
-              <span className="flex items-center gap-1.5 text-slate-500">
-                <Clock className="w-3.5 h-3.5" /> Last Sync:
-              </span>
-              <span className="font-bold text-slate-800">{formatLastSync(syncData?.progress?.lastSyncTime)}</span>
-            </div>
-
-            <div className="flex justify-between items-center text-slate-600">
-              <span className="flex items-center gap-1.5 text-slate-500">
-                <Laptop className="w-3.5 h-3.5" /> Device:
-              </span>
-              <span className="font-bold text-slate-800 truncate max-w-[130px]" title={syncData?.device?.deviceName}>
-                {syncData?.device?.deviceName || "Office PC"}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-slate-600">
-              <span className="text-slate-500">Pending Changes:</span>
-              <span
-                className={`font-black ${pendingCount > 0 ? "text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded" : "text-emerald-700"}`}
-              >
-                {pendingCount}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-slate-600">
-              <span className="text-slate-500">Conflicts:</span>
-              <span
-                className={`font-black ${conflictsCount > 0 ? "text-red-600 bg-red-50 px-1.5 py-0.2 rounded" : "text-slate-600"}`}
-              >
-                {conflictsCount}
-              </span>
-            </div>
-          </div>
-
-          {/* Current Step Message */}
-          {syncData?.progress?.currentStep && isSyncing && (
-            <div className="mt-2.5 p-2 bg-blue-50 border border-blue-100 rounded-lg text-[11px] text-blue-800 font-medium animate-pulse">
-              {syncData.progress.currentStep}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex flex-col gap-2">
-            <Button
-              size="sm"
-              onClick={handleSyncNow}
-              disabled={isSyncing}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 cursor-pointer"
-            >
-              {isSyncing ? (
-                <>
-                  <RotateCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  Synchronizing...
-                </>
-              ) : (
-                "Sync Now"
-              )}
-            </Button>
-
-            {onOpenSettings && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setIsOpen(false)
-                  onOpenSettings()
-                }}
-                className="w-full text-slate-600 hover:text-slate-900 font-semibold text-[11px] h-7 cursor-pointer"
-              >
-                View Sync History & Settings →
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Sync Queue & Data Vault Inspector Popover */}
+      <SyncQueuePopover
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        onOpenSettings={onOpenSettings}
+      />
     </div>
   )
 }

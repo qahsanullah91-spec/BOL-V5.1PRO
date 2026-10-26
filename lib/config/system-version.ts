@@ -21,12 +21,12 @@ export interface SystemVersionInfo {
   }
 }
 
-export const SYSTEM_RELEASE_LABEL = "v5.3.4" as const
+export const SYSTEM_RELEASE_LABEL = "v5.4.14" as const
 
 export const CURRENT_SYSTEM_VERSION = {
   version: SYSTEM_RELEASE_LABEL,
-  buildNumber: "2026.10.25-PRO-17",
-  releaseDate: "2026-10-25",
+  buildNumber: "2026.10.26-PRO-5",
+  releaseDate: "2026-10-26",
   edition: "AQ COMPANIES Enterprise Pro Edition",
   companyName: "AQ COMPANIES",
   applicationName: `AQ Companies BOL ${SYSTEM_RELEASE_LABEL}`,
@@ -34,6 +34,179 @@ export const CURRENT_SYSTEM_VERSION = {
   platform: "Windows Desktop / Electron / Web",
   updateChannel: "stable",
   changelog: [
+    {
+      version: "v5.4.14",
+      date: "2026-10-26",
+      title: "Enlarge A4 preview Exporter, Consignee, and Notify Party typography",
+      changes: [
+        "Added: Enlarged business information typography in Exporter, Consignee, and Notify Party cards (titles, company names, addresses, contacts)",
+        "Modified: Scaled up party card typography in app/globals.css and components/bill-of-lading/a4-preview.tsx",
+      ],
+    },
+
+    {
+      version: "v5.4.13",
+      date: "2026-10-26",
+      title: "Smart Recommendations on Word Typing & Autocomplete Optimization",
+      changes: [
+        "Added: Multi-word and word-boundary prefix matching with highlighted search matches",
+        "Added: Bilingual Dari/Persian unicode normalization and directory party profile auto-fill",
+        "Fixed: Prevent recommendations popover from opening on empty input focus",
+        "Fixed: Trigger smart recommendations dynamically only when words are typed",
+      ],
+    },
+
+    {
+      version: "v5.4.12",
+      date: "2026-10-26",
+      title: "Fix Software Updater Hanging on Stdin Pipe and Black Window",
+      changes: [
+        "Fixed: Eliminated deadlocking tasklist/find pipe on detached stdin in external update runner",
+        "Fixed: Suppressed black terminal window popup by enabling windowsHide on background update runner",
+        "Fixed: Replaced input-redirection sensitive timeout with reliable non-blocking network ping delay",
+      ],
+    },
+
+    {
+      version: "v5.4.11",
+      date: "2026-10-26",
+      title: "Release v5.4.11 with PDF Download & A4 Header Text Fixes",
+      changes: [
+        "Added: Package production Windows installer (AQ-COMPANIES-Setup.exe) and publish update manifest for 1-click in-app update delivery",
+        "Fixed: Prevent text wrapping and bottom-edge clipping in downloaded PDF for TOTAL WEIGHTS (NET WT / GROSS WT), Description of Goods header, Route / Transportation Path, Cargo Description, and Exporter Contacts blue section bars",
+      ],
+    },
+
+    {
+      version: "v5.4.10",
+      date: "2026-10-26",
+      title: "Fix Lingering Directory and Preset Selections on New BOL",
+      changes: [
+        "Fixed: Cleared lingering party, preset, and border station selections when creating a new BOL",
+        "Fixed: Guarded directory dropdowns and action buttons so empty form fields never display lingering selections",
+        "Fixed: Synchronized preset selection state with loaded BOL document records",
+      ],
+    },
+
+    {
+      version: "v5.4.9",
+      date: "2026-10-25",
+      title: "Fix Download PDF Text Wrapping & Section Header UI Clipping",
+      changes: [
+        "Added: Enforce strict whitespace-nowrap and flex-shrink-0 across PDF and A4 print section headers, rebalance cargo grid proportions for optimal weight value fitting, and eliminate line breaking in high-DPI canvas exports",
+        "Fixed: Prevent text wrapping and bottom-edge clipping in downloaded PDF for TOTAL WEIGHTS (NET WT / GROSS WT), Description of Goods header, Route / Transportation Path, Cargo Description, and Exporter Contacts blue section bars",
+      ],
+    },
+
+    {
+      version: "v5.4.8",
+      date: "2026-10-25",
+      title: "Fix Minified React Error #185 in Settings View",
+      changes: [
+        "Fixed: Resolved infinite re-render loop in useSyncExternalStore by stabilizing settings snapshot",
+        "Fixed: Wrapped localStorage storageStats in resilient try-catch",
+      ],
+    },
+
+    {
+      version: "v5.4.7",
+      date: "2026-10-25",
+      title: "Refine Afghan Truck License Plate Font, Proportions, and Column Alignment",
+      changes: [
+        "Fixed: Modernized Latin plate font stack to Bahnschrift/DIN stamped plate typography",
+        "Fixed: Harmonized Persian and Latin numeral optical size proportions",
+        "Fixed: Enforced 1:1 vertical column alignment for individual plate digits",
+      ],
+    },
+
+    {
+      version: "v5.4.6",
+      date: "2026-10-25",
+      title: "Fix header navigation overflow clipping and suite active icons",
+      changes: [
+        "Modified: Calibrated Dashboard and Protection pill breakpoints, dynamic suite icons for active modules, and ServerStatusPill text display",
+        "Fixed: Resolved navigation horizontal overflow clipping of Settings/Docs & Tools on 1536px laptop screens",
+      ],
+    },
+
+    {
+      version: "v5.4.5",
+      date: "2026-10-25",
+      title: "Enlarge and improve A4 Preview cargo row typography and pills",
+      changes: [
+        "Added: Enlarged A4 preview cargo sub-card typography for NET, GROSS, NET WT, GROSS WT, RATE, and VALUE labels and numeric values",
+        "Modified: Upgraded pill containers with rounded-md and distinct high-contrast color borders, tabular numbers, and font-black weights",
+      ],
+    },
+
+    {
+      version: "v5.4.4",
+      date: "2026-10-25",
+      title: "Container Details & Shipping Details Ergonomic Responsive Grid Fix",
+      changes: [
+        "Fixed: Resolved horizontal squash of Container Details inputs into spacious responsive grid",
+        "Fixed: Resolved text truncation of Port of Loading and Discharge via shipping-fields-grid",
+      ],
+    },
+
+    {
+      version: "v5.4.3",
+      date: "2026-10-25",
+      title: "Race-tolerant BOL sequence tests for live-data environments",
+      changes: [
+        "Fixed: bol-sequence tests #8 and #9 now tolerate live BOL allocation during validation: #8 retries the scan/peek pair, #9 asserts the hard invariant (next strictly greater than the advanced target) instead of an exact +1",
+        "Fixed: Both suites keep the hard anti-collision invariant: next available BOL never falls behind highest existing + 1",
+      ],
+    },
+
+    {
+      version: "v5.4.2",
+      date: "2026-10-25",
+      title: "Race-tolerant BOL sequence test for live-data environments",
+      changes: [
+        "Fixed: bol-sequence test #8 retries the scan/peek pair and asserts the hard invariant (next number never behind highest+1), so BOLs created by the running app during validation no longer flake releases",
+      ],
+    },
+
+    {
+      version: "v5.4.1",
+      date: "2026-10-25",
+      title: "Race-tolerant BOL sequence test for live-data environments",
+      changes: [
+        "Fixed: bol-sequence test #8 retries the scan/peek pair and asserts the hard invariant (next number never behind highest+1), so BOLs created by the running app during validation no longer flake releases",
+      ],
+    },
+
+    {
+      version: "v5.4.0",
+      date: "2026-10-25",
+      title: "Multi-Modal Biometric Security Vault, IndexedDB Engine & Settings Redesign",
+      changes: [
+        "Added: Enterprise 12-column Bento Grid Security & Passwords suite with WebAuthn Touch ID, Face Recognition, Quick PIN, and Action Gates",
+        "Added: Full-screen un-bypassable frosted glass WorkspaceLockOverlay with Cmd+L hotkey and inactivity auto-lock",
+        "Added: Zero-loss dual-layer saving state machine with instant IndexedDB persistence, floating save bar, and sync queue popover",
+        "Added: Modernized macOS Sequoia settings shell with Cmd+K search highlighting and live sidebar micro-badges",
+      ],
+    },
+
+    {
+      version: "v5.3.6",
+      date: "2026-10-25",
+      title: "BOL editor watermark gallery aligned with settings panel card design",
+      changes: [
+        "Fixed: Editor watermark picker cards: Selected pill replaces the format tag (matching Settings), titles clamp to two lines with tooltip, Recommended label spelled out",
+      ],
+    },
+
+    {
+      version: "v5.3.5",
+      date: "2026-10-25",
+      title: "BOL editor watermark gallery aligned with settings panel card design",
+      changes: [
+        "Fixed: Editor watermark picker cards: Selected pill replaces the format tag (matching Settings), titles clamp to two lines with tooltip, Recommended label spelled out",
+      ],
+    },
+
     {
       version: "v5.3.4",
       date: "2026-10-25",

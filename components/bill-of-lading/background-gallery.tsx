@@ -359,11 +359,18 @@ export function BackgroundGallery({
                   className="h-full max-h-full"
                 />
 
-                {/* Top-Left Category & Format Badges */}
+                {/* Top-Left Category & Format Badges (Selected pill replaces format tag) */}
                 <div className="absolute left-2 top-2 flex flex-col gap-1 items-start pointer-events-none z-10">
-                  <span className="rounded bg-slate-900/85 dark:bg-slate-800/90 text-white px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider shadow-2xs backdrop-blur-xs border border-white/10">
-                    {isSvg ? 'Vector SVG' : item.url ? 'Illustration' : 'Blank'}
-                  </span>
+                  {isSelected ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white px-2 py-0.5 text-[10px] font-bold shadow-sm" title="Currently Selected">
+                      <Check aria-hidden="true" className="h-3 w-3 stroke-[3]" />
+                      Selected
+                    </span>
+                  ) : (
+                    <span className="rounded bg-slate-900/85 dark:bg-slate-800/90 text-white px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider shadow-2xs backdrop-blur-xs border border-white/10">
+                      {isSvg ? 'Vector SVG' : item.url ? 'Illustration' : 'Blank'}
+                    </span>
+                  )}
                   {item.category && item.category !== 'All' && (
                     <span className={`rounded px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider shadow-2xs backdrop-blur-xs border ${CATEGORY_TAG_COLORS[item.category] || 'bg-slate-900/80 text-slate-300 border-white/10'}`}>
                       {item.category}
@@ -371,9 +378,8 @@ export function BackgroundGallery({
                   )}
                 </div>
 
-                {/* Top-Right Badges & Actions */}
+                {/* Top-Right Quick A4 Preview Action */}
                 <div className="absolute right-2 top-2 flex items-center gap-1.5">
-                  {/* Quick A4 Preview Action Button */}
                   <button
                     type="button"
                     onClick={(e) => handleOpenPreview(item, e)}
@@ -383,24 +389,19 @@ export function BackgroundGallery({
                   >
                     <Eye className="h-3.5 w-3.5" />
                   </button>
-
-                  {/* Selected Indicator Badge */}
-                  {isSelected && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white px-2 py-0.5 text-[10px] font-bold shadow-sm" title="Currently Selected">
-                      <Check aria-hidden="true" className="h-3 w-3 stroke-[3]" />
-                      Selected
-                    </span>
-                  )}
                 </div>
               </div>
 
               {/* Information Row - Crisp Hierarchy */}
               <div className="p-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-col justify-between flex-1">
                 <div>
-                  <div className="flex items-center justify-between gap-1">
-                    <p className={`text-xs font-bold truncate transition-colors ${
-                      isSelected ? 'text-blue-700 dark:text-blue-400' : 'text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400'
-                    }`}>
+                  <div className="flex items-start justify-between gap-1">
+                    <p
+                      className={`text-xs font-bold line-clamp-2 leading-snug break-words min-h-[2em] transition-colors ${
+                        isSelected ? 'text-blue-700 dark:text-blue-400' : 'text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                      }`}
+                      title={item.label}
+                    >
                       {item.label}
                     </p>
                     {isSelected && (
@@ -414,9 +415,11 @@ export function BackgroundGallery({
                   </p>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400 font-mono">
-                  <span>Rec. Opacity:</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                <div className="mt-2 flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Recommended
+                  </span>
+                  <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                     {Math.round(item.opacity * 100)}%
                   </span>
                 </div>

@@ -27,17 +27,16 @@ const AR_FA_CHAR_MAP: [RegExp, string][] = [
   [/ؤ\u200c?/g, "و"], // rarely intended in these logistics words
 ]
 
-/** Common Dari/Pashto logistics compounds that need ZWNJ or fixing. */
+/** Common Dari/Pashto logistics compounds that need ZWNJ or fixing.
+ *  NOTE: JS \b word boundaries are ASCII-only — never use them around
+ *  Arabic-script patterns; anchor with lookarounds instead. */
 const FA_WORD_FIXES: [RegExp, string][] = [
-  [/\bنماینده\s+گی\b/g, "نماینده‌گی"],
-  [/\bنماینده\s*گی\b/g, "نماینده‌گی"],
-  [/\bهمگام\s+سازی\b/g, "همگام‌سازی"],
-  [/\bبار\s+گیری\b/g, "بارگیری"],
-  [/\bمسؤل\s+بارگیری\b/g, "مسؤل بارگیری"],
-  [/\bکرایه\s+واپسی\b/g, "کرایه واپسی"], // keep spaced (correct as-is, docs canonical)
-  [/\bانتقال\s+ادات\b/g, "انتقالات"],
-  [/\s+واپسی\b/g, " واپسی"],
-  [/\bمیسري\b/g, "ميسري"],
+  [/نماینده\s+گی/g, "نماینده‌گی"],
+  [/نماینده\s*گی/g, "نماینده‌گی"],
+  [/همگام\s+سازی/g, "همگام‌سازی"],
+  [/بار\s+گیری/g, "بارگیری"],
+  [/انتقال\s+ادات/g, "انتقالات"],
+  [/میسري/g, "ميسري"],
 ]
 
 export function normalizePersianScript(text: string): string {
