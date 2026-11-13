@@ -23,6 +23,7 @@ import {
   Plus,
   Loader2,
   Package,
+  Receipt,
   Check,
   Download,
   CheckCircle2,
@@ -81,6 +82,8 @@ export interface A4PreviewToolbarProps {
   onOpenPdfSettings: () => void
   onOpenShortcuts: () => void
   onToggleDiagnostics?: () => void
+  onOpenPackingList?: () => void
+  onOpenInvoice?: () => void
 }
 
 function A4PreviewToolbarBase({
@@ -121,6 +124,8 @@ function A4PreviewToolbarBase({
   onOpenPdfSettings,
   onOpenShortcuts,
   onToggleDiagnostics,
+  onOpenPackingList,
+  onOpenInvoice,
 }: A4PreviewToolbarProps) {
   const currentPreset = DOCUMENT_BACKGROUNDS.find((p) => p.url === bgImageUrl)
 
@@ -185,21 +190,24 @@ function A4PreviewToolbarBase({
             )}
           </div>
 
-          {/* Autosaved Status Indicator */}
+          {/* Autosaved Status Indicator (Icon Only) */}
           <div role="status" aria-live="polite" className="flex items-center shrink-0">
             {autoSaveStatus === "saving" || isSaving ? (
-              <div className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50/90 dark:bg-amber-950/60 dark:border-amber-800 px-2.5 py-1 text-xs text-amber-900 dark:text-amber-200 font-bold shadow-2xs animate-pulse h-8">
-                <RefreshCw className="h-3 w-3 text-amber-600 animate-spin shrink-0" />
-                <span>Autosaving…</span>
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-300 bg-amber-50/90 dark:bg-amber-950/60 dark:border-amber-800 shadow-2xs animate-pulse"
+                title="Autosaving changes…"
+              >
+                <RefreshCw className="h-4 w-4 text-amber-600 animate-spin shrink-0" />
+                <span className="sr-only">Autosaving…</span>
               </div>
             ) : autoSaveStatus === "saved" ? (
               <div
-                className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 cursor-pointer hover:bg-emerald-100/70 dark:hover:bg-emerald-900/40 transition-all h-8"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 shadow-2xs dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 cursor-pointer hover:bg-emerald-100/70 dark:hover:bg-emerald-900/40 transition-all"
                 title={`Draft autosaved at ${lastAutoSaveTime || lastAutoSavedTime || "just now"}. Press Ctrl+S to save official document.`}
                 onClick={onSave}
               >
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                <span>
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <span className="sr-only">
                   Autosaved ✓
                   {lastAutoSaveTime || lastAutoSavedTime ? (
                     <span className="hidden 2xl:inline font-mono text-[11px] font-normal opacity-90 ml-1">
@@ -209,37 +217,36 @@ function A4PreviewToolbarBase({
                 </span>
               </div>
             ) : autoSaveStatus === "local" ? (
-              <div className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 shadow-2xs dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 h-8">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-blue-600" />
-                <span>Saved locally</span>
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 shadow-2xs dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
+                title="Saved locally"
+              >
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-600" />
+                <span className="sr-only">Saved locally</span>
               </div>
             ) : hasUnsavedChanges ? (
               <div
-                className="flex items-center gap-1.5 rounded-lg border border-emerald-300/80 bg-emerald-50/70 px-2.5 py-1 text-xs font-bold text-emerald-900 shadow-2xs dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 h-8"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-300/80 bg-emerald-50/70 shadow-2xs dark:border-emerald-700 dark:bg-emerald-950/60"
                 title="Previewing live draft changes. Click Save/Update to commit official BOL."
               >
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                <span className="hidden xl:inline">Live Draft Preview</span>
-                <span className="xl:hidden">Draft</span>
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <span className="sr-only">Live Draft Preview</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 h-8">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                <span>Saved ✓</span>
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 shadow-2xs dark:bg-slate-800 dark:border-slate-700"
+                title="Saved"
+              >
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span className="sr-only">Saved ✓</span>
               </div>
             )}
           </div>
 
-          {/* Online Cloud Sync Status Badge */}
-          <OnlineSyncStatusBadge
-            variant="compact"
-            onOpenCloudSync={onOpenCloudSync}
-            className="hidden sm:inline-flex"
-          />
+          {/* Online Cloud Sync Status Badge (Icon Only) */}
           <OnlineSyncStatusBadge
             variant="icon"
             onOpenCloudSync={onOpenCloudSync}
-            className="sm:hidden"
           />
         </div>
 
@@ -345,20 +352,12 @@ function A4PreviewToolbarBase({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 sm:px-2.5 rounded-lg text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 gap-1.5 shadow-2xs cursor-pointer flex items-center shrink-0"
-                  title={`Background & Watermark: ${currentPreset?.label ?? "None"} (${Math.round(bgOpacity * 100)}%)`}
+                  className="h-8 w-8 p-0 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer flex items-center justify-center shrink-0"
+                  title={`Background & Watermark: ${currentPreset?.label ?? "None"} (${bgImageUrl ? `${Math.round(bgOpacity * 100)}%` : "Off"})`}
+                  aria-label={`Watermark: ${currentPreset?.label ?? "None"}`}
                 >
-                  <Palette className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="hidden sm:inline text-xs font-bold">Watermark</span>
-                  {bgImageUrl ? (
-                    <span className="rounded bg-blue-100/90 dark:bg-blue-900/60 px-1.5 py-0.5 text-[10.5px] font-mono font-bold text-blue-800 dark:text-blue-200">
-                      {Math.round(bgOpacity * 100)}%
-                    </span>
-                  ) : (
-                    <span className="rounded bg-slate-100 dark:bg-slate-800 px-1 py-0.5 text-[10px] text-slate-400 font-semibold">
-                      Off
-                    </span>
-                  )}
+                  <Palette className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span className="sr-only">Watermark ({bgImageUrl ? `${Math.round(bgOpacity * 100)}%` : "Off"})</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -533,6 +532,29 @@ function A4PreviewToolbarBase({
                   <Layers className="h-3.5 w-3.5" />
                   <span>Download Sticker Label Only (Page 3)</span>
                 </DropdownMenuItem>
+                {(onOpenPackingList || onOpenInvoice) && (
+                  <>
+                    <DropdownMenuSeparator className="dark:bg-slate-800" />
+                    {onOpenPackingList && (
+                      <DropdownMenuItem
+                        onClick={onOpenPackingList}
+                        className="gap-2 text-xs font-bold text-amber-700 dark:text-amber-400 cursor-pointer"
+                      >
+                        <Package className="h-3.5 w-3.5" />
+                        <span>View / Export ACCI Packing List</span>
+                      </DropdownMenuItem>
+                    )}
+                    {onOpenInvoice && (
+                      <DropdownMenuItem
+                        onClick={onOpenInvoice}
+                        className="gap-2 text-xs font-bold text-blue-700 dark:text-blue-400 cursor-pointer"
+                      >
+                        <Receipt className="h-3.5 w-3.5" />
+                        <span>View / Export ACCI Invoice</span>
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

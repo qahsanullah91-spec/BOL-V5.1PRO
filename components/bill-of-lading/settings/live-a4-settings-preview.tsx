@@ -95,24 +95,35 @@ export function LiveA4SettingsPreview({
         >
           {/* Top Brand & BOL Header */}
           <div>
-            <div className="flex items-start justify-between border-b-2 border-blue-950 pb-2">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between border-b-2 border-blue-950 pb-2 gap-2">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={settings.logoUrl || '/images/sky-ariana-logo.png'}
                   alt="Company Logo"
-                  className="h-7 w-auto object-contain max-w-[90px]"
+                  className="h-7 w-7 rounded-full object-contain"
                 />
-                <div>
-                  <h1 className="text-[11px] sm:text-xs font-black tracking-wide text-blue-950 leading-tight">
-                    {settings.companyName || 'SKY ARIANA LOGISTICS'}
-                  </h1>
-                  <p className="text-[6.5px] sm:text-[7.5px] text-slate-500 font-bold uppercase tracking-wider">
-                    {settings.companySubtitle || 'MULTI-MODAL BILL OF LADING'}
-                  </p>
-                </div>
               </div>
-              <div className="text-right">
+              <div className="flex-1 flex flex-col items-center justify-center text-center min-w-0">
+                {settings.companyName?.toUpperCase().includes('SKY ARIANA') ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={settings.brandLockupUrl || '/images/sky-ariana-brand-lockup.png'}
+                    alt={settings.companyName}
+                    className="h-7 max-h-7 w-auto max-w-[155px] object-contain"
+                  />
+                ) : (
+                  <div>
+                    <h1 className="text-[11px] sm:text-xs font-black tracking-wide text-blue-950 leading-tight">
+                      {settings.companyName || 'SKY ARIANA LOGISTICS'}
+                    </h1>
+                    <p className="text-[6.5px] sm:text-[7.5px] text-slate-500 font-bold uppercase tracking-wider">
+                      {settings.companySubtitle || 'MULTI-MODAL BILL OF LADING'}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="text-right shrink-0">
                 <span className="inline-block bg-blue-950 text-white font-mono font-bold text-[7px] sm:text-[8px] px-1.5 py-0.5 rounded">
                   {bolNumber}
                 </span>

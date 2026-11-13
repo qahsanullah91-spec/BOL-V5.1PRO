@@ -23,7 +23,10 @@ export function HeaderProtectionPill({ onOpenBackupCenter }: HeaderProtectionPil
     }
 
     checkProtection()
-    const timer = setInterval(checkProtection, 60_000)
+    const timer = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return
+      checkProtection()
+    }, 90_000)
     const handleStatusUpdate = () => checkProtection()
     if (typeof window !== "undefined") {
       window.addEventListener("skybol:backup-completed", handleStatusUpdate)

@@ -31,6 +31,7 @@ import { buildGroundedResponse } from './response-builder'
 import { createActionProposal } from './action-planner'
 import { generateAICompletion, getAIAssistantConfig } from './ai-provider'
 import { crmSalesService } from '@/lib/services/crm-sales-service'
+import { runComprehensiveVerification } from './smart-verification'
 
 /**
  * Main query entry point for user prompts.
@@ -285,6 +286,56 @@ export async function processUserQuery(
     case 'AUDIT_HISTORY':
       queryResult = await getEntityAuditHistory(parsedIntent.targetIdentifier || text, user)
       break
+
+    case 'SMART_VERIFICATION': {
+      let matchedShipment: any
+      if (parsedIntent.targetIdentifier) {
+        const shipRes = await lookupShipmentOrBol(parsedIntent.targetIdentifier, user)
+        matchedShipment = shipRes.records[0]
+      }
+      const auditResult = await runComprehensiveVerification({
+        shipment: matchedShipment,
+        useAiSynthesis: true,
+      })
+
+      const statusEmoji = auditResult.verdict === 'PASS' ? '✅' : auditResult.verdict === 'WARNING' ? '⚠️' : '🚨'
+      let content = `${statusEmoji} **Smart Verification Report** (${auditResult.verdict})\n\n`
+      content += `• **Ledger Invariance**: ${auditResult.ledgerAudit.identitySatisfied ? 'Identity Verified (Net = Debit - Credit)' : `DISCREPANCY: $${auditResult.ledgerAudit.discrepancy}`}\n`
+      content += `• **Border Station Routing**: ${auditResult.borderRoutingAudit.isRecognizedBorder ? `Verified (${auditResult.borderRoutingAudit.borderStation})` : 'Unrecognized or missing routing'}\n`
+      content += `• **Trade Sanctions**: ${auditResult.sanctionsAudit.riskLevel} (${auditResult.sanctionsAudit.advisory})\n\n`
+      content += `**Summary**: ${auditResult.executiveSummary}\n\n`
+      if (auditResult.actionableRecommendations.length > 0) {
+        content += `**Recommendations**:\n` + auditResult.actionableRecommendations.map((r: string) => `• ${r}`).join('\n')
+      }
+
+      return {
+        success: true,
+        message: {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content,
+          intent: 'SMART_VERIFICATION',
+          cards: [
+            {
+              id: `card-audit-${Date.now()}`,
+              type: 'REPORT',
+              title: `Smart Verification: ${auditResult.verdict}`,
+              subtitle: `Ledger, Border Routing & Sanctions Clearance`,
+              status: auditResult.verdict,
+              statusColor: auditResult.verdict === 'PASS' ? 'emerald' : auditResult.verdict === 'WARNING' ? 'amber' : 'red',
+              primaryReference: parsedIntent.targetIdentifier || 'System Wide',
+              actions: [
+                { label: 'View Ledger', action: 'NAVIGATE', params: { view: 'account' }, variant: 'primary' },
+                { label: 'View Routes', action: 'NAVIGATE', params: { view: 'bol' } },
+              ],
+            },
+          ],
+          sourceTags: ['Smart Verification Engine', 'Accounting Invariance Invariant'],
+          recordCount: 1,
+          timestamp: new Date().toISOString(),
+        },
+      }
+    }
 
     case 'SEARCH_CONTAINERS':
       queryResult = await searchContainers(parsedIntent.filters, user)

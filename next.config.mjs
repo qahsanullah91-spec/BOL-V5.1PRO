@@ -23,6 +23,23 @@ const nextConfig = {
       config.cache = {
         type: 'filesystem',
       };
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: [
+          '**/.git/**',
+          '**/.local-*.json',
+          '**/.receipt-counter',
+          '**/.treasury-*-counter',
+          '**/data/**',
+          '**/scratch/**',
+          '**/release-history.json',
+          '**/*.tmp*',
+          '**/logs/**',
+          '**/backups/**',
+          '**/.next/**',
+          '**/node_modules/**',
+        ],
+      };
     }
     if (!isServer) {
       config.resolve.fallback = {

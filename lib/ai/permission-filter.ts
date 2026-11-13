@@ -52,7 +52,8 @@ export function checkIntentPermission(
       intent === 'STALE_TRACKING' ||
       intent === 'ACTION_PROPOSAL' ||
       intent === 'SHIPMENT_PROFIT' ||
-      intent === 'TODAY_PAYMENTS'
+      intent === 'TODAY_PAYMENTS' ||
+      intent === 'SMART_VERIFICATION'
     ) {
       return {
         allowed: false,

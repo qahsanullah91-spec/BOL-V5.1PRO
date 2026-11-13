@@ -31,6 +31,8 @@ const packageJson = {
       { from: "../.next-production/standalone/node_modules", to: "app-server/node_modules" },
       { from: "../.next-production/static", to: "app-server/.next-production/static" },
       { from: "../public", to: "app-server/public", filter: ["**/*", "!uploads/**/*", "!test-ledger.pdf"] },
+      { from: "../public/app-icon.ico", to: "app-icon.ico" },
+      { from: "../public/icon-light-32x32.png", to: "icon-light-32x32.png" },
       { from: "../public/icon-512x512.png", to: "app-icon.png" },
       { from: "../seed-data", to: "seed-data", filter: [".local-*.json", ".bol-counter", ".invoice-counter"] },
       ...(fs.existsSync(path.join(root, "resources", "backend")) ? [{ from: "../resources/backend", to: "backend" }] : []),

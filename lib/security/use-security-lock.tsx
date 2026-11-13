@@ -4,12 +4,16 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { toast } from "sonner"
 import {
   SecurityVaultSettings,
+  EnrolledFingerprint,
   DEFAULT_SECURITY_SETTINGS,
   loadSecuritySettings,
   saveSecuritySettings,
   isPlatformBiometricAvailable,
   verifyPlatformPasskey,
   enrollPlatformPasskey,
+  saveEnrolledFingerprint,
+  deleteEnrolledFingerprint,
+  verifySoftwareFingerprint,
   verifyPinCode,
   setPinCode,
 } from "./security-vault-service"
@@ -22,9 +26,12 @@ interface SecurityLockContextType {
   isShieldProtected: boolean
   isLockedOut: boolean
   lockoutRemainingSeconds: number
+  enrolledFingerprints: EnrolledFingerprint[]
+  saveFingerprint: (fingerprint: EnrolledFingerprint) => void
+  deleteFingerprint: (id: string) => void
   lockWorkspace: () => void
   unlockWorkspace: () => void
-  unlockWithFingerprint: () => Promise<boolean>
+  unlockWithFingerprint: (biometricToken?: string) => Promise<boolean>
   unlockWithFace: () => Promise<boolean>
   unlockWithPin: (pin: string) => Promise<boolean>
   unlockWithPassword: (password: string) => Promise<boolean>
@@ -169,26 +176,38 @@ export function SecurityLockProvider({ children }: { children: React.ReactNode }
   }, [])
 
   // Unlock methods
-  const unlockWithFingerprint = useCallback(async (): Promise<boolean> => {
-    if (lockoutRemainingSeconds > 0) {
-      toast.error(`System locked out. Wait ${lockoutRemainingSeconds}s / سیستم موقتا قفل است`)
-      return false
-    }
+  const unlockWithFingerprint = useCallback(
+    async (biometricToken?: string): Promise<boolean> => {
+      if (lockoutRemainingSeconds > 0) {
+        toast.error(`System locked out. Wait ${lockoutRemainingSeconds}s / سیستم موقتا قفل است`)
+        return false
+      }
 
-    try {
-      const res = await verifyPlatformPasskey(settings.fingerprintCredentialId)
-      if (res.success) {
+      // 1. Verify against software biometric vault
+      const isSoftwareValid = verifySoftwareFingerprint(settings, biometricToken)
+      if (isSoftwareValid) {
         unlockWorkspace()
         toast.success("Identity verified via Biometrics / هویت با اثر انگشت تایید شد")
         return true
       }
-      toast.error(res.error || "Biometric verification failed")
-      return false
-    } catch {
-      toast.error("Fingerprint sensor unavailable")
-      return false
-    }
-  }, [settings.fingerprintCredentialId, lockoutRemainingSeconds, unlockWorkspace])
+
+      // 2. Fallback to platform passkey if configured
+      try {
+        const res = await verifyPlatformPasskey(settings.fingerprintCredentialId)
+        if (res.success) {
+          unlockWorkspace()
+          toast.success("Identity verified via Biometrics / هویت با اثر انگشت تایید شد")
+          return true
+        }
+        toast.error(res.error || "Biometric verification failed")
+        return false
+      } catch {
+        toast.error("Fingerprint sensor unavailable")
+        return false
+      }
+    },
+    [settings, lockoutRemainingSeconds, unlockWorkspace]
+  )
 
   const unlockWithFace = useCallback(async (): Promise<boolean> => {
     if (lockoutRemainingSeconds > 0) {
@@ -315,9 +334,26 @@ export function SecurityLockProvider({ children }: { children: React.ReactNode }
       toast.success("Biometric sensor enrolled successfully! / اثر انگشت با موفقیت ثبت شد")
       return res
     }
-    toast.error(res.error || "Enrollment failed")
     return res
   }, [currentUser, updateSecuritySettings])
+
+  const saveFingerprint = useCallback((fingerprint: EnrolledFingerprint) => {
+    setSettings((prev) => {
+      const updated = saveEnrolledFingerprint(prev, fingerprint)
+      return updated
+    })
+    toast.success(
+      `Fingerprint "${fingerprint.name}" saved to software vault! / اثر انگشت در سیستم ذخیره گردید`
+    )
+  }, [])
+
+  const deleteFingerprint = useCallback((id: string) => {
+    setSettings((prev) => {
+      const updated = deleteEnrolledFingerprint(prev, id)
+      return updated
+    })
+    toast.info("Fingerprint removed from vault / اثر انگشت از سیستم حذف شد")
+  }, [])
 
   const enrollFace = useCallback(
     async (descriptor = "face_signature_hash") => {
@@ -376,6 +412,9 @@ export function SecurityLockProvider({ children }: { children: React.ReactNode }
         isShieldProtected,
         isLockedOut: lockoutRemainingSeconds > 0,
         lockoutRemainingSeconds,
+        enrolledFingerprints: settings.enrolledFingerprints || [],
+        saveFingerprint,
+        deleteFingerprint,
         lockWorkspace,
         unlockWorkspace,
         unlockWithFingerprint,

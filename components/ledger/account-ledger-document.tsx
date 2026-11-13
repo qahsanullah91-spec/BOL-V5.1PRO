@@ -6,7 +6,10 @@ import { LedgerEntry } from "@/lib/types"
 export interface LedgerCompanySettings {
   logoUrl?: string
   companyLogo?: string
+  logoDesignId?: string
+  brandLockupUrl?: string
   backgroundImage?: string
+  backgroundOpacity?: number
   companyName?: string
   companySubtitle?: string
   companyAddress?: string
@@ -125,11 +128,18 @@ export const AccountLedgerHeader = memo(function AccountLedgerHeader({
   statementDate: string
   companySettings?: LedgerCompanySettings
 }) {
+  const brandLockup = companySettings?.brandLockupUrl
   const logo = companySettings?.logoUrl || companySettings?.companyLogo || "/logo.png"
+  const designId = companySettings?.logoDesignId || "modern-flat"
+  const isCircularSeal = designId === "circular-seal" || designId === "circular-seal-3d" || designId === "circular-seal-gold"
+  const showLockup = Boolean(brandLockup && !isCircularSeal)
+
   const address = companySettings?.companyAddress || "2nd Floor, 16 No. Office, Shahidano Chowk, Etimad Rahmi Market, Kandahar, Afghanistan"
   const phone = companySettings?.companyPhone || "+93 700 939 365, +93 711 435 529"
   const email = companySettings?.companyEmail || "info@skyariana.com"
   const licence = companySettings?.companyLicence || "2401-2198"
+  const companyTitle = companySettings?.companyName || "SKY ARIANA"
+  const companySub = companySettings?.companySubtitle || "Transport & Logistics • Import & Export"
 
   return (
     <div
@@ -172,19 +182,54 @@ export const AccountLedgerHeader = memo(function AccountLedgerHeader({
       </div>
 
       {/* Center: Company Logo & Brand */}
-      <div style={{ flex: "1 1 34%", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={logo}
-          alt="SKY ARIANA Logo"
-          style={{ height: "42px", maxWidth: "150px", objectFit: "contain", marginBottom: "2px", display: "inline-block" }}
-        />
-        <p style={{ fontSize: "13pt", fontWeight: 900, color: "#1e3a8a", margin: 0, lineHeight: 1.1, letterSpacing: "0.02em" }}>
-          SKY ARIANA
-        </p>
-        <p style={{ fontSize: "7pt", color: "#2563eb", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 800, margin: "1px 0 0 0" }}>
-          Transport & Logistics • Import & Export
-        </p>
+      <div style={{ flex: "1 1 34%", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        {showLockup && brandLockup ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+            {logo && logo !== brandLockup && !isCircularSeal && designId !== "modern-typography" && designId !== "classic-heritage-full" && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={logo}
+                alt="SKY ARIANA Emblem"
+                style={{
+                  height: "46px",
+                  width: "46px",
+                  objectFit: "contain",
+                  flexShrink: 0,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  border: "1.5px solid #bfdbfe",
+                  padding: "1px",
+                  display: "inline-block",
+                }}
+                crossOrigin="anonymous"
+                loading="eager"
+              />
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={brandLockup}
+              alt="SKY ARIANA"
+              style={{ maxHeight: "52px", maxWidth: "230px", objectFit: "contain", display: "inline-block" }}
+              crossOrigin="anonymous"
+              loading="eager"
+            />
+          </div>
+        ) : (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logo}
+              alt="SKY ARIANA Logo"
+              style={{ height: "40px", maxWidth: "140px", objectFit: "contain", marginBottom: "2px", display: "inline-block" }}
+            />
+            <p style={{ fontSize: "12pt", fontWeight: 900, color: "#1e3a8a", margin: 0, lineHeight: 1.1, letterSpacing: "0.02em" }}>
+              {companyTitle}
+            </p>
+            <p style={{ fontSize: "6.5pt", color: "#2563eb", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 800, margin: "1px 0 0 0" }}>
+              {companySub}
+            </p>
+          </>
+        )}
       </div>
 
       {/* Right: Office & Contact Information */}
@@ -747,6 +792,24 @@ export const AccountLedgerDocument = memo(function AccountLedgerDocument({
           }
         }
       `}</style>
+      {/* Watermark Background Layer */}
+      {companySettings?.backgroundImage ? (
+        <div
+          className="ledger-watermark-layer"
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url(${companySettings.backgroundImage})`,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "center",
+            backgroundSize: "contain",
+            opacity: companySettings.backgroundOpacity ?? 0.12,
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+      ) : null}
+
       {/* 1. Statement Header */}
       <AccountLedgerHeader
         accountName={accountName}

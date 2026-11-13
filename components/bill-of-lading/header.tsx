@@ -19,6 +19,8 @@ export interface BillOfLadingHeaderProps {
   companyTagline?: string
   companyPersian?: string
   bolLogoSrc?: string
+  brandLockupSrc?: string
+  logoDesignId?: string
   className?: string
   style?: CSSProperties
   formData?: any
@@ -43,6 +45,8 @@ export function BillOfLadingHeader({
   companyTagline,
   companyPersian,
   bolLogoSrc,
+  brandLockupSrc,
+  logoDesignId,
   className = "",
   style,
   formData,
@@ -50,14 +54,14 @@ export function BillOfLadingHeader({
   // Card & QR sizing calibrated for A4 density tiers with enlarged QR code & balanced proportions
   const qrMmSize = isUltraCompact ? 20 : isCompact ? 23 : 26
   const qrPaddingRightMm = isUltraCompact ? 22 : isCompact ? 25.5 : 29
-  const cardWidthMm = isUltraCompact ? 63 : isCompact ? 68 : 74
-  const cardHeightMm = isUltraCompact ? 20.5 : isCompact ? 22.5 : 25
+  const cardWidthMm = isUltraCompact ? 63 : isCompact ? 68 : 72
+  const cardHeightMm = isUltraCompact ? 21 : isCompact ? 23.5 : 26
   const cardTopHeightMm = isUltraCompact ? 11 : isCompact ? 12 : 13.5
-  const cardBottomHeightMm = isUltraCompact ? 9.5 : isCompact ? 10.5 : 11.5
+  const cardBottomHeightMm = isUltraCompact ? 10 : isCompact ? 11.5 : 12.5
 
   // Logo & banner dimensions
-  const logoMmSize = isUltraCompact ? 26 : isCompact ? 30 : 34.5
-  const bannerMinHeightMm = isUltraCompact ? 28 : isCompact ? 32 : 36.5
+  const logoMmSize = isUltraCompact ? 27 : isCompact ? 31 : 35
+  const bannerMinHeightMm = isUltraCompact ? 30 : isCompact ? 35 : 40
 
   const resolvedCompanyTitle = companyTitle?.trim() || "SKY ARIANA LIMITED"
   const resolvedCompanyTagline =
@@ -65,8 +69,31 @@ export function BillOfLadingHeader({
   const resolvedCompanyPersian =
     companyPersian?.trim() ||
     labels?.persianCompanyFallback ||
-    "شرکت حمل و نقل بین المللی سکای آریانا لمتید"
+    "شرکت حمل و نقل بین المللی اسکای آریانا"
   const logoSrc = bolLogoSrc || "/images/sky-ariana-logo.png"
+  const isSkyArianaBrand = resolvedCompanyTitle.toUpperCase().includes("SKY ARIANA")
+  const resolvedBrandLockup = brandLockupSrc || "/images/sky-ariana-brand-lockup.png"
+  const isStacked =
+    resolvedBrandLockup.includes("classic-stack") ||
+    logoDesignId === "classic-stack"
+
+  // Check if brand lockup already embeds the company circular emblem/seal to eliminate duplicate logos
+  const lockupHasEmblem = Boolean(
+    (isSkyArianaBrand && (
+      logoDesignId === "classic-heritage-full" ||
+      logoDesignId === "classic-stack" ||
+      isStacked ||
+      (bolLogoSrc && brandLockupSrc && bolLogoSrc === brandLockupSrc) ||
+      (logoSrc && resolvedBrandLockup && logoSrc === resolvedBrandLockup) ||
+      resolvedBrandLockup.includes("classic-heritage") ||
+      resolvedBrandLockup.includes("classic-stack") ||
+      resolvedBrandLockup.includes("sky-ariana-modern-flat.png") ||
+      resolvedBrandLockup.includes("sky-ariana-modern-3d.png") ||
+      (resolvedBrandLockup.includes("vintage-heritage") && !resolvedBrandLockup.includes("vintage-heritage-lockup"))
+    )) || (
+      !isSkyArianaBrand && bolLogoSrc && brandLockupSrc && bolLogoSrc === brandLockupSrc
+    )
+  )
 
   return (
     <header
@@ -90,91 +117,139 @@ export function BillOfLadingHeader({
         ...style,
       }}
     >
-      {/* 1. Left: Official Company Logo Badge */}
-      <div
-        data-bol-logo-badge="true"
-        className={`bol-logo-badge shrink-0 flex items-center justify-center rounded-full bg-white border border-[#bfdbfe] ${
-          pdfMode ? "shadow-none" : "shadow-[0_2px_10px_rgba(37,99,235,0.14)]"
-        }`}
-        style={{
-          width: `${logoMmSize}mm`,
-          height: `${logoMmSize}mm`,
-          maxWidth: `${logoMmSize}mm`,
-          maxHeight: `${logoMmSize}mm`,
-          padding: "0.8mm",
-          boxSizing: "border-box",
-          position: "relative",
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={logoSrc}
-          alt={resolvedCompanyTitle}
-          className="w-full h-full object-contain rounded-full"
-          crossOrigin="anonymous"
-          loading="eager"
-          decoding="async"
+      {/* 1. Left: Circular Emblem Badge (omitted when brand lockup already embeds the emblem) */}
+      {!lockupHasEmblem && (
+        <div
+          data-bol-logo-badge="true"
+          className={`bol-logo-badge shrink-0 flex items-center justify-center rounded-full bg-white border border-[#93c5fd]/80 overflow-hidden ${
+            pdfMode ? "shadow-none" : "shadow-[0_2px_12px_rgba(37,99,235,0.18)]"
+          }`}
           style={{
-            imageRendering: "-webkit-optimize-contrast",
-            filter: pdfMode ? "none" : "drop-shadow(0 1px 2px rgba(15, 23, 42, 0.08))",
+            width: `${logoMmSize}mm`,
+            height: `${logoMmSize}mm`,
+            maxWidth: `${logoMmSize}mm`,
+            maxHeight: `${logoMmSize}mm`,
+            padding: 0,
+            boxSizing: "border-box",
+            position: "relative",
           }}
-          onError={(e) => {
-            const target = e.currentTarget
-            if (!target.src.endsWith("/images/logo.png") && !target.src.endsWith("/logo.png")) {
-              target.src = "/images/logo.png"
-            }
-          }}
-        />
-      </div>
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoSrc}
+            alt={resolvedCompanyTitle}
+            className="w-full h-full object-contain rounded-full"
+            crossOrigin="anonymous"
+            loading="eager"
+            decoding="async"
+            style={{
+              imageRendering: "-webkit-optimize-contrast",
+              filter: pdfMode ? "none" : "drop-shadow(0 1.5px 3px rgba(15, 23, 42, 0.12))",
+            }}
+            onError={(e) => {
+              const target = e.currentTarget
+              if (!target.src.endsWith("/images/sky-ariana-logo.png")) {
+                target.src = "/images/sky-ariana-logo.png"
+              }
+            }}
+          />
+        </div>
+      )}
 
       {/* 2. Center: Company Brand Title, Tagline, and Persian Name */}
       <div className="flex-1 min-w-0 flex flex-col items-center justify-center text-center px-1">
-        <h1
-          className={`bol-company-title font-black uppercase tracking-[0.035em] text-[#1e293b] leading-tight whitespace-nowrap truncate max-w-full ${
-            isUltraCompact ? "text-[14pt]" : isCompact ? "text-[16.5pt]" : "text-[20pt]"
-          }`}
-          style={{
-            fontFamily:
-              "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-          }}
-        >
-          {resolvedCompanyTitle}
-        </h1>
-        <p
-          className={`bol-company-tagline font-black uppercase tracking-[0.14em] text-[#475569] leading-tight whitespace-nowrap truncate max-w-full ${
-            isUltraCompact
-              ? "text-[5.8pt] mt-0.5"
-              : isCompact
-              ? "text-[6.6pt] mt-0.5"
-              : "text-[7.5pt] mt-0.5"
-          }`}
-          style={{
-            fontFamily:
-              "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-          }}
-        >
-          {resolvedCompanyTagline}
-        </p>
-        <p
-          className={`bol-company-fa font-[vazirmatn] font-extrabold text-[#2563eb] leading-tight whitespace-nowrap truncate max-w-full ${
-            isUltraCompact
-              ? "text-[7.5pt] mt-0.5"
-              : isCompact
-              ? "text-[8.5pt] mt-0.5"
-              : "text-[9.8pt] mt-0.5"
-          }`}
-          dir="rtl"
-          style={{
-            direction: "rtl",
-            unicodeBidi: "isolate",
-          }}
-        >
-          {resolvedCompanyPersian}
-        </p>
+        {isSkyArianaBrand ? (
+          <div className="flex-1 w-full min-w-0 flex flex-col items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {(() => {
+              const resolvedBrandLockup = brandLockupSrc || "/images/sky-ariana-brand-lockup.png"
+              const isStacked = resolvedBrandLockup.includes("classic-stack") || logoDesignId === "classic-stack"
+              return (
+                <img
+                  src={resolvedBrandLockup}
+                  alt={resolvedCompanyTitle}
+                  className="bol-brand-lockup-img object-contain"
+                  crossOrigin="anonymous"
+                  loading="eager"
+                  decoding="async"
+                  style={{
+                    height: isStacked
+                      ? (isUltraCompact ? "23mm" : isCompact ? "27mm" : "32mm")
+                      : (isUltraCompact ? "21mm" : isCompact ? "25mm" : "29.5mm"),
+                    maxHeight: isStacked
+                      ? (isUltraCompact ? "23mm" : isCompact ? "27mm" : "32mm")
+                      : (isUltraCompact ? "21mm" : isCompact ? "25mm" : "29.5mm"),
+                    width: "auto",
+                    maxWidth: "100%",
+                    objectFit: "contain",
+                    imageRendering: "-webkit-optimize-contrast",
+                    filter: pdfMode ? "none" : "drop-shadow(0 1.5px 3.5px rgba(30, 58, 138, 0.08))",
+                  }}
+                  onError={(e) => {
+                    const target = e.currentTarget
+                    if (!target.src.endsWith("/images/sky-ariana-brand-lockup.png")) {
+                      target.src = "/images/sky-ariana-brand-lockup.png"
+                    }
+                  }}
+                />
+              )
+            })()}
+            {/* Semantic elements for accessibility, print indexing, and test validation */}
+            <h1 className="sr-only bol-company-title">{resolvedCompanyTitle}</h1>
+            <p className="sr-only bol-company-tagline">{resolvedCompanyTagline}</p>
+            <p className="sr-only bol-company-fa" dir="rtl">{resolvedCompanyPersian}</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center">
+            <h1
+              className={`bol-company-title font-black uppercase tracking-[0.035em] text-[#1e293b] leading-tight whitespace-nowrap truncate max-w-full ${
+                isUltraCompact ? "text-[14pt]" : isCompact ? "text-[16.5pt]" : "text-[20pt]"
+              }`}
+              style={{
+                fontFamily:
+                  "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+              }}
+            >
+              {resolvedCompanyTitle}
+            </h1>
+            <p
+              className={`bol-company-tagline font-black uppercase tracking-[0.14em] text-[#475569] leading-tight whitespace-nowrap truncate max-w-full ${
+                isUltraCompact
+                  ? "text-[5.8pt] mt-0.5"
+                  : isCompact
+                  ? "text-[6.6pt] mt-0.5"
+                  : "text-[7.5pt] mt-0.5"
+              }`}
+              style={{
+                fontFamily:
+                  "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+              }}
+            >
+              {resolvedCompanyTagline}
+            </p>
+            <p
+              className={`bol-company-fa font-[vazirmatn] font-extrabold text-[#2563eb] leading-tight whitespace-nowrap truncate max-w-full ${
+                isUltraCompact
+                  ? "text-[7.5pt] mt-0.5"
+                  : isCompact
+                  ? "text-[8.5pt] mt-0.5"
+                  : "text-[9.8pt] mt-0.5"
+              }`}
+              dir="rtl"
+              style={{
+                direction: "rtl",
+                unicodeBidi: "isolate",
+              }}
+            >
+              {resolvedCompanyPersian}
+            </p>
+          </div>
+        )}
+
         {/* Lower center strip: official head office, registration and carrier code */}
         <div
-          className={`bol-company-registration flex items-center justify-center gap-1.5 text-[#64748b] font-bold tracking-[0.06em] whitespace-nowrap leading-tight ${
-            isUltraCompact ? "text-[4.4pt] mt-0.4" : isCompact ? "text-[5.2pt] mt-0.5" : "text-[6pt] mt-0.6"
+          className={`bol-company-registration flex items-center justify-center gap-2 text-slate-800 font-extrabold tracking-[0.06em] whitespace-nowrap leading-none ${
+            isUltraCompact ? "text-[4.8pt] mt-1 mb-0.5" : isCompact ? "text-[5.8pt] mt-1 mb-0.5" : "text-[6.8pt] mt-1.2 mb-0.8"
           }`}
           style={{
             fontFamily:
@@ -182,9 +257,9 @@ export function BillOfLadingHeader({
           }}
         >
           <span>HEAD OFFICE: ETIMAD RAHMI MARKET, KANDAHAR</span>
-          <span className="text-[#93c5fd]">|</span>
+          <span className="text-[#2563eb] font-black">•</span>
           <span>REG: 90021-AFG</span>
-          <span className="text-[#93c5fd]">|</span>
+          <span className="text-[#2563eb] font-black">•</span>
           <span>CARRIER CODE: SKY-AF</span>
         </div>
       </div>

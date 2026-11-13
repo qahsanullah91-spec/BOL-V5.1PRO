@@ -19,8 +19,9 @@ assert.ok(
 );
 
 assert.ok(
-  a4PreviewCode.includes('const packageQtyFont = isUltra ? "text-[10pt]" : isCompact ? "text-[12pt]" : "text-[14pt]"'),
-  'CargoRow packageQtyFont must be enlarged to 14pt in normal density'
+  a4PreviewCode.includes('const packageQtyFont = isUltra ? "text-[10pt]" : isCompact ? "text-[12pt]" : "text-[14pt]"') ||
+  a4PreviewCode.includes('const packageQtyFont = isUltra ? "text-[11pt]" : isCompact ? "text-[14pt]" : "text-[16pt]"'),
+  'CargoRow packageQtyFont must be enlarged in normal density'
 );
 
 // 2. Verify sub-cards in CargoRow use rounded-md pills with tabular-nums and font-black

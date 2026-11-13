@@ -1113,6 +1113,5166 @@
       },
       "backupPath": "scratch\\version-control-backups\\v5.4.13-to-v5.4.14-2026.10.26-PRO-5",
       "createdAt": "2026-10-26T10:22:39.859Z"
+    },
+    {
+      "previousVersion": "v5.4.14",
+      "newVersion": "v5.4.15",
+      "build": "2026.10.27-PRO",
+      "releaseDate": "2026-10-27",
+      "changeCategory": "PATCH",
+      "title": "Fix Windows Hello biometric 'This is an invalid domain' error in packaged exe",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Vault fingerprint unlock now loads the app via localhost so Windows Hello/WebAuthn accepts the RP domain; raw domain errors replaced with a friendly bilingual fallback pointing to PIN/Password"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.14-to-v5.4.15-2026.10.27-PRO",
+      "createdAt": "2026-10-27T07:17:58.514Z"
+    },
+    {
+      "previousVersion": "v5.4.15",
+      "newVersion": "v5.4.16",
+      "build": "2026.10.27-PRO-2",
+      "releaseDate": "2026-10-27",
+      "changeCategory": "PATCH",
+      "title": "In-System Fingerprint Scanner & Software Biometric Vault",
+      "summary": "",
+      "featuresAdded": [
+        "Interactive Biometric Fingerprint Scanner HUD with laser sweep, multi-finger selection, and software vault storage"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved WebAuthn invalid domain error on 127.0.0.1 and Electron desktop runtime; added direct in-system fingerprint capture and unlock"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.15-to-v5.4.16-2026.10.27-PRO-2",
+      "createdAt": "2026-10-27T08:03:16.688Z"
+    },
+    {
+      "previousVersion": "v5.4.16",
+      "newVersion": "v5.4.17",
+      "build": "2026.10.27-PRO-3",
+      "releaseDate": "2026-10-27",
+      "changeCategory": "PATCH",
+      "title": "Fix and improve WhatsApp copy message formatting, direct sharing, and toolbar actions",
+      "summary": "",
+      "featuresAdded": [
+        "Direct WhatsApp Web deep-link dispatch, recipient phone selector (Driver/Consignee/Shipper), expanded bilingual commodities, message metrics with reset, mounted CopyWhatsAppButton on BOL Editor action bar"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Persian commodity extraction, table metadata leakage in cargo summary, glued truck plates, direct invoice number resolution"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.16-to-v5.4.17-2026.10.27-PRO-3",
+      "createdAt": "2026-10-27T08:12:04.309Z"
+    },
+    {
+      "previousVersion": "v5.4.17",
+      "newVersion": "v5.4.18",
+      "build": "2026.10.27-PRO-4",
+      "releaseDate": "2026-10-27",
+      "changeCategory": "PATCH",
+      "title": "Modern Windows 11 NSIS Installer UI Design Overhaul",
+      "summary": "",
+      "featuresAdded": [
+        "Enterprise Core Architecture showcase card filling installation empty void, royal blue modern progress bar with uxtheme decoupling, clean white background, Segoe UI typography, and 2X high-DPI graphics"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "NSIS Installing page empty gray void, classic Win98 green progress bar styling, cramped installer header text, Electron TypeScript minimize event handler"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.17-to-v5.4.18-2026.10.27-PRO-4",
+      "createdAt": "2026-10-27T09:48:59.865Z"
+    },
+    {
+      "previousVersion": "v5.4.18",
+      "newVersion": "v5.5.0",
+      "build": "2026.10.27-PRO-5",
+      "releaseDate": "2026-10-27",
+      "changeCategory": "MINOR",
+      "title": "Desktop Background Operation & System Tray Service",
+      "summary": "",
+      "featuresAdded": [
+        "Enterprise Windows System Tray integration with 24/7 resident background operation on window close",
+        "Windows silent auto-launch support (--hidden flag) on system boot",
+        "Minimize to Tray functionality and native Windows notification balloons",
+        "Bilingual English and Dari/Pashto background settings control card in Settings view"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Window close event interceptor cleanly preserving background SQLite and Next.js processes without termination"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.4.18-to-v5.5.0-2026.10.27-PRO-5",
+      "createdAt": "2026-10-27T09:51:38.840Z"
+    },
+    {
+      "previousVersion": "v5.5.0",
+      "newVersion": "v5.5.1",
+      "build": "2026.10.27-PRO-6",
+      "releaseDate": "2026-10-27",
+      "changeCategory": "PATCH",
+      "title": "NSIS Upgrade Shield & Uninstaller Error 2 Bypass",
+      "summary": "",
+      "featuresAdded": [
+        "Added NSIS customUnInstallCheck, customUnInstallCheckCurrentUser, preInit, customInit, and customRemoveFiles hooks"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved uninstaller exit code 2 crash ('Failed to uninstall old application files: 2') by introducing customUnInstallCheck & process termination shield"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.0-to-v5.5.1-2026.10.27-PRO-6",
+      "createdAt": "2026-10-27T10:28:02.036Z"
+    },
+    {
+      "previousVersion": "v5.5.1",
+      "newVersion": "v5.5.2",
+      "build": "2026.10.29-PRO",
+      "releaseDate": "2026-10-29",
+      "changeCategory": "PATCH",
+      "title": "PDF Footer Layout Fix & Route BiDi Normalization",
+      "summary": "",
+      "featuresAdded": [
+        "Bidi isolation with <bdi> and auto-healing for mixed Persian/English route banners"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "PDF footer SKY ARIANA LIMITED overlap on HEAD OFFICE, duplicate IRAN TRANSIT OFFICE prefix, and reversed parentheses/split Persian words in route banner"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.1-to-v5.5.2-2026.10.29-PRO",
+      "createdAt": "2026-10-29T10:04:38.493Z"
+    },
+    {
+      "previousVersion": "v5.5.2",
+      "newVersion": "v5.5.3",
+      "build": "2026.11.01-PRO",
+      "releaseDate": "2026-11-01",
+      "changeCategory": "PATCH",
+      "title": "Fix BOL PDF Download Text Clipping & RTL Overlap",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Package subtitle commodity text truncation (DRY FIGS preserved without line break)",
+        "Rate and Goods Value currency USD right border clipping in A4 and PDF exports",
+        "Executive footer company title wrapping over HEAD OFFICE in dense PDF documents",
+        "Cargo route directive bidirectional parenthesis collision and duplicate Iran office prefix"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.2-to-v5.5.3-2026.11.01-PRO",
+      "createdAt": "2026-11-01T15:38:18.166Z"
+    },
+    {
+      "previousVersion": "v5.5.3",
+      "newVersion": "v5.5.4",
+      "build": "2026.11.01-PRO-2",
+      "releaseDate": "2026-11-01",
+      "changeCategory": "PATCH",
+      "title": "Update Sky Ariana Brand Logo Design",
+      "summary": "",
+      "featuresAdded": [
+        "Modernized Sky Ariana corporate circular emblem in BOL header and documents",
+        "Full high-resolution branding assets (emblem, horizontal lockup, and full logo)"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Aligned official Persian company name typography with new brand identity"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.3-to-v5.5.4-2026.11.01-PRO-2",
+      "createdAt": "2026-11-01T17:42:13.321Z"
+    },
+    {
+      "previousVersion": "v5.5.4",
+      "newVersion": "v5.5.5",
+      "build": "2026.11.01-PRO-3",
+      "releaseDate": "2026-11-01",
+      "changeCategory": "PATCH",
+      "title": "Fix PDF Download Package Commodity Truncation & Footer Overlap",
+      "summary": "",
+      "featuresAdded": [
+        "Isolated bidirectional parentheses in Persian route directives and auto-healed repeated Iran transit office prefixes"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Preserved full commodity subtitles (e.g. DRY FIGS) in downloaded PDFs, prevented Executive footer company title from wrapping over HEAD OFFICE, and replaced all legacy logos with official Sky Ariana monogram emblem"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.4-to-v5.5.5-2026.11.01-PRO-3",
+      "createdAt": "2026-11-01T18:45:24.593Z"
+    },
+    {
+      "previousVersion": "v5.5.5",
+      "newVersion": "v5.5.6",
+      "build": "2026.11.01-PRO-4",
+      "releaseDate": "2026-11-01",
+      "changeCategory": "PATCH",
+      "title": "Bottom BOL Tracking Barcode",
+      "summary": "",
+      "featuresAdded": [
+        "Added scannable Code 128 barcode encoding the B/L number with human-readable text at the bottom of the Bill of Lading",
+        "High-density vector SVG rendering with crispEdges and optical quiet zones"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Multi-page continuation sheet and single-page barcode synchronization across preview and PDF export"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.5-to-v5.5.6-2026.11.01-PRO-4",
+      "createdAt": "2026-11-01T20:31:39.478Z"
+    },
+    {
+      "previousVersion": "v5.5.6",
+      "newVersion": "v5.5.7",
+      "build": "2026.11.01-PRO-5",
+      "releaseDate": "2026-11-01",
+      "changeCategory": "PATCH",
+      "title": "Party Cards UI Overhaul & Official Sky Ariana Brand Lockup",
+      "summary": "",
+      "featuresAdded": [
+        "Integrated official Sky Ariana brand lockup graphic in A4 BOL header with high-contrast Kufic Arabic and English typography",
+        "Redesigned Shipper, Consignee, and Notify Party cards with enlarged typography, dedicated phone and mail icons, and styled preset chips"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved Consignee header wrapping bug by enforcing flex-nowrap on card actions bar",
+        "Aligned all party card directory and autocomplete controls with high-visibility font weights"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.6-to-v5.5.7-2026.11.01-PRO-5",
+      "createdAt": "2026-11-01T22:02:08.779Z"
+    },
+    {
+      "previousVersion": "v5.5.7",
+      "newVersion": "v5.5.8",
+      "build": "2026.11.01-PRO-6",
+      "releaseDate": "2026-11-01",
+      "changeCategory": "PATCH",
+      "title": "Enhanced Bill of Lading Party Cards UI & Header Polish",
+      "summary": "",
+      "featuresAdded": [
+        "Modern unified party cards with themed color accents, streamlined directory actions, and Arrival Notice helper"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Header action wrap in Consignee card, redundant directory full-browse buttons, vertical card height imbalance"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.7-to-v5.5.8-2026.11.01-PRO-6",
+      "createdAt": "2026-11-01T22:19:06.309Z"
+    },
+    {
+      "previousVersion": "v5.5.8",
+      "newVersion": "v5.5.9",
+      "build": "2026.11.01-PRO-7",
+      "releaseDate": "2026-11-01",
+      "changeCategory": "PATCH",
+      "title": "International Multi-Modal Transit Routes (Mersin, Hamriya, Sohar, Jebel Ali)",
+      "summary": "",
+      "featuresAdded": [
+        "Multi-modal transit route presets for Mersin, Hamriya, Sohar, and Jebel Ali ports",
+        "Quick route modifier chips and port switcher in RoutePresetSelector"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Bi-directional formatting and port recognition in transit-route-parser"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.8-to-v5.5.9-2026.11.01-PRO-7",
+      "createdAt": "2026-11-01T23:48:14.143Z"
+    },
+    {
+      "previousVersion": "v5.5.9",
+      "newVersion": "v5.5.10",
+      "build": "2026.11.01-PRO-8",
+      "releaseDate": "2026-11-01",
+      "changeCategory": "PATCH",
+      "title": "Enlarge Sky Ariana Header Brand Lockup and Optimize Layout",
+      "summary": "",
+      "featuresAdded": [
+        "High-definition Sky Ariana brand identity lockup across screen, print, and PDF"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Enlarged centered brand lockup to 31mm and increased container min-height to 40mm to prevent text clipping"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.9-to-v5.5.10-2026.11.01-PRO-8",
+      "createdAt": "2026-11-02T00:03:54.155Z"
+    },
+    {
+      "previousVersion": "v5.5.10",
+      "newVersion": "v5.5.11",
+      "build": "2026.11.01-PRO-9",
+      "releaseDate": "2026-11-01",
+      "changeCategory": "PATCH",
+      "title": "Fix Consignee UI Card Header Overflow & Add Multi-Modal Presets",
+      "summary": "",
+      "featuresAdded": [
+        "Added international port presets (Nhava Sheva, Mersin, Hamriyah, Sohar) to Consignee card",
+        "Expanded address quick-append city chips with Turkey, UAE, Oman, and India hubs"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Consignee card header button clipping on right edge with compact h-7 single-row layout"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.10-to-v5.5.11-2026.11.01-PRO-9",
+      "createdAt": "2026-11-02T00:20:57.321Z"
+    },
+    {
+      "previousVersion": "v5.5.11",
+      "newVersion": "v5.5.12",
+      "build": "2026.11.02-PRO",
+      "releaseDate": "2026-11-02",
+      "changeCategory": "PATCH",
+      "title": "Fix Consignee and Party Cards Header UI Fit",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fit all 4 action buttons (Swap, Notify, Order, Clear) and section title in Consignee Card header on single row with no clipping"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.11-to-v5.5.12-2026.11.02-PRO",
+      "createdAt": "2026-11-02T13:28:00.606Z"
+    },
+    {
+      "previousVersion": "v5.5.12",
+      "newVersion": "v5.5.13",
+      "build": "2026.11.04-PRO",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "Refine Sky Ariana Logo Badge and Header Typography",
+      "summary": "",
+      "featuresAdded": [
+        "High-definition 1024x1024 circular emblem and tightly cropped brand lockup"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Edge-to-edge logo badge without halo and high-contrast registration details"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.12-to-v5.5.13-2026.11.04-PRO",
+      "createdAt": "2026-11-04T08:35:40.020Z"
+    },
+    {
+      "previousVersion": "v5.5.13",
+      "newVersion": "v5.5.14",
+      "build": "2026.11.04-PRO-2",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "A4 Preview Cargo Description Single-Row Fit & Spacing Polish",
+      "summary": "",
+      "featuresAdded": [
+        "Sleek single-row horizontal ribbon when only cargo metadata exists to guarantee single-page screen fit"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated redundant empty card space beneath meta chips and replaced invalid Tailwind spacing utilities with standard spacing"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.13-to-v5.5.14-2026.11.04-PRO-2",
+      "createdAt": "2026-11-04T08:41:27.235Z"
+    },
+    {
+      "previousVersion": "v5.5.14",
+      "newVersion": "v5.5.15",
+      "build": "2026.11.04-PRO-3",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "Shipper Directory UI & Data Healing",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced Party Directory Modal with Edit Drawer, missing info alerts, and copy actions"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Restored missing Rahmat Nazar Ltd address and prevented empty string overwrite in directory merge"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.14-to-v5.5.15-2026.11.04-PRO-3",
+      "createdAt": "2026-11-04T09:08:44.350Z"
+    },
+    {
+      "previousVersion": "v5.5.15",
+      "newVersion": "v5.6.0",
+      "build": "2026.11.04-PRO-4",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "MINOR",
+      "title": "Multi-Design Logo & Vintage Heritage Brand Selector",
+      "summary": "",
+      "featuresAdded": [
+        "BOL Settings Logo Design Gallery with Vintage Old Logo presets (horizontal and stacked), Modern 3D Metallic Gloss, Modern Flat Vector, and Circular Seal with Live A4 Preview"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Header logo lockup dynamic switching across BOL editor, live preview, print, and PDF exports"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.5.15-to-v5.6.0-2026.11.04-PRO-4",
+      "createdAt": "2026-11-04T09:12:21.487Z"
+    },
+    {
+      "previousVersion": "v5.6.0",
+      "newVersion": "v5.6.1",
+      "build": "2026.11.04-PRO-5",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "Vector-grade Sky Ariana branding upgrade and high-definition logo suite",
+      "summary": "",
+      "featuresAdded": [
+        "Regenerated mathematically perfected circular SKY emblem and high-DPI brand lockup"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated raster pixelation, uneven stroke widths, and compression halos in company header"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.6.0-to-v5.6.1-2026.11.04-PRO-5",
+      "createdAt": "2026-11-04T09:37:30.999Z"
+    },
+    {
+      "previousVersion": "v5.6.1",
+      "newVersion": "v5.6.2",
+      "build": "2026.11.04-PRO-6",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "Enhanced logo design presets and full-width gallery showcase in BOL Settings",
+      "summary": "",
+      "featuresAdded": [
+        "Replaced empty circular previews with full-width corporate logo lockups and true 3D chrome metallic design"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Corrected 3D metallic lockup URL mapping to prevent duplicate circular emblem on BOL header"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.6.1-to-v5.6.2-2026.11.04-PRO-6",
+      "createdAt": "2026-11-04T10:36:35.463Z"
+    },
+    {
+      "previousVersion": "v5.6.2",
+      "newVersion": "v5.6.3",
+      "build": "2026.11.04-PRO-7",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "BOL Settings Logo Design Suite Integration",
+      "summary": "",
+      "featuresAdded": [
+        "Expanded BOL Settings Logo & Branding gallery with authentic Modern Typography, Modern Flat Vector, 3D Chrome, and Full Heritage presets"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Dynamic filter pill counts and transparent rendering across live A4 previews and document headers"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.6.2-to-v5.6.3-2026.11.04-PRO-7",
+      "createdAt": "2026-11-04T11:31:21.099Z"
+    },
+    {
+      "previousVersion": "v5.6.3",
+      "newVersion": "v5.6.4",
+      "build": "2026.11.04-PRO-8",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "BOL Dynamic Auto-Adjusting Layout & PDF Download Optimization",
+      "summary": "",
+      "featuresAdded": [
+        "Adaptive content compaction for dense BOLs with 4+ route stops, smart pagination, and dynamic stamp scale bounding",
+        "High-speed 336+ DPI vector PDF rasterization using toSvg with 30s timeout cap and filter for print controls"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved vertical overcrowding and overlap between route stops, stamp chamber, and executive footer",
+        "Fixed stamp control pill floating into route cards and stamp image bleeding outside signature bounds"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.6.3-to-v5.6.4-2026.11.04-PRO-8",
+      "createdAt": "2026-11-04T11:57:50.466Z"
+    },
+    {
+      "previousVersion": "v5.6.4",
+      "newVersion": "v5.6.5",
+      "build": "2026.11.04-PRO-9",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "Added Founding Vintage Heritage (Since 2011) logo preset in BOL Settings",
+      "summary": "",
+      "featuresAdded": [
+        "Integrated classic 2011 Sky Ariana founding emblem, three-tier corporate typography lockup, and settings gallery card"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Synchronized all preset definitions, test assertions, and document header mappings"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.6.4-to-v5.6.5-2026.11.04-PRO-9",
+      "createdAt": "2026-11-04T12:06:57.661Z"
+    },
+    {
+      "previousVersion": "v5.6.5",
+      "newVersion": "v5.6.6",
+      "build": "2026.11.04-PRO-10",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "BOL Settings UI & Vintage Stacked Logo Improvements",
+      "summary": "",
+      "featuresAdded": [
+        "Fixed authentic vintage stacked logo asset and dynamic chamber preview",
+        "Expanded circular seals gallery with 3D Metallic and Gold Luxury presets",
+        "Elevated BOL Settings Center navigation tabs and filter badges"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved horizontal logo preview mismatch on Classic Vintage Stacked card"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.6.5-to-v5.6.6-2026.11.04-PRO-10",
+      "createdAt": "2026-11-04T14:11:18.972Z"
+    },
+    {
+      "previousVersion": "v5.6.6",
+      "newVersion": "v5.6.7",
+      "build": "2026.11.04-PRO-11",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "Saved BOL Search Engine & Responsive Toolbar Upgrade",
+      "summary": "",
+      "featuresAdded": [
+        "Redesigned Saved BOL toolbar into spacious two-tier responsive architecture preventing search input crushing",
+        "Added multi-token AND matching, BOL number normalization, and deep logistics indexing",
+        "Added Ctrl+K shortcut, live match counter, active search chip, and direct clear button"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved search input crushing on Saved BOL screen when viewing on desktop"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.6.6-to-v5.6.7-2026.11.04-PRO-11",
+      "createdAt": "2026-11-05T04:01:01.418Z"
+    },
+    {
+      "previousVersion": "v5.6.7",
+      "newVersion": "v5.7.0",
+      "build": "2026.11.04-PRO-12",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "MINOR",
+      "title": "Account Ledger Official Logo & Branding Gallery with BOL Sync",
+      "summary": "",
+      "featuresAdded": [
+        "Interactive Logo Presets Gallery with 10 design variants, 1-click Sync with BOL Logo, PDF Watermarks with opacity slider, and live A4 document header preview in Account Ledger"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced rudimentary manual text path inputs in Ledger Settings with modern visual gallery, fixed Modern Flat and 3D logo preview cards to display full brand lockups"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.6.7-to-v5.7.0-2026.11.04-PRO-12",
+      "createdAt": "2026-11-05T04:36:21.530Z"
+    },
+    {
+      "previousVersion": "v5.7.0",
+      "newVersion": "v5.7.1",
+      "build": "2026.11.04-PRO-13",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "Fix window restore freeze and background minimize lifecycle",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced window restore lifecycle with auto-recovery and power resume invalidation"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved window freezing when un-minimizing or reopening from system tray by disabling Chromium occlusion backgrounding and invalidating compositor swapchain"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.0-to-v5.7.1-2026.11.04-PRO-13",
+      "createdAt": "2026-11-05T04:40:30.506Z"
+    },
+    {
+      "previousVersion": "v5.7.1",
+      "newVersion": "v5.7.2",
+      "build": "2026.11.04-PRO-14",
+      "releaseDate": "2026-11-04",
+      "changeCategory": "PATCH",
+      "title": "Fix BOL Download PDF Product Name and Description Display",
+      "summary": "",
+      "featuresAdded": [
+        "Dynamic font calibration in No. of Packages preventing ellipsis truncation, and prominent Description of Goods cards display for all commodities"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved BLACK RAIS... ellipsis cutoff in No. of Packages column and fixed Description of Goods commodity filtering suppression in BOL PDF export"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.1-to-v5.7.2-2026.11.04-PRO-14",
+      "createdAt": "2026-11-05T07:25:35.254Z"
+    },
+    {
+      "previousVersion": "v5.7.2",
+      "newVersion": "v5.7.3",
+      "build": "2026.11.05-PRO",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "BOL A4 Preview Dynamic Content Auto-Fit & Density Optimization Engine",
+      "summary": "",
+      "featuresAdded": [
+        "Dynamic Content Auto-Fit Scaling Canvas inside A4 Preview with real-time DOM ResizeObserver",
+        "Multi-line party address & contact density scoring"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Bottom signature block clipping and overflow when adding dense BOL content"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.2-to-v5.7.3-2026.11.05-PRO",
+      "createdAt": "2026-11-05T08:34:02.171Z"
+    },
+    {
+      "previousVersion": "v5.7.3",
+      "newVersion": "v5.7.4",
+      "build": "2026.11.05-PRO-2",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "High-definition photographic logistics watermarks in BOL Settings",
+      "summary": "",
+      "featuresAdded": [
+        "Replaced 12 cartoonish vector backgrounds in BOL Settings with high-definition realistic photographic logistics watermarks (truck fleet convoys, intermodal freight rail, mountain passes, deep-sea container ships, harbor cranes at dawn, coastal freight, container port terminals, navigation beacons, and sunset anchorage)"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced crude vector illustrations in BOL settings watermark library with enterprise photographic security watermarks"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.3-to-v5.7.4-2026.11.05-PRO-2",
+      "createdAt": "2026-11-05T11:33:55.866Z"
+    },
+    {
+      "previousVersion": "v5.7.4",
+      "newVersion": "v5.7.5",
+      "build": "2026.11.05-PRO-3",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Upgrade BOL settings watermarks with HD photographic transport assets",
+      "summary": "",
+      "featuresAdded": [
+        "Replace 7 legacy vector blueprint watermarks with high-definition realistic photographic logistics watermarks"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.4-to-v5.7.5-2026.11.05-PRO-3",
+      "createdAt": "2026-11-05T11:42:19.627Z"
+    },
+    {
+      "previousVersion": "v5.7.5",
+      "newVersion": "v5.7.6",
+      "build": "2026.11.05-PRO-4",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Remove English transit details from WhatsApp shipment update",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Removed '🚛 *TRANSIT DETAILS / جزئیات ترانزیت:*' and English transit details from WhatsApp shipment update message, retaining only Persian transit route details"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.5-to-v5.7.6-2026.11.05-PRO-4",
+      "createdAt": "2026-11-05T11:59:23.839Z"
+    },
+    {
+      "previousVersion": "v5.7.6",
+      "newVersion": "v5.7.7",
+      "build": "2026.11.05-PRO-5",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "High-definition photographic logistics watermarks in BOL Settings",
+      "summary": "",
+      "featuresAdded": [
+        "Replaced 12 cartoonish vector backgrounds in BOL Settings with high-definition realistic photographic logistics watermarks (truck fleet convoys, intermodal freight rail, mountain passes, deep-sea container ships, harbor cranes at dawn, coastal freight, container port terminals, navigation beacons, and sunset anchorage)"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced crude vector illustrations in BOL settings watermark library with enterprise photographic security watermarks"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.6-to-v5.7.7-2026.11.05-PRO-5",
+      "createdAt": "2026-11-05T12:05:41.237Z"
+    },
+    {
+      "previousVersion": "v5.7.7",
+      "newVersion": "v5.7.8",
+      "build": "2026.11.05-PRO-6",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Fix Account Ledger Logo Designs & High-DPI Showcase Gallery",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Display complete horizontal corporate logo banners in Account Ledger settings dialog and synchronize header branding"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.7-to-v5.7.8-2026.11.05-PRO-6",
+      "createdAt": "2026-11-05T12:19:04.420Z"
+    },
+    {
+      "previousVersion": "v5.7.8",
+      "newVersion": "v5.7.9",
+      "build": "2026.11.05-PRO-7",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Banknote-Grade Intaglio Watermark Library Modernization",
+      "summary": "",
+      "featuresAdded": [
+        "Modernized 12 Mountain and Overland security watermark SVGs with bank-grade intaglio guilloche engravings and high-definition vectors"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced crude/neon vector placeholders across Alpine Dawn, Golden Summit, Silent Peaks, Silk Road, Border Crossing, and others with banknote security artwork"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.8-to-v5.7.9-2026.11.05-PRO-7",
+      "createdAt": "2026-11-05T13:09:09.167Z"
+    },
+    {
+      "previousVersion": "v5.7.9",
+      "newVersion": "v5.7.10",
+      "build": "2026.11.05-PRO-8",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Fix Cargo Freighter Jet Watermark Photo and Preview in BOL Settings",
+      "summary": "",
+      "featuresAdded": [
+        "Upgraded Cargo Freighter Jet with a high-resolution Sky Ariana branded wide-body aircraft in level flight with complete wings and tail, and perfected thumbnail presentation without distracting corner crop overlays"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved clipped wings, steep banking angle, and US test livery on Cargo Freighter Jet photo, and eliminated viewfinder crop bracket artifacts in BOL watermark settings"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.9-to-v5.7.10-2026.11.05-PRO-8",
+      "createdAt": "2026-11-05T13:15:59.643Z"
+    },
+    {
+      "previousVersion": "v5.7.10",
+      "newVersion": "v5.7.11",
+      "build": "2026.11.05-PRO-9",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Fix 3D Metallic and Gold Monogram Seals and Polish BOL Settings Center",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced BOL Settings Center gallery with radial glow framing and unclipped A4 live header preview"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Restored authentic SKY typography on 3D Metallic Blue Seal and Circular Gold Luxury Seal"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.10-to-v5.7.11-2026.11.05-PRO-9",
+      "createdAt": "2026-11-05T13:44:59.644Z"
+    },
+    {
+      "previousVersion": "v5.7.11",
+      "newVersion": "v5.7.12",
+      "build": "2026.11.05-PRO-10",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Night Air Dispatch Watermark High-Definition Upgrade",
+      "summary": "",
+      "featuresAdded": [
+        "Upgraded Night Air Dispatch watermark and login showcase with authentic high-resolution Boeing 747 freighter apron night loading photograph"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated distorted text and AI artifacts on Night Air Dispatch watermark"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.11-to-v5.7.12-2026.11.05-PRO-10",
+      "createdAt": "2026-11-05T14:26:13.269Z"
+    },
+    {
+      "previousVersion": "v5.7.12",
+      "newVersion": "v5.7.13",
+      "build": "2026.11.05-PRO-11",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Fix Product Name Ellipsis Truncation and Improve PDF Download Engine",
+      "summary": "",
+      "featuresAdded": [
+        "Upgraded PDF download engine with pre-rasterization font and image decoding readiness and higher fidelity compression"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved commodity product name truncation in cargo rows by calibrating font scaling"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.12-to-v5.7.13-2026.11.05-PRO-11",
+      "createdAt": "2026-11-05T15:43:05.025Z"
+    },
+    {
+      "previousVersion": "v5.7.13",
+      "newVersion": "v5.7.14",
+      "build": "2026.11.05-PRO-12",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Cargo Description Section Header & Transit Route Badge UI Polish",
+      "summary": "",
+      "featuresAdded": [
+        "Modernized Cargo Description section header with compact height, frosted icon tile, and sleek Transit Route glassmorphic micro-capsule"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Optimized section header vertical footprint, eliminated excessive height, and modernized bilingual typography"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.13-to-v5.7.14-2026.11.05-PRO-12",
+      "createdAt": "2026-11-05T15:47:50.963Z"
+    },
+    {
+      "previousVersion": "v5.7.14",
+      "newVersion": "v5.7.15",
+      "build": "2026.11.05-PRO-13",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Fix Notify Party Persian Subtitle to Render on a Single Line Without Hyphenation",
+      "summary": "",
+      "featuresAdded": [
+        "Removed hyphen break in Persian Notify Party label (طرف اطلاع رسانی) and enforced white-space nowrap in A4 preview and PDF export"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved two-line split (طرف اطلاع- / رسانی) in BOL PDF download and printed documents"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.14-to-v5.7.15-2026.11.05-PRO-13",
+      "createdAt": "2026-11-05T16:13:18.045Z"
+    },
+    {
+      "previousVersion": "v5.7.15",
+      "newVersion": "v5.7.16",
+      "build": "2026.11.05-PRO-14",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Side-by-Side 3-Column Edit Form Layout",
+      "summary": "",
+      "featuresAdded": [
+        "Split Route Stops, Cargo Specifications, and Live Shipment Intelligence into 3 responsive side-by-side columns"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved vertical stacking in BOL Edit form by aligning Route, Cargo Specs, and Shipment Intelligence side-by-side"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.15-to-v5.7.16-2026.11.05-PRO-14",
+      "createdAt": "2026-11-05T18:49:14.821Z"
+    },
+    {
+      "previousVersion": "v5.7.16",
+      "newVersion": "v5.7.17",
+      "build": "2026.11.05-PRO-15",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Make Autosave and Online Status Badges Icon-Only",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Converted Autosaved and Online status text badges in A4 Preview toolbar into sleek icon-only badges with tooltips"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.16-to-v5.7.17-2026.11.05-PRO-15",
+      "createdAt": "2026-11-05T19:12:07.203Z"
+    },
+    {
+      "previousVersion": "v5.7.17",
+      "newVersion": "v5.7.18",
+      "build": "2026.11.05-PRO-16",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Cargo Freighter Jet Watermark Anatomical Accuracy Fix",
+      "summary": "",
+      "featuresAdded": [
+        "Replaced Cargo Freighter Jet watermark with an authentic, aerodynamically accurate Boeing 777F widebody freighter in flight over sunset clouds"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Removed extra hallucinated wing from Cargo Freighter Jet watermark"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "FAILED",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.17-to-v5.7.18-2026.11.05-PRO-16",
+      "createdAt": "2026-11-05T19:24:09.156Z"
+    },
+    {
+      "previousVersion": "v5.7.18",
+      "newVersion": "v5.7.19",
+      "build": "2026.11.05-PRO-17",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Promote Cargo & Live Shipment Intelligence Above Route Stops",
+      "summary": "",
+      "featuresAdded": [
+        "Positioned Cargo & Live Shipment Intelligence Card directly below Notify Party for streamlined operational flow"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated need to scroll past 1,200+ lines of Route Stops to input cargo and weights"
+      ],
+      "changeTypes": [
+        "ui"
+      ],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.18-to-v5.7.19-2026.11.05-PRO-17",
+      "createdAt": "2026-11-05T19:34:28.662Z"
+    },
+    {
+      "previousVersion": "v5.7.19",
+      "newVersion": "v5.8.0",
+      "build": "2026.11.05-PRO-18",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "MINOR",
+      "title": "3-Column Side-by-Side BOL Editor Layout",
+      "summary": "",
+      "featuresAdded": [
+        "Split Route Stops, Cargo Details, and Live Shipment Intelligence into 3 responsive side-by-side columns",
+        "Integrated clean party name sanitization and party directory updates"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved vertical stacking in BOL Edit form by aligning Route, Cargo Specs, and Shipment Intelligence side-by-side"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.7.19-to-v5.8.0-2026.11.05-PRO-18",
+      "createdAt": "2026-11-05T19:48:14.999Z"
+    },
+    {
+      "previousVersion": "v5.8.0",
+      "newVersion": "v5.8.1",
+      "build": "2026.11.05-PRO-19",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Fix and Fit Route Stop Card UI Layout",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced fragmented route stop action buttons with single-line toolbar, aligned English and Persian location baselines, expanded transport mode pills to full width, and upgraded truck specifications grid to 2 balanced columns"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.0-to-v5.8.1-2026.11.05-PRO-19",
+      "createdAt": "2026-11-05T19:58:46.948Z"
+    },
+    {
+      "previousVersion": "v5.8.1",
+      "newVersion": "v5.8.2",
+      "build": "2026.11.05-PRO-20",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Cargo Freighter Jet Watermark Extra Wing Removal",
+      "summary": "",
+      "featuresAdded": [
+        "Replaced Cargo Freighter Jet watermark with an authentic, aerodynamically accurate Boeing 777F widebody freighter in flight over sunset clouds"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated extra hallucinated wing from Cargo Freighter Jet watermark"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "SUCCESS",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.1-to-v5.8.2-2026.11.05-PRO-20",
+      "createdAt": "2026-11-05T20:01:27.267Z"
+    },
+    {
+      "previousVersion": "v5.8.2",
+      "newVersion": "v5.8.3",
+      "build": "2026.11.05-PRO-21",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Single-Line Bilingual Issue Date Header",
+      "summary": "",
+      "featuresAdded": [
+        "Single-line inline bilingual header for Issue Date card in A4 Preview"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Aligned English and Persian issue date labels on a single line with clean divider slash"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.2-to-v5.8.3-2026.11.05-PRO-21",
+      "createdAt": "2026-11-06T05:45:18.919Z"
+    },
+    {
+      "previousVersion": "v5.8.3",
+      "newVersion": "v5.8.4",
+      "build": "2026.11.05-PRO-22",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Enlarge CargoRow Package Quantity and Commodity Typography",
+      "summary": "",
+      "featuresAdded": [
+        "Increased font size of package count and commodity subtitle in A4 preview CargoRow for optimal legibility"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved overly small package commodity and quantity typography in A4 print view"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.3-to-v5.8.4-2026.11.05-PRO-22",
+      "createdAt": "2026-11-06T05:50:59.047Z"
+    },
+    {
+      "previousVersion": "v5.8.4",
+      "newVersion": "v5.8.5",
+      "build": "2026.11.05-PRO-23",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Unify Truck Number Bilingual Header on Single Line",
+      "summary": "",
+      "featuresAdded": [
+        "Unified TRUCK NUMBER and Persian/Pashto labels into a single horizontal row"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved vertical card crunch in A4 preview by condensing truck header into one line"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.4-to-v5.8.5-2026.11.05-PRO-23",
+      "createdAt": "2026-11-06T05:53:15.940Z"
+    },
+    {
+      "previousVersion": "v5.8.5",
+      "newVersion": "v5.8.6",
+      "build": "2026.11.05-PRO-24",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Single-Line Driver & Overview Card Labels",
+      "summary": "",
+      "featuresAdded": [
+        "Harmonized Driver Name and Driver Rent card header labels into sleek single-line bilingual badges"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Aligned DRIVER NAME and نام راننده into a single horizontal row with elegant separator"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "FAILED",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.5-to-v5.8.6-2026.11.05-PRO-24",
+      "createdAt": "2026-11-06T06:02:23.453Z"
+    },
+    {
+      "previousVersion": "v5.8.6",
+      "newVersion": "v5.8.7",
+      "build": "2026.11.05-PRO-25",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Fix and fit route location dropdown popover",
+      "summary": "",
+      "featuresAdded": [
+        "Full card width route location recommendation popover"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated vertical letter-by-letter wrapping and narrow column clamping"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.6-to-v5.8.7-2026.11.05-PRO-25",
+      "createdAt": "2026-11-06T06:07:28.653Z"
+    },
+    {
+      "previousVersion": "v5.8.7",
+      "newVersion": "v5.8.8",
+      "build": "2026.11.05-PRO-26",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Watermark Toolbar Icon-Only Layout",
+      "summary": "",
+      "featuresAdded": [
+        "A4 Preview Toolbar Watermark button converted to compact square icon-only button"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Removed visible text and percentage badge from button face for a clean minimal toolbar"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.7-to-v5.8.8-2026.11.05-PRO-26",
+      "createdAt": "2026-11-06T06:10:48.324Z"
+    },
+    {
+      "previousVersion": "v5.8.8",
+      "newVersion": "v5.8.9",
+      "build": "2026.11.05-PRO-27",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "Fix full product name display in BOL PDF export",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Cargo package card commodity font size and inline scaling calibrated to prevent ellipsis cutoff for long product names"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.8-to-v5.8.9-2026.11.05-PRO-27",
+      "createdAt": "2026-11-06T06:12:45.701Z"
+    },
+    {
+      "previousVersion": "v5.8.9",
+      "newVersion": "v5.8.10",
+      "build": "2026.11.05-PRO-28",
+      "releaseDate": "2026-11-05",
+      "changeCategory": "PATCH",
+      "title": "BOL Driver Rent Card Single-Line Bilingual Header Alignment",
+      "summary": "",
+      "featuresAdded": [
+        "Re-aligned DRIVER RENT / کرایه راننده bilingual labels into a clean single-line header on A4 preview"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated vertical text stacking in Driver Rent card header to maintain optical balance with truck and date cards"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.9-to-v5.8.10-2026.11.05-PRO-28",
+      "createdAt": "2026-11-06T06:25:51.617Z"
+    },
+    {
+      "previousVersion": "v5.8.10",
+      "newVersion": "v5.8.11",
+      "build": "2026.11.06-PRO",
+      "releaseDate": "2026-11-06",
+      "changeCategory": "PATCH",
+      "title": "Fix Electron Minimize Freeze and Splash Stuck Issue",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent freeze and occlusion hang on window minimize and restore",
+        "Normalize packaged application URL to 127.0.0.1 and improve startup watchdog",
+        "Auto-recover Next.js server child process on exit",
+        "Single line layout for Driver Rent and automatic BOL A4 fit"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.10-to-v5.8.11-2026.11.06-PRO",
+      "createdAt": "2026-11-06T09:05:03.869Z"
+    },
+    {
+      "previousVersion": "v5.8.11",
+      "newVersion": "v5.8.12",
+      "build": "2026.11.06-PRO-2",
+      "releaseDate": "2026-11-06",
+      "changeCategory": "PATCH",
+      "title": "Route Preset Selector Fitted Adaptive UI & High-Density Mode",
+      "summary": "",
+      "featuresAdded": [
+        "Compact List mode for Route Preset Selector fitting 10+ routes on screen with sleek single-line rows",
+        "Single-row scrollable rail for 9 Border Station tabs and 6 Container Type filters preventing wrapping",
+        "Collapsible and categorized quick shortcuts bar with 1-click toggle between routes and modifiers"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fixed vertical shortcut button tower and cramped 2-column card wrapping in narrow containers"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.11-to-v5.8.12-2026.11.06-PRO-2",
+      "createdAt": "2026-11-06T11:03:18.260Z"
+    },
+    {
+      "previousVersion": "v5.8.12",
+      "newVersion": "v5.8.13",
+      "build": "2026.11.06-PRO-3",
+      "releaseDate": "2026-11-06",
+      "changeCategory": "PATCH",
+      "title": "Fix and improve Route Location suggestion dropdown and card layout",
+      "summary": "",
+      "featuresAdded": [
+        "Responsive auto-filling location card grid with minimum width, single-row horizontally scrollable country filter strip, fixed-header single scroll container, and break-normal typography"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Squished location cards, character-by-character vertical text breaking, nested double scrollbars, filter chips wrapping into multiple rows"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.12-to-v5.8.13-2026.11.06-PRO-3",
+      "createdAt": "2026-11-06T12:14:14.216Z"
+    },
+    {
+      "previousVersion": "v5.8.13",
+      "newVersion": "v5.8.14",
+      "build": "2026.11.06-PRO-4",
+      "releaseDate": "2026-11-06",
+      "changeCategory": "PATCH",
+      "title": "Disable Smart Recommendations popover in Transit Stop fields",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Suppress floating Smart Recommendations popover in Transit Stop inputs so users rely exclusively on the built-in Suggested Locations catalog; isolate cross-category party pooling"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.13-to-v5.8.14-2026.11.06-PRO-4",
+      "createdAt": "2026-11-06T14:48:34.195Z"
+    },
+    {
+      "previousVersion": "v5.8.14",
+      "newVersion": "v5.8.15",
+      "build": "2026.11.06-PRO-5",
+      "releaseDate": "2026-11-06",
+      "changeCategory": "PATCH",
+      "title": "Copy WhatsApp Dropdown & Message Formatting Improvements",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced WhatsApp menu with badges, bilingual subtitles, and direct 1-click contact sending",
+        "Enriched WhatsApp templates with transit date, gross weight, and driver rent"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.14-to-v5.8.15-2026.11.06-PRO-5",
+      "createdAt": "2026-11-06T15:03:47.580Z"
+    },
+    {
+      "previousVersion": "v5.8.15",
+      "newVersion": "v5.8.16",
+      "build": "2026.11.06-PRO-6",
+      "releaseDate": "2026-11-06",
+      "changeCategory": "PATCH",
+      "title": "Fix location popover off-screen clipping and align perfectly within route stop card",
+      "summary": "",
+      "featuresAdded": [
+        "Full-width inset-x-0 containment, mobile-responsive stacked header, and single-row horizontal scrolling country chips in both popover and catalog"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Popover expanding off the left edge of the screen, chopped-off titles and filter chips, catalog multi-row wrapping"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "PENDING",
+        "tests": "PENDING",
+        "build": "PENDING",
+        "overall": "PENDING"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.15-to-v5.8.16-2026.11.06-PRO-6",
+      "createdAt": "2026-11-06T15:18:23.185Z"
+    },
+    {
+      "previousVersion": "v5.8.16",
+      "newVersion": "v5.8.17",
+      "build": "2026.11.06-PRO-7",
+      "releaseDate": "2026-11-06",
+      "changeCategory": "PATCH",
+      "title": "Route Preset Selector Responsive Fitted Layout",
+      "summary": "",
+      "featuresAdded": [
+        "Fitted multi-row wrapping for quick shortcuts & container filter pills"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent horizontal overflow clipping of modifier buttons in RTL mode"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.16-to-v5.8.17-2026.11.06-PRO-7",
+      "createdAt": "2026-11-06T15:38:16.674Z"
+    },
+    {
+      "previousVersion": "v5.8.17",
+      "newVersion": "v5.8.18",
+      "build": "2026.11.06-PRO-8",
+      "releaseDate": "2026-11-06",
+      "changeCategory": "PATCH",
+      "title": "Bilingual WhatsApp Driver Rent",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Include driver rent in bilingual WhatsApp shipment messages"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.17-to-v5.8.18-2026.11.06-PRO-8",
+      "createdAt": "2026-11-06T18:31:44.557Z"
+    },
+    {
+      "previousVersion": "v5.8.18",
+      "newVersion": "v5.8.19",
+      "build": "2026.11.07-PRO",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Centered Invoice and Transit Details",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Show invoice number and transit date centered in red on Shipment Information"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.18-to-v5.8.19-2026.11.07-PRO",
+      "createdAt": "2026-11-07T09:45:21.205Z"
+    },
+    {
+      "previousVersion": "v5.8.19",
+      "newVersion": "v5.8.20",
+      "build": "2026.11.07-PRO-2",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Shipment Header Detail Styling",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Increase and refine the centered red invoice and transit date text"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.19-to-v5.8.20-2026.11.07-PRO-2",
+      "createdAt": "2026-11-07T10:11:58.753Z"
+    },
+    {
+      "previousVersion": "v5.8.20",
+      "newVersion": "v5.8.21",
+      "build": "2026.11.07-PRO-3",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Shipment Information Header Styling",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Enlarge invoice and transit date text with white labels and red values"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.20-to-v5.8.21-2026.11.07-PRO-3",
+      "createdAt": "2026-11-07T10:40:42.375Z"
+    },
+    {
+      "previousVersion": "v5.8.21",
+      "newVersion": "v5.8.22",
+      "build": "2026.11.07-PRO-4",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Remove Duplicate Sky Ariana Emblem",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Show the Sky Ariana logo lockup once in the BOL header"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.21-to-v5.8.22-2026.11.07-PRO-4",
+      "createdAt": "2026-11-07T11:12:36.595Z"
+    },
+    {
+      "previousVersion": "v5.8.22",
+      "newVersion": "v5.8.23",
+      "build": "2026.11.07-PRO-5",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Improve BOL PDF Download Quality",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent invoice and transit date overlap and use lossless 384 DPI PDF page captures"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.22-to-v5.8.23-2026.11.07-PRO-5",
+      "createdAt": "2026-11-07T11:42:35.950Z"
+    },
+    {
+      "previousVersion": "v5.8.23",
+      "newVersion": "v5.8.24",
+      "build": "2026.11.07-PRO-6",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Restore BOL Header Logo",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Show the circular Sky Ariana emblem in the BOL header and use the correct logo fallback asset"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.23-to-v5.8.24-2026.11.07-PRO-6",
+      "createdAt": "2026-11-07T12:25:01.019Z"
+    },
+    {
+      "previousVersion": "v5.8.24",
+      "newVersion": "v5.8.25",
+      "build": "2026.11.07-PRO-7",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Enlarge BOL Cargo Package Text",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Slightly enlarge package quantities and commodity names while preserving compact card fitting"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.24-to-v5.8.25-2026.11.07-PRO-7",
+      "createdAt": "2026-11-07T12:42:20.460Z"
+    },
+    {
+      "previousVersion": "v5.8.25",
+      "newVersion": "v5.8.26",
+      "build": "2026.11.07-PRO-8",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Improve BOL Product Name Readability",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Enlarge cargo product names and relax letter spacing to make commodity labels clearer"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.25-to-v5.8.26-2026.11.07-PRO-8",
+      "createdAt": "2026-11-07T13:27:26.321Z"
+    },
+    {
+      "previousVersion": "v5.8.26",
+      "newVersion": "v5.8.27",
+      "build": "2026.11.07-PRO-9",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Project Cleanup, Disk Reclamation and Watermark Polish",
+      "summary": "",
+      "featuresAdded": [
+        "Reclaimed 25.46 GB disk space by removing obsolete build caches and archiving legacy workspaces",
+        "Cleaned project root from 246 scattered files down to 23 canonical files",
+        "Categorized 22 documentation files into docs subdirectories with master index",
+        "Organized maintenance, debug, and benchmark scripts into dedicated modules"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced Airport Cargo Ramp Night watermark with authentic widebody Boeing freighter",
+        "Corrected mojibake and auto-calculation badges in Section 05 Live Shipment Intelligence"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.26-to-v5.8.27-2026.11.07-PRO-9",
+      "createdAt": "2026-11-07T13:35:42.254Z"
+    },
+    {
+      "previousVersion": "v5.8.27",
+      "newVersion": "v5.8.28",
+      "build": "2026.11.07-PRO-10",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Center transit date and invoice number in red on A4 preview shipment header",
+      "summary": "",
+      "featuresAdded": [
+        "Centered red transit date and invoice number in A4 preview Shipment Information header"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Display transit date and invoice number in red with multi-field fallbacks"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.27-to-v5.8.28-2026.11.07-PRO-10",
+      "createdAt": "2026-11-07T14:07:16.210Z"
+    },
+    {
+      "previousVersion": "v5.8.28",
+      "newVersion": "v5.8.29",
+      "build": "2026.11.07-PRO-11",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Refine A4 preview transit date and invoice header into executive badge capsule",
+      "summary": "",
+      "featuresAdded": [
+        "Refined A4 preview Shipment Information header badge with high-contrast red typography and micro-icons"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replace raw oversized red header text with balanced executive badge capsule"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.28-to-v5.8.29-2026.11.07-PRO-11",
+      "createdAt": "2026-11-07T18:05:04.265Z"
+    },
+    {
+      "previousVersion": "v5.8.29",
+      "newVersion": "v5.8.30",
+      "build": "2026.11.07-PRO-12",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Fix dead-code duplicate else-if branches in WhatsApp formatter",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Remove three unreachable duplicate else-if branches (aqina, sher khan, torkham) in bol-whatsapp-formatter.ts that caused ESLint no-dupe-else-if errors (lint was blocking at 3 errors)"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.29-to-v5.8.30-2026.11.07-PRO-12",
+      "createdAt": "2026-11-07T18:44:24.573Z"
+    },
+    {
+      "previousVersion": "v5.8.30",
+      "newVersion": "v5.8.31",
+      "build": "2026.11.07-PRO-13",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Enlarge Transit Date and Invoice No badge UI in A4 preview",
+      "summary": "",
+      "featuresAdded": [
+        "Redesigned Transit Date and Invoice No badge with executive rounded-full pill, enlarged icons (h-4.5 w-4.5 on screen), 50% larger labels (10pt), and 60% larger bold values (12-13pt) for immediate high-contrast visibility while preserving strict PDF print invariance"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.30-to-v5.8.31-2026.11.07-PRO-13",
+      "createdAt": "2026-11-07T19:23:42.547Z"
+    },
+    {
+      "previousVersion": "v5.8.31",
+      "newVersion": "v5.8.32",
+      "build": "2026.11.07-PRO-14",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Quick Location Selector UI Fit & Alignment Polish",
+      "summary": "",
+      "featuresAdded": [
+        "Enforced uniform h-8 height, single-line whitespace-nowrap, and smooth horizontal scrolling across all regional country tabs",
+        "Polished Quick Location Cards with clean icon/flag badge pills, symmetrical bilingual Persian/English alignment, and uniform action buttons",
+        "Enhanced search header with search icon, clear button, and bidirectional punctuation isolation"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated jagged 4-line tab wrapping and awkward floating text on Windows systems"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.31-to-v5.8.32-2026.11.07-PRO-14",
+      "createdAt": "2026-11-07T19:29:53.141Z"
+    },
+    {
+      "previousVersion": "v5.8.32",
+      "newVersion": "v5.8.33",
+      "build": "2026.11.07-PRO-15",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "A4 Preview Issue Date Bilingual Header Fitting",
+      "summary": "",
+      "featuresAdded": [
+        "Rebalanced ShipmentOverview grid ratios with tight tracking"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent ISSUE DATE / تاریخ صدور horizontal clipping on both boundaries"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.32-to-v5.8.33-2026.11.07-PRO-15",
+      "createdAt": "2026-11-07T19:31:40.627Z"
+    },
+    {
+      "previousVersion": "v5.8.33",
+      "newVersion": "v5.8.34",
+      "build": "2026.11.07-PRO-16",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Fix BOL download PDF product name truncation and improve package commodity styling",
+      "summary": "",
+      "featuresAdded": [
+        "Added crisp executive commodity pill styling with subtle border and dark contrast typography in A4 Preview package column"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Calibrated font sizing tiers for PDF mode and screen mode to ensure product names like BLACK RAISINS are never cut off with ellipsis"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.33-to-v5.8.34-2026.11.07-PRO-16",
+      "createdAt": "2026-11-07T19:34:27.248Z"
+    },
+    {
+      "previousVersion": "v5.8.34",
+      "newVersion": "v5.8.35",
+      "build": "2026.11.07-PRO-17",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Fix and Fit Route Preset and Cargo Presets UI",
+      "summary": "",
+      "featuresAdded": [
+        "Fitted 2-tier compact route list with bidi-safe destination typography and dynamic transit ports",
+        "Container type filter bar upgraded to single-row scrollable rail",
+        "1-Click Cargo Commodity Presets redesigned as responsive interactive card grid"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.34-to-v5.8.35-2026.11.07-PRO-17",
+      "createdAt": "2026-11-07T19:46:19.215Z"
+    },
+    {
+      "previousVersion": "v5.8.35",
+      "newVersion": "v5.8.36",
+      "build": "2026.11.07-PRO-18",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Route Preset Selector Filter Toolbar Layout & View Mode Fit",
+      "summary": "",
+      "featuresAdded": [
+        "Dedicated full-width Station Tabs rail and fluid search/view mode row"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent View Mode Toggle and Search input horizontal overflow past card boundary in multi-column dashboards"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.35-to-v5.8.36-2026.11.07-PRO-18",
+      "createdAt": "2026-11-07T20:14:52.418Z"
+    },
+    {
+      "previousVersion": "v5.8.36",
+      "newVersion": "v5.8.37",
+      "build": "2026.11.07-PRO-19",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Fix Consignee, Shipper & Notify Party Header UI Fit",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [
+        "Responsive title and action button spacing in Card 02, 03, and 04 with generous corner radius margin"
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent right-edge button overflow and clipping in Consignee, Shipper, and Notify Party card headers across all desktop and laptop viewport widths"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.36-to-v5.8.37-2026.11.07-PRO-19",
+      "createdAt": "2026-11-07T20:15:14.851Z"
+    },
+    {
+      "previousVersion": "v5.8.37",
+      "newVersion": "v5.8.38",
+      "build": "2026.11.07-PRO-20",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Enlarge Shipment Overview Header Typography",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged font scaling across Issue Date, Truck Number, Driver Name, and Driver Rent card headers"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Improved visual prominence and readability of bilingual overview card headers on A4 print and preview"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.37-to-v5.8.38-2026.11.07-PRO-20",
+      "createdAt": "2026-11-07T20:24:34.165Z"
+    },
+    {
+      "previousVersion": "v5.8.38",
+      "newVersion": "v5.8.39",
+      "build": "2026.11.07-PRO-21",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Fix and polish route timeline cards UI and typography",
+      "summary": "",
+      "featuresAdded": [
+        "Clean single-label country badges and frosted icon header in Route Timeline"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved redundant country code duplication like AF AFGHANISTAN and IN INDIA, microscopic badge fonts, Persian text contrast, and mode pill edge collision"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.38-to-v5.8.39-2026.11.07-PRO-21",
+      "createdAt": "2026-11-07T20:25:18.965Z"
+    },
+    {
+      "previousVersion": "v5.8.39",
+      "newVersion": "v5.8.40",
+      "build": "2026.11.07-PRO-22",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Fix BOL Download PDF Product Name Truncation & Quality",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced PDF download image fidelity with MEDIUM compression"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Commodity product names like BLACK RAISINS display fully in CargoRow without ellipsis cutoff"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.39-to-v5.8.40-2026.11.07-PRO-22",
+      "createdAt": "2026-11-07T20:34:20.555Z"
+    },
+    {
+      "previousVersion": "v5.8.40",
+      "newVersion": "v5.8.41",
+      "build": "2026.11.07-PRO-23",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "BOL Settings Center Sub-Tab Responsive Wrapping Layout",
+      "summary": "",
+      "featuresAdded": [
+        "Responsive flex-wrap navigation strip with executive pill styling for document configuration tabs"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent clipping of PDF & Print, Defaults, and Backup tabs across split and compact views"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.40-to-v5.8.41-2026.11.07-PRO-23",
+      "createdAt": "2026-11-07T20:34:36.579Z"
+    },
+    {
+      "previousVersion": "v5.8.41",
+      "newVersion": "v5.8.42",
+      "build": "2026.11.07-PRO-24",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Display Only Invoice Number in A4 Preview Header Badge",
+      "summary": "",
+      "featuresAdded": [
+        "Direct invoice number display in shipment overview header badge"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Removed redundant INVOICE NO: label and receipt icon from header capsule, displaying only the invoice number (e.g. INV-036)"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.41-to-v5.8.42-2026.11.07-PRO-24",
+      "createdAt": "2026-11-07T20:35:13.540Z"
+    },
+    {
+      "previousVersion": "v5.8.42",
+      "newVersion": "v5.8.43",
+      "build": "2026.11.07-PRO-25",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Fix BOL Download PDF layout and typography to match A4 Preview",
+      "summary": "",
+      "featuresAdded": [
+        "Fixed BOL Download PDF layout to strictly match A4 Preview: enlarged Transit Date and Invoice No typography in PDF mode, added explicit margin spacing between icons, labels, and values to eliminate text jamming in PDF rasterization, and connected shipmentHeaderDetails to section headers across both single and multi-page layouts"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.42-to-v5.8.43-2026.11.07-PRO-25",
+      "createdAt": "2026-11-07T20:35:42.741Z"
+    },
+    {
+      "previousVersion": "v5.8.43",
+      "newVersion": "v5.8.44",
+      "build": "2026.11.07-PRO-26",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Enlarge Shipment Overview Header Typography",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged font scaling across Issue Date, Truck Number, Driver Name, and Driver Rent card headers"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Improved visual prominence and readability of bilingual overview card headers on A4 print and preview"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.43-to-v5.8.44-2026.11.07-PRO-26",
+      "createdAt": "2026-11-07T20:41:24.016Z"
+    },
+    {
+      "previousVersion": "v5.8.44",
+      "newVersion": "v5.8.45",
+      "build": "2026.11.07-PRO-27",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Unify Description of Goods metadata and item cards into single line",
+      "summary": "",
+      "featuresAdded": [
+        "Side-by-side single-line layout for Description of Goods rendering transit date, invoice, and cargo description in one continuous row"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevent Description of Goods single-item cards from breaking onto an unnecessary second row"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.44-to-v5.8.45-2026.11.07-PRO-27",
+      "createdAt": "2026-11-08T05:54:16.107Z"
+    },
+    {
+      "previousVersion": "v5.8.45",
+      "newVersion": "v5.8.46",
+      "build": "2026.11.07-PRO-28",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Refine Shipment Information header invoice label and multi-source fallbacks",
+      "summary": "",
+      "featuresAdded": [
+        "Added Receipt icon and INVOICE NO label along with regex transit/invoice fallbacks from cargo description"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Preserve invoice label display and enhance fallback extraction in A4 preview"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.45-to-v5.8.46-2026.11.07-PRO-28",
+      "createdAt": "2026-11-08T06:15:04.777Z"
+    },
+    {
+      "previousVersion": "v5.8.46",
+      "newVersion": "v5.8.47",
+      "build": "2026.11.07-PRO-29",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Restore Transit Date and Invoice No in Shipment Information Header",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Restored multi-source extraction for Transit Date and Invoice No across cargo description, route notes, remarks, and dedicated fields with issue date fallback, and rendered both TRANSIT DATE: and INVOICE NO: labels with high-contrast red typography and micro-icons across screen preview and PDF export"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.46-to-v5.8.47-2026.11.07-PRO-29",
+      "createdAt": "2026-11-08T06:17:58.063Z"
+    },
+    {
+      "previousVersion": "v5.8.47",
+      "newVersion": "v5.8.48",
+      "build": "2026.11.07-PRO-30",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Improve WhatsApp message center layout",
+      "summary": "",
+      "featuresAdded": [
+        "Improved responsive layout, recipient selection, and message editing in the WhatsApp Message Center"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevented dialog header controls and message actions from feeling cramped across viewport sizes"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.47-to-v5.8.48-2026.11.07-PRO-30",
+      "createdAt": "2026-11-08T06:24:05.390Z"
+    },
+    {
+      "previousVersion": "v5.8.48",
+      "newVersion": "v5.8.49",
+      "build": "2026.11.07-PRO-31",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Display invoice number as pure value INV-036 in Shipment Information header",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Refined Shipment Information header badge to display only the raw invoice number value (e.g. INV-036) without the INVOICE NO: text label or receipt icon, while preserving TRANSIT DATE and high-contrast typography"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.48-to-v5.8.49-2026.11.07-PRO-31",
+      "createdAt": "2026-11-08T06:29:05.548Z"
+    },
+    {
+      "previousVersion": "v5.8.49",
+      "newVersion": "v5.8.50",
+      "build": "2026.11.07-PRO-32",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Refine and Fit Transit Date & Invoice Header Badge",
+      "summary": "",
+      "featuresAdded": [
+        "Proportionally scaled typography and fitted height for the center Transit Date and Invoice capsule in Shipment Information header"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Prevented badge from overflowing or touching blue header bar borders and eliminated serifed monospace font fallback on Windows"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.49-to-v5.8.50-2026.11.07-PRO-32",
+      "createdAt": "2026-11-08T06:31:01.496Z"
+    },
+    {
+      "previousVersion": "v5.8.50",
+      "newVersion": "v5.8.51",
+      "build": "2026.11.07-PRO-33",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Refine A4 Preview Typography and Single-Line Goods Flow",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged package quantity badge and calibrated commodity font scale"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Commodity name half-cut in PDF download and multi-line goods description wrapping"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.50-to-v5.8.51-2026.11.07-PRO-33",
+      "createdAt": "2026-11-08T06:31:45.481Z"
+    },
+    {
+      "previousVersion": "v5.8.51",
+      "newVersion": "v5.8.52",
+      "build": "2026.11.07-PRO-34",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Enlarge Cargo Row Quantity and Commodity Typography",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced readability with 20pt/17pt/14pt package quantity and scaled commodity font"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Further enlarged commodity and quantity font rendering in A4 Preview"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.51-to-v5.8.52-2026.11.07-PRO-34",
+      "createdAt": "2026-11-08T06:48:57.735Z"
+    },
+    {
+      "previousVersion": "v5.8.52",
+      "newVersion": "v5.8.53",
+      "build": "2026.11.07-PRO-35",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Enlarge Cargo Row package quantity and commodity text",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged Cargo Row package quantity up to 20pt and commodity subtitle up to 12pt for high-contrast prominent visibility in A4 preview and PDF export"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.52-to-v5.8.53-2026.11.07-PRO-35",
+      "createdAt": "2026-11-08T06:50:42.435Z"
+    },
+    {
+      "previousVersion": "v5.8.53",
+      "newVersion": "v5.8.54",
+      "build": "2026.11.07-PRO-36",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Enlarge Cargo Row Quantity and Commodity Typography",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced readability with 20pt/17pt/14pt package quantity and scaled commodity font"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Further enlarged commodity and quantity font rendering in A4 Preview"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.53-to-v5.8.54-2026.11.07-PRO-36",
+      "createdAt": "2026-11-08T06:52:43.355Z"
+    },
+    {
+      "previousVersion": "v5.8.54",
+      "newVersion": "v5.8.55",
+      "build": "2026.11.07-PRO-37",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Fix Cargo Row packaging and commodity text in PDF download",
+      "summary": "",
+      "featuresAdded": [
+        "Calibrate Cargo Row font sizing to prevent ellipsis truncation of commodity names like BLACK RAISINS and enforce explicit sans-serif typography in PDF download"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.54-to-v5.8.55-2026.11.07-PRO-37",
+      "createdAt": "2026-11-08T07:30:49.682Z"
+    },
+    {
+      "previousVersion": "v5.8.55",
+      "newVersion": "v5.8.56",
+      "build": "2026.11.07-PRO-38",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Enlarge and Improve BOL Page 2 Continuation QR Code",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced Page 2 continuation sheet header with enlarged 14.5mm-17.5mm scannable QR verification badge"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved microscopic unreadable 18px-20px QR code on BOL continuation sheet (Page 2)"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.55-to-v5.8.56-2026.11.07-PRO-38",
+      "createdAt": "2026-11-08T07:35:49.561Z"
+    },
+    {
+      "previousVersion": "v5.8.56",
+      "newVersion": "v5.8.57",
+      "build": "2026.11.07-PRO-39",
+      "releaseDate": "2026-11-07",
+      "changeCategory": "PATCH",
+      "title": "Enlarge Transit Date and Invoice badge typography and enforce sans-serif",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged Transit Date and Invoice header text with bold typography, improved badge spacing, and enforced clean sans-serif font family in PDF download"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.56-to-v5.8.57-2026.11.07-PRO-39",
+      "createdAt": "2026-11-08T07:57:47.139Z"
+    },
+    {
+      "previousVersion": "v5.8.57",
+      "newVersion": "v5.8.58",
+      "build": "2026.11.08-PRO",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Improve LAN Server and Central Node settings UI",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged typography, bilingual Persian labels, prominent inputs, and refined contrast across LAN Server settings"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.57-to-v5.8.58-2026.11.08-PRO",
+      "createdAt": "2026-11-08T08:26:27.163Z"
+    },
+    {
+      "previousVersion": "v5.8.58",
+      "newVersion": "v5.8.59",
+      "build": "2026.11.08-PRO-2",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Redesign Server Database Backups & Migration Card",
+      "summary": "",
+      "featuresAdded": [
+        "Redesigned Server Database Backups card with executive sans typography, storage vault path pill with copy and open folder shortcuts, live refresh action, and backup download/delete controls"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced unstyled plain backup card and empty state with executive Sky Ariana design system components, interactive path pill, and loading spinners"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.58-to-v5.8.59-2026.11.08-PRO-2",
+      "createdAt": "2026-11-08T08:46:10.234Z"
+    },
+    {
+      "previousVersion": "v5.8.59",
+      "newVersion": "v5.8.60",
+      "build": "2026.11.08-PRO-3",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Elevate LAN Server Architecture & Pairing UI in Settings",
+      "summary": "",
+      "featuresAdded": [
+        "Modernized Office LAN Server mode switcher, executive KPI summary cards, and device pairing interface"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced bare wireframe settings layout with polished enterprise networking cards and empty states"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.59-to-v5.8.60-2026.11.08-PRO-3",
+      "createdAt": "2026-11-08T08:51:31.183Z"
+    },
+    {
+      "previousVersion": "v5.8.60",
+      "newVersion": "v5.9.0",
+      "build": "2026.11.08-PRO-4",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "MINOR",
+      "title": "Fix Watermark Previews and Expand Background Gallery",
+      "summary": "",
+      "featuresAdded": [
+        "Fixed XML parsing in Above the Clouds, Contour Map, Trade Network, and Harbor Morning; updated Above the Clouds with authentic freighter jet artwork; expanded catalog with 16 new vector and photographic watermark presets"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved 'Preview Unavailable' in background gallery due to unescaped XML ampersand entities"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.8.60-to-v5.9.0-2026.11.08-PRO-4",
+      "createdAt": "2026-11-08T09:16:38.349Z"
+    },
+    {
+      "previousVersion": "v5.9.0",
+      "newVersion": "v5.9.1",
+      "build": "2026.11.08-PRO-5",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Make Saved Documents Summary KPI Cards Height Compact",
+      "summary": "",
+      "featuresAdded": [
+        "Streamlined Saved Documents summary KPI analytics cards with compact vertical padding and tighter line heights"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Reduced excessive card height across Total BOLs, Packages, Total Weight, and Goods Value cards while preserving full bilingual metadata"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.9.0-to-v5.9.1-2026.11.08-PRO-5",
+      "createdAt": "2026-11-08T09:28:26.325Z"
+    },
+    {
+      "previousVersion": "v5.9.1",
+      "newVersion": "v5.10.0",
+      "build": "2026.11.08-PRO-6",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "MINOR",
+      "title": "Desktop Background & Tray Service System & UI Enhancement",
+      "summary": "",
+      "featuresAdded": [
+        "Added background runtime diagnostics, test notification balloon bridge, live telemetry drawer, and executive interactive toggle cards"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Modernized desktop tray settings with high-contrast KPI pillars, active state border lighting, and fixed buildNumber type access"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "FAILED",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.9.1-to-v5.10.0-2026.11.08-PRO-6",
+      "createdAt": "2026-11-08T09:41:18.183Z"
+    },
+    {
+      "previousVersion": "v5.10.0",
+      "newVersion": "v5.11.0",
+      "build": "2026.11.08-PRO-7",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "MINOR",
+      "title": "Add 10 distinct viewing modes and responsive view switcher to Saved BOLs",
+      "summary": "",
+      "featuresAdded": [
+        "10 comprehensive viewing options for Saved Bills of Lading: Grid Cards, Detailed List, Master Table, Ultra-Dense Rows, Kanban Pipeline, Chronological Timeline, Financial & Invoicing Ledger, Route & Border Stations, Document Showcase Gallery, and Executive Operations Matrix"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.10.0-to-v5.11.0-2026.11.08-PRO-7",
+      "createdAt": "2026-11-08T09:45:06.767Z"
+    },
+    {
+      "previousVersion": "v5.11.0",
+      "newVersion": "v5.12.0",
+      "build": "2026.11.08-PRO-8",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "MINOR",
+      "title": "Multi-Device Cloud Sync and Enterprise Backup Hub Upgrade",
+      "summary": "",
+      "featuresAdded": [
+        "Dynamic enterprise safe storage quota tier replacing obsolete 5 MB limit",
+        "Segmented visual storage breakdown bar for BOLs, ledgers, accounts, and invoices",
+        "Real-time accounting invariance verification (Net = Debit - Credit)",
+        "Hardened multi-table JSON export with timestamp tracking",
+        "Automated pre-restore emergency snapshot with one-click undo rollback"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Stale hardcoded 58 BOLs in Live Cloud Sync card replaced with dynamic live count",
+        "Storage progress bar pegged at 100% false alarm resolved"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.11.0-to-v5.12.0-2026.11.08-PRO-8",
+      "createdAt": "2026-11-08T09:48:17.311Z"
+    },
+    {
+      "previousVersion": "v5.12.0",
+      "newVersion": "v5.13.0",
+      "build": "2026.11.08-PRO-9",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "MINOR",
+      "title": "Desktop Background & Tray Service System and UI Modernization",
+      "summary": "",
+      "featuresAdded": [
+        "Added background runtime diagnostics, test notification balloon bridge, live telemetry drawer, and executive interactive toggle cards"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Modernized desktop tray settings with high-contrast KPI pillars, active state border lighting, and fixed buildNumber type access"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.12.0-to-v5.13.0-2026.11.08-PRO-9",
+      "createdAt": "2026-11-08T09:55:04.395Z"
+    },
+    {
+      "previousVersion": "v5.13.0",
+      "newVersion": "v5.13.1",
+      "build": "2026.11.08-PRO-10",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Fix and fit Saved BOL 10-type view switcher and dropdown layout",
+      "summary": "",
+      "featuresAdded": [
+        "Streamlined single-pill view switcher, overflow-safe dropdown positioning, clean scrollbar styling, and improved responsive toolbar fitting"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.13.0-to-v5.13.1-2026.11.08-PRO-10",
+      "createdAt": "2026-11-08T10:01:34.827Z"
+    },
+    {
+      "previousVersion": "v5.13.1",
+      "newVersion": "v5.13.2",
+      "build": "2026.11.08-PRO-11",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Polish Saved BOL Reports Header, Glassmorphic KPI Ribbon & Two-Tier Toolbar",
+      "summary": "",
+      "featuresAdded": [
+        "Executive report header with bilingual subtitle, Official Manifest badge, and metadata pills",
+        "Five glassmorphic KPI micro-cards with Lucide icon accents and Dari/Pashto labels",
+        "Streamlined two-tier toolbar separating batch selection/quick filters from view controls and export suite"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "BiDi text overlap in Truck / Driver table cell via <bdi dir='auto'> isolation and dedicated phone number row"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.13.1-to-v5.13.2-2026.11.08-PRO-11",
+      "createdAt": "2026-11-08T10:22:21.073Z"
+    },
+    {
+      "previousVersion": "v5.13.2",
+      "newVersion": "v5.14.0",
+      "build": "2026.11.08-PRO-12",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "MINOR",
+      "title": "Enterprise Security & Biometric Vault UI & Telemetry Overhaul",
+      "summary": "",
+      "featuresAdded": [
+        "Real-time Security Posture Score calculation (0-100%) and interactive gauge widget with Argon2id + AES-256 GCM cryptographic badge",
+        "Interactive Face Recognition suite with clickable Confidence Threshold selectors (75%/85%/95%), 3D Anti-Spoofing & Liveness detection toggle, low-light gain boost, and neural mesh model status",
+        "Interactive Biometric Sensor Testing and instant Verification simulations for Fingerprint, Face Recognition, and Quick PIN",
+        "Tactile Quick PIN visual matrix with masked slot indicators and 4-Digit vs 6-Digit format switcher",
+        "Master Passlock password criteria policy checklist (8+ chars, upper/lower, numbers, symbols) and real-time matching indicator badge",
+        "Expanded Action-Level Security Gate Matrix with batch Arm All / Reset actions and Accounting Invariance Identity Lock (Net = Debit - Credit)"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Confirm password field show/hide eye toggle (showConfirmPass) and floating Back to Top button layout overlap prevention"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.13.2-to-v5.14.0-2026.11.08-PRO-12",
+      "createdAt": "2026-11-08T10:33:27.438Z"
+    },
+    {
+      "previousVersion": "v5.14.0",
+      "newVersion": "v5.14.1",
+      "build": "2026.11.08-PRO-13",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "PDF Download UI Fit, Transit Date Colon Spacing, Route Header Badge No-Clip, and Cargo Route Note Typography",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Transit date colon spacing in PDF header details"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.14.0-to-v5.14.1-2026.11.08-PRO-13",
+      "createdAt": "2026-11-08T12:17:26.030Z"
+    },
+    {
+      "previousVersion": "v5.14.1",
+      "newVersion": "v5.15.0",
+      "build": "2026.11.08-PRO-14",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "MINOR",
+      "title": "Automated ACCI Packing List & Commercial Invoice Generation from BOL",
+      "summary": "",
+      "featuresAdded": [
+        "Added Packing List and Commercial Invoice navigation tabs directly following Saved BOLs in bol-editor",
+        "Automatic synchronization of BOL formData to official ACCI Chamber of Commerce document templates",
+        "Pixel-perfect matching of official ACCI Word documents (Kandahar Road and Kabul Air templates)",
+        "Authentic Word (.docx) and high-resolution vector PDF export using OpenXML and jsPDF",
+        "Integrated ACCI document access into A4 Preview toolbar and Saved BOL cards"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Bilingual date conversion handling Shamsi/Jalali calendar and Amount in Words for USD"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.14.1-to-v5.15.0-2026.11.08-PRO-14",
+      "createdAt": "2026-11-08T14:47:48.374Z"
+    },
+    {
+      "previousVersion": "v5.15.0",
+      "newVersion": "v5.15.1",
+      "build": "2026.11.08-PRO-15",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Fix ACCI Invoice and Packing List layout matching authentic Word templates",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Side-by-side 2-column top section (party box and transit table)",
+        "Double horizontal line under main goods table header",
+        "Continuous vertical table column borders extending to bottom",
+        "Aligned Chamber of Commerce block, origin line, and company stamps with authentic ACCI Word documents"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.15.0-to-v5.15.1-2026.11.08-PRO-15",
+      "createdAt": "2026-11-08T15:15:00.139Z"
+    },
+    {
+      "previousVersion": "v5.15.1",
+      "newVersion": "v5.15.2",
+      "build": "2026.11.08-PRO-16",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "ACCI Invoice and Packing List exact visual parity with authentic Word templates",
+      "summary": "",
+      "featuresAdded": [
+        "Side-by-side top layout with 50/50 flush margin alignment with main goods table",
+        "Authentic double line borders on table headers and NO column",
+        "Underlined Packing List title with asterisks removed and clean goods table",
+        "Official Chamber of Commerce dashed registration box and TOTAL C&F row border alignment"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Aligned top section margins flush with main table borders",
+        "Added double borders on headers and NO column",
+        "Underlined Packing List title with asterisks removed",
+        "Removed truck and driver clutter from packing list goods table",
+        "Formatted chamber box with authentic dashed lines and shared TOTAL C&F row border"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.15.1-to-v5.15.2-2026.11.08-PRO-16",
+      "createdAt": "2026-11-08T21:28:30.998Z"
+    },
+    {
+      "previousVersion": "v5.15.2",
+      "newVersion": "v5.15.3",
+      "build": "2026.11.08-PRO-17",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Pixel-perfect alignment and Same-as-Invoice layout sync for ACCI Invoice and Packing List",
+      "summary": "",
+      "featuresAdded": [
+        "Added Same-as-Invoice column layout toggle (NO | Quantity | Description of Goods) for Packing List",
+        "Unified document headers, number formats, asterisks styling, and company signature lines"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fixed broken company signature wrapping (ARIAN / A LTD), aligned TOTAL C&F baseline, and eliminated repeating chamber box dashes"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.15.2-to-v5.15.3-2026.11.08-PRO-17",
+      "createdAt": "2026-11-08T22:24:30.768Z"
+    },
+    {
+      "previousVersion": "v5.15.3",
+      "newVersion": "v5.15.4",
+      "build": "2026.11.08-PRO-18",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Fix on-screen canvas visibility for ACCI Invoice and Packing List",
+      "summary": "",
+      "featuresAdded": [
+        "Fixed on-screen document canvas visibility by isolating print portal styles from on-screen preview"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved blank preview issue caused by invoice-print-root CSS hiding on screen"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.15.3-to-v5.15.4-2026.11.08-PRO-18",
+      "createdAt": "2026-11-09T02:55:22.313Z"
+    },
+    {
+      "previousVersion": "v5.15.4",
+      "newVersion": "v5.15.5",
+      "build": "2026.11.08-PRO-19",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "ACCI Packing List & Commercial Invoice Exact Pixel-Perfect Design Conformity",
+      "summary": "",
+      "featuresAdded": [
+        "Synchronized ACCI Packing List and Commercial Invoice exact-to-exact with official user reference templates across UI preview, vector PDF, and Word docx"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Removed asterisks from Packing List header, set default layout to classic 3-column Chamber view, added 1/ prefix to packing list numbers, styled blue underlined Chamber box hyperlinks, and aligned stacked TOTAL C&F"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.15.4-to-v5.15.5-2026.11.08-PRO-19",
+      "createdAt": "2026-11-09T03:15:41.082Z"
+    },
+    {
+      "previousVersion": "v5.15.5",
+      "newVersion": "v5.15.6",
+      "build": "2026.11.08-PRO-20",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "PATCH",
+      "title": "Align Invoice and Packing List top section with authentic single-cell template",
+      "summary": "",
+      "featuresAdded": [
+        "Single-cell dividerless Afghan Transit table in Invoice and Packing List matching authentic chamber template"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Removed vertical divider lines across Rows 2 and 4 of Afghan Transit table",
+        "Aligned No and Date paragraphs cleanly above transit table",
+        "Seamless Notify Party within outer party box without dotted sub-box",
+        "Resolved ParsedBulkRow typing in structured extraction fallback"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.15.5-to-v5.15.6-2026.11.08-PRO-20",
+      "createdAt": "2026-11-09T04:19:15.864Z"
+    },
+    {
+      "previousVersion": "v5.15.6",
+      "newVersion": "v5.16.0",
+      "build": "2026.11.08-PRO-21",
+      "releaseDate": "2026-11-08",
+      "changeCategory": "MINOR",
+      "title": "Gemini 3.8 Structured Extraction & Smart Verification Suite",
+      "summary": "",
+      "featuresAdded": [
+        "Gemini active model upgrade to gemini-3.8-flash, gemini-4-argon, and gemini-3.5-flash-lite",
+        "Strict OpenAPI/JSON schema-enforced structured extraction for multi-modal BOL and ledger transactions",
+        "Deterministic Smart Verification engine for accounting invariance, border station routing, and sanctions compliance"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Deprecated gemini-2.5-flash and gemini-1.5-* model references with auto-normalizer",
+        "INVOICE_REGEX word-prefix conflict with invariance and financial audit terms"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.15.6-to-v5.16.0-2026.11.08-PRO-21",
+      "createdAt": "2026-11-09T04:23:17.245Z"
+    },
+    {
+      "previousVersion": "v5.16.0",
+      "newVersion": "v5.16.1",
+      "build": "2026.11.10-PRO",
+      "releaseDate": "2026-11-10",
+      "changeCategory": "PATCH",
+      "title": "Refine ACCI Invoice chamber layout and Packing List transit headers for 1:1 Word template fidelity",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Removed outer border box around Chamber block in Invoice UI and PDF to match authentic Word file",
+        "Aligned Fee No and Received sum on identical horizontal line with tabbed spacing",
+        "Standardized Packing List transit form title to Afghan Transit form Airway Bill. and Row 3 to Terms of Payment"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.0-to-v5.16.1-2026.11.10-PRO",
+      "createdAt": "2026-11-10T13:12:00.901Z"
+    },
+    {
+      "previousVersion": "v5.16.1",
+      "newVersion": "v5.16.2",
+      "build": "2026.11.11-PRO",
+      "releaseDate": "2026-11-11",
+      "changeCategory": "PATCH",
+      "title": "Cambria document typography",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [
+        "Invoice and packing-list preview, print, and DOCX typography now use Cambria"
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.1-to-v5.16.2-2026.11.11-PRO",
+      "createdAt": "2026-11-11T08:25:36.546Z"
+    },
+    {
+      "previousVersion": "v5.16.2",
+      "newVersion": "v5.16.3",
+      "build": "2026.11.11-PRO-2",
+      "releaseDate": "2026-11-11",
+      "changeCategory": "PATCH",
+      "title": "ACCI Commercial Invoice Total Amount Say Centering and UI Elevation",
+      "summary": "",
+      "featuresAdded": [
+        "Moved Total Amount Say, amount in words, and origin country up into the vertical center of the goods description column with elevated typography"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated bottom cramping in commercial invoice table by cleanly separating centered amount say block from the bottom chamber fee block"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.2-to-v5.16.3-2026.11.11-PRO-2",
+      "createdAt": "2026-11-11T10:13:56.758Z"
+    },
+    {
+      "previousVersion": "v5.16.3",
+      "newVersion": "v5.16.4",
+      "build": "2026.11.11-PRO-3",
+      "releaseDate": "2026-11-11",
+      "changeCategory": "PATCH",
+      "title": "Saved BOL Report Fit-to-Screen UI Optimization",
+      "summary": "",
+      "featuresAdded": [
+        "Fit to Screen default view and 1-click See All at Once preset button",
+        "Streamlined 2-line Truck/Driver, inline multi-item Cargo summary, and compact row height (~36px)"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Eliminated vertical row bloat and horizontal overflow in Saved BOL Detailed Report"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.3-to-v5.16.4-2026.11.11-PRO-3",
+      "createdAt": "2026-11-11T10:25:12.062Z"
+    },
+    {
+      "previousVersion": "v5.16.4",
+      "newVersion": "v5.16.5",
+      "build": "2026.11.11-PRO-4",
+      "releaseDate": "2026-11-11",
+      "changeCategory": "PATCH",
+      "title": "Fix Wasela and Custom Shipper Data Sync in ACCI Invoice and Packing List",
+      "summary": "",
+      "featuresAdded": [
+        "Support custom shipper address, license, contact, notify party, and route stops in ACCI Invoice and Packing List"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fixed Sky Ariana default exporter and airway bill title overrides when viewing custom shipper BOLs"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.4-to-v5.16.5-2026.11.11-PRO-4",
+      "createdAt": "2026-11-11T11:32:12.274Z"
+    },
+    {
+      "previousVersion": "v5.16.5",
+      "newVersion": "v5.16.6",
+      "build": "2026.11.11-PRO-5",
+      "releaseDate": "2026-11-11",
+      "changeCategory": "PATCH",
+      "title": "System Performance and UI Responsiveness Optimization",
+      "summary": "",
+      "featuresAdded": [
+        "Debounced non-blocking BOL draft persistence, webpack watchOptions ignore patterns, and background interval throttling"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fixed 5.8GB heap memory leak in dev server, eliminated forced compositor invalidations on window focus/restore, and resolved keystroke input lag"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.5-to-v5.16.6-2026.11.11-PRO-5",
+      "createdAt": "2026-11-11T13:53:44.479Z"
+    },
+    {
+      "previousVersion": "v5.16.6",
+      "newVersion": "v5.16.7",
+      "build": "2026.11.12-PRO",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Move Packing List (Origin Afghanistan) and SKY ARIANA LTD stamp to vertical center matching authentic Word template",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Centered (Origin Afghanistan) vertically and horizontally in Col 2 across UI, DOCX, and PDF",
+        "Centered SKY ARIANA LTD signature block vertically and horizontally in Col 3 aligned with Origin",
+        "Fixed Webpack watchOptions.ignored schema compliance in next.config.mjs"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.6-to-v5.16.7-2026.11.12-PRO",
+      "createdAt": "2026-11-12T08:16:06.952Z"
+    },
+    {
+      "previousVersion": "v5.16.7",
+      "newVersion": "v5.16.8",
+      "build": "2026.11.12-PRO-2",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Complete Oman & Iran Seaports Catalog and Route Filter Fix",
+      "summary": "",
+      "featuresAdded": [
+        "Added all Oman ports (Suwaiq, Sohar, Salalah, Duqm, Muscat/Sultan Qaboos, Khasab, Shinas, Sur, Qalhat, Mina Al Fahal, Masirah, Shannah, Khazaen, Dibba, Lima, Al Ashkharah, Raysut, Hasik, Mirbat) and all Iran seaports across Persian Gulf, Sea of Oman, and Caspian Sea",
+        "Added dedicated Oman and Iran quick filter tabs, 1-click Shipping Details port presets, and Persian route parser keywords"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fixed Suggested Locations popover showing 0 matches when opening pre-filled route stops or switching country filter chips"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.7-to-v5.16.8-2026.11.12-PRO-2",
+      "createdAt": "2026-11-12T08:19:40.620Z"
+    },
+    {
+      "previousVersion": "v5.16.8",
+      "newVersion": "v5.16.9",
+      "build": "2026.11.12-PRO-3",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Center Commercial Invoice Chamber Fee Block",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Horizontally centered Reg No, Fee No, Received sum, Date, and Signature block in Commercial Invoice preview, print, PDF, and Word exports"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.8-to-v5.16.9-2026.11.12-PRO-3",
+      "createdAt": "2026-11-12T08:19:43.831Z"
+    },
+    {
+      "previousVersion": "v5.16.9",
+      "newVersion": "v5.16.10",
+      "build": "2026.11.12-PRO-4",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Ultra-HD Lossless PDF Download Quality Upgrade (576 DPI BOL & 480 DPI Reports)",
+      "summary": "",
+      "featuresAdded": [
+        "Upgraded BOL and Shipping Document PDF export rasterization to 576 DPI (ratio 6) with lossless PNG, high-precision canvas smoothing, and precision 16 vector geometry",
+        "Added Vazirmatn, NotoNaskhArabic, and NotoSans embedded @font-face font mapping plus vector-preserving SVG asset inlining without 1x bitmap downsampling",
+        "Upgraded Saved BOL Report, Report Print Preview Studio, Reports View, and html2pdf exports from 288 DPI lossy JPEG to 480 DPI lossless PNG"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fixed SVG logos and watermarks being rasterized at 1x naturalWidth before high-DPI capture"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.9-to-v5.16.10-2026.11.12-PRO-4",
+      "createdAt": "2026-11-12T09:43:04.638Z"
+    },
+    {
+      "previousVersion": "v5.16.10",
+      "newVersion": "v5.16.11",
+      "build": "2026.11.12-PRO-5",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Fix PDF Download Rainbow Corruption & Enable Native Chromium Vector PDF",
+      "summary": "",
+      "featuresAdded": [
+        "Added Chromium native vector printToPDF capture (captureElectronVectorPdf) and pdf-lib page merging for infinite-DPI, searchable text BOL and Report PDFs inside Electron",
+        "Enforced live formData in PrintPreviewPortal during export so downloaded vector PDFs always reflect latest edits"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fixed GPU VRAM tile readback rainbow stripe corruption on downloaded PDFs by forcing CPU software canvas backing (willReadFrequently: true, alpha: false), clamping raster dimensions within 4096px GPU tile limits, and using safe MEDIUM PNG compression"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.10-to-v5.16.11-2026.11.12-PRO-5",
+      "createdAt": "2026-11-12T12:03:20.618Z"
+    },
+    {
+      "previousVersion": "v5.16.11",
+      "newVersion": "v5.16.12",
+      "build": "2026.11.12-PRO-6",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Fix PDF Export Hanging at 50% (Rendering Master Bill of Lading)",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Replaced hanging html-to-image toCanvas fallback with bounded-timeout lightweight toSvg + html2canvas fallback",
+        "Added hard capture timeouts on fonts, images, watermark backgrounds, and SVG serialization; converted SVG data URIs to Blob Object URLs and deduplicated embedded font CSS"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.11-to-v5.16.12-2026.11.12-PRO-6",
+      "createdAt": "2026-11-12T12:22:53.767Z"
+    },
+    {
+      "previousVersion": "v5.16.12",
+      "newVersion": "v5.16.13",
+      "build": "2026.11.12-PRO-7",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Symmetrically Center Commercial Invoice Chamber Fee Block",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Placed Received the sum of on its own centered line below Fee No and centered all five Chamber Fee lines symmetrically inside the Description column matching the reference layout across preview, print, PDF, and Word exports"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.12-to-v5.16.13-2026.11.12-PRO-7",
+      "createdAt": "2026-11-12T12:44:16.815Z"
+    },
+    {
+      "previousVersion": "v5.16.13",
+      "newVersion": "v5.16.14",
+      "build": "2026.11.12-PRO-8",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Fix Commercial Invoice Chamber Block & Summary Alignment Across Preview, Print, PDF, and Word",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Aligned all five Commercial Invoice Chamber Fee lines (Reg No, Fee No, Received the sum of, Date, Signature) to an exact symmetric centered width with consistent serif typography across Preview, Print, PDF, and Word (.docx)",
+        "Removed horizontal cell padding gaps on TOTAL C&F and total amount borders so horizontal dividers span edge-to-edge cleanly alongside SKY ARIANA LTD",
+        "Expanded Invoice and Packing List Goods Table bodies to fill full A4 page height cleanly without awkward bottom margins and fixed PDF Total Amount Say vertical centering"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.13-to-v5.16.14-2026.11.12-PRO-8",
+      "createdAt": "2026-11-12T13:48:23.613Z"
+    },
+    {
+      "previousVersion": "v5.16.14",
+      "newVersion": "v5.16.15",
+      "build": "2026.11.12-PRO-9",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Enlarge & Polish Shipment Information Card Header Typography",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged bilingual Shipment Information card headers across all density modes (9.8pt/9.0pt/8.1pt English and 9.6pt/8.8pt/7.9pt Persian/Pashto) with crisp bottom hairline dividers"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved top text clipping, uneven slash separator sizing (unified 8.4pt), and narrow Issue Date column fit in A4 preview"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.14-to-v5.16.15-2026.11.12-PRO-9",
+      "createdAt": "2026-11-12T17:05:25.971Z"
+    },
+    {
+      "previousVersion": "v5.16.15",
+      "newVersion": "v5.16.16",
+      "build": "2026.11.12-PRO-10",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Center Commercial Invoice Chamber Fee Lines Symmetrically",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Centered Commercial Invoice Chamber Fee lines (Reg No, Fee No, Received the sum of, Date, Signature) dead center within the goods description column with gapless 120-hyphen flex fills and calibrated w-[245px] container"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.15-to-v5.16.16-2026.11.12-PRO-10",
+      "createdAt": "2026-11-12T18:19:16.439Z"
+    },
+    {
+      "previousVersion": "v5.16.16",
+      "newVersion": "v5.17.0",
+      "build": "2026.11.12-PRO-11",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "MINOR",
+      "title": "Enterprise Multi-Tier Auto-Saving System",
+      "summary": "",
+      "featuresAdded": [
+        "Enterprise 4-Tier Auto-Saving Architecture across BOL and Invoices with 0ms LocalStorage, SessionStorage isolation mirror, IndexedDB Data Vault, and background server replication",
+        "Added lifecycle flush synchronization on beforeunload, pagehide, and visibilitychange with deterministic DraftSaveQueue flush for zero data loss",
+        "Fixed BOL editor status badge hierarchy: autoSaveStatus saved displays green checkmark with exact timestamp and click-to-save action",
+        "Added multi-document draft isolation in /api/draft with dedicated stores for BOL, Invoices, CMR, and Export Calculator"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved race condition where uncommitted invoice drafts were cleared on component mount and drafts were overwritten by blank state"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "FAILED",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.16.16-to-v5.17.0-2026.11.12-PRO-11",
+      "createdAt": "2026-11-13T05:15:37.032Z"
+    },
+    {
+      "previousVersion": "v5.17.0",
+      "newVersion": "v5.17.1",
+      "build": "2026.11.12-PRO-12",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Fix AI Assistant Gemini network fetch error and add offline engine resilience",
+      "summary": "",
+      "featuresAdded": [
+        "Added automatic offline deterministic engine verification and quick-switch action on AI connection test"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved Gemini network error: fetch failed by unwrapping connect timeouts and adding resilient retry"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "FAILED",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.17.0-to-v5.17.1-2026.11.12-PRO-12",
+      "createdAt": "2026-11-13T05:18:20.026Z"
+    },
+    {
+      "previousVersion": "v5.17.1",
+      "newVersion": "v5.17.2",
+      "build": "2026.11.12-PRO-13",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Eliminate Duplicate Logo in BOL Header",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Conditionally omit standalone circular logo badge when brand lockup embeds emblem to avoid rendering two logos side by side"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.17.1-to-v5.17.2-2026.11.12-PRO-13",
+      "createdAt": "2026-11-13T05:42:04.334Z"
+    },
+    {
+      "previousVersion": "v5.17.2",
+      "newVersion": "v5.17.3",
+      "build": "2026.11.12-PRO-14",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Add Jask, Suwaiq, and Sohar Port Information and Corridor Presets",
+      "summary": "",
+      "featuresAdded": [
+        "Jask Port (Iran), Suwaiq Port (Oman), and Sohar Port (Oman) metadata, UN/LOCODEs, Persian labels, and 1-click transit corridor preset"
+      ],
+      "featuresModified": [
+        "Transit route parser, A4 preview country metadata detection, BOL editor predefinedLocations, and route preset selector"
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.17.2-to-v5.17.3-2026.11.12-PRO-14",
+      "createdAt": "2026-11-13T05:45:00.762Z"
+    },
+    {
+      "previousVersion": "v5.17.3",
+      "newVersion": "v5.18.0",
+      "build": "2026.11.12-PRO-15",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "MINOR",
+      "title": "Enterprise Multi-Tier Auto-Saving System",
+      "summary": "",
+      "featuresAdded": [
+        "Enterprise 4-Tier Auto-Saving Architecture across Bill of Lading and Invoices with 0ms LocalStorage, SessionStorage isolation mirror, IndexedDB Data Vault, and background server replication",
+        "Added lifecycle flush synchronization on beforeunload, pagehide, and visibilitychange with deterministic DraftSaveQueue flush for zero data loss",
+        "Fixed BOL editor status badge hierarchy: autoSaveStatus saved displays green checkmark with exact timestamp and click-to-save action",
+        "Added multi-document draft isolation in /api/draft with dedicated stores for BOL, Invoices, CMR, and Export Calculator"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved race condition where uncommitted invoice drafts were cleared on component mount and drafts were overwritten by blank state"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "FAILED",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.17.3-to-v5.18.0-2026.11.12-PRO-15",
+      "createdAt": "2026-11-13T05:59:32.911Z"
+    },
+    {
+      "previousVersion": "v5.18.0",
+      "newVersion": "v5.18.1",
+      "build": "2026.11.12-PRO-16",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Add Jask, Suwaiq, and Sohar Port Information and Corridor Presets",
+      "summary": "",
+      "featuresAdded": [
+        "Jask Port (Iran), Suwaiq Port (Oman), and Sohar Port (Oman) metadata, UN/LOCODEs, Persian labels, and 1-click transit corridor preset"
+      ],
+      "featuresModified": [
+        "Transit route parser, A4 preview country metadata detection, BOL editor predefinedLocations, and route preset selector"
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.0-to-v5.18.1-2026.11.12-PRO-16",
+      "createdAt": "2026-11-13T06:15:25.377Z"
+    },
+    {
+      "previousVersion": "v5.18.1",
+      "newVersion": "v5.18.2",
+      "build": "2026.11.12-PRO-17",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Integrate Jask Port Iran with Full Bilingual & Punctuation-Agnostic Matching",
+      "summary": "",
+      "featuresAdded": [
+        "Added Jask Port - Iran (جاسک - ایران) preset, UN/LOCODE IRJSK, Hormozgan maritime metadata, and quick POL button"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved 0-match results when typing Jask Port with Unicode hyphens, en-dashes, Persian labels, or trailing spaces"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.1-to-v5.18.2-2026.11.12-PRO-17",
+      "createdAt": "2026-11-13T06:31:22.175Z"
+    },
+    {
+      "previousVersion": "v5.18.2",
+      "newVersion": "v5.18.3",
+      "build": "2026.11.12-PRO-18",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Fix and Fit Saved BOL Report to See All at Once",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced Saved BOL Report with 5 Executive Glassmorphic KPI Tiles, streamlined Two-Tier Toolbar, 1-click Fit Screen and See All at Once scroll auto-reset, and BiDi-isolated driver cardlets"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved horizontal table scrolling and column clipping on BOL No, sticky cell transparency issues in Chromium, and unconstrained table expansion"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.2-to-v5.18.3-2026.11.12-PRO-18",
+      "createdAt": "2026-11-13T06:43:04.234Z"
+    },
+    {
+      "previousVersion": "v5.18.3",
+      "newVersion": "v5.18.4",
+      "build": "2026.11.12-PRO-19",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Fix BOL Print Layout to Match A4 Preview 1:1",
+      "summary": "",
+      "featuresAdded": [
+        "Full-fidelity A4 preview rendering in PrintPreviewPortal without pdfMode suppression",
+        "Guaranteed physical print watermark rendering via dedicated high-contrast image layer"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Yellow and amber print overrides on party cards, shipment info cards, and contact badges",
+        "98% opaque white wash on print sections that covered the background watermark"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.3-to-v5.18.4-2026.11.12-PRO-19",
+      "createdAt": "2026-11-13T06:44:35.161Z"
+    },
+    {
+      "previousVersion": "v5.18.4",
+      "newVersion": "v5.18.5",
+      "build": "2026.11.12-PRO-20",
+      "releaseDate": "2026-11-12",
+      "changeCategory": "PATCH",
+      "title": "Add Jask, Suwaiq, and Sohar Port Details and Multi-Modal Transit Corridor",
+      "summary": "",
+      "featuresAdded": [
+        "Bilingual metadata, UN/LOCODEs, and aliases for Jask Port (Iran), Suwaiq Port (Oman), and Sohar Port (Oman)",
+        "1-click Nimroz -> Jask -> Suwaiq -> Sohar multi-modal truck and vessel transit corridor preset"
+      ],
+      "featuresModified": [
+        "Transit route parser, A4 preview timeline flags, BOL editor predefinedLocations, and route preset selector"
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Exact unicode en-dash and Persian yeh bidirectional aliases"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.4-to-v5.18.5-2026.11.12-PRO-20",
+      "createdAt": "2026-11-13T06:50:59.539Z"
+    },
+    {
+      "previousVersion": "v5.18.5",
+      "newVersion": "v5.18.6",
+      "build": "2026.11.13-PRO",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Enlarge (Origin Afghanistan) and SKY ARIANA LTD Stamp Typography",
+      "summary": "",
+      "featuresAdded": [
+        "Enlarged font sizing for (Origin Afghanistan) and SKY ARIANA LTD signature stamp across UI, PDF, and Word exports"
+      ],
+      "featuresModified": [
+        "Packing list view, commercial invoice view, PDF generator, and Word generator"
+      ],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.5-to-v5.18.6-2026.11.13-PRO",
+      "createdAt": "2026-11-13T10:05:49.513Z"
+    },
+    {
+      "previousVersion": "v5.18.6",
+      "newVersion": "v5.18.7",
+      "build": "2026.11.13-PRO-2",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Fix Shipping Documents PDF Generation and Cloned Iframe Resolution",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced PDF download pipeline with isolated DOM wrapper for html2canvas and synchronous shipping page bundling"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved 'Unable to find element in cloned iframe' error on Complete PDF and shipping document exports"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.6-to-v5.18.7-2026.11.13-PRO-2",
+      "createdAt": "2026-11-13T10:48:02.505Z"
+    },
+    {
+      "previousVersion": "v5.18.7",
+      "newVersion": "v5.18.8",
+      "build": "2026.11.13-PRO-3",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Align Invoice downside Chamber Fee bordered box with authentic template image",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Added outer black border box around Chamber Fee details in Invoice preview and PDF matching user screenshot",
+        "Formatted Reg No, Fee No, Received sum, Date, and Signature spacing within bordered box"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.7-to-v5.18.8-2026.11.13-PRO-3",
+      "createdAt": "2026-11-13T11:09:26.261Z"
+    },
+    {
+      "previousVersion": "v5.18.8",
+      "newVersion": "v5.18.9",
+      "build": "2026.11.13-PRO-4",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Fix OKLCH Color Parsing in PDF Generator",
+      "summary": "",
+      "featuresAdded": [
+        "Added OKLCH to RGB conversion and automated html2canvas color error guards"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved 'Attempting to parse an unsupported color function oklch' error when downloading PDF"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.8-to-v5.18.9-2026.11.13-PRO-4",
+      "createdAt": "2026-11-13T14:06:43.720Z"
+    },
+    {
+      "previousVersion": "v5.18.9",
+      "newVersion": "v5.18.10",
+      "build": "2026.11.13-PRO-5",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Fix OKLCH color error and purge stale webpack cache for PDF downloads",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Purged stale Next.js Webpack cache and patched html2canvas and html2pdf bundles against OKLCH color errors during PDF download",
+        "Added comprehensive onclone style sanitization and unconditional border color overrides for PDF generation"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.9-to-v5.18.10-2026.11.13-PRO-5",
+      "createdAt": "2026-11-13T18:36:52.420Z"
+    },
+    {
+      "previousVersion": "v5.18.10",
+      "newVersion": "v5.18.11",
+      "build": "2026.11.13-PRO-6",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "BOL Print and A4 Preview 1:1 Visual Parity and QR Print Guarantee",
+      "summary": "",
+      "featuresAdded": [
+        "Preserved full watermark transparency and subtle glassmorphic card backgrounds in print output",
+        "Guaranteed scannable vector QR code rendering in print previews and physical printouts"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved print CSS opaque white block overrides covering the background watermark",
+        "Resolved interactive role=button print stripping hiding the header QR code"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.10-to-v5.18.11-2026.11.13-PRO-6",
+      "createdAt": "2026-11-13T19:08:28.813Z"
+    },
+    {
+      "previousVersion": "v5.18.11",
+      "newVersion": "v5.18.12",
+      "build": "2026.11.13-PRO-7",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "GCS automated backup pipeline, GCP Cloud Run architecture docs, and ACCI sample exports",
+      "summary": "",
+      "featuresAdded": [
+        "GCS automated snapshot backups with accounting invariance enforcement",
+        "ACCI sample docx and pdf exports generator"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Aligned downside chamber box and centered packing list layout"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.11-to-v5.18.12-2026.11.13-PRO-7",
+      "createdAt": "2026-11-13T19:20:42.354Z"
+    },
+    {
+      "previousVersion": "v5.18.12",
+      "newVersion": "v5.18.13",
+      "build": "2026.11.13-PRO-8",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Register OKLCH in html2canvas supported color functions and purge webpack cache",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Injected OKLCH directly into html2canvas SUPPORTED_COLOR_FUNCTIONS registry across all unminified and minified bundles",
+        "Purged persistent webpack bytecode cache in node_modules/.cache/webpack and .next build cache",
+        "Added explicit background-color and color styling to root and body in PDF export onclone"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.12-to-v5.18.13-2026.11.13-PRO-8",
+      "createdAt": "2026-11-13T19:41:10.300Z"
+    },
+    {
+      "previousVersion": "v5.18.13",
+      "newVersion": "v5.18.14",
+      "build": "2026.11.13-PRO-9",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Fix and Fit Saved BOL Report to Screen, Print, PDF and Excel",
+      "summary": "",
+      "featuresAdded": [
+        "Screen-fitted responsive report with 1-click See All at Once mode",
+        "Dynamic 100% proportional column scaling for A4 print and vector PDF",
+        "Enhanced Excel multi-sheet export with auto-fitting widths and accounting invariance compliance"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Saved BOL Report horizontal overflow on standard screen viewports",
+        "Print and PDF right-edge column clipping on A4 paper"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.13-to-v5.18.14-2026.11.13-PRO-9",
+      "createdAt": "2026-11-13T20:12:40.378Z"
+    },
+    {
+      "previousVersion": "v5.18.14",
+      "newVersion": "v5.18.15",
+      "build": "2026.11.13-PRO-10",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Vercel Analytics & Speed Insights Integration and MCP Server Stability",
+      "summary": "",
+      "featuresAdded": [
+        "Integrated @vercel/speed-insights and verified @vercel/analytics conditional mounting",
+        "Added mandatory AQ-COMPANIES update report header and footer banner"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved mcp-toolbox-for-databases stdio pollution and github-mcp-server cache corruption"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.14-to-v5.18.15-2026.11.13-PRO-10",
+      "createdAt": "2026-11-13T21:06:19.273Z"
+    },
+    {
+      "previousVersion": "v5.18.15",
+      "newVersion": "v5.18.16",
+      "build": "2026.11.13-PRO-11",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Flutter Mobile Companion App and mobile-optimized paginated sync stream",
+      "summary": "",
+      "featuresAdded": [
+        "Flutter companion app scaffolding with compute isolate parsing",
+        "Paginated and lightweight mobile API sync stream"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Stray button bracket in bol-editor quick location filter"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.15-to-v5.18.16-2026.11.13-PRO-11",
+      "createdAt": "2026-11-13T21:21:00.947Z"
+    },
+    {
+      "previousVersion": "v5.18.16",
+      "newVersion": "v5.18.17",
+      "build": "2026.11.13-PRO-12",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Fix Suggested Locations Popover & Route Stop Card Layout",
+      "summary": "",
+      "featuresAdded": [
+        "Added left and right chevron scroll navigation and mouse wheel horizontal scrolling to the popover country filter chips bar, preventing chip clipping",
+        "Restructured Suggested Locations popover header into balanced full-width rows with clear search input and reset badges, preventing 3-column dashboard squeeze",
+        "Added rich, actionable empty state with Show All Locations and Keep Custom Entry buttons when no predefined location matches"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fixed clipping of country filter chips (IR Iran, etc.) on narrow containers and Windows desktop",
+        "Fixed popover overlay height from awkwardly crushing Route Stop driver and customs seal fields"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.16-to-v5.18.17-2026.11.13-PRO-12",
+      "createdAt": "2026-11-13T21:23:29.220Z"
+    },
+    {
+      "previousVersion": "v5.18.17",
+      "newVersion": "v5.18.18",
+      "build": "2026.11.13-PRO-13",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Elevate Saved BOL Report Excel Export Design",
+      "summary": "",
+      "featuresAdded": [
+        "Executive multi-sheet Excel workbook (.xlsx) with interactive autofilters, frozen headers, and accounting invariance audit",
+        "Direct 1-click and bulk Excel export buttons in Saved Documents list view"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Optimized column widths, row heights, and numeric formatting across all 12 operational sheets"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.17-to-v5.18.18-2026.11.13-PRO-13",
+      "createdAt": "2026-11-13T21:31:19.120Z"
     }
   ]
 }

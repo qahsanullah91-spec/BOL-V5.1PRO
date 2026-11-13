@@ -21,9 +21,9 @@ test('Side-by-Side Route & Cargo Dashboard Implementation', async (t) => {
     for (const [name, css] of [['app/globals.css', appCssContent], ['styles/globals.css', stylesCssContent]]) {
       assert.match(css, /\.route-cargo-dashboard\s*\{[^}]*display:\s*grid;/s, `${name} must define .route-cargo-dashboard as grid`)
       assert.match(css, /\.route-cargo-dashboard\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s, `${name} must define 1 column default for viewports < 1200px`)
-      assert.match(css, /@media\s*\(\s*min-width:\s*1200px\s*\)\s*\{[^}]*minmax\(0,\s*1\.04fr\)\s*minmax\(0,\s*0\.96fr\)/s, `${name} must define 1.04fr / 0.96fr ratio for desktop >= 1200px`)
+      assert.match(css, /@media\s*\(\s*min-width:\s*1200px\s*\)\s*\{[^}]*minmax\(0,\s*1\.15fr\)\s*minmax\(0,\s*0\.95fr\)\s*minmax\(0,\s*0\.95fr\)/s, `${name} must define 3-column ratio for desktop >= 1200px`)
       assert.match(css, /@media\s*\(\s*min-width:\s*1400px\s*\)\s*\{[^}]*gap:\s*18px;/s, `${name} must define 18px gap for desktop >= 1400px`)
-      assert.match(css, /\.route-cargo-dashboard\s*\.route-section,\s*\.route-cargo-dashboard\s*\.cargo-section\s*\{[^}]*min-width:\s*0;/s, `${name} must include min-width: 0 on .route-section and .cargo-section`)
+      assert.match(css, /\.route-cargo-dashboard\s*\.route-section,\s*\.route-cargo-dashboard\s*\.cargo-section,\s*\.route-cargo-dashboard\s*\.intelligence-section\s*\{[^}]*min-width:\s*0;/s, `${name} must include min-width: 0 on all 3 dashboard columns`)
     }
   })
 
@@ -38,9 +38,12 @@ test('Side-by-Side Route & Cargo Dashboard Implementation', async (t) => {
     const cargoSectionIndex = bolEditorContent.indexOf('className="cargo-section')
     assert.ok(cargoSectionIndex !== -1, 'bol-editor.tsx must contain className="cargo-section"')
 
+    const intelligenceSectionIndex = bolEditorContent.indexOf('className="intelligence-section')
+    assert.ok(intelligenceSectionIndex !== -1, 'bol-editor.tsx must contain className="intelligence-section"')
+
     assert.ok(
-      dashboardIndex < routeSectionIndex && routeSectionIndex < cargoSectionIndex,
-      'Route section must appear before Cargo section inside .route-cargo-dashboard'
+      dashboardIndex < intelligenceSectionIndex && intelligenceSectionIndex < cargoSectionIndex && cargoSectionIndex < routeSectionIndex,
+      'Sections must appear in order: Intelligence, Cargo Specs, then Route inside .route-cargo-dashboard'
     )
 
     // Route section contains #section-routes card
@@ -61,13 +64,13 @@ test('Side-by-Side Route & Cargo Dashboard Implementation', async (t) => {
   await t.test('3. Section Jump Navigation maintains correct indices and IDs', () => {
     assert.match(
       bolEditorContent,
-      /\{\s*id:\s*"section-routes",\s*label:\s*"05 Routes",\s*icon:\s*MapPin\s*\}/,
-      'Section jump navigation includes 05 Routes pointing to section-routes'
+      /\{\s*id:\s*"section-shipment-intelligence",\s*label:\s*"05 Cargo",\s*icon:\s*Package\s*\}/,
+      'Section jump navigation includes 05 Cargo pointing to section-shipment-intelligence'
     )
     assert.match(
       bolEditorContent,
-      /\{\s*id:\s*"section-cargo",\s*label:\s*"06 Cargo",\s*icon:\s*Package\s*\}/,
-      'Section jump navigation includes 06 Cargo pointing to section-cargo'
+      /\{\s*id:\s*"section-routes",\s*label:\s*"06 Routes",\s*icon:\s*MapPin\s*\}/,
+      'Section jump navigation includes 06 Routes pointing to section-routes'
     )
   })
 
@@ -145,8 +148,8 @@ test('Side-by-Side Route & Cargo Dashboard Implementation', async (t) => {
     // Stop card location grid is responsive (not rigid 3+ columns on narrow desktop columns)
     assert.match(
       bolEditorContent,
-      /grid gap-3\.5 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-\[1fr_1fr_1\.35fr\]/,
-      'Stop card location/transport grid uses adaptive responsive columns'
+      /grid gap-2\.5 sm:gap-3 grid-cols-1 sm:grid-cols-2/,
+      'Stop card location inputs use clean 2-column responsive layout'
     )
 
     // KPI cards in cargo panel adapt to column width

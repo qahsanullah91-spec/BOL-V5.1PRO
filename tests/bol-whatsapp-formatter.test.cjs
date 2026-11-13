@@ -93,7 +93,8 @@ test('BOL-2026-NSA588 user scenario: formats glued truck plate, extracts commodi
   assert.match(short, /1,476 CTNS/);
   assert.match(short, /23,616 KG/);
   assert.match(short, /Dougharoun.*Bandar Abbas.*Dubai.*Nhava Sheva/);
-  assert.match(short, /Standard container from Dougharoun to Bandar Abbas/);
+  assert.doesNotMatch(short, /Standard container from Dougharoun to Bandar Abbas/);
+  assert.doesNotMatch(short, /TRANSIT DETAILS/);
   assert.match(short, /حمل با کانتینر معمولی از دوغارون تا بندرعباس/);
   assert.doesNotMatch(short, /Nimroz/);
   assert.doesNotMatch(short, /نیمروز/);

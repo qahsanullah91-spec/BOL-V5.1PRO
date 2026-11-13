@@ -1,3 +1,5 @@
+const fs = require('node:fs');
+const path = require('node:path');
 const {
   wrapSvg,
   buildSecurityFrame,
@@ -8,6 +10,14 @@ const {
   round,
 } = require('../generate-document-backgrounds.cjs');
 
+function getExistingPhotoSvg(filename, fallbackFn) {
+  const diskPath = path.join(__dirname, '..', '..', 'public', 'images', 'document-backgrounds', filename);
+  if (fs.existsSync(diskPath)) {
+    return fs.readFileSync(diskPath, 'utf8');
+  }
+  return fallbackFn();
+}
+
 function getOverlandBackgrounds() {
   const backgrounds = {};
 
@@ -16,20 +26,23 @@ function getOverlandBackgrounds() {
     'Silk Road',
     `
     <linearGradient id="sr-bg" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#fffbeb" />
-      <stop offset="50%" stop-color="#fef3c7" />
-      <stop offset="100%" stop-color="#fde68a" />
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#fffbeb" />
+      <stop offset="100%" stop-color="#fef3c7" />
     </linearGradient>
     `,
     `
     <rect width="900" height="1400" fill="url(#sr-bg)" />
     
     <!-- Ancient & Modern Trade Route Winding Highway -->
-    <path d="M 120,240 Q 280,380 450,320 T 780,480 T 320,720 T 680,950 T 240,1180 T 520,1340" fill="none" stroke="#b45309" stroke-width="8" stroke-linecap="round" />
-    <path d="M 120,240 Q 280,380 450,320 T 780,480 T 320,720 T 680,950 T 240,1180 T 520,1340" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="12 6" />
+    <path d="M 120,240 Q 280,380 450,320 T 780,480 T 320,720 T 680,950 T 240,1180 T 520,1340" fill="none" stroke="#b45309" stroke-width="6" stroke-linecap="round" />
+    <path d="M 120,240 Q 280,380 450,320 T 780,480 T 320,720 T 680,950 T 240,1180 T 520,1340" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="10 5" />
 
-    <!-- Mountain Ridge Backdrop -->
-    <polygon points="40,420 180,260 340,360 520,220 680,340 860,240 860,560 40,560" fill="#d97706" fill-opacity="0.15" stroke="#92400e" stroke-width="2" />
+    <!-- Mountain Ridge Backdrop Contours -->
+    <polygon points="40,420 180,260 340,360 520,220 680,340 860,240 860,560 40,560" fill="none" stroke="#92400e" stroke-width="1.8" />
+    <g stroke="#d97706" stroke-width="0.8" opacity="0.4">
+      ${Array.from({ length: 8 }).map((_, i) => `<line x1="60" y1="${300 + i * 25}" x2="420" y2="${320 + i * 25}" stroke-dasharray="6 3" />`).join('\n')}
+    </g>
 
     <!-- Historic Oasis Trading Hub Waypoints -->
     ${[
@@ -42,26 +55,27 @@ function getOverlandBackgrounds() {
       { x: 520, y: 1340, name: 'SPIN BOLDAK' },
     ].map(pt => `
       <g transform="translate(${pt.x},${pt.y})">
-        <circle cx="0" cy="0" r="14" fill="#ffffff" stroke="#b45309" stroke-width="2.5" />
-        <circle cx="0" cy="0" r="6" fill="#b45309" />
-        <text x="0" y="28" font-family="monospace" font-size="8" font-weight="900" fill="#78350f" text-anchor="middle">${pt.name}</text>
+        <circle cx="0" cy="0" r="14" fill="#ffffff" stroke="#b45309" stroke-width="2" />
+        <circle cx="0" cy="0" r="5" fill="#b45309" />
+        <rect x="-55" y="16" width="110" height="16" rx="2" fill="#ffffff" stroke="#b45309" stroke-width="0.8" />
+        <text x="0" y="27" font-family="monospace" font-size="7.5" font-weight="900" fill="#78350f" text-anchor="middle">${pt.name}</text>
       </g>
     `).join('\n')}
 
-    <!-- Camel Caravan & Freight Truck Silhouettes -->
-    <g fill="#78350f" opacity="0.85">
+    <!-- Camel Caravan & Freight Truck Silhouettes in Fine Intaglio -->
+    <g fill="#78350f" opacity="0.8">
       <!-- Truck on Upper Curve -->
-      <rect x="420" y="305" width="40" height="16" rx="2" />
-      <circle cx="430" cy="323" r="4" fill="#ffffff" stroke="#78350f" stroke-width="2" />
-      <circle cx="452" cy="323" r="4" fill="#ffffff" stroke="#78350f" stroke-width="2" />
+      <rect x="420" y="306" width="36" height="14" rx="2" />
+      <circle cx="428" cy="321" r="3.5" fill="#ffffff" stroke="#78350f" stroke-width="1.5" />
+      <circle cx="448" cy="321" r="3.5" fill="#ffffff" stroke="#78350f" stroke-width="1.5" />
       <!-- Truck on Lower Curve -->
-      <rect x="660" y="935" width="40" height="16" rx="2" />
-      <circle cx="670" cy="953" r="4" fill="#ffffff" stroke="#78350f" stroke-width="2" />
-      <circle cx="692" cy="953" r="4" fill="#ffffff" stroke="#78350f" stroke-width="2" />
+      <rect x="660" y="936" width="36" height="14" rx="2" />
+      <circle cx="668" cy="951" r="3.5" fill="#ffffff" stroke="#78350f" stroke-width="1.5" />
+      <circle cx="688" cy="951" r="3.5" fill="#ffffff" stroke="#78350f" stroke-width="1.5" />
     </g>
 
-    ${generateGuillocheBand(600, 24, 4, 10, 6, 8, 4, '#d97706', 0.35)}
-    ${generateGuillocheBand(1240, 26, 3, 12, 6, 10, 5, '#b45309', 0.35)}
+    ${generateGuillocheBand(600, 20, 4, 10, 6, 8, 4, '#d97706', 0.28)}
+    ${generateGuillocheBand(1240, 24, 3, 12, 6, 10, 5, '#b45309', 0.3)}
 
     ${buildSecurityFrame('#78350f', '#d97706', 'SILK ROAD · HISTORIC TRANS-ASIA TRADE CORRIDOR')}
     `
@@ -72,47 +86,41 @@ function getOverlandBackgrounds() {
     'Desert Highway',
     `
     <linearGradient id="dh-sky" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#fff7ed" />
-      <stop offset="45%" stop-color="#fed7aa" />
-      <stop offset="70%" stop-color="#fdba74" />
-      <stop offset="100%" stop-color="#ea580c" />
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#fff7ed" />
+      <stop offset="100%" stop-color="#fed7aa" />
     </linearGradient>
     `,
     `
     <rect width="900" height="1400" fill="url(#dh-sky)" />
 
     <!-- Low Desert Sun & Radiant Horizon Rays -->
-    ${generateSunburst(450, 480, 50, 360, 44, '#ea580c', 0.45)}
-    <circle cx="450" cy="480" r="50" fill="#ffffff" stroke="#c2410c" stroke-width="3" />
+    ${generateSunburst(450, 480, 50, 360, 48, '#ea580c', 0.35)}
+    <circle cx="450" cy="480" r="48" fill="#ffffff" stroke="#c2410c" stroke-width="2.5" />
+    <circle cx="450" cy="480" r="36" fill="none" stroke="#ea580c" stroke-width="1" stroke-dasharray="4 2" />
 
     <!-- Vanishing Point Highway into Desert Horizon -->
-    <!-- Horizon Line -->
-    <line x1="40" y1="480" x2="860" y2="480" stroke="#9a3412" stroke-width="2.5" />
+    <line x1="40" y1="480" x2="860" y2="480" stroke="#9a3412" stroke-width="2.2" />
     
-    <!-- Highway Road Surface (Perspective Trapezoid from 450,480 to 140,1340 and 760,1340) -->
-    <polygon points="445,480 455,480 760,1340 140,1340" fill="#7c2d12" fill-opacity="0.25" stroke="#9a3412" stroke-width="3" />
-    
-    <!-- Dashed Centerline in Perspective -->
-    <line x1="450" y1="480" x2="450" y2="1340" stroke="#ffffff" stroke-width="4" stroke-dasharray="24 16" />
+    <!-- Highway Road Surface (Perspective Polygon) -->
+    <polygon points="446,480 454,480 760,1340 140,1340" fill="#9a3412" fill-opacity="0.08" stroke="#9a3412" stroke-width="2.4" />
+    <line x1="450" y1="480" x2="450" y2="1340" stroke="#ffffff" stroke-width="3" stroke-dasharray="20 14" />
 
-    <!-- Desert Sand Dune Undulations -->
-    <path d="M 40,540 Q 220,500 440,540 T 860,520" stroke="#c2410c" stroke-width="2" fill="none" />
-    <path d="M 40,620 Q 260,570 450,620 T 860,590" stroke="#ea580c" stroke-width="2" fill="none" />
-    <path d="M 40,740 Q 200,680 420,740 T 860,700" stroke="#c2410c" stroke-width="2.2" fill="none" />
+    <!-- Desert Sand Dune Undulations in Guilloche Weave -->
+    <path d="M 40,540 Q 220,500 440,540 T 860,520" stroke="#c2410c" stroke-width="1.8" fill="none" opacity="0.6" />
+    <path d="M 40,620 Q 260,570 450,620 T 860,590" stroke="#ea580c" stroke-width="1.8" fill="none" opacity="0.5" />
+    <path d="M 40,740 Q 200,680 420,740 T 860,700" stroke="#c2410c" stroke-width="2" fill="none" opacity="0.6" />
 
-    <!-- High-Voltage Transmission Pylons along Highway -->
-    <g stroke="#9a3412" stroke-width="1.8" fill="none">
-      <!-- Pylon 1 -->
+    <!-- High-Voltage Transmission Pylons along Highway in Fine Linework -->
+    <g stroke="#9a3412" stroke-width="1.4" fill="none" opacity="0.75">
       <line x1="280" y1="620" x2="280" y2="820" /><line x1="240" y1="660" x2="320" y2="660" /><line x1="250" y1="710" x2="310" y2="710" />
-      <!-- Pylon 2 -->
-      <line x1="180" y1="840" x2="180" y2="1140" stroke-width="2.5" /><line x1="120" y1="900" x2="240" y2="900" /><line x1="140" y1="980" x2="220" y2="980" />
-      <!-- Power Lines -->
+      <line x1="180" y1="840" x2="180" y2="1140" stroke-width="2" /><line x1="120" y1="900" x2="240" y2="900" /><line x1="140" y1="980" x2="220" y2="980" />
       <path d="M 240,660 Q 180,780 120,900" stroke-dasharray="4 2" />
       <path d="M 320,660 Q 280,780 240,900" stroke-dasharray="4 2" />
     </g>
 
     <!-- Heat Shimmer Waves -->
-    ${generateGuillocheBand(440, 16, 6, 6, 12, 6, 3, '#ea580c', 0.4)}
+    ${generateGuillocheBand(440, 14, 6, 6, 12, 6, 3, '#ea580c', 0.32)}
     ${buildSecurityFrame('#9a3412', '#ea580c', 'DESERT HIGHWAY · SOUTHERN REGISTAN CORRIDOR')}
     `
   );
@@ -122,9 +130,9 @@ function getOverlandBackgrounds() {
     'Border Crossing',
     `
     <linearGradient id="bc-sky" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#eff6ff" />
-      <stop offset="60%" stop-color="#dbeafe" />
-      <stop offset="100%" stop-color="#bfdbfe" />
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#e0f2fe" />
     </linearGradient>
     `,
     `
@@ -133,44 +141,44 @@ function getOverlandBackgrounds() {
     <!-- Official Customs & Border Station Canopy Terminal -->
     <g transform="translate(450, 480)">
       <!-- Main Canopy Roof -->
-      <rect x="-380" y="-80" width="760" height="40" rx="4" fill="#1e3a8a" />
-      <rect x="-370" y="-70" width="740" height="20" fill="#2563eb" />
-      <text x="0" y="-56" font-family="monospace" font-size="13" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="3">★ INTERNATIONAL CUSTOMS BORDER TERMINAL · ISLAM QALA ★</text>
+      <rect x="-380" y="-80" width="760" height="36" rx="4" fill="#1e3a8a" />
+      <rect x="-370" y="-70" width="740" height="16" fill="#2563eb" />
+      <text x="0" y="-58" font-family="monospace" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="2">★ INTERNATIONAL CUSTOMS BORDER TERMINAL · ISLAM QALA ★</text>
 
       <!-- Structural Support Pillars (4 Lanes) -->
       ${[-280, -90, 90, 280].map(x => `
-        <rect x="${x - 12}" y="-40" width="24" height="260" fill="#334155" stroke="#1e293b" stroke-width="2" />
-        <line x1="${x}" y1="-40" x2="${x}" y2="220" stroke="#94a3b8" stroke-width="1.5" />
+        <rect x="${x - 10}" y="-44" width="20" height="260" fill="#ffffff" stroke="#1e293b" stroke-width="1.8" />
+        <line x1="${x}" y1="-44" x2="${x}" y2="216" stroke="#94a3b8" stroke-width="1.2" />
       `).join('\n')}
 
       <!-- Lane Inspection Booths -->
       ${[-280, -90, 90, 280].map((x, i) => `
-        <rect x="${x - 30}" y="100" width="60" height="120" rx="3" fill="#ffffff" stroke="#1e3a8a" stroke-width="2" />
-        <rect x="${x - 22}" y="115" width="44" height="30" fill="#93c5fd" stroke="#1e40af" stroke-width="1.2" />
+        <rect x="${x - 26}" y="100" width="52" height="116" rx="3" fill="#ffffff" stroke="#1e3a8a" stroke-width="1.8" />
+        <rect x="${x - 18}" y="112" width="36" height="26" fill="#dbeafe" stroke="#1e40af" stroke-width="1" />
         <!-- Security Boom Barrier -->
-        <line x1="${x + 30}" y1="180" x2="${x + 150}" y2="180" stroke="#dc2626" stroke-width="4" />
-        <line x1="${x + 30}" y1="180" x2="${x + 150}" y2="180" stroke="#ffffff" stroke-width="4" stroke-dasharray="16 16" />
-        <text x="${x}" y="200" font-family="monospace" font-size="9" font-weight="900" fill="#1e3a8a" text-anchor="middle">LANE 0${i + 1}</text>
+        <line x1="${x + 26}" y1="180" x2="${x + 140}" y2="180" stroke="#dc2626" stroke-width="3" />
+        <line x1="${x + 26}" y1="180" x2="${x + 140}" y2="180" stroke="#ffffff" stroke-width="3" stroke-dasharray="12 12" />
+        <text x="${x}" y="196" font-family="monospace" font-size="8.5" font-weight="900" fill="#1e3a8a" text-anchor="middle">LANE 0${i + 1}</text>
       `).join('\n')}
     </g>
 
     <!-- Inspection Scanner Gantry & Weighbridge Floor Markings -->
-    <g stroke="#1e3a8a" stroke-width="2" fill="none">
+    <g stroke="#1e3a8a" stroke-width="1.6" fill="none">
       <rect x="120" y="820" width="660" height="320" rx="4" />
       <line x1="120" y1="980" x2="780" y2="980" stroke-dasharray="8 4" />
-      <text x="450" y="860" font-family="monospace" font-size="12" font-weight="900" fill="#1e3a8a" text-anchor="middle" stroke="none">AUTOMATED X-RAY CARGO SCANNER &amp; WEIGHBRIDGE PLATFORM</text>
+      <text x="450" y="860" font-family="monospace" font-size="10.5" font-weight="900" fill="#1e3a8a" text-anchor="middle" stroke="none">AUTOMATED X-RAY CARGO SCANNER &amp; WEIGHBRIDGE PLATFORM</text>
     </g>
 
-    <!-- Official TIR Customs Compliance Seal -->
+    <!-- Official TIR Customs Compliance Seal in Center -->
     <g transform="translate(450, 1060)">
-      <circle cx="0" cy="0" r="54" fill="#ffffff" fill-opacity="0.9" stroke="#dc2626" stroke-width="2.5" />
+      <circle cx="0" cy="0" r="54" fill="#ffffff" stroke="#dc2626" stroke-width="2.4" />
       <circle cx="0" cy="0" r="44" fill="none" stroke="#dc2626" stroke-width="1" stroke-dasharray="4 2" />
-      <text x="0" y="-8" font-family="monospace" font-size="13" font-weight="900" fill="#dc2626" text-anchor="middle">TIR CARNET</text>
-      <text x="0" y="12" font-family="monospace" font-size="8.5" font-weight="bold" fill="#dc2626" text-anchor="middle">CUSTOMS PASSED</text>
-      <text x="0" y="24" font-family="monospace" font-size="7" fill="#1e3a8a" text-anchor="middle">VERIFIED TRANSIT</text>
+      <text x="0" y="-8" font-family="monospace" font-size="12" font-weight="900" fill="#dc2626" text-anchor="middle">TIR CARNET</text>
+      <text x="0" y="12" font-family="monospace" font-size="8" font-weight="bold" fill="#dc2626" text-anchor="middle">CUSTOMS PASSED</text>
+      <text x="0" y="24" font-family="monospace" font-size="6.5" fill="#1e3a8a" text-anchor="middle">VERIFIED TRANSIT</text>
     </g>
 
-    ${generateGuillocheBand(1280, 22, 4, 10, 6, 8, 4, '#1e3a8a', 0.35)}
+    ${generateGuillocheBand(1280, 20, 4, 10, 6, 8, 4, '#1e3a8a', 0.28)}
     ${buildSecurityFrame('#1e3a8a', '#2563eb', 'BORDER CROSSING · CUSTOMS VERIFIED PORT OF ENTRY')}
     `
   );
@@ -180,41 +188,41 @@ function getOverlandBackgrounds() {
     'Valley Transit',
     `
     <linearGradient id="vt-sky" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#f0f9ff" />
-      <stop offset="50%" stop-color="#e0f2fe" />
-      <stop offset="100%" stop-color="#bae6fd" />
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#f0f9ff" />
+      <stop offset="100%" stop-color="#e0f2fe" />
     </linearGradient>
     `,
     `
     <rect width="900" height="1400" fill="url(#vt-sky)" />
 
-    <!-- Salang Pass Canyon Walls -->
-    <path d="M 40,240 Q 220,520 200,940 L 40,1340 Z" fill="#334155" fill-opacity="0.2" stroke="#1e293b" stroke-width="3" />
-    <path d="M 860,240 Q 680,520 700,940 L 860,1340 Z" fill="#334155" fill-opacity="0.2" stroke="#1e293b" stroke-width="3" />
+    <!-- Salang Pass Canyon Walls in Fine Linework -->
+    <path d="M 40,240 Q 220,520 200,940 L 40,1340 Z" fill="#334155" fill-opacity="0.05" stroke="#1e293b" stroke-width="2.2" />
+    <path d="M 860,240 Q 680,520 700,940 L 860,1340 Z" fill="#334155" fill-opacity="0.05" stroke="#1e293b" stroke-width="2.2" />
 
     <!-- High Mountain Viaduct Bridge Across the Gorge -->
-    <g stroke="#1e3a8a" stroke-width="3" fill="none">
-      <line x1="160" y1="620" x2="740" y2="620" stroke-width="12" stroke="#1e3a8a" />
+    <g stroke="#1e3a8a" stroke-width="2.5" fill="none">
+      <line x1="160" y1="620" x2="740" y2="620" stroke-width="10" stroke="#1e3a8a" />
       <line x1="160" y1="616" x2="740" y2="616" stroke-width="2" stroke="#ffffff" stroke-dasharray="10 5" />
       <!-- Bridge Piers -->
-      <line x1="320" y1="626" x2="320" y2="1080" stroke-width="14" stroke="#475569" />
-      <line x1="580" y1="626" x2="580" y2="1080" stroke-width="14" stroke="#475569" />
+      <line x1="320" y1="626" x2="320" y2="1080" stroke-width="12" stroke="#475569" />
+      <line x1="580" y1="626" x2="580" y2="1080" stroke-width="12" stroke="#475569" />
       <!-- Pier Cross Bracing -->
-      <line x1="320" y1="740" x2="580" y2="920" stroke-width="2.5" />
-      <line x1="320" y1="920" x2="580" y2="740" stroke-width="2.5" />
+      <line x1="320" y1="740" x2="580" y2="920" stroke-width="2" />
+      <line x1="320" y1="920" x2="580" y2="740" stroke-width="2" />
     </g>
 
-    <!-- Mountain Gorge River Rushing Below Viaduct -->
-    <path d="M 450,626 Q 410,880 480,1120 T 450,1340" fill="none" stroke="#0284c7" stroke-width="28" opacity="0.75" />
-    <path d="M 450,626 Q 410,880 480,1120 T 450,1340" fill="none" stroke="#ffffff" stroke-width="8" stroke-dasharray="16 8" />
+    <!-- Mountain Gorge River Rushing Below Viaduct (Layered Guilloche Path) -->
+    <path d="M 450,626 Q 410,880 480,1120 T 450,1340" fill="none" stroke="#0284c7" stroke-width="20" opacity="0.35" />
+    <path d="M 450,626 Q 410,880 480,1120 T 450,1340" fill="none" stroke="#ffffff" stroke-width="6" stroke-dasharray="14 6" />
 
     <!-- Topographic Contour Lines -->
-    ${generateTopographicContours(980, 1310, 6, '#1e3a8a', 0.4)}
+    ${generateTopographicContours(980, 1310, 6, '#1e3a8a', 0.35)}
 
     <!-- Salang Pass Elevation Header -->
     <g transform="translate(450, 260)">
-      <rect x="-180" y="-22" width="360" height="44" rx="4" fill="#ffffff" fill-opacity="0.95" stroke="#1e3a8a" stroke-width="2" />
-      <text x="0" y="5" font-family="monospace" font-size="11" font-weight="900" fill="#1e3a8a" text-anchor="middle">SALANG PASS HIGH VIADUCT · 3,363 M</text>
+      <rect x="-180" y="-18" width="360" height="36" rx="4" fill="#ffffff" fill-opacity="0.95" stroke="#1e3a8a" stroke-width="1.8" />
+      <text x="0" y="5" font-family="monospace" font-size="10" font-weight="900" fill="#1e3a8a" text-anchor="middle">SALANG PASS HIGH VIADUCT · 3,363 M</text>
     </g>
 
     ${buildSecurityFrame('#1e3a8a', '#0284c7', 'VALLEY TRANSIT · HIGH-ALTITUDE PASSAGE')}
@@ -222,7 +230,7 @@ function getOverlandBackgrounds() {
   );
 
   // 13. Cargo Convoy
-  backgrounds['cargo-convoy.svg'] = wrapSvg(
+  backgrounds['cargo-convoy.svg'] = getExistingPhotoSvg('cargo-convoy.svg', () => wrapSvg(
     'Cargo Convoy',
     `
     <linearGradient id="cc-bg" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -267,10 +275,10 @@ function getOverlandBackgrounds() {
     ${generateGuillocheBand(1220, 24, 4, 10, 8, 10, 5, '#38bdf8', 0.4)}
     ${buildSecurityFrame('#38bdf8', '#0284c7', 'CARGO CONVOY · INTER-CITY FREIGHT SQUADRON')}
     `
-  );
+  ));
 
   // 14. Rail Corridor
-  backgrounds['rail-corridor.svg'] = wrapSvg(
+  backgrounds['rail-corridor.svg'] = getExistingPhotoSvg('rail-corridor.svg', () => wrapSvg(
     'Rail Corridor',
     `
     <linearGradient id="rc-sky" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -283,8 +291,6 @@ function getOverlandBackgrounds() {
     <rect width="900" height="1400" fill="url(#rc-sky)" />
 
     <!-- Perspective Railway Tracks Converging to Center (Hairatan-Mazar Line) -->
-    <!-- Vanishing Point at (450, 360) -->
-    <!-- Rails -->
     <line x1="440" y1="360" x2="160" y2="1340" stroke="#0f172a" stroke-width="6" />
     <line x1="460" y1="360" x2="740" y2="1340" stroke="#0f172a" stroke-width="6" />
     <line x1="438" y1="360" x2="152" y2="1340" stroke="#38bdf8" stroke-width="1.8" />
@@ -325,10 +331,10 @@ function getOverlandBackgrounds() {
     ${generateGuillocheBand(1280, 24, 3, 10, 6, 8, 4, '#0f172a', 0.35)}
     ${buildSecurityFrame('#0f172a', '#0284c7', 'RAIL CORRIDOR · INTERMODAL HEAVY RAIL SYSTEM')}
     `
-  );
+  ));
 
   // 15. Winding Pass
-  backgrounds['winding-pass.svg'] = wrapSvg(
+  backgrounds['winding-pass.svg'] = getExistingPhotoSvg('winding-pass.svg', () => wrapSvg(
     'Winding Pass',
     `
     <linearGradient id="wp-sky" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -364,10 +370,10 @@ function getOverlandBackgrounds() {
 
     ${buildSecurityFrame('#78350f', '#d97706', 'WINDING PASS · MOUNTAIN HAIRPIN SWITCHBACK')}
     `
-  );
+  ));
 
   // 16. Horizon Route
-  backgrounds['horizon-route.svg'] = wrapSvg(
+  backgrounds['horizon-route.svg'] = getExistingPhotoSvg('horizon-route.svg', () => wrapSvg(
     'Horizon Route',
     `
     <linearGradient id="hr-sky" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -398,10 +404,10 @@ function getOverlandBackgrounds() {
       <line x1="220" y1="-10" x2="220" y2="280" stroke="#334155" stroke-width="8" />
     </g>
 
-    ${generateGuillocheBand(1240, 24, 4, 10, 6, 10, 5, '#86198f', 0.35)}
-    ${buildSecurityFrame('#701a75', '#c026d3', 'HORIZON ROUTE · INTERSTATE TRANSIT CORRIDOR')}
+    ${generateGuillocheBand(1280, 26, 3, 10, 6, 8, 4, '#86198f', 0.4)}
+    ${buildSecurityFrame('#86198f', '#c026d3', 'HORIZON ROUTE · TRANS-ASIA CONTINUOUS HIGHWAY')}
     `
-  );
+  ));
 
   return backgrounds;
 }

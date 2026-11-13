@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, memo } from "react"
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, memo } from "react"
 import type { CSSProperties, ReactNode, ComponentType } from "react"
 import type { BillOfLadingFormData } from "@/lib/types/bill-of-lading"
 import {
@@ -36,7 +36,8 @@ import {
 import { toast } from "sonner"
 import { BillOfLadingHeader } from "./header"
 import { DocumentQRCode } from "./document-qr-code"
-export { DocumentQRCode }
+import { Barcode128 } from "./barcode"
+export { DocumentQRCode, Barcode128 }
 import {
   Dialog,
   DialogContent,
@@ -45,7 +46,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { generateQrMatrix } from "@/lib/utils/qr-code"
-import { parseLogisticsRoute } from "@/lib/utils/transit-route-parser"
+import { parseLogisticsRoute, cleanRouteText } from "@/lib/utils/transit-route-parser"
 import {
   RouteAirIcon,
   RouteCarIcon,
@@ -82,6 +83,8 @@ interface A4PreviewProps {
   persianDateNumeric: string
   formData: BillOfLadingFormData
   logoUrl?: string
+  brandLockupUrl?: string
+  logoDesignId?: string
   companyName?: string
   companyNamePersian?: string
   companySubtitle?: string
@@ -208,7 +211,7 @@ const labels = {
   exporterContactsFa: "\u062a\u0645\u0627\u0633\u200c\u0647\u0627\u06cc \u0635\u0627\u062f\u0631\u06a9\u0646\u0646\u062f\u0647",
   exporterInfoFa: "\u0641\u0631\u0633\u062a\u0646\u062f\u0647",
   consigneeInfoFa: "\u06af\u06cc\u0631\u0646\u062f\u0647",
-  notifyPartyFa: "\u0637\u0631\u0641 \u0627\u0637\u0644\u0627\u0639\u002d\u0631\u0633\u0627\u0646\u06cc",
+  notifyPartyFa: "\u0637\u0631\u0641 \u0627\u0637\u0644\u0627\u0639 \u0631\u0633\u0627\u0646\u06cc",
   routeFa: "\u0645\u0633\u06cc\u0631 \u062d\u0645\u0644 \u0648 \u0646\u0642\u0644",
   shipmentInfoFa: "\u0627\u0637\u0644\u0627\u0639\u0627\u062a \u062d\u0645\u0644",
   cargoDescFa: "\u0634\u0631\u062d \u06a9\u0627\u0644\u0627",
@@ -636,26 +639,37 @@ function Section({
   subtitle,
   icon,
   badge,
+  centerContent,
   children,
   glass = false,
   printKey,
   pdfMode = false,
   titleClassName,
+  subtitleClassName,
+  compactHeight = false,
   densityTier = "normal",
 }: {
   title: string
   subtitle?: string
   icon: ReactNode
   badge?: ReactNode
+  centerContent?: ReactNode
   children: ReactNode
   glass?: boolean
   printKey?: string
   pdfMode?: boolean
   titleClassName?: string
+  subtitleClassName?: string
+  compactHeight?: boolean
   densityTier?: "ultra" | "compact" | "normal"
 }) {
   const isUltra = densityTier === "ultra"
   const isCompact = densityTier === "compact" || isUltra
+  const isCompactHeader = compactHeight || Boolean(badge)
+
+  const headerPadding = isCompactHeader
+    ? (isUltra ? "px-1.5 py-[0.5px]" : isCompact ? "px-1.8 py-[0.8px]" : "px-2 py-[1px]")
+    : (isUltra ? "px-1.5 py-[0.8px]" : isCompact ? "px-1.8 py-[1.4px]" : "px-2 py-[2px]")
 
   return (
     <section
@@ -665,8 +679,8 @@ function Section({
       className={`overflow-hidden rounded-xl border shrink-0 ${pdfMode ? 'border-blue-200/90 bg-white' : 'shadow-xs border-blue-200/80 bg-white/95'}`}
     >
       <div
-        className={`flex items-center justify-between text-white ${
-          isUltra ? "px-1.5 py-[1.2px]" : isCompact ? "px-1.8 py-[1.6px]" : "px-2 py-[2px]"
+        className={`flex items-center justify-between text-white ${headerPadding} ${
+          isCompactHeader ? (isUltra ? "min-h-[19px]" : "min-h-[22px]") : ""
         }`}
         style={blueBarStyle}
       >
@@ -682,6 +696,7 @@ function Section({
             {title}
           </h3>
         </div>
+        {centerContent && <div className="flex-1 min-w-0 flex items-center justify-center px-2">{centerContent}</div>}
         {badge && (
           <div className="flex items-center justify-center shrink-0 mx-2">
             {badge}
@@ -689,14 +704,16 @@ function Section({
         )}
         {subtitle && (
           <p
-            className={`persian-text bol-persian-text font-[vazirmatn] !text-[12.2pt] font-bold leading-none whitespace-nowrap shrink-0`}
+            className={`persian-text bol-persian-text font-[vazirmatn] ${
+              subtitleClassName || "!text-[12.2pt]"
+            } font-bold leading-none whitespace-nowrap shrink-0`}
             dir="rtl"
           >
             {subtitle}
           </p>
         )}
       </div>
-      <div className={isUltra ? "p-[2px]" : isCompact ? "p-[2.5px]" : "p-[3px]"}>{children}</div>
+      <div className={isUltra ? "p-[1.5px]" : isCompact ? "p-[2.5px]" : "p-[3px]"}>{children}</div>
     </section>
   )
 }
@@ -1059,7 +1076,11 @@ function PartyCard({
         <span className={`party-card-icon ${isUltra ? "!w-4 !h-4 !min-w-4 rounded" : ""}`}>{icon}</span>
         <div className="party-card-header-text">
           <h4 className={`party-card-title ${isUltra ? "!text-[8.2pt]" : isCompact ? "!text-[9.2pt]" : "!text-[10.2pt]"}`}>{title}</h4>
-          <p className={`party-card-subtitle ${isUltra ? "!text-[8.2pt]" : isCompact ? "!text-[9.2pt]" : "!text-[10.2pt]"}`} dir="rtl">
+          <p
+            className={`party-card-subtitle ${isUltra ? "!text-[8.2pt]" : isCompact ? "!text-[9.2pt]" : "!text-[10.2pt]"} whitespace-nowrap`}
+            dir="rtl"
+            style={{ whiteSpace: "nowrap" }}
+          >
             {subtitle}
           </p>
         </div>
@@ -1281,7 +1302,7 @@ function getRouteCountryMeta(location?: string, locationPersian?: string) {
 
   const countryMatch = codeMatch?.[1]?.toUpperCase() ||
     (normalized.includes("afghanistan") || normalized.includes("kandahar") || normalized.includes("nimroz") || normalized.includes("milak") || normalized.includes("herat") || normalized.includes("kabul") || normalized.includes("mazar") || normalized.includes("hairatan") || normalized.includes("zaranj") || normalized.includes("islam qala") ? "AF" :
-    normalized.includes("iran") || normalized.includes("bandar abbas") || normalized.includes("dougharoun") || normalized.includes("tehran") || normalized.includes("chabahar") || normalized.includes("milak border") ? "IR" :
+    normalized.includes("iran") || normalized.includes("bandar abbas") || normalized.includes("dougharoun") || normalized.includes("tehran") || normalized.includes("chabahar") || normalized.includes("milak border") || normalized.includes("jask") || normalized.includes("جاسک") ? "IR" :
     normalized.includes("india") || normalized.includes("nhava") || normalized.includes("sheva") || normalized.includes("mumbai") || normalized.includes("delhi") || normalized.includes("mundra") ? "IN" :
     normalized.includes("dubai") || normalized.includes("emirates") || normalized.includes("uae") || normalized.includes("abu dhabi") || normalized.includes("sharjah") || normalized.includes("jebel ali") ? "AE" :
     normalized.includes("pakistan") || normalized.includes("quetta") || normalized.includes("chaman") || normalized.includes("karachi") || normalized.includes("lahore") ? "PK" :
@@ -1291,7 +1312,7 @@ function getRouteCountryMeta(location?: string, locationPersian?: string) {
     normalized.includes("turkmenistan") || normalized.includes("ashgabat") ? "TM" :
     normalized.includes("tajikistan") || normalized.includes("dushanbe") ? "TJ" :
     normalized.includes("russia") || normalized.includes("moscow") || normalized.includes("saint petersburg") ? "RU" :
-    normalized.includes("oman") || normalized.includes("muscat") || normalized.includes("sohar") ? "OM" :
+    normalized.includes("oman") || normalized.includes("muscat") || normalized.includes("sohar") || normalized.includes("suwaiq") || normalized.includes("al suwaiq") || normalized.includes("سویق") || normalized.includes("سويق") || normalized.includes("صحار") ? "OM" :
     normalized.includes("saudi") || normalized.includes("riyadh") || normalized.includes("jeddah") || normalized.includes("dammam") ? "SA" :
     "")
 
@@ -1458,20 +1479,20 @@ function RouteTimeline({
         background: "linear-gradient(145deg, #ffffff 0%, #f8faff 50%, #eff6ff 100%)",
         border: "1.5px solid #bfdbfe",
         borderRadius: "6px",
-        padding: isUltra ? "1px 2px" : isCompact ? "1.5px 2.5px" : "1.8px 3px",
+        padding: isUltra ? "1.5px 2px" : isCompact ? "2px 2.5px" : "2.5px 3.5px",
         boxShadow: "0 2px 8px rgba(37, 99, 235, 0.05)",
       }}
       aria-label="Route and transportation path timeline"
     >
       {/* Route Cards Container */}
-      <div className="route-timeline-cards flex items-stretch justify-between gap-0.8" role="list">
+      <div className="route-timeline-cards flex items-stretch justify-between gap-1" role="list">
         {routes.map((route, index) => {
           const mode = (route.transportMode || "truck").toLowerCase().trim()
           const countryMeta = getRouteCountryMeta(route.location, route.locationPersian)
           const countryDisplay = countryMeta.label ? countryMeta.label.toUpperCase() : countryMeta.code
           const isLastRoute = index === routes.length - 1
           const isOrigin = index === 0
-          const computedStopLabel = isOrigin ? "ORIGIN" : isLastRoute ? "DESTINATION" : `STOP ${index}`
+          const computedStopLabel = isOrigin ? "ORIGIN" : isLastRoute ? (isUltra ? "DEST" : "DESTINATION") : `STOP ${index}`
           const modeTheme = modeThemeMap[mode] || defaultModeTheme
 
           const formattedLoc = formatRouteStopLocation(route.location, route.locationPersian)
@@ -1481,29 +1502,29 @@ function RouteTimeline({
               <div
                 className={`route-timeline-card transition-all duration-200 w-full text-center relative overflow-hidden flex flex-col justify-between ${
                   isOrigin
-                    ? "border-1.5 border-emerald-500 bg-linear-to-b from-emerald-50/60 via-white to-emerald-50/15 shadow-2xs shadow-emerald-100/50"
+                    ? "border-1.5 border-emerald-500 bg-linear-to-b from-emerald-50/70 via-white to-emerald-50/20 shadow-2xs shadow-emerald-100/50"
                     : isLastRoute
-                    ? "border-1.5 border-indigo-500 bg-linear-to-b from-indigo-50/60 via-white to-indigo-50/15 shadow-2xs shadow-indigo-100/50"
-                    : "border-1.5 border-blue-300 bg-linear-to-b from-blue-50/50 via-white to-blue-50/15 shadow-2xs shadow-blue-100/50"
+                    ? "border-1.5 border-indigo-500 bg-linear-to-b from-indigo-50/70 via-white to-indigo-50/20 shadow-2xs shadow-indigo-100/50"
+                    : "border-1.5 border-blue-400 bg-linear-to-b from-blue-50/60 via-white to-blue-50/20 shadow-2xs shadow-blue-100/50"
                 }`}
                 style={{
-                  borderRadius: "5px",
-                  padding: isUltra ? "1px 1px" : isCompact ? "1px 1.2px" : "1.2px 1.5px",
+                  borderRadius: "6px",
+                  padding: isUltra ? "2px 2px" : isCompact ? "2.5px 3px" : "3px 4px",
                   minHeight: isUltra ? "46px" : isCompact ? "50px" : "56px",
                 }}
               >
                 {/* Top Accent Strip */}
-                <div className={`${isUltra ? "h-0.6" : "h-0.8"} w-full absolute top-0 left-0 right-0 ${
+                <div className={`${isUltra ? "h-0.8" : "h-1"} w-full absolute top-0 left-0 right-0 ${
                   isOrigin ? 'bg-linear-to-r from-emerald-500 via-teal-500 to-emerald-400' : isLastRoute ? 'bg-linear-to-r from-indigo-600 via-purple-600 to-indigo-500' : 'bg-linear-to-r from-blue-500 via-cyan-500 to-blue-400'
                 }`} />
 
                 {/* Header 2-Tone Capsule Badge */}
-                <div className={`flex items-center justify-center ${isUltra ? "mt-0.1 mb-0.1 px-0.1" : "mt-0.2 mb-0.1 px-0.2"}`}>
-                  <div className={`inline-flex items-center rounded-full border border-slate-300/80 shadow-2xs overflow-hidden max-w-full font-black tracking-tight uppercase ${
-                    isUltra ? "text-[3.8pt]" : isCompact ? "text-[4.1pt]" : "text-[4.4pt]"
+                <div className={`flex items-center justify-center ${isUltra ? "mt-0.5 mb-0.5 px-0.5" : "mt-0.8 mb-0.5 px-0.5"}`}>
+                  <div className={`inline-flex items-center rounded-full border border-slate-300 shadow-2xs overflow-hidden max-w-full font-black tracking-tight uppercase ${
+                    isUltra ? "text-[4.6pt]" : isCompact ? "text-[5.0pt]" : "text-[5.5pt]"
                   }`}>
                     {/* Stop Type */}
-                    <span className={`py-0.05 text-white shrink-0 font-black ${isUltra ? "px-0.8 text-[3.8pt]" : "px-1 text-[4.1pt]"} ${
+                    <span className={`py-0.1 text-white shrink-0 font-black ${isUltra ? "px-1.2 text-[4.6pt]" : "px-1.5 text-[5.0pt]"} ${
                       isOrigin
                         ? "bg-emerald-600 border-r border-emerald-700"
                         : isLastRoute
@@ -1512,19 +1533,18 @@ function RouteTimeline({
                     }`}>
                       {computedStopLabel}
                     </span>
-                    {/* Country Code & Label - single clean display, no emoji duplication */}
-                    {countryMeta.code && (
-                      <span className={`bg-slate-100/95 text-slate-800 flex items-center gap-0.5 truncate font-black ${isUltra ? "px-0.8 py-0.05 text-[3.8pt]" : "px-1 py-0.1 text-[4.1pt]"}`}>
-                        <span className="font-mono text-blue-950 font-black">{countryMeta.code}</span>
-                        {countryDisplay && countryDisplay !== countryMeta.code && (
-                          <span className="truncate text-slate-600 font-extrabold">{countryDisplay}</span>
-                        )}
+                    {/* Country Display - clean single label without code duplication */}
+                    {countryDisplay && (
+                      <span className={`bg-slate-100/95 text-slate-800 flex items-center gap-0.5 truncate font-extrabold ${
+                        isUltra ? "px-1.2 py-0.1 text-[4.6pt]" : "px-1.5 py-0.1 text-[5.0pt]"
+                      }`}>
+                        <span className="truncate text-slate-700 font-extrabold tracking-wide">{countryDisplay}</span>
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* City & Location Name (Vertically Balanced with Zero Cut-off) */}
+                {/* City & Location Name (Vertically Balanced with High Contrast) */}
                 <div className={`flex-1 flex flex-col justify-center px-0.5 my-auto ${isUltra ? "min-h-[10px]" : isCompact ? "min-h-[12px]" : "min-h-[14px]"}`}>
                   <div className={`font-black text-slate-950 leading-tight break-words line-clamp-1 tracking-tight ${
                     isUltra ? "text-[8.0pt]" : isCompact ? "text-[8.6pt]" : "text-[9.4pt]"
@@ -1542,7 +1562,7 @@ function RouteTimeline({
                     </div>
                   )}
                   {hasValue(formattedLoc.persianMain) && (
-                    <div className={`font-bold text-slate-600 font-[vazirmatn] leading-tight break-words line-clamp-1 ${
+                    <div className={`font-extrabold text-slate-800 dark:text-slate-200 font-[vazirmatn] leading-tight break-words line-clamp-1 mt-0.5 ${
                       isUltra ? "text-[7.0pt]" : isCompact ? "text-[7.6pt]" : "text-[8.4pt]"
                     }`} dir="rtl">
                       {formattedLoc.persianMain}
@@ -1551,13 +1571,13 @@ function RouteTimeline({
                 </div>
 
                 {/* Bottom Row: Mode Pill */}
-                <div className="mt-0.1">
-                  <span className={`inline-flex items-center justify-center gap-0.5 rounded-full font-black uppercase tracking-wide border whitespace-nowrap ${
+                <div className="mt-0.8 mb-0.5 flex items-center justify-center">
+                  <span className={`inline-flex items-center justify-center gap-1 rounded-full font-black uppercase tracking-wide border whitespace-nowrap shadow-2xs ${
                     isUltra ? "px-2 py-0.4 text-[5.4pt]" : isCompact ? "px-2.5 py-0.5 text-[6.0pt]" : "px-3 py-0.6 text-[6.6pt]"
                   } ${modeTheme.bg}`}>
-                    <span className={`${isUltra ? "text-[4.2pt]" : "text-[4.8pt]"} leading-none`}>{modeTheme.icon}</span>
+                    <span className={`${isUltra ? "text-[5.0pt]" : "text-[5.8pt]"} leading-none shrink-0`}>{modeTheme.icon}</span>
                     <span>{modeTheme.label}</span>
-                    <span className={`font-[vazirmatn] ${isUltra ? "text-[3.6pt]" : "text-[4pt]"} opacity-85`}>({modeTheme.persian})</span>
+                    <span className={`font-[vazirmatn] font-bold ${isUltra ? "text-[4.5pt]" : "text-[5.2pt]"} opacity-90`}>({modeTheme.persian})</span>
                   </span>
                 </div>
 
@@ -1596,7 +1616,7 @@ function RouteTimeline({
                   className="route-timeline-arrow mx-0.5 shrink-0 flex items-center justify-center w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-linear-to-b from-white to-blue-50 border border-blue-400 shadow-2xs text-blue-600 z-10"
                   aria-hidden="true"
                 >
-                  <ArrowRight className="w-2 h-2 text-blue-700 stroke-[2.2]" />
+                  <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-700 stroke-[2.5]" />
                 </div>
               )}
             </div>
@@ -1688,7 +1708,7 @@ function ShipmentOverview({
 
   const cardPaddingClass = hasTruck
     ? isUltra
-      ? "px-1 py-1 min-h-[24mm]"
+      ? "px-1 py-0.8 min-h-[17.5mm]"
       : isCompact
       ? "px-1.5 py-1.2 min-h-[27mm]"
       : "px-2 py-1.5 min-h-[29mm]"
@@ -1699,12 +1719,14 @@ function ShipmentOverview({
     : "px-2 py-1.2 min-h-[12mm]"
   const labelEnClass = `${isUltra ? "text-[7.2pt]" : isCompact ? "text-[8.0pt]" : "text-[8.8pt]"} font-black uppercase tracking-wider text-blue-900 leading-tight text-center block w-full`
   const labelFaClass = `font-[vazirmatn] ${isUltra ? "text-[7.0pt] mt-0.3" : isCompact ? "text-[7.8pt] mt-0.4" : "text-[8.6pt] mt-0.5"} font-black text-blue-700 leading-tight text-center block w-full`
+  const cardHeaderEnClass = `${isUltra ? "text-[8.1pt]" : isCompact ? "text-[9.0pt]" : "text-[9.8pt]"} font-black uppercase tracking-wide text-blue-950 leading-snug`
+  const cardHeaderFaClass = `${isUltra ? "text-[7.9pt]" : isCompact ? "text-[8.8pt]" : "text-[9.6pt]"} font-black text-blue-700 leading-snug`
   const valMarginClass = isUltra ? "mt-0.8 text-center" : "mt-1.2 text-center"
 
   const gridColsClass = activeCardsCount === 1
     ? "flex justify-start w-full"
     : activeCardsCount >= 4
-    ? "grid-cols-[minmax(0,16fr)_minmax(0,34fr)_minmax(0,34fr)_minmax(0,16fr)]"
+    ? "grid-cols-[minmax(0,22fr)_minmax(0,28fr)_minmax(0,28fr)_minmax(0,22fr)]"
     : activeCardsCount === 3
     ? hasIssueDate && hasTruck
       ? "grid-cols-[minmax(0,18fr)_minmax(0,44fr)_minmax(0,38fr)]"
@@ -1731,19 +1753,24 @@ function ShipmentOverview({
       {/* 1. ISSUE DATE */}
       {hasIssueDate && (
         <div
-          className={`rounded-xl border text-center flex flex-col justify-between overflow-visible ${cardPaddingClass} ${
+          className={`rounded-xl border text-center flex flex-col justify-between overflow-visible min-w-0 ${cardPaddingClass} ${
             pdfMode
               ? "border-blue-200 bg-white"
               : "border-blue-200/90 bg-gradient-to-b from-blue-50/40 via-white to-blue-50/20 shadow-xs"
-          } ${activeCardsCount === 1 ? "w-full max-w-[42mm]" : "w-full max-w-[38mm] justify-self-start"}`}
+          } ${activeCardsCount === 1 ? "w-full max-w-[44mm]" : "w-full max-w-[44mm] justify-self-start"}`}
         >
-          <div className="flex flex-col items-center justify-center text-center w-full">
-            <div className={labelEnClass} style={{ textAlign: "center" }}>
+          <div className="flex items-center justify-center gap-1 text-center w-full shrink-0 whitespace-nowrap leading-snug pt-0.5 pb-1 mb-0.5 border-b border-blue-100/90">
+            <span className={cardHeaderEnClass}>
               ISSUE DATE
-            </div>
-            <div className={labelFaClass} dir="rtl" style={{ textAlign: "center", direction: "rtl" }}>
+            </span>
+            <span className="text-blue-400 font-bold select-none text-[8.4pt] leading-none">/</span>
+            <span
+              className={`font-[vazirmatn] ${cardHeaderFaClass}`}
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "isolate" }}
+            >
               تاریخ صدور
-            </div>
+            </span>
           </div>
           <div className={`flex-1 flex flex-col items-center justify-center ${valMarginClass} w-full`}>
             {hasValue(issueDate) && (
@@ -1783,15 +1810,20 @@ function ShipmentOverview({
             pdfMode ? "border-blue-200 bg-white" : "border-blue-200/90 bg-white/95 shadow-xs"
           } min-w-0`}
         >
-          <div className="flex flex-col items-center justify-center text-center w-full shrink-0 pt-0.5">
-            <div className={labelEnClass} style={{ textAlign: "center" }}>
+          <div className="flex items-center justify-center gap-1 text-center w-full shrink-0 whitespace-nowrap leading-snug pt-0.5 pb-1 mb-0.5 border-b border-blue-100/90">
+            <span className={cardHeaderEnClass}>
               TRUCK NUMBER
-            </div>
-            <div className={labelFaClass} dir="rtl" style={{ textAlign: "center", direction: "rtl" }}>
+            </span>
+            <span className="text-blue-400 font-bold select-none text-[8.4pt] leading-none">/</span>
+            <span
+              className={`font-[vazirmatn] ${cardHeaderFaClass}`}
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "isolate" }}
+            >
               شماره کامیون / موټر
-            </div>
+            </span>
           </div>
-          <div className="flex-1 flex items-center justify-center w-full my-auto min-w-0 py-1">
+          <div className="flex-1 flex items-center justify-center w-full my-auto min-w-0 py-0.5">
             <AfghanTruckPlate value={formData.truck_number} size={isUltra ? "sm" : "compact"} className="max-w-full h-auto" />
           </div>
         </div>
@@ -1800,17 +1832,22 @@ function ShipmentOverview({
       {/* 3. DRIVER NAME & CONTACT */}
       {hasDriverOrContact && (
         <div
-          className={`rounded-xl border text-center flex flex-col justify-between overflow-visible ${cardPaddingClass} ${
+          className={`rounded-xl border text-center flex flex-col justify-between overflow-visible min-w-0 ${cardPaddingClass} ${
             pdfMode ? "border-blue-200 bg-white" : "border-blue-200/90 bg-white/95 shadow-xs"
           }`}
         >
-          <div className="flex flex-col items-center justify-center text-center w-full">
-            <div className={labelEnClass} style={{ textAlign: "center" }}>
+          <div className="flex items-center justify-center gap-1 text-center w-full shrink-0 whitespace-nowrap leading-snug pt-0.5 pb-1 mb-0.5 border-b border-blue-100/90">
+            <span className={cardHeaderEnClass}>
               {hasDriver ? "DRIVER NAME" : "DRIVER CONTACT"}
-            </div>
-            <div className={labelFaClass} dir="rtl" style={{ textAlign: "center", direction: "rtl" }}>
+            </span>
+            <span className="text-blue-400 font-bold select-none text-[8.4pt] leading-none">/</span>
+            <span
+              className={`font-[vazirmatn] ${cardHeaderFaClass}`}
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "isolate" }}
+            >
               {hasDriver ? "نام راننده" : "تماس راننده"}
-            </div>
+            </span>
           </div>
           <div className={`flex-1 flex flex-col items-center justify-center ${valMarginClass} w-full gap-1.5`}>
             {hasDriver && (
@@ -1852,17 +1889,22 @@ function ShipmentOverview({
       {/* 4. DRIVER RENT */}
       {hasRent && (
         <div
-          className={`rounded-xl border text-center flex flex-col justify-between overflow-visible ${cardPaddingClass} ${
+          className={`rounded-xl border text-center flex flex-col justify-between overflow-visible min-w-0 ${cardPaddingClass} ${
             pdfMode ? "border-blue-200 bg-white" : "border-blue-200/90 bg-white/95 shadow-xs"
           }`}
         >
-          <div className="flex flex-col items-center justify-center text-center w-full">
-            <div className={labelEnClass} style={{ textAlign: "center" }}>
+          <div className="flex items-center justify-center gap-1 text-center w-full shrink-0 whitespace-nowrap leading-snug pt-0.5 pb-1 mb-0.5 border-b border-blue-100/90">
+            <span className={cardHeaderEnClass}>
               DRIVER RENT
-            </div>
-            <div className={labelFaClass} dir="rtl" style={{ textAlign: "center", direction: "rtl" }}>
+            </span>
+            <span className="text-blue-400 font-bold select-none text-[8.4pt] leading-none">/</span>
+            <span
+              className={`font-[vazirmatn] ${cardHeaderFaClass}`}
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "isolate" }}
+            >
               کرایه راننده
-            </div>
+            </span>
           </div>
           <div className={`flex-1 flex flex-col items-center justify-center ${valMarginClass} w-full`}>
             {(() => {
@@ -2133,7 +2175,7 @@ function CargoRow({
   const isUltra = densityTier === "ultra"
   const isCompact = densityTier === "compact" || isUltra
 
-  const packageQtyFont = isUltra ? "text-[10pt]" : isCompact ? "text-[12pt]" : "text-[14pt]"
+  const packageQtyFont = isUltra ? "text-[11pt]" : isCompact ? "text-[14pt]" : "text-[16pt]"
   const qtyFont = isUltra ? "text-[9pt]" : isCompact ? "text-[11pt]" : "text-[12.8pt]"
   const commFont = isUltra ? "text-[7.2pt]" : isCompact ? "text-[8.2pt]" : "text-[9.4pt]"
   const valFont = isUltra ? "text-[8.8pt]" : isCompact ? "text-[10.2pt]" : "text-[11.8pt]"
@@ -2145,16 +2187,16 @@ function CargoRow({
     /^([\d,]+(?:\.\d+)?\s*(?:CTNS?|CARTONS?|BAGS?|PKGS?|BOXES|PCS|UNITS|ROLLS|DRUMS|KGS?|TONS?|LBS?)?)\s*(.*)$/i
   )
   const qtyPart = qtyMatch && qtyMatch[1] ? qtyMatch[1].trim() : ""
-  const commPart = qtyMatch && qtyMatch[2] ? qtyMatch[2].trim().replace(/^[-–—|:]\s*/, "") : (!qtyMatch ? pkgClean : "")
+  const commPart = qtyMatch && qtyMatch[1] && qtyMatch[2] ? qtyMatch[2].trim().replace(/^[-–—|:]\s*/, "") : ""
 
   const cellBoxStyle: CSSProperties = {
     backgroundColor: "#ffffff",
-    padding: isUltra ? "1.5px 2px" : isCompact ? "2px 3px" : "3px 4.5px",
+    padding: isUltra ? "1.5px 2px" : isCompact ? "2px 2.5px" : "2.5px 3.5px",
     boxSizing: "border-box",
   }
 
   const cellMinHeight = isUltra ? "min-h-[22px]" : isCompact ? "min-h-[25px]" : "min-h-[28px]"
-  const innerSubRowPad = isUltra ? "px-1 py-[0.8px]" : isCompact ? "px-1.5 py-[1.2px]" : "px-1.8 py-[1.5px]"
+  const innerSubRowPad = isUltra ? "px-1 py-[0.8px]" : isCompact ? "px-1.2 py-[1px]" : "px-1.2 py-[1.2px]"
   const innerGap = isUltra ? "gap-[1px]" : isCompact ? "gap-[1.5px]" : "gap-[2px]"
 
   return (
@@ -2168,7 +2210,7 @@ function CargoRow({
         className={`rounded-lg border border-slate-200/90 bg-white flex flex-col items-center justify-center text-center overflow-hidden ${cellMinHeight} shadow-2xs`}
         style={cellBoxStyle}
       >
-        {qtyPart || commPart ? (
+        {qtyPart || commPart || pkgClean ? (
           <div className={`flex flex-col items-center justify-center w-full leading-tight ${isUltra ? "py-0" : "py-0.2"}`}>
             <div className="flex items-center justify-center gap-1 w-full">
               {showIndexBadge && (
@@ -2176,12 +2218,52 @@ function CargoRow({
                   #{itemNumber}
                 </span>
               )}
-              <span className={`font-mono font-black ${packageQtyFont} text-slate-950 whitespace-nowrap keep-all direction-ltr unicode-isolate leading-tight`}>
+              <span
+                className={`font-mono font-black ${commPart ? (isUltra ? "text-[12pt]" : isCompact ? "text-[14pt]" : "text-[16pt]") : packageQtyFont} text-slate-950 whitespace-nowrap keep-all direction-ltr unicode-isolate leading-tight`}
+                style={{
+                  fontSize: commPart ? (isUltra ? "12pt" : isCompact ? "14pt" : (pdfMode ? "15pt" : "16pt")) : (isUltra ? "13pt" : isCompact ? "15pt" : "18pt"),
+                  fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'NotoSans', sans-serif",
+                }}
+              >
                 {qtyPart || pkgClean}
               </span>
             </div>
             {commPart && (
-              <span className={`font-bold ${commFont} text-blue-900 tracking-tight line-clamp-2 uppercase text-center ${isUltra ? "mt-0" : "mt-0.2"} max-w-full break-words leading-tight`}>
+              <span
+                className={`font-black ${
+                  commPart.length > 22
+                    ? (isUltra ? "text-[5.5pt]" : isCompact ? "text-[6.2pt]" : "text-[6.8pt]")
+                    : commPart.length > 16
+                    ? (isUltra ? "text-[6.5pt]" : isCompact ? "text-[7.2pt]" : "text-[7.8pt]")
+                    : commPart.length > 11
+                    ? (isUltra ? "text-[7.2pt]" : isCompact ? "text-[8.2pt]" : (pdfMode ? "8.8pt" : "9.2pt"))
+                    : commPart.length > 7
+                    ? (isUltra ? "text-[8.5pt]" : isCompact ? "text-[9.5pt]" : (pdfMode ? "10.2pt" : "10.8pt"))
+                    : (isUltra ? "text-[9.5pt]" : isCompact ? "text-[10.5pt]" : (pdfMode ? "11.2pt" : "11.8pt"))
+                } text-blue-900 tracking-tight uppercase text-center ${
+                  isUltra ? "mt-0" : "mt-0.5"
+                } max-w-full whitespace-nowrap overflow-hidden text-ellipsis block leading-tight px-0.5`}
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  display: "block",
+                  maxWidth: "100%",
+                  fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'NotoSans', sans-serif",
+                  fontSize:
+                    commPart.length > 22
+                      ? (isUltra ? "5.5pt" : isCompact ? "6.2pt" : "6.8pt")
+                      : commPart.length > 16
+                      ? (isUltra ? "6.5pt" : isCompact ? "7.2pt" : "7.8pt")
+                      : commPart.length > 11
+                      ? (isUltra ? "7.2pt" : isCompact ? "8.2pt" : (pdfMode ? "8.8pt" : "9.2pt"))
+                      : commPart.length > 7
+                      ? (isUltra ? "8.5pt" : isCompact ? "9.5pt" : (pdfMode ? "10.2pt" : "10.8pt"))
+                      : (isUltra ? "9.5pt" : isCompact ? "10.5pt" : (pdfMode ? "11.2pt" : "11.8pt")),
+                  letterSpacing: commPart.length > 10 ? "-0.015em" : "normal",
+                }}
+                title={commPart}
+              >
                 {commPart}
               </span>
             )}
@@ -2274,13 +2356,13 @@ function CargoRow({
               <div className={`flex flex-col justify-center items-center w-full ${innerGap} my-auto`}>
                 <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-slate-50 border border-slate-200/80`}>
                   <span className={`${subLabelFont} font-black uppercase text-slate-700 whitespace-nowrap keep-all tracking-wider shrink-0`}>RATE</span>
-                  <span className={`font-mono font-black ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
+                  <span className={`font-mono font-black ${valFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums text-right truncate pl-1`} style={{ fontSize: displayRate.length > 9 ? "9.8pt" : undefined }}>
                     {displayRate}
                   </span>
                 </div>
                 <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-emerald-50/90 border border-emerald-300/90`}>
                   <span className={`${subLabelFont} font-black uppercase text-emerald-800 whitespace-nowrap keep-all tracking-wider shrink-0`}>VALUE</span>
-                  <span className={`font-mono font-black ${valFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
+                  <span className={`font-mono font-black ${valFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums text-right truncate pl-1`} style={{ fontSize: (item.goodsValue || "").length > 11 ? "9.8pt" : undefined }}>
                     {item.goodsValue}
                   </span>
                 </div>
@@ -2292,7 +2374,7 @@ function CargoRow({
             return (
               <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-emerald-50/90 border border-emerald-300/90 my-auto`}>
                 <span className={`${subLabelFont} font-black uppercase text-emerald-800 whitespace-nowrap keep-all tracking-wider shrink-0`}>VALUE</span>
-                <span className={`font-mono font-black ${qtyFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
+                <span className={`font-mono font-black ${qtyFont} text-emerald-950 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums text-right truncate pl-1`} style={{ fontSize: (item.goodsValue || "").length > 11 ? "10pt" : undefined }}>
                   {item.goodsValue}
                 </span>
               </div>
@@ -2303,7 +2385,7 @@ function CargoRow({
             return (
               <div className={`flex items-center justify-between w-full ${innerSubRowPad} rounded-md bg-slate-50 border border-slate-200/80 my-auto`}>
                 <span className={`${subLabelFont} font-black uppercase text-slate-700 whitespace-nowrap keep-all tracking-wider shrink-0`}>RATE</span>
-                <span className={`font-mono font-black ${qtyFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums`}>
+                <span className={`font-mono font-black ${qtyFont} text-slate-900 whitespace-nowrap keep-all direction-ltr unicode-isolate tabular-nums text-right truncate pl-1`} style={{ fontSize: displayRate.length > 9 ? "10pt" : undefined }}>
                   {displayRate}
                 </span>
               </div>
@@ -2668,15 +2750,17 @@ export function AuthorizedSignatureBlock({
   const titleLine1 = match ? match[1].trim() : null
   const titleLine2 = match && match[2].trim() ? match[2].trim() : null
 
-  const currentScale = stampConfig.scale ?? 1.2
+  const maxAllowedScale = isUltraCompact ? 1.8 : isCompact ? 2.2 : 2.5
+  const rawScale = stampConfig.scale ?? 1.25
+  const currentScale = Math.min(maxAllowedScale, Math.max(0.6, rawScale))
 
   const handleScaleChange = (delta: number) => {
-    const next = Math.min(2.5, Math.max(0.5, Math.round((currentScale + delta) * 100) / 100))
+    const next = Math.min(maxAllowedScale, Math.max(0.6, Math.round((currentScale + delta) * 100) / 100))
     saveStoredCompanyStampConfig({ scale: next })
   }
 
   const handleResetScale = () => {
-    saveStoredCompanyStampConfig({ scale: DEFAULT_STAMP_CONFIG.scale || 1.2 })
+    saveStoredCompanyStampConfig({ scale: DEFAULT_STAMP_CONFIG.scale || 1.25 })
   }
 
   return (
@@ -2690,7 +2774,7 @@ export function AuthorizedSignatureBlock({
       {!pdfMode && !pdfExport && isStampActive && (
         <div
           data-stamp-controls="true"
-          className="no-print absolute -top-4 right-1 z-30 flex items-center gap-1 rounded-full bg-slate-900/95 hover:bg-slate-900 px-2 py-0.5 text-white shadow-lg backdrop-blur-md border border-white/20 select-none transition-all duration-150"
+          className="no-print absolute -top-8 right-0 z-30 flex items-center gap-1 rounded-full bg-slate-900/95 hover:bg-slate-900 px-2.5 py-0.5 text-white shadow-xl backdrop-blur-md border border-white/20 select-none transition-all duration-150"
           title="Adjust Official Stamp & Signature Size"
         >
           <button
@@ -2736,7 +2820,7 @@ export function AuthorizedSignatureBlock({
               handleResetScale()
             }}
             className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-white/25 active:scale-90 text-slate-300 hover:text-white cursor-pointer transition-all ml-0.5 pl-0.5 border-l border-white/20"
-            title="Reset Stamp Size to Default (120%)"
+            title="Reset Stamp Size to Default (125%)"
             aria-label="Reset Stamp Size"
           >
             <RotateCcw className="h-2.5 w-2.5" />
@@ -2753,7 +2837,7 @@ export function AuthorizedSignatureBlock({
             e.preventDefault()
             toggleStamp()
           }}
-          className="no-print absolute -top-3.5 right-1 z-30 flex items-center gap-1 rounded-full bg-blue-600/90 hover:bg-blue-600 px-2 py-0.5 text-[9px] font-bold text-white shadow-md border border-white/20 select-none cursor-pointer transition-all active:scale-95"
+          className="no-print absolute -top-8 right-0 z-30 flex items-center gap-1.5 rounded-full bg-blue-600/90 hover:bg-blue-600 px-2.5 py-1 text-[9px] font-bold text-white shadow-md border border-white/20 select-none cursor-pointer transition-all active:scale-95"
           title="Attach Official Company Stamp & Signature"
         >
           <span>🖋️</span>
@@ -2764,7 +2848,7 @@ export function AuthorizedSignatureBlock({
       {/* 1. Underlying Signatory Placeholder Chamber (always visible behind stamp or as manual signing area) */}
       <div
         className={`relative w-full ${
-          isUltraCompact ? "h-[10.5mm]" : isCompact ? "h-[13mm]" : "h-[16.5mm]"
+          isUltraCompact ? "h-[12mm]" : isCompact ? "h-[15.5mm]" : "h-[19.5mm]"
         } flex items-center justify-center`}
       >
         <span
@@ -2781,7 +2865,7 @@ export function AuthorizedSignatureBlock({
           data-signature-art="true"
           className="absolute inset-x-0 flex items-center justify-center pointer-events-none select-none z-10"
           style={{
-            top: isUltraCompact ? "0.5mm" : isCompact ? "1.5mm" : "2mm",
+            top: isUltraCompact ? "0mm" : isCompact ? "0.5mm" : "1mm",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2791,12 +2875,13 @@ export function AuthorizedSignatureBlock({
             alt="Company Official Stamp & Signature"
             className="w-auto object-contain transition-transform duration-150"
             style={{
-              height: isUltraCompact ? "16.5mm" : isCompact ? "20mm" : "26mm",
-              maxWidth: isUltraCompact ? "38mm" : isCompact ? "44mm" : "50mm",
-              transform: `scale(${currentScale * (isUltraCompact ? 0.75 : 0.85)}) rotate(${stampConfig.rotation ?? -1.5}deg)`,
+              height: isUltraCompact ? "21mm" : isCompact ? "26mm" : "32mm",
+              maxWidth: isUltraCompact ? "45mm" : isCompact ? "52mm" : "56mm",
+              transform: `scale(${currentScale * (isUltraCompact ? 0.9 : 1.0)}) rotate(${stampConfig.rotation ?? -1.5}deg)`,
               transformOrigin: "center center",
               opacity: stampConfig.opacity ?? 1.0,
-              filter: "drop-shadow(0 1px 2px rgba(0, 30, 80, 0.12))",
+              filter: "drop-shadow(0 1.5px 3.5px rgba(20, 50, 120, 0.22)) contrast(1.08)",
+              imageRendering: "-webkit-optimize-contrast",
             }}
             crossOrigin="anonymous"
             onError={(e) => {
@@ -2903,6 +2988,7 @@ function ExecutiveBOLFooter({
   iranOffice,
   pageNumber = 1,
   totalPages = 1,
+  bolNumber = "",
 }: {
   isUltraCompact: boolean
   companyTitle: string
@@ -2914,7 +3000,14 @@ function ExecutiveBOLFooter({
   iranOffice?: string
   pageNumber?: number
   totalPages?: number
+  bolNumber?: string
 }) {
+  const cleanIranOffice = iranOffice
+    ? iranOffice.replace(/^(?:(?:IRAN\s+(?:TRANSIT\s+)?OFFICE|TRANSIT\s+OFFICE|IRAN\s+OFFICE|OFFICE)\s*[:\-]\s*)+/gi, "").trim()
+    : ""
+  const sanitizedCompanyTitle = (companyTitle || "SKY ARIANA LIMITED").replace(/[\r\n\t]+/g, " ").trim()
+  companyTitle = sanitizedCompanyTitle
+
   return (
     <footer
       data-bol-footer="true"
@@ -2926,24 +3019,38 @@ function ExecutiveBOLFooter({
       <div className="h-[1.5px] bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600" />
 
       {/* Tier 1: Corporate Brand, Tagline & Official License Badge */}
-      <div className={`${isUltraCompact ? "px-2.5 py-0.4" : "px-3.5 py-0.6"} flex items-center justify-between gap-2 border-b border-blue-100 bg-white/70`}>
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className={`${isUltraCompact ? "text-[7.4pt]" : "text-[8.2pt]"} font-black uppercase tracking-wider text-blue-950`}>
+      <div
+        className={`${isUltraCompact ? "px-2.5 py-1 min-h-[20px]" : "px-3.5 py-1 min-h-[22px]"} flex items-center justify-between gap-2 border-b border-blue-100 bg-white/70 overflow-hidden leading-normal`}
+        style={{
+          height: isUltraCompact ? "20px" : "22px",
+          maxHeight: isUltraCompact ? "20px" : "22px",
+          overflow: "hidden",
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          className="flex items-center gap-1.5 min-w-0 shrink overflow-hidden"
+          style={{ whiteSpace: "nowrap", overflow: "hidden", flexWrap: "nowrap" }}
+        >
+          <span
+            className={`${isUltraCompact ? "text-[7.4pt]" : "text-[8.2pt]"} font-black uppercase tracking-wider text-blue-950 whitespace-nowrap shrink-0`}
+            style={{ whiteSpace: "nowrap", flexShrink: 0, display: "inline-block" }}
+          >
             {companyTitle}
           </span>
-          <span className="text-blue-400 opacity-70 text-[6pt]">•</span>
-          <span className={`${isUltraCompact ? "text-[6.2pt]" : "text-[7pt]"} font-bold text-blue-700 truncate`}>
+          <span className="text-blue-400 opacity-70 text-[6pt] shrink-0">•</span>
+          <span className={`${isUltraCompact ? "text-[6.2pt]" : "text-[7pt]"} font-bold text-blue-700 truncate min-w-0`}>
             {companyTagline}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           {totalPages > 1 && (
-            <div className={`flex items-center gap-1 bg-blue-100/70 text-blue-900 border border-blue-300 rounded-full ${isUltraCompact ? "px-2 py-0.2 text-[4.6pt]" : "px-2.5 py-0.3 text-[5.1pt]"} font-mono font-black tracking-wider shadow-2xs`}>
+            <div className={`flex items-center gap-1 bg-blue-100/70 text-blue-900 border border-blue-300 rounded-full ${isUltraCompact ? "px-2 py-0.5 text-[4.6pt]" : "px-2.5 py-0.5 text-[5.1pt]"} font-mono font-black tracking-wider shadow-2xs`}>
               <span>PAGE {pageNumber || 1} OF {totalPages}</span>
             </div>
           )}
           {companyLicence && (
-            <div className={`flex items-center gap-1 bg-amber-50/90 text-amber-900 border border-amber-300/80 rounded-full ${isUltraCompact ? "px-2 py-0.3 text-[4.8pt]" : "px-2.5 py-0.4 text-[5.2pt]"} font-mono font-black tracking-wider shadow-2xs`}>
+            <div className={`flex items-center gap-1 bg-amber-50/90 text-amber-900 border border-amber-300/80 rounded-full ${isUltraCompact ? "px-2 py-0.5 text-[4.8pt]" : "px-2.5 py-0.5 text-[5.2pt]"} font-mono font-black tracking-wider shadow-2xs`}>
               <ShieldCheck className="w-2.5 h-2.5 text-amber-600 shrink-0" />
               <span>GOVT LICENCE NO: {companyLicence}</span>
             </div>
@@ -2952,54 +3059,87 @@ function ExecutiveBOLFooter({
       </div>
 
       {/* Tier 2: Well-Spaced 3-Column Operations & Contact Grid */}
-      <div className={`${isUltraCompact ? "px-2.5 py-0.5 gap-2" : "px-3.5 py-0.8 gap-2.5"} grid grid-cols-12 items-center bg-white/95`}>
+      <div className={`${isUltraCompact ? "px-2.5 py-1 gap-2" : "px-3.5 py-1.5 gap-2.5"} grid grid-cols-12 items-center bg-white/95`}>
         {/* Registered HQ Address - 6 Cols */}
         <div className="col-span-6 flex items-start gap-1.5 text-left">
           <div className="w-[17px] h-[17px] min-w-[17px] min-h-[17px] rounded-full flex items-center justify-center bg-blue-50 border border-blue-200/90 text-blue-600 shrink-0 mt-0.5 shadow-2xs">
-            <MapPin className="w-2.5 h-2.5" />
+            <MapPin className="w-2.5 h-2.5 shrink-0" />
           </div>
           <div className="flex flex-col leading-tight min-w-0">
-            <span className={`${isUltraCompact ? "text-[4.6pt]" : "text-[5.1pt]"} text-blue-800 uppercase font-mono font-black tracking-wider`}>HEAD OFFICE:</span>
-            <span className={`${isUltraCompact ? "text-[5.8pt]" : "text-[6.4pt]"} leading-[1.2] text-slate-900 font-bold`}>{companyAddressLine}</span>
+            <span className={`${isUltraCompact ? "text-[4.6pt]" : "text-[5.1pt]"} text-blue-800 uppercase font-mono font-black tracking-wider whitespace-nowrap`}>HEAD OFFICE:</span>
+            <span className={`${isUltraCompact ? "text-[5.8pt]" : "text-[6.4pt]"} leading-[1.2] text-slate-900 font-bold break-words`}>{companyAddressLine}</span>
           </div>
         </div>
 
         {/* Direct Dispatch & Operations Phone - 3 Cols */}
         <div className="col-span-3 flex items-start gap-1.5 font-mono text-left">
           <div className="w-[17px] h-[17px] min-w-[17px] min-h-[17px] rounded-full flex items-center justify-center bg-emerald-50 border border-emerald-200/90 text-emerald-600 shrink-0 mt-0.5 shadow-2xs">
-            <Phone className="w-2.5 h-2.5" />
+            <Phone className="w-2.5 h-2.5 shrink-0" />
           </div>
           <div className="flex flex-col leading-tight">
-            <span className={`${isUltraCompact ? "text-[4.6pt]" : "text-[5.1pt]"} text-emerald-800 uppercase font-sans font-black tracking-wider`}>DIRECT DISPATCH:</span>
-            <span className={`text-emerald-950 font-black ${isUltraCompact ? "text-[5.6pt]" : "text-[6.2pt]"}`}>{companyPhone || "+93 700 939 365, +93 711 435 529"}</span>
+            <span className={`${isUltraCompact ? "text-[4.6pt]" : "text-[5.1pt]"} text-emerald-800 uppercase font-sans font-black tracking-wider whitespace-nowrap`}>DIRECT DISPATCH:</span>
+            <span className={`text-emerald-950 font-black ${isUltraCompact ? "text-[5.6pt]" : "text-[6.2pt]"} whitespace-nowrap`}>{companyPhone || "+93 700 939 365, +93 711 435 529"}</span>
           </div>
         </div>
 
         {/* Official Web & Correspondence - 3 Cols */}
         <div className="col-span-3 flex items-start gap-1.5 font-mono text-left">
           <div className="w-[17px] h-[17px] min-w-[17px] min-h-[17px] rounded-full flex items-center justify-center bg-sky-50 border border-sky-200/90 text-sky-600 shrink-0 mt-0.5 shadow-2xs">
-            <Globe className="w-2.5 h-2.5" />
+            <Globe className="w-2.5 h-2.5 shrink-0" />
           </div>
-          <div className="flex flex-col leading-tight">
-            <span className={`text-blue-950 font-black ${isUltraCompact ? "text-[5.6pt]" : "text-[6.2pt]"}`}>www.skyariana.com</span>
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className={`text-blue-950 font-black ${isUltraCompact ? "text-[5.6pt]" : "text-[6.2pt]"} whitespace-nowrap`}>www.skyariana.com</span>
             <span className={`text-slate-600 font-bold ${isUltraCompact ? "text-[4.8pt]" : "text-[5.4pt]"} truncate`}>{companyEmail || "transport@skyariana.com"}</span>
           </div>
         </div>
       </div>
 
       {/* Tier 3: Legal Non-Negotiability Notice & Official Jurisdiction Bar */}
-      <div className={`${isUltraCompact ? "px-2.5 py-0.4" : "px-3.5 py-0.5"} flex items-center justify-between gap-2.5 bg-gradient-to-r from-blue-100/70 via-sky-50/80 to-blue-100/70 border-t border-blue-200/70 ${isUltraCompact ? "text-[4.4pt]" : "text-[4.9pt]"} font-semibold text-slate-700`}>
+      <div className={`${isUltraCompact ? "px-2.5 py-1" : "px-3.5 py-1"} flex items-center justify-between gap-2.5 bg-gradient-to-r from-blue-100/70 via-sky-50/80 to-blue-100/70 border-t border-blue-200/70 ${isUltraCompact ? "text-[4.4pt]" : "text-[4.9pt]"} font-semibold text-slate-700`}>
         <div className="flex items-center gap-1 text-left truncate min-w-0">
-          {iranOffice && (
-            <span className="text-amber-800 font-bold truncate">IRAN TRANSIT OFFICE: {iranOffice}</span>
+          {cleanIranOffice && (
+            <span className="text-amber-800 font-bold truncate">IRAN TRANSIT OFFICE: {cleanIranOffice}</span>
           )}
         </div>
 
         <div className="flex items-center gap-1 shrink-0 pl-1">
-          <span className={`font-[vazirmatn] text-blue-950 font-black ${isUltraCompact ? "text-[4.6pt]" : "text-[5.2pt]"} leading-none text-right`} dir="rtl">
+          <span className={`font-[vazirmatn] text-blue-950 font-black ${isUltraCompact ? "text-[4.6pt]" : "text-[5.2pt]"} leading-none text-right whitespace-nowrap`} dir="rtl">
             سند رسمی، معتبر و قابل استناد حمل و نقل بین‌المللی شرکت اسکای آریانا لیمیتد
           </span>
           <ShieldCheck className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+        </div>
+      </div>
+
+      {/* Tier 4: Document Verification Barcode & Logistics Security Strip */}
+      <div
+        data-bol-barcode-tier="true"
+        className={`${
+          isUltraCompact ? "px-2.5 py-0.5" : "px-3.5 py-1"
+        } flex items-center justify-between gap-2 bg-white/95 border-t border-blue-200/80 overflow-hidden`}
+        style={{
+          boxSizing: "border-box",
+        }}
+      >
+        <div className="flex items-center gap-1 font-mono text-[4.6pt] sm:text-[5pt] font-bold text-slate-600 uppercase tracking-wider shrink-0">
+          <span className="text-blue-900 font-black">CARRIER: SKY-AF</span>
+          <span className="text-blue-300">•</span>
+          <span>ORIGINAL B/L</span>
+        </div>
+
+        <div className="flex flex-col items-center justify-center shrink-0">
+          <Barcode128
+            value={bolNumber || "BOL-2026-SKY"}
+            height={isUltraCompact ? 16 : 20}
+            showText={true}
+            textClassName={isUltraCompact ? "text-[5pt]" : "text-[5.8pt]"}
+            maxWidth={isUltraCompact ? "160px" : "190px"}
+          />
+        </div>
+
+        <div className="flex items-center gap-1 font-mono text-[4.6pt] sm:text-[5pt] font-bold text-slate-600 uppercase tracking-wider shrink-0">
+          <span className="text-emerald-700 font-black">AUTHENTIC DOCUMENT</span>
+          <span className="text-emerald-300">•</span>
+          <span className="text-slate-700">ELECTRONIC TRACKING</span>
         </div>
       </div>
     </footer>
@@ -3295,48 +3435,173 @@ function CargoDescriptionBlock({
   labels: Record<string, string>
   cargoItems?: SyncedCargoItem[]
 }) {
-  if (!cleanedCargoDesc) return null
+  if (!cleanedCargoDesc && (!cargoItems || cargoItems.length === 0)) return null
 
   const isUltra = densityTier === "ultra"
   const isCompact = densityTier === "compact" || isUltra
   const { metaLines, itemLines } = parseCargoDescription(cleanedCargoDesc)
 
-  // Filter out redundant commodity items if they are already represented in the structured cargo grid
+  // Ensure commodities and goods descriptions are prominently displayed in Description of Goods
   const displayItemLines = useMemo(() => {
-    if (!cargoItems || cargoItems.length === 0) return itemLines
+    // 1. If explicit itemLines exist from cargo_description, display them directly (never suppress user's goods description!)
+    if (itemLines.length > 0) {
+      return itemLines
+    }
 
-    return itemLines.filter((line) => {
-      const lineNorm = line.text.toLowerCase().replace(/[^a-z0-9]/g, "")
-      if (!lineNorm) return false
+    if (!cargoItems || cargoItems.length === 0) return []
 
-      // Check if this line duplicates any structured cargo item
-      return !cargoItems.some((item) => {
-        const pkgNorm = (item.packageText || "").toLowerCase().replace(/[^a-z0-9]/g, "")
-        const pkgClean = cleanText(item.packageText)
-        const qtyMatch = pkgClean.match(
-          /^([\d,]+(?:\.\d+)?\s*(?:CTNS?|CARTONS?|BAGS?|PKGS?|BOXES|PCS|UNITS|ROLLS|DRUMS|KGS?|TONS?|LBS?)?)\s*(.*)$/i
-        )
-        const commNorm = (qtyMatch && qtyMatch[2] ? qtyMatch[2] : pkgClean).toLowerCase().replace(/[^a-z0-9]/g, "")
-
-        return (
-          (lineNorm.length >= 3 && pkgNorm.includes(lineNorm)) ||
-          (commNorm.length >= 3 && (lineNorm.includes(commNorm) || commNorm.includes(lineNorm)))
-        )
-      })
-    })
+    // 2. Synthesize items from cargoItems if no explicit itemLines were provided in cargo description
+    const synthesized: { text: string; isRTL: boolean }[] = []
+    for (const item of cargoItems) {
+      const pkgClean = cleanText(item.packageText)
+      const qtyMatch = pkgClean.match(
+        /^([\d,]+(?:\.\d+)?\s*(?:CTNS?|CARTONS?|BAGS?|PKGS?|BOXES|PCS|UNITS|ROLLS|DRUMS|KGS?|TONS?|LBS?)?)\s*(.*)$/i
+      )
+      const commPart = qtyMatch && qtyMatch[1] && qtyMatch[2] ? qtyMatch[2].trim().replace(/^[-–—|:]\s*/, "") : ""
+      const textToDisplay = commPart || pkgClean
+      if (textToDisplay && !synthesized.some((s) => s.text.toLowerCase() === textToDisplay.toLowerCase())) {
+        synthesized.push({
+          text: textToDisplay,
+          isRTL: hasRTLText(textToDisplay),
+        })
+      }
+    }
+    return synthesized
   }, [itemLines, cargoItems])
 
   if (metaLines.length === 0 && displayItemLines.length === 0) return null
 
+  const renderMetaChip = (
+    meta: ParsedCargoMetaItem,
+    idx: number
+  ) => {
+    const isTransitDate = meta.type === "transit_date" || /date/i.test(meta.label || "")
+    const isInvoice = meta.type === "invoice" || /inv/i.test(meta.label || "")
+    const isTc = meta.type === "tc_no" || /tc/i.test(meta.label || "")
+    const isHs = meta.type === "hs_code" || /hs/i.test(meta.label || "")
+
+    const chipTheme = isTransitDate
+      ? {
+          border: "border-blue-200/90",
+          bg: "bg-blue-50/95",
+          labelColor: "text-blue-700",
+          valColor: "text-blue-950",
+          icon: <CalendarDays className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-blue-600 shrink-0`} />,
+        }
+      : isInvoice
+      ? {
+          border: "border-emerald-200/90",
+          bg: "bg-emerald-50/95",
+          labelColor: "text-emerald-700",
+          valColor: "text-emerald-950",
+          icon: <Receipt className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-emerald-600 shrink-0`} />,
+        }
+      : isTc
+      ? {
+          border: "border-purple-200/90",
+          bg: "bg-purple-50/95",
+          labelColor: "text-purple-700",
+          valColor: "text-purple-950",
+          icon: <ShieldCheck className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-purple-600 shrink-0`} />,
+        }
+      : isHs
+      ? {
+          border: "border-amber-200/90",
+          bg: "bg-amber-50/95",
+          labelColor: "text-amber-700",
+          valColor: "text-amber-950",
+          icon: <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-amber-600 shrink-0`} />,
+        }
+      : {
+          border: "border-slate-200/90",
+          bg: "bg-slate-50/95",
+          labelColor: "text-slate-700",
+          valColor: "text-slate-950",
+          icon: <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-slate-500 shrink-0`} />,
+        }
+
+    return (
+      <div
+        key={idx}
+        className={`inline-flex items-center gap-1 rounded-md border ${chipTheme.border} ${chipTheme.bg} ${
+          isUltra ? "px-1.5 py-0.5" : isCompact ? "px-2 py-0.5" : "px-2.5 py-0.5"
+        } leading-tight shadow-2xs`}
+        style={{
+          fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        }}
+      >
+        {chipTheme.icon}
+        {meta.label && (
+          <span
+            className={`${chipTheme.labelColor} font-black uppercase ${
+              isUltra ? "text-[6.2pt]" : isCompact ? "text-[7pt]" : "text-[8pt]"
+            } tracking-wider shrink-0`}
+          >
+            {meta.label}:
+          </span>
+        )}
+        <span
+          className={`font-black ${
+            isUltra ? "text-[8.4pt]" : isCompact ? "text-[9.2pt]" : "text-[10.0pt]"
+          } ${chipTheme.valColor} tracking-tight whitespace-nowrap direction-ltr unicode-isolate`}
+          dir="ltr"
+          style={{
+            direction: "ltr",
+            unicodeBidi: "isolate",
+            fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          }}
+        >
+          {meta.value}
+        </span>
+      </div>
+    )
+  }
+
+  // When only metadata exists, render an ultra-sleek, compact single-row ribbon to fit screen perfectly
+  if (displayItemLines.length === 0) {
+    return (
+      <div
+        className={`rounded-lg border-1.5 border-blue-300 shadow-sm ${
+          isUltra ? "mt-1 px-2.5 py-0.5" : isCompact ? "mt-1.5 px-3 py-1" : "mt-2 px-3.5 py-1.5"
+        } flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap`}
+        style={{ background: "#ffffff" }}
+      >
+        {/* Header Left Title */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3.2 w-3.2"} text-blue-600 shrink-0`} />
+          <p className={`${isUltra ? "text-[8.2pt]" : isCompact ? "text-[9.0pt]" : "text-[9.8pt]"} font-black uppercase tracking-wider text-blue-950 leading-tight whitespace-nowrap shrink-0`}>
+            Description of Goods
+          </p>
+        </div>
+
+        {/* Center: Meta Chips */}
+        {metaLines.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0 justify-center">
+            {metaLines.map((meta, idx) => renderMetaChip(meta, idx))}
+          </div>
+        )}
+
+        {/* Header Right Persian Title */}
+        <p
+          className={`font-[vazirmatn] ${isUltra ? "text-[8.5pt]" : isCompact ? "text-[9.4pt]" : "text-[10.2pt]"} font-black text-blue-900 leading-tight whitespace-nowrap shrink-0`}
+          dir="rtl"
+          style={{ direction: "rtl", unicodeBidi: "isolate" }}
+        >
+          {labels.goodsDescriptionFa || "شرح کالا"}
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div
       className={`rounded-lg border-1.5 border-blue-300 shadow-sm ${
-        isUltra ? "mt-0.3 p-0.8" : isCompact ? "mt-0.5 p-1" : "mt-0.8 p-1.5"
+        isUltra ? "mt-1 p-1.5" : isCompact ? "mt-1.5 p-2" : "mt-2 p-2.5"
       }`}
       style={{ background: "#ffffff" }}
     >
       {/* Header bar with balanced optical scaling */}
-      <div className={`mb-0.5 flex items-center justify-between gap-1 text-blue-900 border-b border-blue-100 ${isUltra ? "pb-0.2" : "pb-0.5"}`}>
+      <div className={`mb-1 flex items-center justify-between gap-1 text-blue-900 border-b border-blue-100 ${isUltra ? "pb-0.5" : "pb-1"}`}>
         <div className="flex items-center gap-1.5 shrink-0">
           <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3.2 w-3.2"} text-blue-600 shrink-0`} />
           <p className={`${isUltra ? "text-[8.2pt]" : isCompact ? "text-[9.0pt]" : "text-[9.8pt]"} font-black uppercase tracking-wider text-blue-950 leading-tight whitespace-nowrap shrink-0`}>
@@ -3352,111 +3617,10 @@ function CargoDescriptionBlock({
         </p>
       </div>
 
-      {/* Meta Chips Row */}
-      {metaLines.length > 0 && (
-        <div className={`flex flex-wrap items-center ${isUltra ? "gap-1" : "gap-1.5"} ${displayItemLines.length > 0 ? "mb-0.8 pt-0.2" : ""}`}>
-          {metaLines.map((meta, idx) => {
-            const isTransitDate = meta.type === "transit_date" || /date/i.test(meta.label || "")
-            const isInvoice = meta.type === "invoice" || /inv/i.test(meta.label || "")
-            const isTc = meta.type === "tc_no" || /tc/i.test(meta.label || "")
-            const isHs = meta.type === "hs_code" || /hs/i.test(meta.label || "")
-
-            const chipTheme = isTransitDate
-              ? {
-                  border: "border-blue-200/90",
-                  bg: "bg-blue-50/95",
-                  labelColor: "text-blue-700",
-                  valColor: "text-blue-950",
-                  icon: <CalendarDays className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-blue-600 shrink-0`} />,
-                }
-              : isInvoice
-              ? {
-                  border: "border-emerald-200/90",
-                  bg: "bg-emerald-50/95",
-                  labelColor: "text-emerald-700",
-                  valColor: "text-emerald-950",
-                  icon: <Receipt className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-emerald-600 shrink-0`} />,
-                }
-              : isTc
-              ? {
-                  border: "border-purple-200/90",
-                  bg: "bg-purple-50/95",
-                  labelColor: "text-purple-700",
-                  valColor: "text-purple-950",
-                  icon: <ShieldCheck className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-purple-600 shrink-0`} />,
-                }
-              : isHs
-              ? {
-                  border: "border-amber-200/90",
-                  bg: "bg-amber-50/95",
-                  labelColor: "text-amber-700",
-                  valColor: "text-amber-950",
-                  icon: <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-amber-600 shrink-0`} />,
-                }
-              : {
-                  border: "border-slate-200/90",
-                  bg: "bg-slate-50/95",
-                  labelColor: "text-slate-700",
-                  valColor: "text-slate-950",
-                  icon: <FileText className={`${isUltra ? "h-2.5 w-2.5" : "h-3 w-3"} text-slate-500 shrink-0`} />,
-                }
-
-            return (
-              <div
-                key={idx}
-                className={`inline-flex items-center gap-1 rounded-md border ${chipTheme.border} ${chipTheme.bg} ${
-                  isUltra ? "px-1.5 py-0.2" : isCompact ? "px-2 py-0.4" : "px-3 py-0.6"
-                } leading-tight shadow-2xs`}
-                style={{
-                  fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-                }}
-              >
-                {chipTheme.icon}
-                {meta.label && (
-                  <span
-                    className={`${chipTheme.labelColor} font-black uppercase ${
-                      isUltra ? "text-[6.2pt]" : isCompact ? "text-[7pt]" : "text-[8pt]"
-                    } tracking-wider shrink-0`}
-                  >
-                    {meta.label}:
-                  </span>
-                )}
-                <span
-                  className={`font-black ${
-                    isUltra ? "text-[8.4pt]" : isCompact ? "text-[9.2pt]" : "text-[10.0pt]"
-                  } ${chipTheme.valColor} tracking-tight whitespace-nowrap direction-ltr unicode-isolate`}
-                  dir="ltr"
-                  style={{
-                    direction: "ltr",
-                    unicodeBidi: "isolate",
-                    fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-                  }}
-                >
-                  {meta.value}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Item Cards (Only for additional non-commodity remarks or when no cargo grid exists) */}
-      {displayItemLines.length > 0 && (
-        <div
-          className={`grid ${
-            displayItemLines.length === 1
-              ? "grid-cols-1"
-              : displayItemLines.length === 2
-              ? "grid-cols-2"
-              : displayItemLines.length === 3
-              ? "grid-cols-3"
-              : displayItemLines.length === 4
-              ? "grid-cols-2"
-              : displayItemLines.length <= 6
-              ? "grid-cols-3"
-              : "grid-cols-2"
-          } ${isUltra ? "gap-0.6" : "gap-1"}`}
-        >
+      {/* Unified Single-Line Flow: When 1 item exists (e.g. Transit Date + Invoice + Cargo Item), render side-by-side in one line */}
+      {displayItemLines.length === 1 ? (
+        <div className={`flex items-center ${isUltra ? "gap-1" : "gap-1.5"} w-full flex-wrap sm:flex-nowrap pt-0.5`}>
+          {metaLines.map((meta, idx) => renderMetaChip(meta, idx))}
           {displayItemLines.map((item, idx) => {
             const fontClass =
               displayItemLines.length >= 8 || isUltra
@@ -3476,19 +3640,13 @@ function CargoDescriptionBlock({
               <div
                 key={idx}
                 className={`rounded-lg bg-white/90 border border-blue-100/90 ${
-                  isUltra ? "px-1.5 py-0.4" : isCompact ? "px-2 py-0.6" : "px-3 py-1"
-                } flex items-center justify-between gap-1.5 shadow-2xs overflow-hidden`}
+                  isUltra ? "px-1.5 py-0.5" : isCompact ? "px-2 py-0.5" : "px-3 py-1"
+                } flex items-center justify-between gap-1.5 shadow-2xs overflow-hidden flex-1 min-w-[200px]`}
               >
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  {displayItemLines.length > 1 ? (
-                    <span className="text-[5.8pt] font-black text-blue-900 bg-blue-100/80 px-1.2 py-0.2 rounded border border-blue-200 shrink-0 shadow-2xs">
-                      #{idx + 1}
-                    </span>
-                  ) : (
-                    <div className="w-4 h-4 rounded bg-blue-50 border border-blue-200/80 flex items-center justify-center shrink-0 shadow-2xs">
-                      <Package className="h-2.5 w-2.5 text-blue-600" />
-                    </div>
-                  )}
+                  <div className="w-4 h-4 rounded bg-blue-50 border border-blue-200/80 flex items-center justify-center shrink-0 shadow-2xs">
+                    <Package className="h-2.5 w-2.5 text-blue-600" />
+                  </div>
                   <span
                     className={`${
                       item.isRTL
@@ -3523,6 +3681,92 @@ function CargoDescriptionBlock({
             )
           })}
         </div>
+      ) : (
+        <>
+          {/* Meta Chips Row */}
+          {metaLines.length > 0 && (
+            <div className={`flex flex-wrap items-center ${isUltra ? "gap-1" : "gap-1.5"} mb-1.5 pt-0.5`}>
+              {metaLines.map((meta, idx) => renderMetaChip(meta, idx))}
+            </div>
+          )}
+
+          {/* Item Cards (Multi-Item Grid) */}
+          {displayItemLines.length > 0 && (
+            <div
+              className={`grid ${
+                displayItemLines.length === 2
+                  ? "grid-cols-2"
+                  : displayItemLines.length === 3
+                  ? "grid-cols-3"
+                  : displayItemLines.length === 4
+                  ? "grid-cols-2"
+                  : displayItemLines.length <= 6
+                  ? "grid-cols-3"
+                  : "grid-cols-2"
+              } ${isUltra ? "gap-0.5" : "gap-1"}`}
+            >
+              {displayItemLines.map((item, idx) => {
+                const fontClass =
+                  displayItemLines.length >= 8 || isUltra
+                    ? "text-[8.6pt]"
+                    : displayItemLines.length >= 5
+                    ? "text-[9.4pt]"
+                    : isCompact
+                    ? "text-[10.0pt]"
+                    : "text-[10.5pt]"
+
+                // Parse rate if present (e.g. "@ 3.50 $" or "@3.50$")
+                const atMatch = item.text.match(/^(.+?)\s*(@\s*[$€£AFN]*\s*[\d,]+(?:\.\d+)?\s*[$€£AFN]*)\s*$/i)
+                const mainText = atMatch ? atMatch[1].trim() : item.text
+                const rateText = atMatch ? atMatch[2].trim() : null
+
+                return (
+                  <div
+                    key={idx}
+                    className={`rounded-lg bg-white/90 border border-blue-100/90 ${
+                      isUltra ? "px-1.5 py-0.5" : isCompact ? "px-2 py-0.5" : "px-3 py-1"
+                    } flex items-center justify-between gap-1.5 shadow-2xs overflow-hidden`}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <span className="text-[5.8pt] font-black text-blue-900 bg-blue-100/80 px-1.2 py-0.2 rounded border border-blue-200 shrink-0 shadow-2xs">
+                        #{idx + 1}
+                      </span>
+                      <span
+                        className={`${
+                          item.isRTL
+                            ? "font-[vazirmatn] text-right font-extrabold text-slate-900"
+                            : "font-black text-slate-950 text-left direction-ltr unicode-isolate"
+                        } ${fontClass} leading-snug tracking-tight break-words whitespace-normal`}
+                        dir={item.isRTL ? "rtl" : "ltr"}
+                        style={{
+                          direction: item.isRTL ? "rtl" : "ltr",
+                          unicodeBidi: "isolate",
+                          fontFamily: item.isRTL
+                            ? undefined
+                            : "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+                        }}
+                      >
+                        {mainText}
+                      </span>
+                    </div>
+                    {rateText && (
+                      <span
+                        className={`font-black text-emerald-900 bg-emerald-100/90 rounded border border-emerald-300/80 shrink-0 whitespace-nowrap shadow-2xs ${
+                          isUltra ? "px-2 py-0.6 text-[8.0pt]" : isCompact ? "px-2.5 py-0.8 text-[8.8pt]" : "px-3 py-1 text-[9.5pt]"
+                        }`}
+                        style={{
+                          fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+                        }}
+                      >
+                        {formatCargoRate(rateText)}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -3544,23 +3788,32 @@ function BackgroundWatermark({
   )
 
   return (
-    <>
-      <div
-        data-bol-watermark="true"
-        className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-2xl transition-all duration-300"
+    <div
+      data-bol-watermark="true"
+      className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-2xl transition-all duration-300"
+      style={{
+        backgroundImage: `url('${backgroundImageUrl}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center center",
+        backgroundRepeat: "no-repeat",
+        opacity,
+        WebkitPrintColorAdjust: "exact",
+        printColorAdjust: "exact",
+      }}
+      aria-hidden="true"
+    >
+      <img
+        src={backgroundImageUrl}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
         style={{
-          backgroundImage: `url('${backgroundImageUrl}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center center",
-          backgroundRepeat: "no-repeat",
-          opacity,
           filter: "contrast(1.02) brightness(1.02)",
           WebkitPrintColorAdjust: "exact",
           printColorAdjust: "exact",
         }}
-        aria-hidden="true"
+        loading="eager"
       />
-    </>
+    </div>
   )
 }
 
@@ -3569,6 +3822,8 @@ function Page1Header({
   isUltraCompact,
   isCompact,
   bolLogoSrc,
+  brandLockupSrc,
+  logoDesignId,
   companyTitle,
   companyTagline,
   companyPersian,
@@ -3580,6 +3835,8 @@ function Page1Header({
   isUltraCompact: boolean
   isCompact: boolean
   bolLogoSrc: string
+  brandLockupSrc?: string
+  logoDesignId?: string
   companyTitle: string
   companyTagline: string
   companyPersian: string
@@ -3598,6 +3855,8 @@ function Page1Header({
       companyTagline={companyTagline}
       companyPersian={companyPersian}
       bolLogoSrc={bolLogoSrc}
+      brandLockupSrc={brandLockupSrc}
+      logoDesignId={logoDesignId}
       formData={formData}
     />
   )
@@ -3709,25 +3968,43 @@ function Page2Header({
           </div>
         </div>
 
-        {/* Right: B/L Number Badge + Page 2 of 2 Badge */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="text-right">
-            <span className="block text-[4.6pt] font-black uppercase tracking-widest text-slate-400 leading-none mb-0.2">
+        {/* Right: B/L Number Badge + Page 2 of 2 Badge + Enlarged Scannable QR Code */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="text-right flex flex-col justify-center">
+            <span className="block text-[4.8pt] font-black uppercase tracking-widest text-slate-400 leading-none mb-0.5">
               DOCUMENT NO.
             </span>
-            <span className="font-mono text-[7.5pt] font-black text-blue-950 tracking-tight whitespace-nowrap">
+            <span className="font-mono text-[7.8pt] font-black text-blue-950 tracking-tight whitespace-nowrap">
               {bolNumber}
             </span>
           </div>
           <div className="flex items-center gap-1 rounded-lg border border-blue-600 bg-blue-600 px-2 py-1 text-white shadow-2xs">
-            <span className="font-mono text-[6.5pt] font-black tracking-wider">PAGE 2 OF 2</span>
+            <span className="font-mono text-[6.5pt] font-black tracking-wider whitespace-nowrap">PAGE 2 OF 2</span>
           </div>
-          <div className="shrink-0 flex items-center justify-center">
+          <div
+            data-qr-code="true"
+            className={`shrink-0 flex items-center justify-center bg-white rounded-xl border-2 border-[#93c5fd] ${
+              pdfMode ? "shadow-none" : "shadow-xs hover:shadow-md hover:border-blue-400 transition-all cursor-pointer"
+            }`}
+            style={{
+              width: isUltraCompact ? "14.5mm" : isCompact ? "16mm" : "17.5mm",
+              height: isUltraCompact ? "14.5mm" : isCompact ? "16mm" : "17.5mm",
+              minWidth: isUltraCompact ? "14.5mm" : isCompact ? "16mm" : "17.5mm",
+              minHeight: isUltraCompact ? "14.5mm" : isCompact ? "16mm" : "17.5mm",
+              padding: isUltraCompact ? "0.6mm" : "0.8mm",
+              borderRadius: isUltraCompact ? "2.6mm" : "3.2mm",
+              boxSizing: "border-box",
+            }}
+            title="Official Verification QR Code - Click to view WhatsApp shipment update"
+          >
             <DocumentQRCode
               value={bolNumber || "SKY-BOL"}
               formData={formData}
-              size={isUltraCompact ? 18 : 20}
+              size="100%"
               pdfMode={pdfMode}
+              unstyled={true}
+              showQuietZone={false}
+              className="w-full h-full"
             />
           </div>
         </div>
@@ -3740,15 +4017,23 @@ function TransitRouteHeaderBadge({ isUltra = false }: { isUltra?: boolean }) {
   return (
     <div
       className={`inline-flex items-center gap-1.5 ${
-        isUltra ? "px-2 py-0.5 text-[6.8pt]" : "px-2.5 py-0.5 text-[7.5pt]"
-      } rounded-full bg-white/20 border border-white/35 backdrop-blur-xs text-white font-[vazirmatn] font-black shadow-2xs select-none whitespace-nowrap shrink-0`}
+        isUltra ? "h-[16.5px] px-2 text-[6.5pt]" : "h-[18.5px] px-2.5 text-[7.2pt]"
+      } rounded-full bg-white/20 hover:bg-white/25 border border-white/40 shadow-xs backdrop-blur-md text-white select-none whitespace-nowrap shrink-0 transition-colors`}
     >
-      <Route className={`${isUltra ? "w-2.8 h-2.8" : "w-3.2 h-3.2"} text-cyan-200 shrink-0 stroke-[2.4]`} />
-      <span className="bol-persian-text" dir="rtl" style={{ unicodeBidi: "isolate" }}>
+      <Route className={`${isUltra ? "w-2.6 h-2.6" : "w-3 h-3"} text-cyan-200 shrink-0 stroke-[2.4]`} />
+      <span
+        className="bol-persian-text font-[vazirmatn] font-black text-white leading-none"
+        dir="rtl"
+        style={{ unicodeBidi: "isolate" }}
+      >
         مسیر ترانزیت
       </span>
-      <span className="text-white/60 font-mono text-[7pt] font-normal">/</span>
-      <span dir="ltr" className="font-sans font-bold tracking-wide" style={{ unicodeBidi: "isolate" }}>
+      <span className="text-white/45 font-mono text-[6.5pt] font-light leading-none select-none">/</span>
+      <span
+        dir="ltr"
+        className="font-sans font-black tracking-wider uppercase text-white/95 leading-none"
+        style={{ unicodeBidi: "isolate" }}
+      >
         Transit Route
       </span>
     </div>
@@ -3768,54 +4053,72 @@ function CargoRouteNoteBanner({
 
   const isUltra = isUltraCompact || densityTier === "ultra"
   const isCompact = densityTier === "compact" || isUltra
+  const normalizedRoute = cleanRouteText(cargoRouteNote)
 
   return (
     <div
       className={`${
-        isUltra ? "mb-0.5 px-3 py-1" : isCompact ? "mb-0.8 px-3.5 py-1.2" : "mb-1 px-4 py-1.5"
-      } rounded-xl border border-red-300/80 bg-red-50/20 text-center shadow-2xs`}
+        isUltra ? "mb-0.5 px-2.5 py-1" : isCompact ? "mb-0.8 px-3 py-1.2" : "mb-1 px-3.5 py-1.5"
+      } rounded-lg border border-red-300/90 bg-gradient-to-r from-red-50/40 via-white/80 to-red-50/30 shadow-2xs`}
       dir="rtl"
     >
-      <div
-        className={`bol-persian-text font-[vazirmatn] ${
-          isUltra ? "text-[7.2pt]" : isCompact ? "text-[7.8pt]" : "text-[8.4pt]"
-        } font-extrabold leading-normal text-red-600 dark:text-red-500 whitespace-pre-line break-words`}
-        dir="rtl"
-        style={{ direction: "rtl", unicodeBidi: "isolate" }}
-      >
-        {(() => {
-          // Isolate English parenthetical phrases and B/L so print engines never flip parentheses
-          const parts = cargoRouteNote.split(/(\([^)]+\)|B\/L)/g)
-          return parts.map((part, idx) => {
-            if (part === "B/L") {
-              return (
-                <span
-                  key={idx}
-                  dir="ltr"
-                  style={{ unicodeBidi: "isolate", display: "inline-block" }}
-                  className="font-sans font-black px-0.5"
-                >
-                  B/L
-                </span>
-              )
-            }
-            if (part.startsWith("(") && part.endsWith(")")) {
-              const inner = part.slice(1, -1)
-              const isPersian = /[\u0600-\u06FF]/.test(inner)
-              return (
-                <span
-                  key={idx}
-                  className="inline-block whitespace-nowrap"
-                  dir={isPersian ? "rtl" : "ltr"}
-                  style={{ unicodeBidi: "isolate" }}
-                >
-                  {part}
-                </span>
-              )
-            }
-            return <span key={idx}>{part}</span>
-          })
-        })()}
+      <div className="flex items-start gap-1.5" dir="rtl">
+        <Route className={`${isUltra ? "h-2.8 w-2.8 mt-0.5" : "h-3.2 w-3.2 mt-0.5"} text-red-500 shrink-0 stroke-[2.2]`} aria-hidden="true" />
+        <div
+          className={`flex-1 bol-persian-text font-[vazirmatn] ${
+            isUltra ? "text-[7.2pt]" : isCompact ? "text-[7.8pt]" : "text-[8.4pt]"
+          } font-extrabold leading-relaxed text-red-700 dark:text-red-500 whitespace-pre-line break-words text-right`}
+          dir="rtl"
+          style={{ direction: "rtl", unicodeBidi: "isolate" }}
+        >
+          {(() => {
+            // Isolate English parenthetical phrases and B/L with <bdi dir="ltr"> so print/pdf engines never flip parentheses
+            const parts = normalizedRoute.split(/(\([^)]+\)|B\/L)/g)
+            return parts.map((part, idx) => {
+              if (part === "B/L") {
+                return (
+                  <bdi
+                    key={idx}
+                    dir="ltr"
+                    style={{ unicodeBidi: "isolate", display: "inline-block" }}
+                    className="font-sans font-black px-0.5"
+                  >
+                    B/L
+                  </bdi>
+                )
+              }
+              if (part.startsWith("(") && part.endsWith(")")) {
+                const inner = part.slice(1, -1).trim()
+                const isPersian = /[\u0600-\u06FF]/.test(inner)
+                if (isPersian) {
+                  return (
+                    <span key={idx} className="font-bold">
+                      ({inner})
+                    </span>
+                  )
+                }
+                return (
+                  <span
+                    key={idx}
+                    className="inline-flex items-baseline font-bold whitespace-nowrap"
+                    style={{ unicodeBidi: "isolate" }}
+                  >
+                    <span className="opacity-75">(</span>
+                    <bdi
+                      dir="ltr"
+                      className="font-sans font-black tracking-tight"
+                      style={{ unicodeBidi: "isolate" }}
+                    >
+                      {inner}
+                    </bdi>
+                    <span className="opacity-75">)</span>
+                  </span>
+                )
+              }
+              return <span key={idx}>{part}</span>
+            })
+          })()}
+        </div>
       </div>
     </div>
   )
@@ -3986,7 +4289,11 @@ function ExporterConsigneeSection({
                     </span>
                     <div className="party-card-header-text">
                       <h4 className={`party-card-title ${isUltraCompact ? "!text-[8.2pt]" : "!text-[10.2pt]"}`}>Notify Party</h4>
-                      <p className={`party-card-subtitle ${isUltraCompact ? "!text-[8.2pt]" : "!text-[10.2pt]"}`} dir="rtl">
+                      <p
+                        className={`party-card-subtitle ${isUltraCompact ? "!text-[8.2pt]" : "!text-[10.2pt]"} whitespace-nowrap`}
+                        dir="rtl"
+                        style={{ whiteSpace: "nowrap" }}
+                      >
                         {labels.notifyPartyFa}
                       </p>
                     </div>
@@ -4044,6 +4351,8 @@ function A4PreviewComponent({
   persianDateNumeric,
   formData,
   logoUrl,
+  brandLockupUrl,
+  logoDesignId,
   companyName,
   companyNamePersian,
   companySubtitle,
@@ -4120,6 +4429,10 @@ function A4PreviewComponent({
   }
 
   const pdfMode = exportTarget || pdfExport
+  const resolvedBrandLockup =
+    brandLockupUrl && !brandLockupUrl.includes("aq-logo")
+      ? brandLockupUrl
+      : undefined
   const bolLogoSrc =
     logoUrl && !logoUrl.includes("aq-logo") && !logoUrl.includes("aq_logo") && !logoUrl.includes("aq-companies")
       ? logoUrl
@@ -4131,7 +4444,9 @@ function A4PreviewComponent({
     cleanText(companyAddress) ||
     "2nd Floor, 16 No. Office, Shahidano, Chowk, Etimad Rahmi Market, Kandahar, Afghanistan"
   const iranOffice = joinOfficeLine([
-    formData.iran_office_building ? `IRAN OFFICE: ${formData.iran_office_building}` : undefined,
+    formData.iran_office_building
+      ? formData.iran_office_building.replace(/^(?:(?:IRAN\s+(?:TRANSIT\s+)?OFFICE|TRANSIT\s+OFFICE|IRAN\s+OFFICE|OFFICE)\s*[:\-]\s*)+/gi, "").trim()
+      : undefined,
     formData.iran_office_location,
     formData.iran_office_pobox ? `P.O.Box: ${formData.iran_office_pobox}` : undefined,
     formData.iran_office_telefax ? `Tel/Fax: ${formData.iran_office_telefax}` : undefined,
@@ -4190,6 +4505,89 @@ function A4PreviewComponent({
   ].some(hasValue)
 
   const cleanedCargoDesc = cleanCargoDescriptionText(formData.cargo_description)
+
+  const cargoTextBlob = [
+    formData.cargo_description,
+    (formData as any).cargoDescription,
+    formData.cargo_route_note,
+    (formData as any).cargoRouteNote,
+    formData.remarks,
+  ].filter(Boolean).join("\n")
+
+  const regexTransitMatch = cargoTextBlob.match(/(?:transit\s*date|trans\s*date)[\s:_–—]+([^\n│|;•]+)/i)
+  const regexInvMatch =
+    cargoTextBlob.match(/(?:invoice\s*no|inv\s*no|invoice|inv)[\s:_–—]+([^\n│|;•]+)/i) ||
+    cargoTextBlob.match(/\b(INV-[\w\-]+)\b/i)
+
+  const rawInvoice =
+    cleanText(formData.invoice_number) ||
+    cleanText((formData as any).invoice_no) ||
+    cleanText((formData as any).invoiceNo) ||
+    cleanText((formData as any).invoice) ||
+    (regexInvMatch ? regexInvMatch[1].trim() : "") ||
+    ""
+  const invoiceNumber = rawInvoice ? (/^INV/i.test(rawInvoice) ? rawInvoice : `INV-${rawInvoice}`) : ""
+
+  const transitDate =
+    cleanText((formData as any).transit_date) ||
+    cleanText((formData as any).transitDate) ||
+    (regexTransitMatch ? regexTransitMatch[1].trim() : "") ||
+    cleanText(issueDate) ||
+    cleanText(formData.issue_date) ||
+    cleanText((formData as any).issueDate) ||
+    ""
+
+  const shipmentHeaderDetails = (transitDate || invoiceNumber) ? (
+    <div
+      className="inline-flex items-center justify-center select-none"
+      style={{ whiteSpace: "nowrap" }}
+    >
+      <div
+        className={`inline-flex items-center rounded-full bg-white/95 border border-red-300/90 shadow-sm transition-all my-0.5 ${
+          pdfMode ? "gap-2.5 px-3 py-[2px]" : "gap-3 px-3.5 py-[2.5px]"
+        }`}
+      >
+        {transitDate && (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap leading-none">
+            <CalendarDays className={`${pdfMode ? "h-3 w-3" : "h-3.5 w-3.5"} text-red-500 mr-1.5 shrink-0`} />
+            <span className={`inline-flex items-center text-red-500 font-extrabold uppercase tracking-wider leading-none mr-2 ${
+              pdfMode ? "text-[8.5pt]" : "text-[9.5pt] sm:text-[10pt]"
+            }`}>
+              TRANSIT DATE:&nbsp;
+            </span>
+            <span
+              className={`inline-flex items-center text-red-700 font-black font-mono tracking-tight leading-none pl-0.5 ${
+                pdfMode ? "text-[11pt]" : "text-[12pt] sm:text-[12.8pt]"
+              }`}
+              style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'NotoSans', sans-serif" }}
+            >
+              {transitDate}
+            </span>
+          </span>
+        )}
+        {transitDate && invoiceNumber && (
+          <span className={`${pdfMode ? "h-3.5 w-[1.5px] mx-2" : "h-4 w-[1.5px] mx-2.5"} bg-red-300/90 shrink-0`} aria-hidden="true" />
+        )}
+        {invoiceNumber && (
+          <span
+            className="inline-flex items-center whitespace-nowrap leading-none"
+            title={`Invoice: ${invoiceNumber}`}
+            aria-label={`Invoice: ${invoiceNumber}`}
+          >
+            <span className="sr-only">Invoice: </span>
+            <span
+              className={`text-red-700 font-black font-mono tracking-tight leading-none ${
+                pdfMode ? "text-[11pt]" : "text-[12pt] sm:text-[12.8pt]"
+              }`}
+              style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'NotoSans', sans-serif" }}
+            >
+              {invoiceNumber}
+            </span>
+          </span>
+        )}
+      </div>
+    </div>
+  ) : undefined
   const hasExporter = [
     formData.shipper_name,
     formData.shipper_address,
@@ -4217,10 +4615,16 @@ function A4PreviewComponent({
     [syncedCargo.items, isMultiPage]
   )
 
+  const consigneeLines = (formData.consignee_address || "").split("\n").map((l) => l.trim()).filter(Boolean).length
+  const shipperLines = (formData.shipper_address || "").split("\n").map((l) => l.trim()).filter(Boolean).length
+  const notifyLines = (formData.notify_party_address || "").split("\n").map((l) => l.trim()).filter(Boolean).length
+  const totalPartyLines = consigneeLines + shipperLines + notifyLines
+  const activeContactsCount = contactItems.filter((item) => hasValue(item.value)).length
+
   let densityScore = 0
-  if (routeCount >= 5) densityScore += 3
-  else if (routeCount >= 4) densityScore += 2
-  else if (routeCount >= 3) densityScore += 1
+  if (routeCount >= 5) densityScore += 3.5
+  else if (routeCount >= 4) densityScore += 2.5
+  else if (routeCount >= 3) densityScore += 1.5
 
   if (descLineCount >= 7) densityScore += 5
   else if (descLineCount >= 5) densityScore += 4
@@ -4236,18 +4640,155 @@ function A4PreviewComponent({
   if (hasNotify) densityScore += 1
   if (contactItems.length > 0) densityScore += 1
 
-  const isUltraCompact = densityScore >= 5 || syncedCargo.items.length >= 5
-  const isCompact = (densityScore >= 3 || syncedCargo.items.length >= 4) && !isUltraCompact
+  // Granular line budget for long party addresses & business notes
+  if (totalPartyLines >= 12) densityScore += 4
+  else if (totalPartyLines >= 8) densityScore += 3
+  else if (totalPartyLines >= 5) densityScore += 1.5
+
+  if (activeContactsCount >= 2) densityScore += 1.5
+  else if (activeContactsCount === 1) densityScore += 1
+
+  const isUltraCompact = densityScore >= 5 || syncedCargo.items.length >= 5 || (routeCount >= 4 && (hasShippingData || syncedCargo.items.length >= 2)) || totalPartyLines >= 10
+  const isCompact = (densityScore >= 3 || syncedCargo.items.length >= 3 || routeCount >= 3 || totalPartyLines >= 5) && !isUltraCompact
   const densityTier: "ultra" | "compact" | "normal" = isUltraCompact ? "ultra" : isCompact ? "compact" : "normal"
 
   // Per-page density tiers in multi-page mode
-  const page1Ultra = page1Items.length >= 7
-  const page1Compact = page1Items.length >= 5 && !page1Ultra
+  const page1Ultra = page1Items.length >= 7 || totalPartyLines >= 12
+  const page1Compact = (page1Items.length >= 5 || totalPartyLines >= 8) && !page1Ultra
   const page1Density: "ultra" | "compact" | "normal" = page1Ultra ? "ultra" : page1Compact ? "compact" : "normal"
 
   const page2Ultra = page2Items.length >= 6 || descLineCount >= 7
   const page2Compact = (page2Items.length >= 4 || descLineCount >= 4 || routeCount >= 4) && !page2Ultra
   const page2Density: "ultra" | "compact" | "normal" = page2Ultra ? "ultra" : page2Compact ? "compact" : "normal"
+
+  // Dynamic Content Auto-Fit Scaling Engine (strictly bounds total visual height inside single A4 297mm bounds)
+  const hasTruck = hasValue(formData.truck_number)
+  const hasDriver = hasValue(formData.driver_name) || hasValue(formData.driver_father_name)
+  const hasDriverOrContact = hasDriver || parseDriverContactPhones(formData.driver_contact).length > 0
+  const hasRent = hasValue(formData.driver_rent)
+  const activeShipmentCardsCount = [hasValue(issueDate) || hasValue(persianDateNumeric), hasTruck, hasDriverOrContact, hasRent].filter(Boolean).length
+
+  const estimatedMainContentHeight = useMemo(() => {
+    let h = 0
+    // 1. Shipment Information
+    if (activeShipmentCardsCount > 0) {
+      h += 24 // Section header
+      h += hasTruck ? (isUltraCompact ? 68 : 88) : (isUltraCompact ? 36 : 46)
+      h += 2
+    }
+    // 2. Exporter & Consignee Section
+    h += 24 // Section header
+    if (activeContactsCount > 0) {
+      h += isUltraCompact ? 34 : 42
+    }
+    const leftPartyH =
+      (hasExporter ? (isUltraCompact ? 30 + shipperLines * 10 : 42 + shipperLines * 13) : 0) +
+      (hasNotify ? (isUltraCompact ? 30 + notifyLines * 10 : 42 + notifyLines * 13) : 0)
+    const rightPartyH =
+      (isUltraCompact ? 30 + consigneeLines * 10 : 42 + consigneeLines * 13) +
+      (hasValue(formData.consignee_contact) ? (isUltraCompact ? 10 : 13) : 0) +
+      (hasValue(formData.consignee_email) ? (isUltraCompact ? 10 : 13) : 0)
+    h += Math.max(leftPartyH, rightPartyH, isUltraCompact ? 46 : 64)
+    h += 2
+
+    // 3. Cargo Description
+    if (hasCargoData || hasValue(cleanedCargoDesc) || hasValue(formData.cargo_route_note)) {
+      h += 24
+      if (hasValue(formData.cargo_route_note)) {
+        h += (formData.cargo_route_note?.length || 0) > 90 ? (isUltraCompact ? 30 : 38) : (isUltraCompact ? 22 : 30)
+      }
+      if (hasCargoData) {
+        h += syncedCargo.items.length * (isUltraCompact ? 30 : 38) + (isUltraCompact ? 22 : 28)
+      }
+      if (hasValue(cleanedCargoDesc) || syncedCargo.items.length > 0) {
+        h += isUltraCompact ? 20 : 24
+      }
+      h += 2
+    }
+
+    // 4. Shipping Details
+    if (hasShippingData) {
+      h += 24 + (isUltraCompact ? 46 : 60)
+      h += 2
+    }
+
+    // 5. Route Timeline
+    if (routeCount > 0) {
+      h += 24 + (isUltraCompact ? 46 : 56)
+      h += 2
+    }
+
+    // 6. Authorized Signature Chamber
+    h += isUltraCompact ? 90 : 115
+
+    // Section gaps
+    const activeSectionsCount = [
+      activeShipmentCardsCount > 0,
+      true,
+      hasCargoData || hasValue(cleanedCargoDesc) || hasValue(formData.cargo_route_note),
+      hasShippingData,
+      routeCount > 0,
+    ].filter(Boolean).length
+    h += activeSectionsCount * (isUltraCompact ? 2 : 4)
+
+    return h
+  }, [
+    activeShipmentCardsCount,
+    hasTruck,
+    isUltraCompact,
+    activeContactsCount,
+    hasExporter,
+    hasNotify,
+    shipperLines,
+    notifyLines,
+    consigneeLines,
+    formData.consignee_contact,
+    formData.consignee_email,
+    formData.cargo_route_note,
+    hasCargoData,
+    cleanedCargoDesc,
+    syncedCargo.items.length,
+    hasShippingData,
+    routeCount,
+  ])
+
+  // Single A4 printable main container target: 885px (total 1122.5 - header ~135 - footer ~75 - padding ~14 - margin ~14)
+  const staticFitScale = useMemo(() => {
+    if (isMultiPage) return 1.0
+    const TARGET_AVAILABLE_H = 885
+    if (estimatedMainContentHeight <= TARGET_AVAILABLE_H) return 1.0
+    const ratio = TARGET_AVAILABLE_H / estimatedMainContentHeight
+    return Math.min(1.0, Math.max(0.68, Math.round(ratio * 1000) / 1000))
+  }, [isMultiPage, estimatedMainContentHeight])
+
+  const [dynamicFitScale, setDynamicFitScale] = useState<number>(staticFitScale)
+
+  useEffect(() => {
+    setDynamicFitScale(staticFitScale)
+  }, [staticFitScale])
+
+  const mainContentRef = useRef<HTMLElement>(null)
+
+  useLayoutEffect(() => {
+    if (isMultiPage || !mainContentRef.current) return
+    const mainEl = mainContentRef.current
+    const checkOverflow = () => {
+      if (!mainEl) return
+      const clientH = mainEl.clientHeight
+      const scrollH = mainEl.scrollHeight
+      if (clientH > 0 && scrollH > clientH + 1) {
+        const ratio = (clientH - 2) / scrollH
+        const measured = Math.min(1.0, Math.max(0.65, Math.round(ratio * 1000) / 1000))
+        setDynamicFitScale((prev) => Math.min(prev, measured))
+      }
+    }
+    checkOverflow()
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(checkOverflow) : null
+    ro?.observe(mainEl)
+    return () => ro?.disconnect()
+  }, [isMultiPage])
+
+  const effectiveFitScale = Math.min(staticFitScale, dynamicFitScale)
 
   if (isMultiPage) {
     return (
@@ -4285,6 +4826,8 @@ function A4PreviewComponent({
             isUltraCompact={page1Ultra}
             isCompact={page1Compact}
             bolLogoSrc={bolLogoSrc}
+            brandLockupSrc={resolvedBrandLockup}
+            logoDesignId={logoDesignId}
             companyTitle={companyTitle}
             companyTagline={companyTagline}
             companyPersian={companyPersian}
@@ -4304,6 +4847,7 @@ function A4PreviewComponent({
               <Section
                 title="Shipment Information"
                 subtitle={labels.shipmentInfoFa}
+                centerContent={shipmentHeaderDetails}
                 icon={<CalendarDays className={`${page1Ultra ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
                 glass={!pdfMode}
                 printKey="shipment"
@@ -4338,12 +4882,18 @@ function A4PreviewComponent({
                 title="Cargo Description"
                 subtitle={labels.cargoDescFa}
                 badge={hasValue(formData.cargo_route_note) ? <TransitRouteHeaderBadge isUltra={page1Ultra} /> : undefined}
-                icon={<Package className={`${page1Ultra ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
+                icon={
+                  <div className="flex items-center justify-center w-[18px] h-[18px] rounded-[4px] bg-white/20 border border-white/30 shadow-2xs shrink-0">
+                    <Package className={`${page1Ultra ? "h-2.8 w-2.8" : "h-3.2 w-3.2"} text-white stroke-[2.2]`} />
+                  </div>
+                }
                 glass={!pdfMode}
                 printKey="cargo"
                 pdfMode={pdfMode}
-                titleClassName={page1Ultra ? "text-[8.5pt]" : "text-[9.2pt]"}
+                titleClassName={page1Ultra ? "text-[8.2pt]" : "text-[8.8pt]"}
+                subtitleClassName={page1Ultra ? "!text-[8.6pt]" : "!text-[9.5pt]"}
                 densityTier={page1Density}
+                compactHeight={true}
               >
                 {hasValue(formData.cargo_route_note) && (
                   <CargoRouteNoteBanner
@@ -4401,6 +4951,7 @@ function A4PreviewComponent({
             iranOffice={iranOffice}
             pageNumber={1}
             totalPages={2}
+            bolNumber={bolNumber}
           />
         </div>
 
@@ -4443,12 +4994,18 @@ function A4PreviewComponent({
             <Section
               title="Cargo Description (Continuation)"
               subtitle={labels.cargoDescFa}
-              icon={<Package className={`${page2Ultra ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
+              icon={
+                <div className="flex items-center justify-center w-[18px] h-[18px] rounded-[4px] bg-white/20 border border-white/30 shadow-2xs shrink-0">
+                  <Package className={`${page2Ultra ? "h-2.8 w-2.8" : "h-3.2 w-3.2"} text-white stroke-[2.2]`} />
+                </div>
+              }
               glass={!pdfMode}
               printKey="cargo"
               pdfMode={pdfMode}
-              titleClassName={page2Ultra ? "text-[8.5pt]" : "text-[9.2pt]"}
+              titleClassName={page2Ultra ? "text-[8.2pt]" : "text-[8.8pt]"}
+              subtitleClassName={page2Ultra ? "!text-[8.6pt]" : "!text-[9.5pt]"}
               densityTier={page2Density}
+              compactHeight={true}
             >
               <CargoOverview
                 formData={formData}
@@ -4462,7 +5019,7 @@ function A4PreviewComponent({
                 totals={syncedCargo.totals}
                 isContinuation={true}
               />
-              {hasValue(cleanedCargoDesc) && (
+              {(hasValue(cleanedCargoDesc) || (syncedCargo.items && syncedCargo.items.length > 0)) && (
                 <CargoDescriptionBlock
                   cleanedCargoDesc={cleanedCargoDesc}
                   pdfMode={pdfMode}
@@ -4496,7 +5053,18 @@ function A4PreviewComponent({
             <Section
               title="Route / Transportation Path"
               subtitle={labels.routeFa}
-              icon={<Route className={`${page2Ultra ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
+              badge={
+                formData.routes && formData.routes.length > 0 ? (
+                  <span className="text-[6.8pt] font-black uppercase whitespace-nowrap inline-flex items-center justify-center leading-none shrink-0 h-[17px] px-2.5 py-0.5 rounded-full bg-white/20 border border-white/30 text-white shadow-2xs tracking-wider">
+                    {formData.routes.length} STOPS • TRANSIT
+                  </span>
+                ) : undefined
+              }
+              icon={
+                <div className="flex items-center justify-center w-[18px] h-[18px] rounded-[4px] bg-white/20 border border-white/30 shadow-2xs shrink-0">
+                  <Route className={`${page2Ultra ? "h-2.8 w-2.8" : "h-3.2 w-3.2"} text-white stroke-[2.2]`} />
+                </div>
+              }
               glass={!pdfMode}
               printKey="route"
               pdfMode={pdfMode}
@@ -4531,6 +5099,7 @@ function A4PreviewComponent({
             iranOffice={iranOffice}
             pageNumber={2}
             totalPages={2}
+            bolNumber={bolNumber}
           />
         </div>
       </div>
@@ -4557,7 +5126,7 @@ function A4PreviewComponent({
         data-density={densityTier}
         className={`bol-a4-page relative flex h-full flex-col justify-between ${
           isUltraCompact
-            ? "p-[2mm] px-[2.8mm] gap-[0.4mm]"
+            ? "p-[1.8mm] px-[2.6mm] gap-[0.3mm]"
             : isCompact
             ? "p-[2.2mm] px-[3mm] gap-[0.5mm]"
             : "p-[2.5mm] px-[3.2mm] gap-[0.6mm]"
@@ -4569,6 +5138,8 @@ function A4PreviewComponent({
           isUltraCompact={isUltraCompact}
           isCompact={isCompact}
           bolLogoSrc={bolLogoSrc}
+          brandLockupSrc={resolvedBrandLockup}
+          logoDesignId={logoDesignId}
           companyTitle={companyTitle}
           companyTagline={companyTagline}
           companyPersian={companyPersian}
@@ -4578,134 +5149,171 @@ function A4PreviewComponent({
         />
 
         <main
+          ref={mainContentRef}
           data-bol-content="true"
           data-density={densityTier}
+          data-auto-fit-scale={effectiveFitScale < 1 ? effectiveFitScale : undefined}
           className={`mt-0 flex min-h-0 flex-1 flex-col ${
-            isUltraCompact ? "gap-[0.8mm]" : isCompact ? "gap-[1.2mm]" : "gap-[1.8mm]"
-          } print:gap-[0.8mm] justify-start overflow-hidden`}
+            isUltraCompact ? "gap-[0.5mm]" : isCompact ? "gap-[1.0mm]" : "gap-[1.6mm]"
+          } print:gap-[0.5mm] justify-start overflow-hidden`}
         >
-          {hasShipmentData && (
-            <Section
-              title="Shipment Information"
-              subtitle={labels.shipmentInfoFa}
-              icon={<CalendarDays className={`${isUltraCompact ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
-              glass={!pdfMode}
-              printKey="shipment"
-              pdfMode={pdfMode}
-              titleClassName={isUltraCompact ? "text-[8.5pt]" : "text-[9.2pt]"}
-              densityTier={densityTier}
-            >
-              <ShipmentOverview
-                issueDate={issueDate}
-                persianDateNumeric={persianDateNumeric}
-                formData={formData}
-                labels={labels}
+          <div
+            data-bol-autofit-canvas="true"
+            className={`flex flex-col flex-1 w-full min-h-0 ${
+              isUltraCompact ? "gap-[0.5mm]" : isCompact ? "gap-[1.0mm]" : "gap-[1.6mm]"
+            } justify-between`}
+            style={
+              effectiveFitScale < 1
+                ? {
+                    transform: `scale(${effectiveFitScale})`,
+                    transformOrigin: "top center",
+                    width: `${(100 / effectiveFitScale).toFixed(3)}%`,
+                    marginLeft: `${((1 - 1 / effectiveFitScale) * 50).toFixed(3)}%`,
+                  }
+                : undefined
+            }
+          >
+            {hasShipmentData && (
+              <Section
+                title="Shipment Information"
+                subtitle={labels.shipmentInfoFa}
+                centerContent={shipmentHeaderDetails}
+                icon={<CalendarDays className={`${isUltraCompact ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
+                glass={!pdfMode}
+                printKey="shipment"
                 pdfMode={pdfMode}
+                titleClassName={isUltraCompact ? "text-[8.5pt]" : "text-[9.2pt]"}
                 densityTier={densityTier}
-              />
-            </Section>
-          )}
-
-          <ExporterConsigneeSection
-            contactItems={contactItems}
-            hasExporter={hasExporter}
-            hasNotify={hasNotify}
-            formData={formData}
-            labels={labels}
-            pdfMode={pdfMode}
-            isUltraCompact={isUltraCompact}
-            densityTier={densityTier}
-          />
-
-          {(hasCargoData || hasValue(cleanedCargoDesc) || hasValue(formData.cargo_route_note)) && (
-            <Section
-              title="Cargo Description"
-              subtitle={labels.cargoDescFa}
-              badge={hasValue(formData.cargo_route_note) ? <TransitRouteHeaderBadge isUltra={isUltraCompact} /> : undefined}
-              icon={<Package className={`${isUltraCompact ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
-              glass={!pdfMode}
-              printKey="cargo"
-              pdfMode={pdfMode}
-              titleClassName={isUltraCompact ? "text-[8.5pt]" : "text-[9.2pt]"}
-              densityTier={densityTier}
-            >
-              {hasValue(formData.cargo_route_note) && (
-                <CargoRouteNoteBanner
-                  cargoRouteNote={formData.cargo_route_note}
-                  isUltraCompact={isUltraCompact}
-                  densityTier={densityTier}
-                />
-              )}
-              {hasCargoData && (
-                <CargoOverview
+              >
+                <ShipmentOverview
+                  issueDate={issueDate}
+                  persianDateNumeric={persianDateNumeric}
                   formData={formData}
                   labels={labels}
                   pdfMode={pdfMode}
                   densityTier={densityTier}
-                  items={syncedCargo.items}
-                  startIndex={0}
-                  totalItemCount={syncedCargo.items.length}
-                  showTotals={true}
-                  totals={syncedCargo.totals}
                 />
-              )}
-              {hasValue(cleanedCargoDesc) && (
-                <CargoDescriptionBlock
-                  cleanedCargoDesc={cleanedCargoDesc}
+              </Section>
+            )}
+
+            <ExporterConsigneeSection
+              contactItems={contactItems}
+              hasExporter={hasExporter}
+              hasNotify={hasNotify}
+              formData={formData}
+              labels={labels}
+              pdfMode={pdfMode}
+              isUltraCompact={isUltraCompact}
+              densityTier={densityTier}
+            />
+
+            {(hasCargoData || hasValue(cleanedCargoDesc) || hasValue(formData.cargo_route_note)) && (
+              <Section
+                title="Cargo Description"
+                subtitle={labels.cargoDescFa}
+                badge={hasValue(formData.cargo_route_note) ? <TransitRouteHeaderBadge isUltra={isUltraCompact} /> : undefined}
+                icon={
+                  <div className="flex items-center justify-center w-[18px] h-[18px] rounded-[4px] bg-white/20 border border-white/30 shadow-2xs shrink-0">
+                    <Package className={`${isUltraCompact ? "h-2.8 w-2.8" : "h-3.2 w-3.2"} text-white stroke-[2.2]`} />
+                  </div>
+                }
+                glass={!pdfMode}
+                printKey="cargo"
+                pdfMode={pdfMode}
+                titleClassName={isUltraCompact ? "text-[8.2pt]" : "text-[8.8pt]"}
+                subtitleClassName={isUltraCompact ? "!text-[8.6pt]" : "!text-[9.5pt]"}
+                densityTier={densityTier}
+                compactHeight={true}
+              >
+                {hasValue(formData.cargo_route_note) && (
+                  <CargoRouteNoteBanner
+                    cargoRouteNote={formData.cargo_route_note}
+                    isUltraCompact={isUltraCompact}
+                    densityTier={densityTier}
+                  />
+                )}
+                {hasCargoData && (
+                  <CargoOverview
+                    formData={formData}
+                    labels={labels}
+                    pdfMode={pdfMode}
+                    densityTier={densityTier}
+                    items={syncedCargo.items}
+                    startIndex={0}
+                    totalItemCount={syncedCargo.items.length}
+                    showTotals={true}
+                    totals={syncedCargo.totals}
+                  />
+                )}
+                {(hasValue(cleanedCargoDesc) || (syncedCargo.items && syncedCargo.items.length > 0)) && (
+                  <CargoDescriptionBlock
+                    cleanedCargoDesc={cleanedCargoDesc}
+                    pdfMode={pdfMode}
+                    densityTier={densityTier}
+                    labels={labels}
+                    cargoItems={syncedCargo.items}
+                  />
+                )}
+              </Section>
+            )}
+
+            {hasShippingData && (
+              <Section
+                title="Shipping Details & Ports"
+                subtitle={labels.shippingDetailsFa}
+                icon={<Ship className={`${isUltraCompact ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
+                glass={!pdfMode}
+                printKey="shipping"
+                pdfMode={pdfMode}
+                titleClassName={isUltraCompact ? "text-[8.5pt]" : "text-[9.2pt]"}
+                densityTier={densityTier}
+              >
+                <ShippingOverview
+                  formData={formData}
+                  labels={labels}
                   pdfMode={pdfMode}
                   densityTier={densityTier}
-                  labels={labels}
-                  cargoItems={syncedCargo.items}
                 />
-              )}
-            </Section>
-          )}
+              </Section>
+            )}
 
-          {hasShippingData && (
             <Section
-              title="Shipping Details & Ports"
-              subtitle={labels.shippingDetailsFa}
-              icon={<Ship className={`${isUltraCompact ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
+              title="Route / Transportation Path"
+              subtitle={labels.routeFa}
+              badge={
+                formData.routes && formData.routes.length > 0 ? (
+                  <span className="text-[6.8pt] font-black uppercase whitespace-nowrap inline-flex items-center justify-center leading-none shrink-0 h-[17px] px-2.5 py-0.5 rounded-full bg-white/20 border border-white/30 text-white shadow-2xs tracking-wider">
+                    {formData.routes.length} STOPS • TRANSIT
+                  </span>
+                ) : undefined
+              }
+              icon={
+                <div className="flex items-center justify-center w-[18px] h-[18px] rounded-[4px] bg-white/20 border border-white/30 shadow-2xs shrink-0">
+                  <Route className={`${isUltraCompact ? "h-2.8 w-2.8" : "h-3.2 w-3.2"} text-white stroke-[2.2]`} />
+                </div>
+              }
               glass={!pdfMode}
-              printKey="shipping"
+              printKey="route"
               pdfMode={pdfMode}
               titleClassName={isUltraCompact ? "text-[8.5pt]" : "text-[9.2pt]"}
               densityTier={densityTier}
             >
-              <ShippingOverview
-                formData={formData}
-                labels={labels}
-                pdfMode={pdfMode}
-                densityTier={densityTier}
-              />
+              <RouteTimeline routes={formData.routes} glass={!pdfMode} densityTier={densityTier} />
             </Section>
-          )}
 
-          <Section
-            title="Route / Transportation Path"
-            subtitle={labels.routeFa}
-            icon={<Route className={`${isUltraCompact ? "h-3.5 w-3.5" : "h-4 w-4"}`} />}
-            glass={!pdfMode}
-            printKey="route"
-            pdfMode={pdfMode}
-            titleClassName={isUltraCompact ? "text-[8.5pt]" : "text-[9.2pt]"}
-            densityTier={densityTier}
-          >
-            <RouteTimeline routes={formData.routes} glass={!pdfMode} densityTier={densityTier} />
-          </Section>
-
-          <SignatureChamber
-            isUltraCompact={isUltraCompact}
-            isCompact={isCompact}
-            pdfMode={pdfMode}
-            exportTarget={exportTarget}
-            pdfExport={pdfExport}
-            toggleStamp={toggleStamp}
-            isStampActive={isStampActive}
-            stampConfig={stampConfig}
-            companyTitle={companyTitle}
-            labels={labels}
-          />
+            <SignatureChamber
+              isUltraCompact={isUltraCompact}
+              isCompact={isCompact}
+              pdfMode={pdfMode}
+              exportTarget={exportTarget}
+              pdfExport={pdfExport}
+              toggleStamp={toggleStamp}
+              isStampActive={isStampActive}
+              stampConfig={stampConfig}
+              companyTitle={companyTitle}
+              labels={labels}
+            />
+          </div>
         </main>
 
         <ExecutiveBOLFooter
@@ -4719,6 +5327,7 @@ function A4PreviewComponent({
           iranOffice={iranOffice}
           pageNumber={1}
           totalPages={1}
+          bolNumber={bolNumber}
         />
       </div>
     </div>

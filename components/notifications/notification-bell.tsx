@@ -57,8 +57,11 @@ export function NotificationBell({ onOpenCenter, onOpenSettings }: NotificationB
 
   useEffect(() => {
     fetchNotifications()
-    // Poll every 30 seconds for live updates
-    const interval = setInterval(fetchNotifications, 30000)
+    // Poll every 45 seconds for live updates (skipped when document is hidden)
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return
+      fetchNotifications()
+    }, 45000)
     return () => clearInterval(interval)
   }, [fetchNotifications])
 

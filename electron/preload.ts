@@ -41,6 +41,18 @@ contextBridge.exposeInMainWorld("skyDesktop", {
     ipcRenderer.on("updater:release-detected", handler)
     return () => ipcRenderer.removeListener("updater:release-detected", handler)
   },
+  // Background & System Tray Bridge
+  getBackgroundSettings: () => ipcRenderer.invoke("background:get-settings"),
+  saveBackgroundSettings: (settings: any) => ipcRenderer.invoke("background:save-settings", settings),
+  minimizeToTray: () => ipcRenderer.invoke("background:minimize-to-tray"),
+  quitApp: () => ipcRenderer.invoke("background:quit-completely"),
+  testTrayNotification: () => ipcRenderer.invoke("background:test-notification"),
+  getBackgroundDiagnostics: () => ipcRenderer.invoke("background:get-diagnostics"),
+  onBackgroundSettingsChanged: (callback: (data: any) => void) => {
+    const handler = (_event: any, data: any) => callback(data)
+    ipcRenderer.on("background:settings-changed", handler)
+    return () => ipcRenderer.removeListener("background:settings-changed", handler)
+  },
 })
 
 // Native Desktop Menu Event Bridge
@@ -59,3 +71,11 @@ ipcRenderer.on("menu:export-pdf", () => {
   window.dispatchEvent(new CustomEvent("skybol:editor-action", { detail: { action: "download" } }))
 })
 
+ipcRenderer.on("security:trigger-lock", () => {
+  window.dispatchEvent(new CustomEvent("skybol:security-lock"))
+})
+
+ipcRenderer.on("window:restored", () => {
+  window.dispatchEvent(new Event("resize"))
+  window.dispatchEvent(new CustomEvent("skybol:window-restored"))
+})

@@ -27,7 +27,7 @@ function test(name, fn) {
 const dbPath = path.join(__dirname, '..', '.local-ledger-system.json');
 const altDbPath = path.join(__dirname, '..', 'data', '.local-ledger-system.json');
 
-const activePath = fs.existsSync(dbPath) ? dbPath : altDbPath;
+const activePath = fs.existsSync(altDbPath) ? altDbPath : dbPath;
 assert(fs.existsSync(activePath), 'Database file .local-ledger-system.json must exist');
 
 const dbContent = JSON.parse(fs.readFileSync(activePath, 'utf8'));

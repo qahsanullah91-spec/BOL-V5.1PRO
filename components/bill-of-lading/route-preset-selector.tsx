@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button"
 import {
   Route,
   RefreshCw,
+  LayoutGrid,
+  List,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
   Copy,
   Check,
   X,
@@ -24,7 +29,7 @@ import {
   Compass,
 } from "lucide-react"
 import { toast } from "sonner"
-import { parseLogisticsRoute } from "@/lib/utils/transit-route-parser"
+import { parseLogisticsRoute, cleanRouteText } from "@/lib/utils/transit-route-parser"
 
 
 export interface RouteOption {
@@ -762,6 +767,14 @@ const ROUTE_GROUPS: RouteGroup[] = [
         switchLocation: "بندر صحار (عمان)",
       },
       {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر جاسک (ایران) با موتر/لاری؛ سپس از بندر جاسک به بندر السویق (عمان) با کشتی؛ و مقصد نهایی بندر صحار (عمان).",
+        origin: "نیمروز",
+        destination: "بندر صحار (عمان)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر السویق (عمان)",
+      },
+      {
         text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر جبل علی (دبی) با کانتینر معمولی؛ سپس از بندر جبل علی به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
         origin: "نیمروز",
         destination: "بندر نهاوا شیوا (Nhava Sheva)",
@@ -1225,6 +1238,14 @@ const ROUTE_GROUPS: RouteGroup[] = [
         switchLocation: "بندر صحار (عمان)",
       },
       {
+        text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر جاسک (ایران) با موتر/لاری؛ سپس از بندر جاسک به بندر السویق (عمان) با کشتی؛ و مقصد نهایی بندر صحار (عمان).",
+        origin: "نیمروز",
+        destination: "بندر صحار (عمان)",
+        containerType: "mixed",
+        isSwitchBl: true,
+        switchLocation: "بندر السویق (عمان)",
+      },
+      {
         text: "🗺️ مسیر حمل کانتینر: از نیمروز به بندر جبل علی (دبی) با کانتینر معمولی؛ سپس از بندر جبل علی به مقصد نهایی بندر نهاوا شیوا (Nhava Sheva)، هند، با کانتینر یخچالی (Reefer).",
         origin: "نیمروز",
         destination: "بندر نهاوا شیوا (Nhava Sheva)",
@@ -1380,6 +1401,31 @@ function renderIsolatedRouteText(
   )
 }
 
+function getTransitHub(option: RouteOption): string {
+  if (option.switchLocation) {
+    return option.switchLocation.replace(/\s*\(.*?\)/, "").trim()
+  }
+  if (option.text.includes("بندرعباس")) return "بندرعباس"
+  if (option.text.includes("صحار")) return "بندر صحار"
+  if (option.text.includes("مرسین")) return "بندر مرسین"
+  if (option.text.includes("حمریه")) return "بندر حمریه"
+  if (option.text.includes("جبل علی")) return "جبل علی"
+  return "بندرعباس"
+}
+
+function parseDestinationParts(destination: string): { persian: string; latin: string | null } {
+  if (!destination) return { persian: "", latin: null }
+  const match = destination.match(/^(.*?)\s*\(([^)]+)\)(.*)$/)
+  if (match) {
+    const p1 = match[1].trim()
+    const p2 = match[3].trim()
+    const persian = [p1, p2].filter(Boolean).join(" ").replace(/\s*،\s*/, "، ")
+    const latin = match[2].trim()
+    return { persian: persian || destination, latin }
+  }
+  return { persian: destination, latin: null }
+}
+
 interface RoutePresetSelectorProps {
   value: string
   onChange: (newValue: string) => void
@@ -1390,6 +1436,9 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
   const [containerFilter, setContainerFilter] = useState<"all" | "full_reefer" | "reefer" | "mixed" | "dry" | "switch_only">("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [hasCopied, setHasCopied] = useState(false)
+  const [viewMode, setViewMode] = useState<"compact" | "grid">("compact")
+  const [isShortcutsExpanded, setIsShortcutsExpanded] = useState<boolean>(false)
+  const [shortcutTab, setShortcutTab] = useState<"routes" | "modifiers" | "all">("routes")
 
   // Total count of all preset route options
   const totalOptionsCount = useMemo(() => {
@@ -1492,14 +1541,14 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
     if (value.includes(label) || value.includes(destName)) {
       const regex = new RegExp(`(?:،\\s*)?(?:و\\s+)?مقصد\\s*(?:نهایی)?[:\\s]+[^،\\n\\.]*[\\.\\s]*`, "gi")
       const cleaned = value.replace(regex, "").trim()
-      onChange(cleaned)
+      onChange(cleanRouteText(cleaned))
       toast.info(`مقصد ${label} حذف شد`)
     } else {
       if (!value.trim()) {
-        onChange(`مقصد نهایی: ${destName}.`)
+        onChange(cleanRouteText(`مقصد نهایی: ${destName}.`))
       } else {
         const clean = value.replace(/[\.\s]+$/, "")
-        onChange(`${clean}${destFragment}`)
+        onChange(cleanRouteText(`${clean}${destFragment}`))
       }
       toast.success(`مقصد ${label} اضافه شد!`)
     }
@@ -1596,7 +1645,7 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
   }, [selectedGroup, containerFilter, searchQuery])
 
   return (
-    <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-linear-to-b from-slate-50/70 via-white to-slate-50/40 dark:from-slate-900/90 dark:via-slate-900 dark:to-slate-950 p-4 sm:p-5 shadow-xs space-y-3.5">
+    <div className="mx-auto max-w-4xl w-full overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-linear-to-b from-slate-50/70 via-white to-slate-50/40 dark:from-slate-900/90 dark:via-slate-900 dark:to-slate-950 p-3.5 sm:p-4.5 shadow-xs space-y-3.5">
       {/* Top Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
         <div className="flex items-center gap-2 flex-wrap">
@@ -1672,6 +1721,12 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
           name="cargo_route_note"
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          onBlur={(event) => {
+            const cleaned = cleanRouteText(event.target.value)
+            if (cleaned !== event.target.value) {
+              onChange(cleaned)
+            }
+          }}
           dir="rtl"
           rows={2}
           placeholder="مسیر را از گزینه‌های پایین انتخاب کنید یا متن دلخواه را اینجا بنویسید…"
@@ -1728,9 +1783,9 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
       )}
 
       {/* PROMINENT SWITCH B/L & COMPLETE ROUTE ACTION BAR */}
-      <div className="rounded-2xl border border-sky-200/90 dark:border-sky-900/70 bg-gradient-to-r from-sky-50/80 via-white to-purple-50/80 dark:from-sky-950/40 dark:via-slate-900 dark:to-purple-950/40 p-3 shadow-2xs space-y-2.5" dir="rtl">
-        {/* Section Heading */}
-        <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-1.5 flex-wrap gap-2">
+      <div className="rounded-2xl border border-sky-200/90 dark:border-sky-900/70 bg-gradient-to-r from-sky-50/80 via-white to-purple-50/80 dark:from-sky-950/40 dark:via-slate-900 dark:to-purple-950/40 p-2.5 sm:p-3 shadow-2xs space-y-2" dir="rtl">
+        {/* Section Heading & Compact Segmented Filter */}
+        <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-1.5 flex-wrap gap-1.5">
           <div className="flex items-center gap-1.5">
             <span className="p-1 rounded-md bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-300">
               <Sparkles className="h-3.5 w-3.5" />
@@ -1738,21 +1793,84 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
             <span className="font-[vazirmatn] text-xs font-black text-slate-900 dark:text-slate-100">
               میانبرهای سریع مسیر و بارنامه سوییچ
             </span>
-            <span dir="ltr" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-sans">
+            <span dir="ltr" className="hidden sm:inline text-[10px] font-bold text-slate-500 dark:text-slate-400 font-sans">
               (Quick Route & Switch B/L Modifiers)
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 font-sans font-bold">انتخاب فوری ۱-کلیک</span>
+
+          <div className="flex items-center gap-1.5">
+            {/* Category Filter Pills for shortcuts */}
+            <div className="flex items-center gap-0.5 bg-white/90 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-bold">
+              <button
+                type="button"
+                onClick={() => setShortcutTab("routes")}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  shortcutTab === "routes"
+                    ? "bg-sky-600 text-white shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                مسیرها (۱۲)
+              </button>
+              <button
+                type="button"
+                onClick={() => setShortcutTab("modifiers")}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  shortcutTab === "modifiers"
+                    ? "bg-purple-600 text-white shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                افزودنی و سوییچ (۱۲)
+              </button>
+              <button
+                type="button"
+                onClick={() => setShortcutTab("all")}
+                className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+                  shortcutTab === "all"
+                    ? "bg-slate-700 text-white shadow-2xs"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                همه (۲۴)
+              </button>
+            </div>
+
+            {/* Collapse / Expand Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsShortcutsExpanded((prev) => !prev)}
+              className="px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-all cursor-pointer shadow-2xs flex items-center gap-1 text-[10px] font-bold"
+              title={isShortcutsExpanded ? "نمایش فشرده ریلی" : "گسترش تمام دکمه‌ها"}
+            >
+              {isShortcutsExpanded ? (
+                <>
+                  <ChevronUp className="h-3 w-3" />
+                  <span className="hidden sm:inline">فشرده</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3" />
+                  <span className="hidden sm:inline">گسترش</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Row 1: Complete Logistics Routes (مسیرهای کامل ۱-کلیک) */}
-        <div className="space-y-1">
-          <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
-            <Route className="h-3 w-3 text-sky-600" />
-            <span>مسیرهای پرکاربرد ترانزیتی:</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {/* Dogharoun -> Nhava Sheva */}
+        {/* Shortcuts Container: Scrollable Rail by default, or Expanded wrap */}
+        <div className="space-y-2 py-0.5">
+          {/* Row 1: Complete Logistics Routes */}
+          {(shortcutTab === "routes" || shortcutTab === "all") && (
+            <div className="space-y-1">
+              {(isShortcutsExpanded || shortcutTab === "all") && (
+                <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-0.5">
+                  <Route className="h-3 w-3 text-sky-600" />
+                  <span>مسیرهای پرکاربرد ترانزیتی:</span>
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {/* Dogharoun -> Nhava Sheva */}
             <button
               type="button"
               onClick={() => {
@@ -2019,17 +2137,21 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
                   : "❄️ نیمروز تمام یخچالی (Full Reefer)"}
               </span>
             </button>
-          </div>
-        </div>
+              </div>
+            </div>
+          )}
 
-        {/* Row 2: Smart Modifiers (افزودن و تغییر سوییچ B/L، مقصد، نوع کانتینر) */}
-        <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
-          <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
-            <Sparkles className="h-3 w-3 text-purple-600" />
-            <span>تغییرات و افزودنی‌های سریع:</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {/* Switch B/L at Dubai */}
+          {/* Row 2: Smart Modifiers */}
+          {(shortcutTab === "modifiers" || shortcutTab === "all") && (
+            <div className={`space-y-1 ${shortcutTab === "all" ? "pt-1.5 border-t border-slate-100 dark:border-slate-800" : ""}`}>
+              {(isShortcutsExpanded || shortcutTab === "all") && (
+                <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-0.5">
+                  <Sparkles className="h-3 w-3 text-purple-600" />
+                  <span>تغییرات و افزودنی‌های سریع:</span>
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {/* Switch B/L at Dubai */}
             <button
               type="button"
               onClick={() => handleToggleSwitchBl("دبی / جبل علی")}
@@ -2192,46 +2314,49 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
               <Box className="h-3 w-3 text-slate-600" />
               <span>+ معمولی (Dry)</span>
             </button>
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* FILTER CONTROLS: STATION TABS + SEARCH + CONTAINER TYPE */}
+      {/* FILTER CONTROLS: STATION TABS + SEARCH + CONTAINER TYPE + VIEW MODE */}
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2" dir="rtl">
-          {/* Station Pills */}
-          <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100/80 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+        {/* Station Pills - Single Row Scrollable Rail */}
+        <div className="flex items-center gap-1 p-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80 overflow-x-auto no-scrollbar scroll-smooth w-full" dir="rtl">
+          <button
+            type="button"
+            onClick={() => setSelectedGroup("all")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              selectedGroup === "all"
+                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/90 dark:border-slate-700"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-50"
+            }`}
+          >
+            <span>همه مرزها</span>
+            <span className="text-[10px] opacity-75 font-mono mr-1">({totalOptionsCount})</span>
+          </button>
+          {ROUTE_GROUPS.map((g) => (
             <button
+              key={g.id}
               type="button"
-              onClick={() => setSelectedGroup("all")}
-              className={`px-2.5 py-1 rounded-lg text-xs font-[vazirmatn] font-bold transition-all cursor-pointer ${
-                selectedGroup === "all"
+              onClick={() => setSelectedGroup(g.id)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap flex items-center gap-1 ${
+                selectedGroup === g.id
                   ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/90 dark:border-slate-700"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
-              <span>همه مرزها</span>
-              <span className="text-[10px] opacity-75 font-mono mr-1">({totalOptionsCount})</span>
+              <span>{g.label}</span>
+              <span className="text-[10px] opacity-70 font-mono">({g.options.length})</span>
             </button>
-            {ROUTE_GROUPS.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                onClick={() => setSelectedGroup(g.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-[vazirmatn] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  selectedGroup === g.id
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/90 dark:border-slate-700"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-50"
-                }`}
-              >
-                <span>{g.label}</span>
-                <span className="text-[10px] opacity-70 font-mono">({g.options.length})</span>
-              </button>
-            ))}
-          </div>
+          ))}
+        </div>
 
+        {/* Search Box + View Mode Toggle - Full Width Balanced Control Row */}
+        <div className="flex items-center justify-between gap-2 w-full" dir="rtl">
           {/* Quick Search Box */}
-          <div className="relative flex items-center min-w-[180px] max-w-[220px]">
+          <div className="relative flex items-center flex-1 min-w-0">
             <Search className="absolute right-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
@@ -2245,24 +2370,54 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute left-2 text-slate-400 hover:text-slate-600"
+                className="absolute left-2 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="h-3 w-3" />
               </button>
             )}
           </div>
+
+          {/* View Mode Toggle: Compact List vs Grid */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode("compact")}
+              className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                viewMode === "compact"
+                  ? "bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-300 shadow-2xs font-black"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+              title="نمایش فشرده (High Density List)"
+            >
+              <List className="h-3.5 w-3.5 shrink-0" />
+              <span className="font-[vazirmatn] whitespace-nowrap">لیست فشرده</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                viewMode === "grid"
+                  ? "bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-300 shadow-2xs font-black"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+              title="نمایش کارتی (Cards Grid)"
+            >
+              <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+              <span className="font-[vazirmatn] whitespace-nowrap">کارت‌ها</span>
+            </button>
+          </div>
         </div>
 
-        {/* Container Type Filter Bar */}
-        <div className="flex flex-wrap items-center gap-1 text-[11px] font-bold" dir="rtl">
-          <span className="text-slate-500 font-[vazirmatn] ml-1">فیلتر نوع کانتینر:</span>
+        {/* Container Type Filter Bar - Single Row Scrollable rail */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100/70 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 overflow-x-auto no-scrollbar scroll-smooth" dir="rtl">
+          <span className="text-slate-500 font-[vazirmatn] text-xs font-black shrink-0 px-1">فیلتر نوع کانتینر:</span>
           <button
             type="button"
             onClick={() => setContainerFilter("all")}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               containerFilter === "all"
-                ? "bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-2xs"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs font-black"
+                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-slate-700"
             }`}
           >
             همه ({filterCounts.all})
@@ -2270,46 +2425,50 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
           <button
             type="button"
             onClick={() => setContainerFilter("full_reefer")}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               containerFilter === "full_reefer"
-                ? "bg-sky-600 text-white shadow-2xs"
-                : "bg-sky-50 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 hover:bg-sky-100"
+                ? "bg-sky-600 text-white shadow-2xs font-black"
+                : "bg-sky-50 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 hover:bg-sky-100 border border-sky-200 dark:border-sky-800"
             }`}
           >
             <Snowflake className="h-3 w-3 text-cyan-500" />
-            <span>❄️ تمام مسیر یخچالی ({filterCounts.fullReefer})</span>
+            <span>تمام مسیر یخچالی ({filterCounts.fullReefer})</span>
           </button>
           <button
             type="button"
             onClick={() => setContainerFilter("switch_only")}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               containerFilter === "switch_only"
-                ? "bg-purple-700 text-white shadow-2xs"
-                : "bg-purple-50 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 hover:bg-purple-100"
+                ? "bg-purple-700 text-white shadow-2xs font-black"
+                : "bg-purple-50 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 hover:bg-purple-100 border border-purple-200 dark:border-purple-800"
             }`}
           >
             <RefreshCw className="h-3 w-3 text-purple-600" />
-            <span>🔄 فقط سوییچ B/L ({filterCounts.switchOnly})</span>
+            <span className="flex items-center gap-1">
+              <span>فقط سوییچ</span>
+              <span dir="ltr" className="inline-block font-sans font-black">B/L</span>
+              <span>({filterCounts.switchOnly})</span>
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setContainerFilter("mixed")}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               containerFilter === "mixed"
-                ? "bg-amber-600 text-white shadow-2xs"
-                : "bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 hover:bg-amber-100"
+                ? "bg-amber-600 text-white shadow-2xs font-black"
+                : "bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800"
             }`}
           >
             <Box className="h-3 w-3 text-amber-600" />
-            <span>📦 معمولی ➔ ❄️ یخچالی ({filterCounts.mixed})</span>
+            <span>معمولی ← یخچالی ({filterCounts.mixed})</span>
           </button>
           <button
             type="button"
             onClick={() => setContainerFilter("reefer")}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               containerFilter === "reefer"
-                ? "bg-cyan-600 text-white shadow-2xs"
-                : "bg-cyan-50 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 hover:bg-cyan-100"
+                ? "bg-cyan-600 text-white shadow-2xs font-black"
+                : "bg-cyan-50 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 hover:bg-cyan-100 border border-cyan-200 dark:border-cyan-800"
             }`}
           >
             <Snowflake className="h-3 w-3 text-cyan-600" />
@@ -2318,10 +2477,10 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
           <button
             type="button"
             onClick={() => setContainerFilter("dry")}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               containerFilter === "dry"
-                ? "bg-slate-700 text-white shadow-2xs"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                ? "bg-slate-700 text-white shadow-2xs font-black"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 border border-slate-200 dark:border-slate-700"
             }`}
           >
             <Box className="h-3 w-3 text-slate-500" />
@@ -2330,8 +2489,8 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
         </div>
       </div>
 
-      {/* Grouped Preset Route Buttons Grid */}
-      <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700" dir="rtl">
+      {/* Grouped Preset Route Buttons Grid or High-Density List */}
+      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700" dir="rtl">
         {displayedGroups.length === 0 ? (
           <div className="p-8 text-center rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 font-[vazirmatn] text-sm">
             مسیر منطبق با فیلتر انتخابی پیدا نشد. لطفاً فیلتر را تغییر دهید.
@@ -2340,7 +2499,7 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
           displayedGroups.map((group) => (
             <div key={group.id} className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white/90 dark:bg-slate-900/80 shadow-2xs overflow-hidden">
               {/* Sticky Station Group Header */}
-              <div className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xs px-3.5 py-2 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-2xs">
+              <div className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xs px-3 py-1.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-2xs">
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full border px-2.5 py-0.5 font-[vazirmatn] text-xs font-black shadow-2xs ${group.badgeColor}`}>
                     {group.label}
@@ -2352,130 +2511,248 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
                 </span>
               </div>
 
-              {/* Options Grid */}
-              <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {group.options.map((option) => {
-                  const isActive = Boolean(value === option.text || (value && option.text && value.trim() === option.text.trim()))
-                  const { mainText, parenNote, trailingDot, hasEmoji } = parseRouteDisplay(option.text)
+              {/* COMPACT LIST VIEW MODE */}
+              {viewMode === "compact" ? (
+                <div className="p-2 space-y-1.5">
+                  {group.options.map((option) => {
+                    const isActive = Boolean(value === option.text || (value && option.text && value.trim() === option.text.trim()))
+                    const { mainText, parenNote, trailingDot, hasEmoji } = parseRouteDisplay(option.text)
+                    const transitHub = getTransitHub(option)
+                    const { persian: destPersian, latin: destLatin } = parseDestinationParts(option.destination || "")
+                    const showDestination = option.destination && option.destination !== "مقصد نهایی" && option.destination !== transitHub && option.destination !== "بندرعباس"
 
-                  return (
-                    <button
-                      key={option.text}
-                      type="button"
-                      onClick={() => {
-                        startTransition(() => {
-                          onChange(option.text)
-                        })
-                        toast.success(`مسیر "${option.text}" انتخاب شد`)
-                      }}
-                      className={`group/btn relative rounded-xl border p-3 font-[vazirmatn] text-xs font-bold leading-relaxed transition-all cursor-pointer text-right flex flex-col justify-between gap-2 shadow-2xs [&_*]:pointer-events-none ${
-                        isActive
-                          ? group.pillActiveColor
-                          : group.pillHoverColor
-                      }`}
-                    >
-                      {/* Card Header: Breadcrumb Route + Active Checkmark */}
-                      <div className="flex items-center justify-between gap-1.5 border-b border-black/5 dark:border-white/10 pb-1.5 w-full">
-                        <div className="flex items-center gap-1 text-[10px] font-sans font-bold opacity-80 truncate">
-                          <span>{option.origin}</span>
-                          <span className="text-[9px] opacity-60">➔</span>
-                          <span>بندرعباس</span>
-                          {option.destination && option.destination !== "بندرعباس" && option.destination !== "مقصد نهایی" && (
-                            <>
-                              <span className="text-[9px] opacity-60">➔</span>
-                              <span className="truncate max-w-[140px] font-black">{option.destination}</span>
-                            </>
+                    return (
+                      <button
+                        key={option.text}
+                        type="button"
+                        onClick={() => {
+                          startTransition(() => {
+                            onChange(option.text)
+                          })
+                          toast.success(`مسیر "${option.text}" انتخاب شد`)
+                        }}
+                        className={`group/item w-full rounded-xl border p-2.5 font-[vazirmatn] text-xs font-bold transition-all cursor-pointer text-right flex flex-col gap-1.5 shadow-2xs [&_*]:pointer-events-none ${
+                          isActive
+                            ? "bg-sky-600 border-sky-600 text-white shadow-sm ring-2 ring-sky-300 dark:ring-sky-700"
+                            : "bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 hover:border-sky-300 hover:bg-sky-50/60 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200"
+                        }`}
+                      >
+                        {/* Top Line: Corridor Pathway (Right) + Badges (Left) */}
+                        <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                          {/* Right in RTL: Indicator + Corridor Breadcrumb */}
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className={`h-4.5 w-4.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                              isActive
+                                ? "bg-white text-sky-700 shadow-2xs"
+                                : "border border-slate-300 dark:border-slate-600 group-hover/item:border-sky-400 text-transparent"
+                            }`}>
+                              <Check className={`h-2.5 w-2.5 stroke-[3] ${isActive ? "opacity-100" : "opacity-0"}`} />
+                            </span>
+
+                            <div className="flex items-center gap-1.5 text-xs font-black min-w-0 truncate">
+                              <span className="shrink-0">{option.origin}</span>
+                              <span className="text-[10px] opacity-40 shrink-0">←</span>
+                              <span className={`shrink-0 ${isActive ? "text-sky-100" : "text-slate-600 dark:text-slate-300"}`}>{transitHub}</span>
+                              {showDestination && (
+                                <>
+                                  <span className="text-[10px] opacity-40 shrink-0">←</span>
+                                  <span className={`truncate font-black flex items-center gap-1 ${
+                                    isActive ? "text-white" : "text-sky-700 dark:text-sky-300"
+                                  }`} dir="rtl">
+                                    <bdi dir="rtl">{destPersian}</bdi>
+                                    {destLatin && (
+                                      <span dir="ltr" className="font-sans text-[10px] opacity-80 font-bold shrink-0">
+                                        ({destLatin})
+                                      </span>
+                                    )}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Left in RTL: Feature Badges (Always preserved and cleanly fitted) */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {option.containerType === "full_reefer" && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-black flex items-center gap-0.5 shrink-0 ${
+                                isActive
+                                  ? "bg-white/20 text-white border border-white/30"
+                                  : "bg-sky-100 text-sky-900 border border-sky-300 dark:bg-sky-950 dark:text-sky-300"
+                              }`}>
+                                <Snowflake className="h-2.5 w-2.5 text-cyan-400" />
+                                <span>Full Reefer</span>
+                              </span>
+                            )}
+                            {option.isSwitchBl && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5 shrink-0 ${
+                                isActive
+                                  ? "bg-white/20 text-white border border-white/30"
+                                  : "bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-200 border border-purple-200"
+                              }`}>
+                                <RefreshCw className="h-2.5 w-2.5 text-purple-600" />
+                                <span>سوییچ</span>
+                              </span>
+                            )}
+                            {option.containerType === "mixed" && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                                isActive
+                                  ? "bg-white/20 text-white border border-white/30"
+                                  : "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-200"
+                              }`}>
+                                معمولی←یخچالی
+                              </span>
+                            )}
+                            {option.containerType === "reefer" && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                                isActive
+                                  ? "bg-white/20 text-white border border-white/30"
+                                  : "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200 border border-cyan-200"
+                              }`}>
+                                ❄️ یخچالی
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bottom Line: Full Descriptive Route Clause & Detail (Never squashed, fits properly!) */}
+                        <div
+                          className={`flex items-center gap-1.5 pr-6.5 w-full min-w-0 text-[11px] leading-snug font-medium truncate ${
+                            isActive ? "text-white/85" : "text-slate-500 dark:text-slate-400"
+                          }`}
+                          dir="rtl"
+                          style={{ unicodeBidi: "isolate" }}
+                        >
+                          {hasEmoji && <span className="shrink-0 text-xs">🗺️</span>}
+                          <span className="truncate">
+                            {renderIsolatedRouteText(mainText, parenNote, isActive, trailingDot)}
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                /* CARDS GRID VIEW MODE (Spacious single-column on split view, 2 columns on wide screens) */
+                <div className="p-3 grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                  {group.options.map((option) => {
+                    const isActive = Boolean(value === option.text || (value && option.text && value.trim() === option.text.trim()))
+                    const { mainText, parenNote, trailingDot, hasEmoji } = parseRouteDisplay(option.text)
+                    const transitHub = getTransitHub(option)
+                    const { persian: destPersian, latin: destLatin } = parseDestinationParts(option.destination || "")
+                    const showDestination = option.destination && option.destination !== "مقصد نهایی" && option.destination !== transitHub && option.destination !== "بندرعباس"
+
+                    return (
+                      <button
+                        key={option.text}
+                        type="button"
+                        onClick={() => {
+                          startTransition(() => {
+                            onChange(option.text)
+                          })
+                          toast.success(`مسیر "${option.text}" انتخاب شد`)
+                        }}
+                        className={`group/btn relative rounded-xl border p-3 font-[vazirmatn] text-xs font-bold leading-relaxed transition-all cursor-pointer text-right flex flex-col justify-between gap-2 shadow-2xs [&_*]:pointer-events-none ${
+                          isActive
+                            ? group.pillActiveColor
+                            : group.pillHoverColor
+                        }`}
+                      >
+                        {/* Card Header: Breadcrumb Route + Active Checkmark */}
+                        <div className="flex items-center justify-between gap-1.5 border-b border-black/5 dark:border-white/10 pb-1.5 w-full">
+                          <div className="flex items-center gap-1.5 text-[10px] font-sans font-bold opacity-80 truncate">
+                            <span className="font-bold">{option.origin}</span>
+                            <span className="text-[9px] opacity-50">←</span>
+                            <span>{transitHub}</span>
+                            {showDestination && (
+                              <>
+                                <span className="text-[9px] opacity-50">←</span>
+                                <span className="truncate max-w-[140px] font-black" dir="rtl">
+                                  <bdi dir="rtl">{destPersian}</bdi>
+                                  {destLatin && <span dir="ltr" className="ml-1 font-sans text-[9px] font-bold">({destLatin})</span>}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {isActive ? (
+                            <span className="h-4 w-4 rounded-full bg-white text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
+                              <Check className="h-2.5 w-2.5 stroke-[3]" />
+                            </span>
+                          ) : (
+                            <span className="text-[10px] opacity-40 group-hover/btn:opacity-80 transition-opacity">
+                              انتخاب
+                            </span>
                           )}
                         </div>
-                        {isActive ? (
-                          <span className="h-4 w-4 rounded-full bg-white text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
-                            <Check className="h-2.5 w-2.5 stroke-[3]" />
-                          </span>
-                        ) : (
-                          <span className="text-[10px] opacity-40 group-hover/btn:opacity-80 transition-opacity">
-                            انتخاب
-                          </span>
-                        )}
-                      </div>
 
-                      {/* Card Body: Isolated Persian Route Text */}
-                      <div className="flex-1 w-full text-right">
-                        <span className="block text-[13px] font-black leading-snug">
-                          {hasEmoji && <span className="ml-1 text-base">🗺️</span>}
-                          {renderIsolatedRouteText(mainText, parenNote, isActive, trailingDot)}
-                        </span>
-                      </div>
+                        {/* Card Body: Isolated Persian Route Text */}
+                        <div className="flex-1 w-full text-right">
+                          <span className="block text-[13px] font-black leading-snug">
+                            {hasEmoji && <span className="ml-1 text-base">🗺️</span>}
+                            {renderIsolatedRouteText(mainText, parenNote, isActive, trailingDot)}
+                          </span>
+                        </div>
 
-                      {/* Card Footer: Metadata Badges (Persian-First & Bidi Safe) */}
-                      <div className="flex flex-wrap items-center gap-1 text-[10px] font-sans pt-1 border-t border-black/5 dark:border-white/10 w-full">
-                        {option.containerType === "full_reefer" && (
-                          <span className={`px-1.5 py-0.5 rounded font-black flex items-center gap-1 ${
-                            isActive
-                              ? "bg-white/20 text-white border border-white/30"
-                              : "bg-sky-100 text-sky-900 border border-sky-300 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-800"
-                          }`}>
-                            <Snowflake className="h-2.5 w-2.5 text-cyan-400" />
-                            <span>تمام مسیر یخچالی</span>
-                            <span className="text-[9px] font-sans opacity-85" dir="ltr" style={{ unicodeBidi: "isolate" }}>(Full Reefer)</span>
-                          </span>
-                        )}
-                        {option.isSwitchBl && (
-                          <span className={`px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
-                            isActive
-                              ? "bg-white/20 text-white border border-white/30"
-                              : "bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-200 border border-purple-200 dark:border-purple-800"
-                          }`}>
-                            <RefreshCw className="h-2.5 w-2.5 text-purple-600" />
-                            <span>سوییچ B/L</span>
-                            {option.switchLocation && (
-                              <span className="opacity-90">({option.switchLocation})</span>
-                            )}
-                          </span>
-                        )}
-                        {option.containerType === "mixed" && (
-                          <span className={`px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
-                            isActive
-                              ? "bg-white/20 text-white border border-white/30"
-                              : "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-800"
-                          }`}>
-                            <span>📦 معمولی ← ❄️ یخچالی</span>
-                          </span>
-                        )}
-                        {option.containerType === "reefer" && (
-                          <span className={`px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
-                            isActive
-                              ? "bg-white/20 text-white border border-white/30"
-                              : "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200 border border-cyan-200 dark:border-cyan-800"
-                          }`}>
-                            <Snowflake className="h-2.5 w-2.5 text-cyan-600" />
-                            <span>یخچالی (Reefer)</span>
-                          </span>
-                        )}
-                        {option.containerType === "dry" && (
-                          <span className={`px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
-                            isActive
-                              ? "bg-white/20 text-white border border-white/30"
-                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
-                          }`}>
-                            <Box className="h-2.5 w-2.5 text-slate-500" />
-                            <span>معمولی (Dry)</span>
-                          </span>
-                        )}
-                        {option.destination && option.destination !== "بندرعباس" && option.destination !== "مقصد نهایی" && (
-                          <span className={`px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
-                            isActive
-                              ? "bg-white/20 text-white border border-white/30"
-                              : "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800"
-                          }`}>
-                            <Navigation className="h-2.5 w-2.5 text-emerald-600" />
-                            <span>مقصد: {option.destination}</span>
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+                        {/* Card Footer: Metadata Badges (Persian-First & Bidi Safe) */}
+                        <div className="flex flex-wrap items-center gap-1 text-[10px] font-sans pt-1 border-t border-black/5 dark:border-white/10 w-full">
+                          {option.containerType === "full_reefer" && (
+                            <span className={`px-1.5 py-0.5 rounded font-black flex items-center gap-1 ${
+                              isActive
+                                ? "bg-white/20 text-white border border-white/30"
+                                : "bg-sky-100 text-sky-900 border border-sky-300 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-800"
+                            }`}>
+                              <Snowflake className="h-2.5 w-2.5 text-cyan-400" />
+                              <span>تمام مسیر یخچالی</span>
+                              <span className="text-[9px] font-sans opacity-85" dir="ltr" style={{ unicodeBidi: "isolate" }}>(Full Reefer)</span>
+                            </span>
+                          )}
+                          {option.isSwitchBl && (
+                            <span className={`px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
+                              isActive
+                                ? "bg-white/20 text-white border border-white/30"
+                                : "bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-200 border border-purple-200 dark:border-purple-800"
+                            }`}>
+                              <RefreshCw className="h-2.5 w-2.5 text-purple-600" />
+                              <span>سوییچ B/L</span>
+                              {option.switchLocation && (
+                                <span className="opacity-90">({option.switchLocation})</span>
+                              )}
+                            </span>
+                          )}
+                          {option.containerType === "mixed" && (
+                            <span className={`px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
+                              isActive
+                                ? "bg-white/20 text-white border border-white/30"
+                                : "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-800"
+                            }`}>
+                              <span>📦 معمولی ← ❄️ یخچالی</span>
+                            </span>
+                          )}
+                          {option.containerType === "reefer" && (
+                            <span className={`px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
+                              isActive
+                                ? "bg-white/20 text-white border border-white/30"
+                                : "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200 border border-cyan-200 dark:border-cyan-800"
+                            }`}>
+                              <Snowflake className="h-2.5 w-2.5 text-cyan-600" />
+                              <span>یخچالی (Reefer)</span>
+                            </span>
+                          )}
+                          {option.containerType === "dry" && (
+                            <span className={`px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
+                              isActive
+                                ? "bg-white/20 text-white border border-white/30"
+                                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                            }`}>
+                              <Box className="h-2.5 w-2.5 text-slate-500" />
+                              <span>معمولی (Dry)</span>
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           ))
         )}
@@ -2483,4 +2760,3 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
     </div>
   )
 }
-

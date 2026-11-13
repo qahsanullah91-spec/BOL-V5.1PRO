@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
+import { putVaultItem, getVaultItem, deleteVaultItem } from "@/lib/save/indexed-db-vault"
 import { toast } from "sonner"
 import {
   BadgeCheck,
@@ -773,8 +774,29 @@ export function InvoiceEditor() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | "idle">("idle")
   const [lastAutoSaveTime, setLastAutoSaveTime] = useState<string>("")
   const isInvoiceInitialMount = useRef(true)
+  const invoiceRef = useRef<InvoiceForm>(invoice)
+  invoiceRef.current = invoice
 
-  // Real-Time Debounced Invoice Auto-Saving Engine
+  // Flush invoice draft to storage & server immediately
+  const flushInvoiceDraft = () => {
+    if (typeof window === "undefined") return
+    const cur = invoiceRef.current
+    if (!cur) return
+    try {
+      const json = JSON.stringify(cur)
+      window.localStorage.setItem("skybol:active-invoice-draft", json)
+      window.sessionStorage.setItem("skybol:active-invoice-draft:backup", json)
+      void putVaultItem("settings_vault", "skybol:active-invoice-draft", cur).catch(() => {})
+      fetch("/api/draft?type=invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "invoice", draft: cur }),
+        keepalive: true,
+      }).catch(() => {})
+    } catch (_) {}
+  }
+
+  // Real-Time Debounced Multi-Tier Invoice Auto-Saving Engine
   useEffect(() => {
     if (typeof window === "undefined") return
     if (isInvoiceInitialMount.current) {
@@ -785,22 +807,55 @@ export function InvoiceEditor() {
     setAutoSaveStatus("saving")
     const timer = setTimeout(() => {
       try {
-        window.localStorage.setItem("skybol:active-invoice-draft", JSON.stringify(invoice))
+        const json = JSON.stringify(invoice)
+        window.localStorage.setItem("skybol:active-invoice-draft", json)
+        window.sessionStorage.setItem("skybol:active-invoice-draft:backup", json)
+        void putVaultItem("settings_vault", "skybol:active-invoice-draft", invoice).catch(() => {})
         if (invoice.invoice_number && invoice.invoice_number.trim()) {
           const stored = window.localStorage.getItem("skybol:saved-invoices")
           const list = stored ? JSON.parse(stored) : []
           const updated = [invoice, ...list.filter((inv: any) => inv.invoice_number !== invoice.invoice_number)]
           window.localStorage.setItem("skybol:saved-invoices", JSON.stringify(updated))
         }
+
+        // Replicate to server draft API
+        fetch("/api/draft?type=invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "invoice", draft: invoice }),
+          keepalive: true,
+        }).catch(() => {})
+
         setAutoSaveStatus("saved")
         setLastAutoSaveTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }))
       } catch (e) {
         setAutoSaveStatus("idle")
       }
-    }, 600)
+    }, 500)
 
     return () => clearTimeout(timer)
   }, [invoice])
+
+  // Lifecycle listeners to flush invoice draft before page unload or visibility change
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const handleFlush = () => flushInvoiceDraft()
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") flushInvoiceDraft()
+    }
+
+    window.addEventListener("beforeunload", handleFlush)
+    window.addEventListener("pagehide", handleFlush)
+    document.addEventListener("visibilitychange", handleVisibility)
+
+    return () => {
+      window.removeEventListener("beforeunload", handleFlush)
+      window.removeEventListener("pagehide", handleFlush)
+      document.removeEventListener("visibilitychange", handleVisibility)
+      flushInvoiceDraft()
+    }
+  }, [])
+
   const totals = calculateInvoice(invoice)
   const attachmentCount = invoice.attachments.split(",").map((item) => item.trim()).filter(Boolean).length
 
@@ -821,13 +876,71 @@ export function InvoiceEditor() {
     } catch (e) {
       console.warn("Error fetching next invoice number:", e)
     }
+    // Clear previous invoice draft on starting a new one
+    try {
+      window.localStorage.removeItem("skybol:active-invoice-draft")
+      window.sessionStorage.removeItem("skybol:active-invoice-draft:backup")
+      void deleteVaultItem("settings_vault", "skybol:active-invoice-draft").catch(() => {})
+      fetch("/api/draft?type=invoice", { method: "DELETE" }).catch(() => {})
+    } catch (_) {}
+
     setInvoice({ ...emptyInvoice(), invoice_number: num })
     setActiveTab("form")
   }
 
+  // Session Init: Check for active invoice draft before falling back to empty invoice
   useEffect(() => {
-    void newInvoice()
-    void loadInvoices()
+    const initSession = async () => {
+      let draftLoaded = false
+      try {
+        const rawLocal = window.localStorage.getItem("skybol:active-invoice-draft") || window.sessionStorage.getItem("skybol:active-invoice-draft:backup")
+        let candidateDraft: any = null
+        if (rawLocal) {
+          try { candidateDraft = JSON.parse(rawLocal) } catch (_) {}
+        }
+        if (!candidateDraft) {
+          try {
+            const vaultRecord = await getVaultItem<any>("settings_vault", "skybol:active-invoice-draft")
+            const vData = vaultRecord?.payload || vaultRecord
+            if (vData && typeof vData === "object") {
+              candidateDraft = vData
+            }
+          } catch (_) {}
+        }
+        if (!candidateDraft) {
+          const res = await fetch("/api/draft?type=invoice")
+          if (res.ok) {
+            const data = await res.json()
+            if (data?.draft) candidateDraft = data.draft
+          }
+        }
+
+        if (candidateDraft) {
+          const hasContent = Boolean(
+            candidateDraft.buyer_name?.trim() ||
+            candidateDraft.seller_name?.trim() ||
+            candidateDraft.remarks?.trim() ||
+            (Array.isArray(candidateDraft.items) && candidateDraft.items.some((i: any) => i.description?.trim() || Number(i.rate) > 0))
+          )
+          if (hasContent) {
+            setInvoice(normalizeInvoice(candidateDraft))
+            draftLoaded = true
+            toast.info("Resumed Active Invoice Draft", {
+              description: `Draft ${candidateDraft.invoice_number || ""} restored from your previous session.`,
+            })
+          }
+        }
+      } catch (err) {
+        console.warn("Error checking invoice draft:", err)
+      }
+
+      if (!draftLoaded) {
+        void newInvoice()
+      }
+      void loadInvoices()
+    }
+
+    void initSession()
   }, [])
 
   const update = (field: keyof InvoiceForm, value: string) => setInvoice((prev) => ({ ...prev, [field]: value }))
@@ -865,6 +978,12 @@ export function InvoiceEditor() {
       return
     }
     setInvoice(normalizeInvoice(result.data))
+    try {
+      window.localStorage.removeItem("skybol:active-invoice-draft")
+      window.sessionStorage.removeItem("skybol:active-invoice-draft:backup")
+      void deleteVaultItem("settings_vault", "skybol:active-invoice-draft").catch(() => {})
+      fetch("/api/draft?type=invoice", { method: "DELETE" }).catch(() => {})
+    } catch (_) {}
     await loadInvoices()
     toast.success("Invoice saved")
   }

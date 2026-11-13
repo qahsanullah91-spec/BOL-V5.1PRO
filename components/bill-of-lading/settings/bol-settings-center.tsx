@@ -37,6 +37,8 @@ import {
   SettingsTabId,
   SettingsTabMeta,
   CustomWatermarkItem,
+  OFFICIAL_LOGO_PRESETS,
+  LogoDesignPreset,
 } from './bol-settings-types'
 import {
   loadBolDocumentSettings,
@@ -58,6 +60,10 @@ export interface BolSettingsCenterProps {
   onToggleStampSignature: (show: boolean) => void
   logoUrl: string
   onLogoChange: (url: string) => void
+  brandLockupUrl?: string
+  onBrandLockupChange?: (url: string) => void
+  logoDesignId?: string
+  onLogoDesignChange?: (designId: string, brandLockupUrl: string, emblemUrl: string) => void
   companyName: string
   companyNamePersian: string
   companySubtitle: string
@@ -89,14 +95,14 @@ export interface BolSettingsCenterProps {
   isSaving?: boolean
 }
 
-const SETTINGS_TABS: SettingsTabMeta[] = [
-  { id: 'watermark', label: 'Watermark', labelPersian: 'واترمارک', description: 'Document background & security patterns' },
-  { id: 'branding', label: 'Logo & Branding', labelPersian: 'لوگو و برند', description: 'Official company logo and identity' },
-  { id: 'stamp', label: 'Stamp & Signature', labelPersian: 'مهر و امضا', description: 'Carrier verification stamp and placement' },
-  { id: 'general', label: 'General Profile', labelPersian: 'اطلاعات شرکت', description: 'Company name, address, and contact numbers' },
-  { id: 'pdf-print', label: 'PDF & Print', labelPersian: 'پی‌دی‌اف و چاپ', description: 'Document dimensions, export quality & resolution' },
-  { id: 'defaults', label: 'Defaults', labelPersian: 'پیش‌فرض‌ها', description: 'Default currency, language & border notes' },
-  { id: 'backup', label: 'Backup & Restore', labelPersian: 'پشتیبان‌گیری', description: 'Export or import configuration JSON' },
+const SETTINGS_TABS: (SettingsTabMeta & { icon: any })[] = [
+  { id: 'watermark', label: 'Watermark', labelPersian: 'واترمارک', description: 'Document background & security patterns', icon: ImageIcon },
+  { id: 'branding', label: 'Logo & Branding', labelPersian: 'لوگو و برند', description: 'Official company logo and identity', icon: Sparkles },
+  { id: 'stamp', label: 'Stamp & Signature', labelPersian: 'مهر و امضا', description: 'Carrier verification stamp and placement', icon: Stamp },
+  { id: 'general', label: 'General Profile', labelPersian: 'اطلاعات شرکت', description: 'Company name, address, and contact numbers', icon: Building2 },
+  { id: 'pdf-print', label: 'PDF & Print', labelPersian: 'پی‌دی‌اف و چاپ', description: 'Document dimensions, export quality & resolution', icon: Printer },
+  { id: 'defaults', label: 'Defaults', labelPersian: 'پیش‌فرض‌ها', description: 'Default currency, language & border notes', icon: Sliders },
+  { id: 'backup', label: 'Backup & Restore', labelPersian: 'پشتیبان‌گیری', description: 'Export or import configuration JSON', icon: Download },
 ]
 
 export function BolSettingsCenter({
@@ -109,6 +115,10 @@ export function BolSettingsCenter({
   onToggleStampSignature,
   logoUrl,
   onLogoChange,
+  brandLockupUrl,
+  onBrandLockupChange,
+  logoDesignId,
+  onLogoDesignChange,
   companyName,
   companyNamePersian,
   companySubtitle,
@@ -135,6 +145,9 @@ export function BolSettingsCenter({
   const [draftWatermarkOpacity, setDraftWatermarkOpacity] = useState(() => activeBgOpacity ?? savedSettings.defaultBgOpacity)
   const [draftShowStamp, setDraftShowStamp] = useState(() => showStampSignature)
   const [draftLogoUrl, setDraftLogoUrl] = useState(() => logoUrl || savedSettings.logoUrl)
+  const [draftLogoDesignId, setDraftLogoDesignId] = useState<string>(() => logoDesignId || savedSettings.logoDesignId || 'modern-flat')
+  const [draftBrandLockupUrl, setDraftBrandLockupUrl] = useState<string>(() => brandLockupUrl || savedSettings.brandLockupUrl || '/images/sky-ariana-brand-lockup.png')
+  const [logoFilterCategory, setLogoFilterCategory] = useState<'all' | 'classic' | 'modern' | 'seal'>('all')
 
   // Tracking unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -149,7 +162,9 @@ export function BolSettingsCenter({
     if (activeBgOpacity !== undefined) setDraftWatermarkOpacity(activeBgOpacity)
     setDraftShowStamp(showStampSignature)
     if (logoUrl) setDraftLogoUrl(logoUrl)
-  }, [activeBgImageUrl, activeBgOpacity, showStampSignature, logoUrl])
+    if (brandLockupUrl) setDraftBrandLockupUrl(brandLockupUrl)
+    if (logoDesignId) setDraftLogoDesignId(logoDesignId)
+  }, [activeBgImageUrl, activeBgOpacity, showStampSignature, logoUrl, brandLockupUrl, logoDesignId])
 
   // Mark unsaved changes when draft deviates from saved
   useEffect(() => {
@@ -157,7 +172,7 @@ export function BolSettingsCenter({
       draftWatermarkUrl !== activeBgImageUrl ||
       Math.round(draftWatermarkOpacity * 100) !== Math.round(activeBgOpacity * 100)
     const isStampChanged = draftShowStamp !== showStampSignature
-    const isLogoChanged = draftLogoUrl !== logoUrl
+    const isLogoChanged = draftLogoUrl !== logoUrl || draftBrandLockupUrl !== (brandLockupUrl || savedSettings.brandLockupUrl) || draftLogoDesignId !== (logoDesignId || savedSettings.logoDesignId)
     const isProfileChanged =
       draftSettings.companyName !== companyName ||
       draftSettings.companyAddress !== companyAddress ||
@@ -199,6 +214,8 @@ export function BolSettingsCenter({
       defaultBgOpacity: draftWatermarkOpacity,
       defaultShowStamp: draftShowStamp,
       logoUrl: draftLogoUrl,
+      logoDesignId: draftLogoDesignId,
+      brandLockupUrl: draftBrandLockupUrl,
       lastUpdated: new Date().toISOString(),
     }
 
@@ -211,6 +228,8 @@ export function BolSettingsCenter({
     onBgOpacityChange(draftWatermarkOpacity)
     onToggleStampSignature(draftShowStamp)
     onLogoChange(draftLogoUrl)
+    if (onBrandLockupChange) onBrandLockupChange(draftBrandLockupUrl)
+    if (onLogoDesignChange) onLogoDesignChange(draftLogoDesignId, draftBrandLockupUrl, draftLogoUrl)
     onCompanyInfoChange({
       companyName: draftSettings.companyName,
       companyNamePersian: draftSettings.companyNamePersian,
@@ -310,10 +329,28 @@ export function BolSettingsCenter({
     toast.info('Custom watermark deleted.')
   }
 
-  // LOGO UPLOAD
+  // LOGO PRESET & UPLOAD HANDLERS
+  const handleSelectLogoPreset = (preset: LogoDesignPreset) => {
+    setDraftLogoDesignId(preset.id)
+    setDraftBrandLockupUrl(preset.lockupUrl)
+    setDraftLogoUrl(preset.emblemUrl)
+    setDraftSettings((prev) => ({
+      ...prev,
+      logoDesignId: preset.id,
+      brandLockupUrl: preset.lockupUrl,
+      logoUrl: preset.emblemUrl,
+    }))
+    toast.success(`Selected logo: ${preset.name}`)
+  }
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (PNG, JPG, SVG)')
+      return
+    }
 
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Logo file size exceeds 5MB limit. Please provide a lighter image.')
@@ -325,8 +362,15 @@ export function BolSettingsCenter({
       const dataUrl = event.target?.result as string
       if (dataUrl) {
         setDraftLogoUrl(dataUrl)
-        setDraftSettings((prev) => ({ ...prev, logoUrl: dataUrl }))
-        toast.success('Logo updated in draft. Click Apply to save.')
+        setDraftBrandLockupUrl(dataUrl)
+        setDraftLogoDesignId('custom')
+        setDraftSettings((prev) => ({
+          ...prev,
+          logoUrl: dataUrl,
+          brandLockupUrl: dataUrl,
+          logoDesignId: 'custom',
+        }))
+        toast.success('Custom logo uploaded!')
       }
     }
     reader.readAsDataURL(file)
@@ -454,21 +498,26 @@ export function BolSettingsCenter({
               </div>
 
               {/* Sub-tab Navigation Strip */}
-              <div className="flex items-center gap-1 overflow-x-auto pt-3 pb-0.5 border-t border-slate-200/60 dark:border-slate-800/60 mt-3">
+              <div className="flex flex-wrap items-center gap-1.5 pt-3 pb-1 border-t border-slate-200/60 dark:border-slate-800/60 mt-3">
                 {SETTINGS_TABS.map((tab) => {
                   const isActive = activeTab === tab.id
+                  const Icon = tab.icon
                   return (
                     <button
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs ${
                         isActive
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          ? 'bg-blue-600 text-white shadow-xs ring-1 ring-blue-500/30 font-black'
+                          : 'bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
-                      {tab.label}
+                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                      <span>{tab.label}</span>
+                      <span className="text-[10px] font-normal font-[vazirmatn] opacity-75" dir="rtl">
+                        ({tab.labelPersian})
+                      </span>
                     </button>
                   )
                 })}
@@ -502,15 +551,261 @@ export function BolSettingsCenter({
 
               {/* TAB 2: LOGO & BRANDING */}
               {activeTab === 'branding' && (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20">
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4 text-blue-600" /> Company Logo
-                    </h4>
-                    <p className="text-xs text-slate-500 mb-4">
-                      Appears in the top-left header of the Bill of Lading, Invoices, and Packing Lists.
-                    </p>
+                <div className="space-y-5">
+                  {/* Header Description & Category Filter */}
+                  <div className="p-4 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-gradient-to-r from-blue-50/70 via-white to-indigo-50/40 dark:from-slate-900/80 dark:to-blue-950/30 shadow-xs">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                          <ImageIcon className="h-4 w-4 text-blue-600" />
+                          <span>Official Logo Designs & Brand Headers</span>
+                          <span className="text-xs font-semibold text-slate-400 font-sans" dir="rtl">
+                            / انتخاب طرح‌های رسمی لوگو
+                          </span>
+                        </h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                          Choose from official modern vector designs, authentic heritage classic designs (old logo), or upload a custom corporate emblem.
+                        </p>
+                      </div>
 
+                      {/* Active Badge Indicator */}
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950/80 border border-blue-300 dark:border-blue-800 text-xs font-black text-blue-900 dark:text-blue-200 shrink-0 shadow-2xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Active Design:</span>
+                        <span className="capitalize">
+                          {draftLogoDesignId === 'custom'
+                            ? 'Custom Upload'
+                            : (OFFICIAL_LOGO_PRESETS.find((p) => p.id === draftLogoDesignId)?.name.split(' (')[0] || draftLogoDesignId)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Filter Pills */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-slate-200/80 dark:border-slate-800 text-xs">
+                      <span className="text-slate-500 font-bold mr-1 flex items-center gap-1">
+                        <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Filter Designs:</span>
+                      </span>
+                      {[
+                        { id: 'all', label: `All Designs (${OFFICIAL_LOGO_PRESETS.length})`, icon: Sparkles },
+                        { id: 'modern', label: `Modern Designs (${OFFICIAL_LOGO_PRESETS.filter((p) => p.category === 'modern').length})`, icon: Sparkles },
+                        { id: 'classic', label: `Old Logo Designs (${OFFICIAL_LOGO_PRESETS.filter((p) => p.category === 'classic').length})`, icon: RotateCcw },
+                        { id: 'seal', label: `Circular Seals (${OFFICIAL_LOGO_PRESETS.filter((p) => p.category === 'seal').length})`, icon: Shield },
+                      ].map((cat) => {
+                        const isCatActive = logoFilterCategory === cat.id
+                        const CatIcon = cat.icon
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => setLogoFilterCategory(cat.id as any)}
+                            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              isCatActive
+                                ? 'bg-blue-600 text-white shadow-xs ring-1 ring-blue-500/20'
+                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/60'
+                            }`}
+                          >
+                            <CatIcon className={`w-3 h-3 ${isCatActive ? 'text-white' : 'text-slate-400'}`} />
+                            <span>{cat.label}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Preset Logo Gallery Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {OFFICIAL_LOGO_PRESETS.filter(
+                      (preset) => logoFilterCategory === 'all' || preset.category === logoFilterCategory
+                    ).map((preset) => {
+                      const isSelected = draftLogoDesignId === preset.id
+                      const is3dEmblem = preset.id === 'circular-seal-3d'
+                      const isGoldSeal = preset.id === 'circular-seal-gold'
+                      const isCircularSeal = preset.id === 'circular-seal'
+                      const isSquareSeal = preset.aspectRatio === 'aspect-square'
+
+                      return (
+                        <div
+                          key={preset.id}
+                          onClick={() => handleSelectLogoPreset(preset)}
+                          className={`group relative rounded-2xl border-2 p-3.5 transition-all duration-200 cursor-pointer flex flex-col justify-between select-none ${
+                            isSelected
+                              ? 'border-blue-600 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/30 shadow-md ring-2 ring-blue-500/20 translate-y-[-1px]'
+                              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-300 dark:hover:border-slate-700 hover:shadow-sm'
+                          }`}
+                        >
+                          {/* Card Header */}
+                          <div>
+                            <div className="flex items-center justify-between gap-1.5 mb-2">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border shadow-2xs ${preset.badgeColor}`}>
+                                {preset.badge}
+                              </span>
+                              {isSelected && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/90 px-2.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700 shadow-2xs">
+                                  <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                                  <span>Active on BOL / در حال استفاده</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <h5 className="text-xs font-black text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              {preset.name}
+                            </h5>
+                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 font-sans" dir="rtl">
+                              {preset.nameFa}
+                            </p>
+                          </div>
+
+                          {/* Logo Image Display Chamber */}
+                          <div
+                            className={`my-3 p-3 rounded-xl border flex items-center justify-center min-h-[125px] max-h-[145px] overflow-hidden group shadow-inner transition-all ${
+                              is3dEmblem
+                                ? 'bg-gradient-to-b from-slate-950 via-[#071328] to-slate-950 border-blue-900/50'
+                                : isGoldSeal
+                                ? 'bg-gradient-to-b from-slate-950 via-[#181205] to-slate-950 border-amber-900/50'
+                                : preset.id.includes('3d')
+                                ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950/90 border-slate-700/80'
+                                : 'bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 border-slate-200/80 dark:border-slate-800'
+                            }`}
+                          >
+                            {isSquareSeal ? (
+                              <div className="relative flex items-center justify-center">
+                                {/* Ambient backglow for seal presentation */}
+                                <div
+                                  className={`absolute inset-0 rounded-full blur-md opacity-30 ${
+                                    is3dEmblem
+                                      ? 'bg-blue-500'
+                                      : isGoldSeal
+                                      ? 'bg-amber-400'
+                                      : 'bg-blue-300'
+                                  }`}
+                                />
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={`${preset.previewUrl}?v=20261105-pro`}
+                                  alt={preset.name}
+                                  className="relative max-h-[115px] w-auto max-w-full object-contain drop-shadow-md transition-transform duration-200 group-hover:scale-108"
+                                  crossOrigin="anonymous"
+                                  loading="eager"
+                                />
+                              </div>
+                            ) : (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={`${preset.previewUrl}?v=20261105-pro`}
+                                alt={preset.name}
+                                className="max-h-[110px] w-auto max-w-full object-contain drop-shadow-2xs transition-transform duration-200 group-hover:scale-105"
+                                crossOrigin="anonymous"
+                                loading="eager"
+                              />
+                            )}
+                          </div>
+
+                          {/* Card Footer / Descriptions */}
+                          <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 text-[10.5px] text-slate-600 dark:text-slate-400 space-y-1">
+                            <p className="line-clamp-2 leading-relaxed">{preset.description}</p>
+                            <p className="line-clamp-1 leading-relaxed text-slate-500 dark:text-slate-400 font-sans" dir="rtl">
+                              {preset.descriptionFa}
+                            </p>
+
+                            <div className="pt-2.5 flex items-center justify-between">
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {preset.isOldLogo ? 'Vintage Heritage' : 'Vector Lockup'}
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={isSelected ? 'default' : 'outline'}
+                                className={`h-7 px-3.5 text-xs font-bold rounded-lg cursor-pointer transition-all ${
+                                  isSelected
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-black'
+                                    : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-700 dark:hover:text-blue-300 hover:border-blue-300'
+                                }`}
+                              >
+                                {isSelected ? '✓ Selected' : 'Use This Logo'}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Live BOL Header Preview Strip */}
+                  <div className="p-4 rounded-2xl border border-blue-200 dark:border-blue-900/70 bg-gradient-to-br from-blue-50/60 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900/90 dark:to-blue-950/30 shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-600" />
+                        <span>Live Bill of Lading Header Preview</span>
+                        <span className="text-[11px] font-semibold text-slate-400 font-sans" dir="rtl">
+                          / پیش‌نمایش سربرگ زنده
+                        </span>
+                      </h5>
+                      <span className="text-[10px] font-mono font-bold text-blue-700 dark:text-blue-300 bg-blue-100/90 dark:bg-blue-950 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800 shadow-2xs">
+                        A4 Ratio Preview
+                      </span>
+                    </div>
+
+                    {/* Render miniature BOL Header with balanced proportions & no clipping */}
+                    {(() => {
+                      const previewLockupHasEmblem = Boolean(
+                        draftLogoDesignId === 'classic-heritage-full' ||
+                        draftLogoDesignId === 'classic-stack' ||
+                        (draftLogoUrl && draftBrandLockupUrl && draftLogoUrl === draftBrandLockupUrl) ||
+                        (draftBrandLockupUrl && draftBrandLockupUrl.includes('classic-heritage')) ||
+                        (draftBrandLockupUrl && draftBrandLockupUrl.includes('classic-stack')) ||
+                        (draftBrandLockupUrl && draftBrandLockupUrl.includes('sky-ariana-modern-flat.png')) ||
+                        (draftBrandLockupUrl && draftBrandLockupUrl.includes('sky-ariana-modern-3d.png')) ||
+                        (draftBrandLockupUrl && draftBrandLockupUrl.includes('vintage-heritage') && !draftBrandLockupUrl.includes('vintage-heritage-lockup'))
+                      )
+                      return (
+                        <div className="relative border border-[#bfdbfe] dark:border-blue-900/80 rounded-2xl bg-gradient-to-r from-blue-50/40 via-white to-blue-50/50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-3 sm:p-4 flex items-center justify-between gap-3 sm:gap-4 shadow-sm min-h-[76px] sm:min-h-[84px] overflow-visible">
+                          {/* Left Circular Seal */}
+                          {!previewLockupHasEmblem && (
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden shrink-0 flex items-center justify-center p-0.5 border border-[#93c5fd]/80 dark:border-blue-800 bg-white dark:bg-slate-900 shadow-[0_2px_10px_rgba(37,99,235,0.12)]">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={draftLogoUrl || '/images/sky-ariana-logo.png'}
+                                alt="Seal"
+                                className="w-full h-full object-contain rounded-full"
+                              />
+                            </div>
+                          )}
+
+                          {/* Center Selected Brand Lockup with generous headroom and natural scaling */}
+                          <div className="flex-1 min-w-0 flex items-center justify-center text-center px-2 py-0.5">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={draftBrandLockupUrl || '/images/sky-ariana-brand-lockup.png'}
+                              alt="Header Brand"
+                              className="w-auto max-w-full object-contain drop-shadow-xs transition-all duration-200"
+                              style={{
+                                maxHeight: (draftLogoDesignId === 'classic-stack' || (draftBrandLockupUrl && draftBrandLockupUrl.includes('classic-stack'))) ? '64px' : '52px',
+                                height: 'auto',
+                              }}
+                            />
+                          </div>
+
+                          {/* Right Miniature Document Badge */}
+                          <div className="w-28 sm:w-32 shrink-0 rounded-xl border border-blue-300 dark:border-blue-800/80 bg-white dark:bg-slate-800 overflow-hidden shadow-2xs text-[9px] font-sans">
+                            <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-2 py-1 flex items-center justify-between font-black text-[8px] tracking-wider uppercase">
+                              <span>B/L DOC</span>
+                              <span className="font-sans text-[7.5px] opacity-90" dir="rtl">بارنامه</span>
+                            </div>
+                            <div className="p-1.5 text-right font-mono bg-blue-50/30 dark:bg-slate-900/40">
+                              <span className="block text-[8px] font-bold text-slate-400">NO.</span>
+                              <span className="block font-black text-slate-900 dark:text-slate-100 text-[10px] leading-tight">
+                                {(currentBol as any)?.bill_of_lading_number || currentBol?.bol_number || 'SKB-98421'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+
+                  {/* Custom Logo Upload Section */}
+                  <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/20">
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                       <div className="relative w-28 h-20 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -528,30 +823,30 @@ export function BolSettingsCenter({
                           accept="image/*"
                           onChange={handleLogoUpload}
                           className="hidden"
-                          aria-label="Upload company logo"
+                          aria-label="Upload custom company logo"
                         />
                         <div className="flex items-center gap-2 flex-wrap">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => logoInputRef.current?.click()}
-                            className="text-xs h-8 gap-1.5 cursor-pointer"
+                            className="text-xs h-8 gap-1.5 cursor-pointer bg-white dark:bg-slate-800"
                           >
-                            <Upload className="h-3.5 w-3.5 text-blue-600" /> Upload New Logo
+                            <Upload className="h-3.5 w-3.5 text-blue-600" /> Upload Custom Logo
                           </Button>
-                          {draftLogoUrl !== '/images/sky-ariana-logo.png' && (
+                          {draftLogoDesignId === 'custom' && (
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => setDraftLogoUrl('/images/sky-ariana-logo.png')}
+                              onClick={() => handleSelectLogoPreset(OFFICIAL_LOGO_PRESETS[0])}
                               className="text-xs h-8 text-slate-500 hover:text-red-600 cursor-pointer"
                             >
-                              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset to Default
+                              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Revert to Official Preset
                             </Button>
                           )}
                         </div>
                         <p className="text-[11px] text-slate-400">
-                          Recommended: Crisp PNG with transparent background or SVG vector. Max 5MB.
+                          Recommended format: High-resolution PNG with transparent background or SVG vector. Max file size: 5MB.
                         </p>
                       </div>
                     </div>

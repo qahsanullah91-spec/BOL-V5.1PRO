@@ -19,13 +19,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { generateQrMatrix } from "@/lib/utils/qr-code"
-import { buildWhatsAppBOLMessage, buildWhatsAppShipmentUpdate } from "@/lib/utils/bol-whatsapp-formatter"
+import { buildWhatsAppBOLMessage, buildWhatsAppShipmentUpdate, buildWhatsAppBilingualMessage } from "@/lib/utils/bol-whatsapp-formatter"
 
 export interface DocumentQRCodeProps {
   value: string
   formData?: BillOfLadingFormData | any
   textMessage?: string
-  messageType?: "update" | "full" | "auto"
+  messageType?: "bilingual" | "update" | "full" | "auto"
   size?: number | string
   pdfMode?: boolean
   className?: string
@@ -37,7 +37,7 @@ export function DocumentQRCode({
   value,
   formData,
   textMessage,
-  messageType = "update",
+  messageType = "bilingual", // messageType = "update"
   size = 50,
   pdfMode = false,
   className = "",
@@ -46,8 +46,8 @@ export function DocumentQRCode({
 }: DocumentQRCodeProps) {
   const [showModal, setShowModal] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [selectedMode, setSelectedMode] = useState<"update" | "full">(
-    messageType === "full" ? "full" : "update"
+  const [selectedMode, setSelectedMode] = useState<"bilingual" | "update" | "full">(
+    messageType === "full" ? "full" : messageType === "update" ? "update" : "bilingual"
   )
 
   const effectiveFormData: BillOfLadingFormData = useMemo(() => {
@@ -61,6 +61,15 @@ export function DocumentQRCode({
       bol_number: value || "SKY-BOL",
     } as BillOfLadingFormData
   }, [formData, value])
+
+  const bilingualMsg = useMemo(() => {
+    try {
+      const msg = buildWhatsAppBilingualMessage(effectiveFormData)
+      return msg && msg.trim() ? msg.trim() : ""
+    } catch {
+      return ""
+    }
+  }, [effectiveFormData])
 
   const shipmentUpdateMsg = useMemo(() => {
     try {
@@ -84,18 +93,24 @@ export function DocumentQRCode({
     if (textMessage && textMessage.trim()) {
       return textMessage.trim()
     }
-    if (selectedMode === "update") {
+    if (selectedMode === "bilingual") {
+      if (bilingualMsg) return bilingualMsg
       if (shipmentUpdateMsg) return shipmentUpdateMsg
+      if (fullBolMsg) return fullBolMsg
+    } else if (selectedMode === "update") {
+      if (shipmentUpdateMsg) return shipmentUpdateMsg
+      if (bilingualMsg) return bilingualMsg
       if (fullBolMsg) return fullBolMsg
     } else {
       if (fullBolMsg) return fullBolMsg
+      if (bilingualMsg) return bilingualMsg
       if (shipmentUpdateMsg) return shipmentUpdateMsg
     }
     return value || "SKY-BOL"
-  }, [textMessage, selectedMode, shipmentUpdateMsg, fullBolMsg, value])
+  }, [textMessage, selectedMode, bilingualMsg, shipmentUpdateMsg, fullBolMsg, value])
 
   const isFormattedMessage = Boolean(
-    (textMessage && textMessage.trim()) || shipmentUpdateMsg || fullBolMsg
+    (textMessage && textMessage.trim()) || bilingualMsg || shipmentUpdateMsg || fullBolMsg
   )
 
   const qrData = useMemo(() => {
@@ -112,7 +127,9 @@ export function DocumentQRCode({
         await navigator.clipboard.writeText(resolvedPayload)
         setCopied(true)
         toast.success(
-          selectedMode === "update"
+          selectedMode === "bilingual"
+            ? "Bilingual shipment WhatsApp text copied to clipboard"
+            : selectedMode === "update"
             ? "Shipment update WhatsApp text copied to clipboard"
             : "Full BOL WhatsApp text copied to clipboard"
         )
@@ -247,8 +264,20 @@ export function DocumentQRCode({
         </DialogHeader>
 
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col items-center gap-3.5">
-          {/* Quick Mode Toggle: Shipment Update vs Full BOL */}
+          {/* Quick Mode Toggle: Bilingual vs Shipment Update vs Full BOL */}
           <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full">
+            <button
+              type="button"
+              onClick={() => setSelectedMode("bilingual")}
+              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                selectedMode === "bilingual"
+                  ? "bg-white text-emerald-900 shadow-xs border border-emerald-300/80 font-black"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+              }`}
+            >
+              <span className="text-emerald-600">🌐</span>
+              <span>Bilingual (دوزبانه)</span>
+            </button>
             <button
               type="button"
               onClick={() => setSelectedMode("update")}
@@ -300,8 +329,10 @@ export function DocumentQRCode({
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-xs font-black text-emerald-950 uppercase tracking-wider">
-                  {selectedMode === "update"
-                    ? "Shipment Update Message (پیام به‌روزرسانی بارنامه برای واتساپ)"
+                  {selectedMode === "bilingual"
+                    ? "Bilingual WhatsApp Message (اطلاعیه باربری دوزبانه)"
+                    : selectedMode === "update"
+                    ? "Shipment Update Message (پیام به‌روزرسانی بارنامه)"
                     : "Full BOL Message (متن کامل بارنامه برای واتساپ)"}
                 </span>
               </div>
@@ -387,7 +418,7 @@ export function DocumentQRCode({
             }
           }}
           title="Official Verification QR Code - Click to view WhatsApp BOL message"
-          className={`w-full h-full flex items-center justify-center p-0 m-0 bg-transparent border-0 shadow-none cursor-pointer focus:outline-hidden group relative select-none ${className}`}
+          className={`w-full h-full flex items-center justify-center p-0 m-0 bg-transparent border-0 shadow-none cursor-pointer focus:outline-hidden group relative select-none print:flex print:visible print:opacity-100 print:w-full print:h-full ${className}`}
           data-qr-code="true"
           aria-label="Enlarge QR Code and View WhatsApp Message"
         >
@@ -412,7 +443,7 @@ export function DocumentQRCode({
           }
         }}
         title="Official Verification QR Code - Click to view WhatsApp BOL message"
-        className={`shrink-0 flex items-center justify-center bg-white rounded-md border border-blue-200/90 p-[2px] shadow-2xs hover:border-blue-500 hover:shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer group relative select-none ${className}`}
+        className={`shrink-0 flex items-center justify-center bg-white rounded-md border border-blue-200/90 p-[2px] shadow-2xs hover:border-blue-500 hover:shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer group relative select-none print:flex print:visible print:opacity-100 ${className}`}
         data-qr-code="true"
         aria-label="Enlarge QR Code and View WhatsApp Message"
       >

@@ -66,8 +66,17 @@ import { isMeaningfulBOL, parseBolSeq, isUUID, cleanBolNumber, normalizeBolRecor
 import { RecentBolCard } from "./recent-bol-card"
 import { SavedBolCard } from "./saved-bol-card"
 import { duplicateBol, archiveBol, restoreBol } from "@/lib/services/bol-lifecycle-service"
+import { SavedBolViewSelector } from "./views/saved-bol-view-selector"
+import { SavedBolCompactView } from "./views/saved-bol-compact-view"
+import { SavedBolKanbanView } from "./views/saved-bol-kanban-view"
+import { SavedBolTimelineView } from "./views/saved-bol-timeline-view"
+import { SavedBolFinanceView } from "./views/saved-bol-finance-view"
+import { SavedBolRouteView } from "./views/saved-bol-route-view"
+import { SavedBolGalleryView } from "./views/saved-bol-gallery-view"
+import { SavedBolAnalyticsView } from "./views/saved-bol-analytics-view"
 
 export { isMeaningfulBOL, parseBolSeq, isUUID, cleanBolNumber, normalizeBolRecord }
+export type ViewMode = import("./views/view-types").ViewMode
 
 export function getCleanBolNumber(doc: any): string {
   const raw = String(doc?.bol_number || doc?.billOfLadingNumber || doc?.bolNo || doc?.id || "").trim()
@@ -93,7 +102,6 @@ export function sanitizeSavedDocument<T extends Record<string, any>>(doc: T): T 
 }
 
 type DocumentCategoryKey = "all" | "latest" | "account" | "export" | "import" | "with-pdf"
-type ViewMode = "grid" | "list" | "table"
 type SortOption = "latest" | "oldest" | "bol_asc" | "shipper_asc"
 
 const DOCUMENT_CATEGORY_STORAGE_KEY = "sky-bol-document-categories"
@@ -337,13 +345,63 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   const [openCompanyTabs, setOpenCompanyTabs] = useState<string[]>([])
   const [query, setQuery] = useState("")
   const deferredQuery = useDeferredValue(query)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+      } else if (e.key === "Escape" && document.activeElement === searchInputRef.current) {
+        setQuery("")
+        searchInputRef.current?.blur()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
   const [newCompanyName, setNewCompanyName] = useState("")
   const [activeCategory, setActiveCategory] = useState<DocumentCategoryKey>("all")
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "7days" | "month">("all")
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([])
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<ViewMode>("grid")
+  const [isExportingExcel, setIsExportingExcel] = useState(false)
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = window.localStorage.getItem("sky-bol-saved-view-mode") as ViewMode | null
+        if (
+          saved &&
+          [
+            "grid",
+            "list",
+            "table",
+            "compact",
+            "kanban",
+            "timeline",
+            "finance",
+            "route",
+            "gallery",
+            "analytics",
+          ].includes(saved)
+        ) {
+          return saved
+        }
+      } catch {}
+    }
+    return "grid"
+  })
+
+  const setViewMode = useCallback((mode: ViewMode) => {
+    setViewModeState(mode)
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem("sky-bol-saved-view-mode", mode)
+      } catch {}
+    }
+  }, [])
   const [sortBy, setSortBy] = useState<SortOption>("latest")
   const [documentCategories, setDocumentCategories] = useState<Record<string, Exclude<DocumentCategoryKey, "all" | "latest" | "with-pdf">>>({})
   const [accountCompanyPdfs, setAccountCompanyPdfs] = useState<Record<string, AccountCompanyRecord>>({})
@@ -852,20 +910,79 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
       type?: string | null
       status?: string | null
       notes?: string | null
+      notify_party_name?: string | null
+      notify_party?: string | null
+      notifyParty?: string | null
+      notify_party_address?: string | null
+      origin?: string | null
+      destination?: string | null
+      transit_station?: string | null
+      border?: string | null
+      route?: string | null
+      driverFreight?: string | null
+      driverRent?: string | null
+      driverPhone?: string | null
+      father_name?: string | null
+      customs_declaration_number?: string | null
+      billOfLadingNumber?: string | null
+      bolNo?: string | null
     }
+
+    const cleanBol = cleanBolNumber(doc.bol_number) || cleanBolNumber(extra.billOfLadingNumber) || ""
+    const digitsOnly = cleanBol.replace(/\D/g, "")
+    const numOnly = digitsOnly.length >= 2 ? digitsOnly.slice(-3) : ""
 
     return [
       doc.bol_number,
+      cleanBol,
+      cleanBol.replace(/-/g, ""),
+      cleanBol.replace(/-/g, " "),
+      numOnly,
+      extra.billOfLadingNumber,
+      extra.bolNo,
       doc.shipper_name,
+      doc.shipper_address,
+      doc.shipper_contact,
       doc.consignee_name,
+      doc.consignee_address,
+      doc.consignee_contact,
+      extra.notify_party_name,
+      extra.notify_party,
+      extra.notifyParty,
+      extra.notify_party_address,
       doc.truck_number,
       doc.driver_name,
+      doc.driver_father_name,
+      extra.father_name,
+      doc.driver_contact,
+      extra.driverPhone,
       doc.driver_rent,
-      (doc as any).driverFreight,
-      (doc as any).driverRent,
+      extra.driverFreight,
+      extra.driverRent,
       doc.goods_value,
+      doc.goods_description,
+      doc.description_of_goods,
+      doc.cargo_description,
+      doc.container_numbers,
+      doc.seal_numbers,
+      doc.port_of_loading,
+      doc.port_of_discharge,
+      doc.place_of_delivery,
+      doc.origin_country,
+      doc.destination_country,
+      doc.cargo_route_note,
+      extra.origin,
+      extra.destination,
+      extra.transit_station,
+      extra.border,
+      extra.route,
       doc.invoice_no,
       doc.invoice_number,
+      extra.customs_declaration_number,
+      doc.remarks,
+      doc.number_of_packages,
+      doc.net_weight,
+      doc.gross_weight,
       getAssignedCategory(doc),
       extra.category,
       extra.document_category,
@@ -924,7 +1041,18 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
         if (!isMatch) return false
       }
 
-      const matchesSearch = !cleanQuery || getDocumentSearchText(doc).includes(cleanQuery)
+      let matchesSearch = true
+      if (cleanQuery) {
+        const searchText = getDocumentSearchText(doc)
+        const normalizedSearchText = searchText.replace(/[^a-z0-9]/g, "")
+        const tokens = cleanQuery.split(/\s+/).filter(Boolean)
+        matchesSearch = tokens.every((token) => {
+          if (searchText.includes(token)) return true
+          const normToken = token.replace(/[^a-z0-9]/g, "")
+          if (normToken && normalizedSearchText.includes(normToken)) return true
+          return false
+        })
+      }
       if (!matchesSearch || !matchesCategory(doc, activeCategory)) return false
 
       if (dateFilter !== "all") {
@@ -1678,7 +1806,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               formData: fullRecord as unknown as import("@/lib/types/bill-of-lading").BillOfLadingFormData,
               logoUrl: "/images/logo.png",
               companyName: "SKY ARIANA LIMITED",
-              companyNamePersian: "شرکت حمل و نقل بین المللی سکای آریانا لمیتد",
+              companyNamePersian: "شرکت حمل و نقل بین المللی اسکای آریانا",
               companySubtitle: "Import & Export - International Transportation",
               companyPhone: "+93 700 939 365",
               companyEmail: "info@skyariana.com",
@@ -1780,6 +1908,65 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
     void handlePDFUpload(doc, file)
     event.target.value = ""
   }, [handlePDFUpload])
+
+  const handleExportToExcel = useCallback(async () => {
+    if (filteredDocuments.length === 0) {
+      toast.error("No documents to export")
+      return
+    }
+
+    try {
+      setIsExportingExcel(true)
+      const { exportReportToExcel } = await import("@/lib/reports/export-excel")
+      const dateStr = new Date().toISOString().split("T")[0]
+      await exportReportToExcel(
+        filteredDocuments as any,
+        `Sky-Ariana-Saved-BOL-${dateStr}`,
+        "Detailed BOLs",
+        "all"
+      )
+      toast.success("Excel Workbook Exported! 📊", {
+        description: `${filteredDocuments.length} اسناد بارنامه با تمام جزئیات و ساختار پیشرفته اکسل دانلود شدند`,
+      })
+    } catch (err: any) {
+      console.error("Failed to export Excel report:", err)
+      toast.error("Export Failed", {
+        description: err?.message || "Failed to generate Excel report",
+      })
+    } finally {
+      setIsExportingExcel(false)
+    }
+  }, [filteredDocuments])
+
+  const handleBulkExportExcel = useCallback(async () => {
+    const selected = filteredDocuments.filter((d) => selectedDocIds.includes(d.id || d.bol_number))
+    if (selected.length === 0) {
+      toast.error("No documents selected")
+      return
+    }
+
+    try {
+      setIsExportingExcel(true)
+      const { exportReportToExcel } = await import("@/lib/reports/export-excel")
+      const dateStr = new Date().toISOString().split("T")[0]
+      await exportReportToExcel(
+        selected as any,
+        `Sky-Ariana-Selected-BOLs-${dateStr}`,
+        "Detailed BOLs",
+        "all"
+      )
+      toast.success(`Exported ${selected.length} documents to Excel! 📊`, {
+        description: `${selected.length} اسناد بارنامه انتخاب‌شده در قالب فایل چند-برگه اکسل دانلود شدند`,
+      })
+    } catch (err: any) {
+      console.error("Failed to export selected Excel report:", err)
+      toast.error("Export Failed", {
+        description: err?.message || "Failed to generate Excel report",
+      })
+    } finally {
+      setIsExportingExcel(false)
+    }
+  }, [filteredDocuments, selectedDocIds])
 
   const handleExportToCSV = useCallback(() => {
     if (filteredDocuments.length === 0) {
@@ -2011,77 +2198,77 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
         {/* Live Summary Analytics Metrics Ribbon */}
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Card 1: Total BOLs */}
-          <div className="relative overflow-hidden rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/90 via-white to-blue-50/30 p-3.5 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all duration-200 group">
-            <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+          <div className="relative overflow-hidden rounded-xl border border-blue-200/90 bg-gradient-to-br from-blue-50/90 via-white to-blue-50/30 px-3 py-2 sm:py-2.5 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all duration-200 group">
+            <div className="absolute -top-10 -right-10 w-20 h-20 bg-blue-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative">
-              <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
-                <span className="p-1 rounded-lg bg-blue-100/90 text-blue-700 shadow-2xs">
-                  <FileText className="h-3.5 w-3.5" />
+              <span className="text-[10.5px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+                <span className="p-0.5 rounded-md bg-blue-100/90 text-blue-700 shadow-2xs">
+                  <FileText className="h-3 w-3" />
                 </span>
                 Total BOLs
               </span>
-              <span className="text-[10px] font-bold text-blue-700/90 bg-blue-100/70 px-2 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
+              <span className="text-[9.5px] font-bold text-blue-700/90 bg-blue-100/70 px-1.5 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
                 مجموع بارنامه‌ها
               </span>
             </div>
-            <div className="mt-2 flex items-baseline justify-between relative">
-              <p className="text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans">
+            <div className="mt-1 sm:mt-1.5 flex items-baseline justify-between relative">
+              <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans leading-tight">
                 {summaryStats.count.toLocaleString()}
               </p>
-              <span className="text-[10px] font-bold text-blue-700 bg-blue-100/90 px-2 py-0.5 rounded-md border border-blue-200/80">
+              <span className="text-[9.5px] font-bold text-blue-700 bg-blue-100/90 px-1.5 py-0.5 rounded-md border border-blue-200/80">
                 100% Verified
               </span>
             </div>
           </div>
 
           {/* Card 2: Packages */}
-          <div className="relative overflow-hidden rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/90 via-white to-indigo-50/30 p-3.5 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 group">
-            <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+          <div className="relative overflow-hidden rounded-xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/90 via-white to-indigo-50/30 px-3 py-2 sm:py-2.5 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 group">
+            <div className="absolute -top-10 -right-10 w-20 h-20 bg-indigo-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative">
-              <span className="text-[11px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
-                <span className="p-1 rounded-lg bg-indigo-100/90 text-indigo-700 shadow-2xs">
-                  <Boxes className="h-3.5 w-3.5" />
+              <span className="text-[10.5px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                <span className="p-0.5 rounded-md bg-indigo-100/90 text-indigo-700 shadow-2xs">
+                  <Boxes className="h-3 w-3" />
                 </span>
                 Packages
               </span>
-              <span className="text-[10px] font-bold text-indigo-700/90 bg-indigo-100/70 px-2 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
+              <span className="text-[9.5px] font-bold text-indigo-700/90 bg-indigo-100/70 px-1.5 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
                 مجموع بسته‌ها
               </span>
             </div>
-            <div className="mt-2 relative">
+            <div className="mt-1 sm:mt-1.5 relative">
               <div className="flex items-baseline justify-between">
-                <p className="text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans">
+                <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans leading-tight">
                   {summaryStats.totalPkgs.toLocaleString()}
-                  <span className="text-xs font-black text-indigo-700 uppercase tracking-normal ml-1.5">PKGS</span>
+                  <span className="text-[11px] font-black text-indigo-700 uppercase tracking-normal ml-1">PKGS</span>
                 </p>
               </div>
-              <p className="text-[11px] font-bold text-indigo-700/90 mt-0.5 truncate" title={summaryStats.packagesDisplay}>
+              <p className="text-[10px] font-bold text-indigo-700/90 leading-tight mt-0.5 truncate" title={summaryStats.packagesDisplay}>
                 {summaryStats.packagesDisplay || "Cartons & Bags breakdown"}
               </p>
             </div>
           </div>
 
           {/* Card 3: Total Weight */}
-          <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/90 via-white to-orange-50/30 p-3.5 shadow-2xs hover:shadow-md hover:border-amber-300 transition-all duration-200 group">
-            <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+          <div className="relative overflow-hidden rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-50/90 via-white to-orange-50/30 px-3 py-2 sm:py-2.5 shadow-2xs hover:shadow-md hover:border-amber-300 transition-all duration-200 group">
+            <div className="absolute -top-10 -right-10 w-20 h-20 bg-amber-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative">
-              <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
-                <span className="p-1 rounded-lg bg-amber-100/90 text-amber-800 shadow-2xs">
-                  <Scale className="h-3.5 w-3.5" />
+              <span className="text-[10.5px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                <span className="p-0.5 rounded-md bg-amber-100/90 text-amber-800 shadow-2xs">
+                  <Scale className="h-3 w-3" />
                 </span>
                 Total Weight
               </span>
-              <span className="text-[10px] font-bold text-amber-800/90 bg-amber-100/70 px-2 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
+              <span className="text-[9.5px] font-bold text-amber-800/90 bg-amber-100/70 px-1.5 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
                 مجموع وزن
               </span>
             </div>
-            <div className="mt-2 flex items-baseline justify-between relative">
-              <p className="text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans">
+            <div className="mt-1 sm:mt-1.5 flex items-baseline justify-between relative">
+              <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans leading-tight">
                 {summaryStats.totalWeightKg.toLocaleString()}
-                <span className="text-xs font-black text-amber-800 uppercase tracking-normal ml-1.5">KG</span>
+                <span className="text-[11px] font-black text-amber-800 uppercase tracking-normal ml-1">KG</span>
               </p>
               {summaryStats.totalWeightKg > 0 && (
-                <span className="text-[10px] font-bold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-200/80">
+                <span className="text-[9.5px] font-bold text-amber-900 bg-amber-100/90 px-1.5 py-0.5 rounded-md border border-amber-200/80">
                   {(summaryStats.totalWeightKg / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} MT
                 </span>
               )}
@@ -2089,25 +2276,25 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
           </div>
 
           {/* Card 4: Goods Value */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/30 p-3.5 shadow-2xs hover:shadow-md hover:border-emerald-300 transition-all duration-200 group">
-            <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+          <div className="relative overflow-hidden rounded-xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/30 px-3 py-2 sm:py-2.5 shadow-2xs hover:shadow-md hover:border-emerald-300 transition-all duration-200 group">
+            <div className="absolute -top-10 -right-10 w-20 h-20 bg-emerald-400/10 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between relative">
-              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-                <span className="p-1 rounded-lg bg-emerald-100/90 text-emerald-800 shadow-2xs">
-                  <DollarSign className="h-3.5 w-3.5" />
+              <span className="text-[10.5px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                <span className="p-0.5 rounded-md bg-emerald-100/90 text-emerald-800 shadow-2xs">
+                  <DollarSign className="h-3 w-3" />
                 </span>
                 Goods Value
               </span>
-              <span className="text-[10px] font-bold text-emerald-800/90 bg-emerald-100/70 px-2 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
+              <span className="text-[9.5px] font-bold text-emerald-800/90 bg-emerald-100/70 px-1.5 py-0.5 rounded-full font-[vazirmatn]" dir="rtl">
                 ارزش کالا
               </span>
             </div>
-            <div className="mt-2 flex items-baseline justify-between relative">
-              <p className="text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans">
+            <div className="mt-1 sm:mt-1.5 flex items-baseline justify-between relative">
+              <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums font-sans leading-tight">
                 {Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(summaryStats.totalValueUsd)}
               </p>
               {summaryStats.count > 0 && summaryStats.totalValueUsd > 0 && (
-                <span className="text-[10px] font-bold text-emerald-900 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-200/80 hidden xl:inline-block">
+                <span className="text-[9.5px] font-bold text-emerald-900 bg-emerald-100/90 px-1.5 py-0.5 rounded-md border border-emerald-200/80 hidden xl:inline-block">
                   Avg ${(Math.round(summaryStats.totalValueUsd / summaryStats.count)).toLocaleString()}/BOL
                 </span>
               )}
@@ -2115,125 +2302,201 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
           </div>
         </div>
 
-        {/* Search & View Control Options */}
-        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          {/* Search Box */}
-          <div className="relative min-w-0 flex-1">
+        {/* Search & View Control Options — Two-Tier Spacious Responsive Toolbar */}
+        {/* Tier 1: Dedicated Full-Width / Flex Search Bar + Status Filter + View Mode */}
+        <div className="mt-4 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
+          {/* Main Search Box — Guaranteed width, never squished */}
+          <div className="relative flex-1 min-w-[280px]">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-600" />
             <Input
+              ref={searchInputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search BOL #, shipper, consignee, truck..."
-              className="h-11 rounded-2xl border-blue-200 bg-slate-50/80 pl-10 pr-4 text-xs sm:text-sm font-bold text-slate-950 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              placeholder="Search BOL # (e.g. 744), shipper, consignee, truck, route..."
+              className="h-11 rounded-2xl border-blue-200 bg-slate-50/80 pl-10 pr-24 text-xs sm:text-sm font-bold text-slate-950 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition-all placeholder:text-slate-400"
             />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Status Filter Quick Pills (Active / Archived / All Records) */}
-          <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => {
-                startTransition(() => {
-                  setStatusFilter("active")
-                })
-              }}
-              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 [&_span]:pointer-events-none ${
-                statusFilter === "active"
-                  ? "bg-blue-600 text-white font-black shadow-xs"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
-              }`}
-            >
-              <span>Active</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                statusFilter === "active" ? "bg-white/20 text-white" : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-              }`}>
-                {activeCount}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                startTransition(() => {
-                  setStatusFilter("archived")
-                })
-              }}
-              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 [&_span]:pointer-events-none ${
-                statusFilter === "archived"
-                  ? "bg-amber-600 text-white font-black shadow-xs"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
-              }`}
-            >
-              <span>Archived</span>
-              {archivedCount > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                  statusFilter === "archived" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                }`}>
-                  {archivedCount}
-                </span>
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              {query ? (
+                <>
+                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                    {filteredDocuments.length} found
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    title="Clear search (Esc)"
+                    className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </>
+              ) : (
+                <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-slate-200/50 dark:bg-slate-800 rounded-md border border-slate-300/60 dark:border-slate-700 pointer-events-none select-none">
+                  Ctrl+K
+                </kbd>
               )}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                startTransition(() => {
-                  setStatusFilter("all")
-                })
-              }}
-              className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 [&_span]:pointer-events-none ${
-                statusFilter === "all"
-                  ? "bg-slate-700 text-white font-black shadow-xs"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
-              }`}
-            >
-              <span>All</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                statusFilter === "all" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200"
-              }`}>
-                {documents.length}
-              </span>
-            </button>
+            </div>
           </div>
 
-          {/* Date Filter Quick Pills */}
-          <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 text-xs font-bold">
-            {(
-              [
-                { id: "all", label: "All Time" },
-                { id: "today", label: "Today" },
-                { id: "7days", label: "7 Days" },
-                { id: "month", label: "This Month" },
-              ] as const
-            ).map((f) => (
+          {/* Status Filter Quick Pills & View Mode */}
+          <div className="flex items-center justify-between xl:justify-end gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+            {/* Status Filter Quick Pills (Active / Archived / All Records) */}
+            <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold shrink-0">
               <button
-                key={f.id}
                 type="button"
                 onClick={() => {
                   startTransition(() => {
-                    setDateFilter(f.id)
+                    setStatusFilter("active")
                   })
                 }}
-                className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer [&_span]:pointer-events-none ${
-                  dateFilter === f.id
+                className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 [&_span]:pointer-events-none ${
+                  statusFilter === "active"
                     ? "bg-blue-600 text-white font-black shadow-xs"
-                    : "text-slate-600 hover:text-slate-950"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
                 }`}
               >
-                {f.label}
+                <span>Active</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  statusFilter === "active" ? "bg-white/20 text-white" : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                }`}>
+                  {activeCount}
+                </span>
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => {
+                  startTransition(() => {
+                    setStatusFilter("archived")
+                  })
+                }}
+                className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 [&_span]:pointer-events-none ${
+                  statusFilter === "archived"
+                    ? "bg-amber-600 text-white font-black shadow-xs"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
+                }`}
+              >
+                <span>Archived</span>
+                {archivedCount > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    statusFilter === "archived" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                  }`}>
+                    {archivedCount}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  startTransition(() => {
+                    setStatusFilter("all")
+                  })
+                }}
+                className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 [&_span]:pointer-events-none ${
+                  statusFilter === "all"
+                    ? "bg-slate-700 text-white font-black shadow-xs"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
+                }`}
+              >
+                <span>All</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  statusFilter === "all" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200"
+                }`}>
+                  {documents.length}
+                </span>
+              </button>
+            </div>
+
+            {/* 10-Type View Mode Switcher */}
+            <SavedBolViewSelector
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              totalCount={filteredDocuments.length}
+            />
+          </div>
+        </div>
+
+        {/* Tier 2: Date Filters, Sort, and Management Actions Bar */}
+        <div className="mt-2.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
+          {/* Left: Date Filter Quick Pills, Sort Selector, and Active Search Badge */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Date Filter Quick Pills */}
+            <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold">
+              {(
+                [
+                  { id: "all", label: "All Time" },
+                  { id: "today", label: "Today" },
+                  { id: "7days", label: "7 Days" },
+                  { id: "month", label: "This Month" },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => {
+                    startTransition(() => {
+                      setDateFilter(f.id)
+                    })
+                  }}
+                  className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer [&_span]:pointer-events-none ${
+                    dateFilter === f.id
+                      ? "bg-blue-600 text-white font-black shadow-xs"
+                      : "text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Sort Selector */}
+            <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+              <ArrowUpDown className="h-3.5 w-3.5 text-slate-500 ml-1" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="bg-transparent text-xs font-extrabold text-slate-800 dark:text-slate-200 outline-none cursor-pointer pr-1"
+              >
+                <option value="latest">Latest First (⚡ Default)</option>
+                <option value="oldest">Oldest First</option>
+                <option value="bol_asc">BOL Number (A-Z)</option>
+                <option value="shipper_asc">Shipper Name (A-Z)</option>
+              </select>
+            </div>
+
+            {/* Active Search Filter Badge */}
+            {query && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-[11px] font-bold text-blue-900 dark:text-blue-300">
+                <span>Filter: &ldquo;{query}&rdquo;</span>
+                <span className="text-[10px] font-black opacity-75">({filteredDocuments.length} matches)</span>
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="ml-0.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer font-black text-xs"
+                  title="Clear search filter"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* View Mode, Sort Selector, CSV Export & Recover Button */}
+          {/* Right: Export Excel, Export CSV, Cloud Sync, Clean Drafts, Recover Buttons */}
           <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleExportToExcel}
+              disabled={isExportingExcel}
+              className="h-8.5 rounded-xl border-emerald-500/40 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 text-xs font-black shadow-2xs cursor-pointer transition-all active:scale-95 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+              title="Export currently filtered list to Executive Multi-Sheet Excel (.xlsx)"
+            >
+              {isExportingExcel ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin shrink-0 pointer-events-none text-white" />
+              ) : (
+                <FileSpreadsheet className="h-3.5 w-3.5 mr-1 shrink-0 pointer-events-none text-emerald-100" />
+              )}
+              <span>{isExportingExcel ? "Exporting..." : "Export Excel"}</span>
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -2291,54 +2554,6 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               <RotateCcw className="h-3.5 w-3.5 mr-1 text-slate-600 shrink-0 pointer-events-none" />
               <span>Recover Saved BOLs</span>
             </Button>
-            {/* Sort Selector */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <ArrowUpDown className="h-3.5 w-3.5 text-slate-500 ml-1" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="bg-transparent text-xs font-extrabold text-slate-800 outline-none cursor-pointer pr-1"
-              >
-                <option value="latest">Latest First (⚡ Default)</option>
-                <option value="oldest">Oldest First</option>
-                <option value="bol_asc">BOL Number (A-Z)</option>
-                <option value="shipper_asc">Shipper Name (A-Z)</option>
-              </select>
-            </div>
-
-            {/* View Mode Buttons (Grid, List, Table) */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                title="Grid Cards View"
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  viewMode === "grid" ? "bg-white text-blue-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                title="Compact List View"
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  viewMode === "list" ? "bg-white text-blue-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                title="Detailed Table View"
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  viewMode === "table" ? "bg-white text-blue-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Table className="h-4 w-4" />
-              </button>
-            </div>
           </div>
         </div>
 
@@ -2674,15 +2889,31 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                   </div>
                   <div>
                     <p className="text-lg font-black text-slate-900 dark:text-slate-100">
-                      {documents.length === 0 ? "No Saved Bills of Lading" : "No documents match your filters"}
+                      {documents.length === 0
+                        ? "No Saved Bills of Lading"
+                        : query
+                        ? `No BOLs matching "${query}"`
+                        : "No documents match your filters"}
                     </p>
                     <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
                       {documents.length === 0
                         ? "Sync your saved records from cloud or recover existing BOLs from server storage."
-                        : "Try adjusting your search terms, date range, or active category filter."}
+                        : query
+                        ? "Check your spelling, try fewer keywords, or clear search to view all records."
+                        : "Try adjusting your date range or active category filter."}
                     </p>
                   </div>
                   <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
+                    {query && (
+                      <Button
+                        type="button"
+                        onClick={() => setQuery("")}
+                        className="h-9 px-4 text-xs font-black rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        <span>Clear Search</span>
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       onClick={handleRecoverAllBOLs}
@@ -3167,6 +3398,167 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
                 </table>
               </div>
             )}
+
+            {/* 4. ULTRA-DENSE SPREADSHEET ROWS */}
+            {viewMode === "compact" && (
+              <SavedBolCompactView
+                documents={filteredDocuments}
+                visibleCount={visibleCount}
+                sortBy={sortBy}
+                isServerMode={isServerMode}
+                selectedDocIds={selectedDocIds}
+                onToggleSelect={toggleSelectDoc}
+                onEdit={editBOL}
+                onDownload={downloadBOLPDF}
+                onPreview={viewBOLPreview}
+                onDuplicate={handleDuplicate}
+                onOpenPdf={openUploadedPDF}
+                onDelete={handleArchive}
+                onArchive={handleArchive}
+                onRestore={handleRestore}
+                onHardDelete={handleHardDelete}
+                onFiles={handleFiles}
+                onSendToCMR={handleSendToCMR}
+              />
+            )}
+
+            {/* 5. KANBAN OPERATIONAL PIPELINE */}
+            {viewMode === "kanban" && (
+              <SavedBolKanbanView
+                documents={filteredDocuments}
+                visibleCount={visibleCount}
+                sortBy={sortBy}
+                isServerMode={isServerMode}
+                selectedDocIds={selectedDocIds}
+                onToggleSelect={toggleSelectDoc}
+                onEdit={editBOL}
+                onDownload={downloadBOLPDF}
+                onPreview={viewBOLPreview}
+                onDuplicate={handleDuplicate}
+                onOpenPdf={openUploadedPDF}
+                onDelete={handleArchive}
+                onArchive={handleArchive}
+                onRestore={handleRestore}
+                onHardDelete={handleHardDelete}
+                onFiles={handleFiles}
+                onSendToCMR={handleSendToCMR}
+              />
+            )}
+
+            {/* 6. CHRONOLOGICAL TIMELINE STREAM */}
+            {viewMode === "timeline" && (
+              <SavedBolTimelineView
+                documents={filteredDocuments}
+                visibleCount={visibleCount}
+                sortBy={sortBy}
+                isServerMode={isServerMode}
+                selectedDocIds={selectedDocIds}
+                onToggleSelect={toggleSelectDoc}
+                onEdit={editBOL}
+                onDownload={downloadBOLPDF}
+                onPreview={viewBOLPreview}
+                onDuplicate={handleDuplicate}
+                onOpenPdf={openUploadedPDF}
+                onDelete={handleArchive}
+                onArchive={handleArchive}
+                onRestore={handleRestore}
+                onHardDelete={handleHardDelete}
+                onFiles={handleFiles}
+                onSendToCMR={handleSendToCMR}
+              />
+            )}
+
+            {/* 7. FINANCIAL & INVOICING LEDGER */}
+            {viewMode === "finance" && (
+              <SavedBolFinanceView
+                documents={filteredDocuments}
+                visibleCount={visibleCount}
+                sortBy={sortBy}
+                isServerMode={isServerMode}
+                selectedDocIds={selectedDocIds}
+                onToggleSelect={toggleSelectDoc}
+                onEdit={editBOL}
+                onDownload={downloadBOLPDF}
+                onPreview={viewBOLPreview}
+                onDuplicate={handleDuplicate}
+                onOpenPdf={openUploadedPDF}
+                onDelete={handleArchive}
+                onArchive={handleArchive}
+                onRestore={handleRestore}
+                onHardDelete={handleHardDelete}
+                onFiles={handleFiles}
+                onSendToCMR={handleSendToCMR}
+              />
+            )}
+
+            {/* 8. ROUTE & BORDER STATIONS MATRIX */}
+            {viewMode === "route" && (
+              <SavedBolRouteView
+                documents={filteredDocuments}
+                visibleCount={visibleCount}
+                sortBy={sortBy}
+                isServerMode={isServerMode}
+                selectedDocIds={selectedDocIds}
+                onToggleSelect={toggleSelectDoc}
+                onEdit={editBOL}
+                onDownload={downloadBOLPDF}
+                onPreview={viewBOLPreview}
+                onDuplicate={handleDuplicate}
+                onOpenPdf={openUploadedPDF}
+                onDelete={handleArchive}
+                onArchive={handleArchive}
+                onRestore={handleRestore}
+                onHardDelete={handleHardDelete}
+                onFiles={handleFiles}
+                onSendToCMR={handleSendToCMR}
+              />
+            )}
+
+            {/* 9. VISUAL DOCUMENT SHOWCASE GALLERY */}
+            {viewMode === "gallery" && (
+              <SavedBolGalleryView
+                documents={filteredDocuments}
+                visibleCount={visibleCount}
+                sortBy={sortBy}
+                isServerMode={isServerMode}
+                selectedDocIds={selectedDocIds}
+                onToggleSelect={toggleSelectDoc}
+                onEdit={editBOL}
+                onDownload={downloadBOLPDF}
+                onPreview={viewBOLPreview}
+                onDuplicate={handleDuplicate}
+                onOpenPdf={openUploadedPDF}
+                onDelete={handleArchive}
+                onArchive={handleArchive}
+                onRestore={handleRestore}
+                onHardDelete={handleHardDelete}
+                onFiles={handleFiles}
+                onSendToCMR={handleSendToCMR}
+              />
+            )}
+
+            {/* 10. EXECUTIVE OPERATIONS ANALYTICS MATRIX */}
+            {viewMode === "analytics" && (
+              <SavedBolAnalyticsView
+                documents={filteredDocuments}
+                visibleCount={visibleCount}
+                sortBy={sortBy}
+                isServerMode={isServerMode}
+                selectedDocIds={selectedDocIds}
+                onToggleSelect={toggleSelectDoc}
+                onEdit={editBOL}
+                onDownload={downloadBOLPDF}
+                onPreview={viewBOLPreview}
+                onDuplicate={handleDuplicate}
+                onOpenPdf={openUploadedPDF}
+                onDelete={handleArchive}
+                onArchive={handleArchive}
+                onRestore={handleRestore}
+                onHardDelete={handleHardDelete}
+                onFiles={handleFiles}
+                onSendToCMR={handleSendToCMR}
+              />
+            )}
           </div>
         )}
           </>
@@ -3485,6 +3877,22 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
             className="h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 cursor-pointer"
           >
             {selectedDocIds.length === filteredDocuments.length ? "Deselect All" : "Select All"}
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleBulkExportExcel}
+            disabled={isExportingExcel}
+            className="h-8 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs px-3 cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+            title="Export selected documents to Executive Multi-Sheet Excel (.xlsx)"
+          >
+            {isExportingExcel ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+            ) : (
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-200" />
+            )}
+            <span>Export Excel ({selectedDocIds.length})</span>
           </Button>
 
           <Button

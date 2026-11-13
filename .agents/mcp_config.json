@@ -1,23 +1,26 @@
 {
   "mcpServers": {
     "sky-ariana-sqlite": {
-      "command": "python",
+      "command": "C:\\Users\\Ahsanullah Qureshi\\.local\\bin\\uvx.exe",
       "args": [
-        "-m",
-        "mcp_server_sqlite",
+        "--with",
+        "mcp<2",
+        "mcp-server-sqlite",
         "--db-path",
-        "backend/sky_ariana.db"
+        "backend/data/bol_system.db"
       ],
       "env": {
         "DB_READONLY": "true"
       }
     },
     "sky-ariana-filesystem": {
-      "command": "npx",
+      "command": "cmd.exe",
       "args": [
+        "/c",
+        "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "d:\\skybalam-26-bol-V3.2\\skybalam-26-bol-V3.2"
+        "D:\\SOFTWARES-APPS\\BOL-SOFTWARE-V5"
       ]
     }
   }

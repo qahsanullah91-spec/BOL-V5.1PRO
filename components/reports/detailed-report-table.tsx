@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useCallback, useEffect, startTransition } from "react"
+import React, { useState, useMemo, useCallback, useEffect, startTransition, useRef } from "react"
 import { SavedDocument, OverviewKpis } from "@/lib/reports/types"
 import {
   formatDisplayDate,
@@ -49,6 +49,10 @@ import {
   Edit,
   ExternalLink,
   Share2,
+  Scale,
+  DollarSign,
+  Truck,
+  Eye,
   Boxes,
   Loader2,
   Check,
@@ -285,9 +289,19 @@ export function DetailedReportTable({
   onExportExcel,
   isGeneratingPdf = false,
 }: DetailedReportTableProps) {
+  const tableContainerRef = useRef<HTMLDivElement>(null)
+
   // Density and sizing
   const [tableDensity, setTableDensity] = useState<TableDensity>("compact")
-  const [isFitScreen, setIsFitScreen] = useState(false)
+  const [isFitScreen, setIsFitScreen] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("sky_bol_report_fit_screen")
+        if (saved !== null) return saved === "true"
+      } catch {}
+    }
+    return true
+  })
   const [pageSize, setPageSize] = useState<number | "all">(50)
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -548,34 +562,76 @@ export function DetailedReportTable({
   }, [paginatedRows])
 
   const visibleColsCount = visibleColumns.size
+  const isIdxVisible = visibleColumns.has("idx")
+  const isExpandVisible = visibleColumns.has("expand")
+  const idxStickyWidth = isIdxVisible ? 40 : 0
+  const expandStickyWidth = isExpandVisible ? 32 : 0
+  const bolNoStickyLeft = idxStickyWidth + expandStickyWidth
 
   return (
     <div className="space-y-2.5">
-      {/* 1. AGGREGATE SUMMARY BANNER (ALL FILTERED RECORDS TOTALS) */}
-      <div className="no-print print:hidden grid grid-cols-2 sm:grid-cols-5 gap-2 bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 text-white p-3 rounded-2xl border border-blue-800/80 shadow-sm">
-        <div className="border-r border-white/10 pr-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-blue-300 block">Filtered BOLs</span>
-          <p className="text-base font-black font-mono mt-0.5">{filteredDocuments.length.toLocaleString()} <span className="text-xs font-normal text-blue-200">Shipments</span></p>
+      {/* 1. EXECUTIVE GLASSMORPHIC KPI TILES (ALL FILTERED RECORDS TOTALS) */}
+      <div className="no-print print:hidden grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-white p-1">
+        {/* Card 1: Filtered BOLs */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900/90 via-indigo-950/80 to-slate-900/90 p-3 border border-blue-700/50 shadow-sm backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-blue-300 block">Filtered BOLs</span>
+            <FileText className="w-4 h-4 text-blue-400 opacity-80" />
+          </div>
+          <span className="text-[9px] text-blue-200/70 block mt-0.5" dir="rtl">بارنامه‌های فیلترشده</span>
+          <p className="text-base font-black font-mono mt-1 text-white">
+            {filteredDocuments.length.toLocaleString()}{" "}
+            <span className="text-xs font-normal text-blue-200">Shipments</span>
+          </p>
         </div>
 
-        <div className="border-r border-white/10 pr-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-blue-300 block">Total Packages</span>
-          <p className="text-base font-black font-mono mt-0.5">{overviewKpis.totalPackages.toLocaleString()} <span className="text-xs font-normal text-blue-200">CTNS</span></p>
+        {/* Card 2: Total Packages */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900/90 via-slate-900/80 to-slate-950/90 p-3 border border-indigo-700/50 shadow-sm backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 block">Total Packages</span>
+            <Boxes className="w-4 h-4 text-indigo-400 opacity-80" />
+          </div>
+          <span className="text-[9px] text-indigo-200/70 block mt-0.5" dir="rtl">مجموع کارتن‌ها</span>
+          <p className="text-base font-black font-mono mt-1 text-white">
+            {overviewKpis.totalPackages.toLocaleString()}{" "}
+            <span className="text-xs font-normal text-indigo-200">CTNS</span>
+          </p>
         </div>
 
-        <div className="border-r border-white/10 pr-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 block">Total Net Weight</span>
-          <p className="text-base font-black font-mono mt-0.5 text-amber-300">{overviewKpis.totalNetWeightKg.toLocaleString()} <span className="text-xs font-normal text-amber-200">KG</span></p>
+        {/* Card 3: Total Net Weight */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-950/90 via-slate-900/80 to-slate-950/90 p-3 border border-amber-700/50 shadow-sm backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 block">Total Net Weight</span>
+            <Scale className="w-4 h-4 text-amber-400 opacity-80" />
+          </div>
+          <span className="text-[9px] text-amber-200/70 block mt-0.5" dir="rtl">مجموع وزن خالص</span>
+          <p className="text-base font-black font-mono mt-1 text-amber-300">
+            {overviewKpis.totalNetWeightKg.toLocaleString()}{" "}
+            <span className="text-xs font-normal text-amber-200">KG</span>
+          </p>
         </div>
 
-        <div className="border-r border-white/10 pr-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">Total Gross Weight</span>
-          <p className="text-base font-black font-mono mt-0.5">{overviewKpis.totalGrossWeightKg.toLocaleString()} <span className="text-xs font-normal text-slate-300">KG</span></p>
+        {/* Card 4: Total Gross Weight */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/90 via-slate-950/80 to-slate-900/90 p-3 border border-slate-700/50 shadow-sm backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">Total Gross Weight</span>
+            <Truck className="w-4 h-4 text-slate-400 opacity-80" />
+          </div>
+          <span className="text-[9px] text-slate-400/80 block mt-0.5" dir="rtl">مجموع وزن ناخالص</span>
+          <p className="text-base font-black font-mono mt-1 text-slate-200">
+            {overviewKpis.totalGrossWeightKg.toLocaleString()}{" "}
+            <span className="text-xs font-normal text-slate-400">KG</span>
+          </p>
         </div>
 
-        <div>
-          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300 block">Total Declared Value</span>
-          <p className="text-base font-black font-mono text-emerald-300 mt-0.5">
+        {/* Card 5: Total Value */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950/90 via-slate-900/80 to-slate-950/90 p-3 border border-emerald-700/50 shadow-sm backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300 block">Total Value</span>
+            <DollarSign className="w-4 h-4 text-emerald-400 opacity-80" />
+          </div>
+          <span className="text-[9px] text-emerald-200/70 block mt-0.5" dir="rtl">ارزش مجموعی اجناس</span>
+          <p className="text-base font-black font-mono text-emerald-300 mt-1" title="Total Declared Value">
             ${(overviewKpis.currencyTotals.find((c) => c.currency === "USD")?.amount || 0).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -584,42 +640,45 @@ export function DetailedReportTable({
         </div>
       </div>
 
-      {/* 2. MODERN GLASSMORPHIC TOOLBAR */}
-      <div className="no-print print:hidden flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm" data-no-print="true">
-        {/* Left: Checkboxes & Quick Filter Chips */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <label className="flex items-center gap-2 cursor-pointer font-extrabold text-slate-800 dark:text-slate-200 select-none">
-            <input
-              type="checkbox"
-              checked={isAllPageSelected}
-              onChange={handleToggleSelectPage}
-              className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-            />
-            <span>Select Page ({paginatedRows.length})</span>
-          </label>
+      {/* 2. STREAMLINED TWO-TIER TOOLBAR */}
+      <div className="no-print print:hidden flex flex-col gap-2 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm" data-no-print="true">
+        {/* TIER 1: Batch Selection & Quick Filter Ribbon */}
+        <div className="flex items-center justify-between gap-2 flex-wrap border-b border-slate-100 dark:border-slate-800/80 pb-2">
+          {/* Left: Selection controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="flex items-center gap-2 cursor-pointer font-extrabold text-slate-800 dark:text-slate-200 select-none">
+              <input
+                type="checkbox"
+                checked={isAllPageSelected}
+                onChange={handleToggleSelectPage}
+                className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <span>Select Page ({paginatedRows.length})</span>
+            </label>
 
-          {filteredDocuments.length > paginatedRows.length && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onSelectAllFiltered}
-              className="h-7.5 px-2.5 text-xs rounded-xl border-blue-300 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 font-black shadow-2xs hover:bg-blue-100 cursor-pointer"
-            >
-              Select All {filteredDocuments.length} Filtered BOLs
-            </Button>
-          )}
+            {filteredDocuments.length > paginatedRows.length && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSelectAllFiltered}
+                className="h-7.5 px-2.5 text-xs rounded-xl border-blue-300 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 font-black shadow-2xs hover:bg-blue-100 cursor-pointer"
+              >
+                Select All {filteredDocuments.length} Filtered BOLs
+              </Button>
+            )}
 
-          {selectedDocIds.length > 0 && (
-            <button
-              type="button"
-              onClick={onClearSelection}
-              className="text-xs font-extrabold text-rose-600 dark:text-rose-400 hover:text-rose-800 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-2 py-0.5 rounded-lg cursor-pointer transition-all"
-            >
-              Clear ({selectedDocIds.length})
-            </button>
-          )}
+            {selectedDocIds.length > 0 && (
+              <button
+                type="button"
+                onClick={onClearSelection}
+                className="text-xs font-extrabold text-rose-600 dark:text-rose-400 hover:text-rose-800 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-2 py-0.5 rounded-lg cursor-pointer transition-all"
+              >
+                Clear ({selectedDocIds.length})
+              </button>
+            )}
+          </div>
 
-          {/* Quick Filter Chips */}
+          {/* Right: Quick Filter Chips */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
             {[
               { id: "all", label: "All" },
@@ -653,137 +712,179 @@ export function DetailedReportTable({
           </div>
         </div>
 
-        {/* Right: Columns Selector, Export, Print, Density & View Mode */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Column Customizer Dropdown */}
-          <ColumnCustomizer
-            visibleColumns={visibleColumns}
-            onToggleColumn={toggleColumn}
-            onApplyPreset={applyPreset}
-          />
+        {/* TIER 2: View Configurations & Export Action Suite */}
+        <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-bold text-slate-700 dark:text-slate-200">
+          {/* Left: Showing count & Column Customizer */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 tabular-nums">
+              Showing <span className="text-slate-900 dark:text-white font-extrabold">{paginatedRows.length}</span> of {filteredDocuments.length}
+            </span>
 
-          {/* Expand/Collapse All Rows */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={expandedDocIds.size > 0 ? collapseAllRows : expandAllRows}
-            className="h-8.5 px-2.5 rounded-xl border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-xs"
-            title={expandedDocIds.size > 0 ? "Collapse all open row details" : "Expand all rows on current page"}
-          >
-            {expandedDocIds.size > 0 ? "Collapse All" : "Expand All"}
-          </Button>
+            {/* Column Customizer Dropdown */}
+            <ColumnCustomizer
+              visibleColumns={visibleColumns}
+              onToggleColumn={toggleColumn}
+              onApplyPreset={applyPreset}
+            />
 
-          {/* Print, Download PDF, and Excel Buttons */}
-          <Button
-            type="button"
-            onClick={onPrintReport}
-            className="h-8.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-extrabold text-xs shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
-            title="Print Saved BOL Report (A4 Landscape / Portrait)"
-          >
-            <Printer className="w-3.5 h-3.5 text-emerald-400 dark:text-emerald-600" />
-            <span>Print</span>
-          </Button>
+            {/* Density Toggle (Compact vs Normal) */}
+            <div className="flex items-center gap-0.5 border border-slate-200 dark:border-slate-700 rounded-xl p-0.5 bg-slate-100 dark:bg-slate-800 h-8.5">
+              <button
+                type="button"
+                onClick={() => {
+                  startTransition(() => {
+                    setTableDensity("compact")
+                  })
+                }}
+                className={`px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                  tableDensity === "compact"
+                    ? "bg-white dark:bg-slate-700 text-blue-900 dark:text-blue-200 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                Compact
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  startTransition(() => {
+                    setTableDensity("normal")
+                  })
+                }}
+                className={`px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                  tableDensity === "normal"
+                    ? "bg-white dark:bg-slate-700 text-blue-900 dark:text-blue-200 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                Normal
+              </button>
+            </div>
 
-          <Button
-            type="button"
-            onClick={onDownloadPdf}
-            disabled={isGeneratingPdf}
-            className="h-8.5 px-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-extrabold text-xs shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-60"
-            title="Download complete report as PDF"
-          >
-            {isGeneratingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
-            <span>Download PDF</span>
-          </Button>
+            {/* Rows per page dropdown */}
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-0.5 h-8.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">Rows:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  const val = e.target.value === "all" ? "all" : parseInt(e.target.value, 10)
+                  startTransition(() => {
+                    setPageSize(val)
+                    setCurrentPage(1)
+                  })
+                }}
+                className="bg-transparent text-xs font-black text-slate-800 dark:text-slate-200 outline-none cursor-pointer pr-1"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={250}>250</option>
+                <option value={500}>500</option>
+                <option value="all">All ({sortedData.length})</option>
+              </select>
+            </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onExportExcel}
-            className="h-8.5 px-3 rounded-xl border-emerald-300 dark:border-emerald-800 bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 hover:bg-emerald-100 font-extrabold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer"
-            title="Export table data to Excel (.xlsx)"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Excel</span>
-          </Button>
+            {/* Fit Screen Button */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                startTransition(() => {
+                  setIsFitScreen(!isFitScreen)
+                })
+                if (tableContainerRef.current) {
+                  tableContainerRef.current.scrollLeft = 0
+                }
+              }}
+              className={`h-8.5 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                isFitScreen
+                  ? "border-blue-600 bg-blue-600 text-white shadow-xs"
+                  : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100"
+              }`}
+              title={isFitScreen ? "Compact Screen Fit (Full Details)" : "Fit Screen (Full Details)"}
+            >
+              {isFitScreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              <span>Fit Screen</span>
+            </Button>
 
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 hidden sm:block mx-0.5" />
-
-          {/* Fit Screen / Full Details Wide Scroll */}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              startTransition(() => {
-                setIsFitScreen(!isFitScreen)
-              })
-            }}
-            className={`h-8.5 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
-              !isFitScreen
-                ? "border-blue-600 bg-blue-600 text-white shadow-xs"
-                : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100"
-            }`}
-            title={!isFitScreen ? "Wide Scroll Active" : "Compact Screen Fit"}
-          >
-            {!isFitScreen ? <Maximize2 className="w-3.5 h-3.5 text-white" /> : <Minimize2 className="w-3.5 h-3.5 text-slate-600" />}
-            <span>{!isFitScreen ? "Full Details" : "Compact Fit"}</span>
-          </Button>
-
-          {/* Density Toggle (Compact vs Normal) */}
-          <div className="flex items-center gap-0.5 border border-slate-200 dark:border-slate-700 rounded-xl p-0.5 bg-slate-100 dark:bg-slate-800 h-8.5">
-            <button
+            {/* See All at Once Button */}
+            <Button
               type="button"
               onClick={() => {
                 startTransition(() => {
-                  setTableDensity("compact")
+                  if (pageSize === "all" && isFitScreen) {
+                    setPageSize(50)
+                    setIsFitScreen(false)
+                  } else {
+                    setPageSize("all")
+                    setIsFitScreen(true)
+                    setCurrentPage(1)
+                  }
                 })
+                if (tableContainerRef.current) {
+                  tableContainerRef.current.scrollLeft = 0
+                  tableContainerRef.current.scrollTop = 0
+                }
               }}
-              className={`px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
-                tableDensity === "compact"
-                  ? "bg-white dark:bg-slate-700 text-blue-900 dark:text-blue-200 shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+              className={`h-8.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
+                pageSize === "all" && isFitScreen
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500"
+                  : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
               }`}
+              title="1-click load all rows and fit to screen without horizontal scrolling"
             >
-              Compact
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                startTransition(() => {
-                  setTableDensity("normal")
-                })
-              }}
-              className={`px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
-                tableDensity === "normal"
-                  ? "bg-white dark:bg-slate-700 text-blue-900 dark:text-blue-200 shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-              }`}
-            >
-              Normal
-            </button>
+              <Eye className="w-3.5 h-3.5" />
+              <span>See All at Once</span>
+              {pageSize === "all" && isFitScreen && <Check className="w-3 h-3 text-white ml-0.5" />}
+            </Button>
           </div>
 
-          {/* Rows per page dropdown */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-0.5 h-8.5">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">Rows:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                const val = e.target.value === "all" ? "all" : parseInt(e.target.value, 10)
-                startTransition(() => {
-                  setPageSize(val)
-                  setCurrentPage(1)
-                })
-              }}
-              className="bg-transparent text-xs font-black text-slate-800 dark:text-slate-200 outline-none cursor-pointer pr-1"
+          {/* Right: Expand All, Print, Download PDF, and Excel Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Expand/Collapse All Rows */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={expandedDocIds.size > 0 ? collapseAllRows : expandAllRows}
+              className="h-8.5 px-2.5 rounded-xl border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-xs"
+              title={expandedDocIds.size > 0 ? "Collapse all open row details" : "Expand all rows on current page"}
             >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={250}>250</option>
-              <option value={500}>500</option>
-              <option value="all">All ({sortedData.length})</option>
-            </select>
+              {expandedDocIds.size > 0 ? "Collapse All" : "Expand All"}
+            </Button>
+
+            {/* Print, Download PDF, and Excel Buttons */}
+            <Button
+              type="button"
+              onClick={onPrintReport}
+              className="h-8.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-extrabold text-xs shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
+              title="Print Saved BOL Report (A4 Landscape / Portrait)"
+            >
+              <Printer className="w-3.5 h-3.5 text-emerald-400 dark:text-emerald-600" />
+              <span>Print</span>
+            </Button>
+
+            <Button
+              type="button"
+              onClick={onDownloadPdf}
+              disabled={isGeneratingPdf}
+              className="h-8.5 px-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-extrabold text-xs shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-60"
+              title="Download complete report as PDF"
+            >
+              {isGeneratingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+              <span>Download PDF</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onExportExcel}
+              className="h-8.5 px-3 rounded-xl border-emerald-300 dark:border-emerald-800 bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 hover:bg-emerald-100 font-extrabold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              title="Export table data to Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Excel</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -925,20 +1026,24 @@ export function DetailedReportTable({
       </div>
 
       {/* 4. MAIN DATA TABLE (Desktop & Tablet) */}
-      <div className="hidden md:block print:block w-full overflow-x-auto print:overflow-visible border border-slate-200/90 dark:border-slate-800 print:border-none rounded-2xl print:rounded-none max-h-[calc(100vh-210px)] print:max-h-none overflow-y-auto print:overflow-y-visible shadow-xs bg-white dark:bg-slate-900 scrollbar-thin">
-        <table className={`w-full ${isFitScreen ? "min-w-[1450px]" : "min-w-[1850px]"} print:min-w-0 text-xs text-left border-collapse`}>
+      <div ref={tableContainerRef} className={`hidden md:block print:block w-full ${isFitScreen ? "overflow-x-hidden md:overflow-x-auto" : "overflow-x-auto"} print:overflow-visible border border-slate-200/90 dark:border-slate-800 print:border-none rounded-2xl print:rounded-none max-h-[calc(100vh-210px)] print:max-h-none overflow-y-auto print:overflow-y-visible shadow-xs bg-white dark:bg-slate-900 scrollbar-thin`}>
+        <table className={`w-full ${isFitScreen ? "min-w-0 table-fixed" : "min-w-[1850px]"} print:min-w-0 text-xs text-left border-separate border-spacing-0`}>
           <thead className="sticky top-0 z-20 bg-slate-900 text-slate-100 shadow-sm print:static print:table-header-group">
             <tr className="border-b border-slate-700 bg-slate-900 text-slate-100">
               {/* Sticky # column */}
               {visibleColumns.has("idx") && (
-                <th data-col-id="idx" className={`px-2 font-extrabold text-slate-300 text-center uppercase tracking-wider sticky left-0 z-30 bg-slate-900 border-r border-slate-800 w-10 min-w-[40px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="idx" className={`px-2 font-extrabold text-slate-300 text-center uppercase tracking-wider sticky left-0 z-30 bg-slate-900 border-r border-b border-slate-800 ${isFitScreen ? "w-10 min-w-0" : "w-10 min-w-[40px]"} print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   #
                 </th>
               )}
 
               {/* Sticky Expand column */}
               {visibleColumns.has("expand") && (
-                <th data-col-id="expand" className={`px-1.5 font-extrabold text-slate-300 text-center uppercase tracking-wider sticky left-[40px] z-30 bg-slate-900 border-r border-slate-800 w-8 min-w-[32px] print:hidden no-print ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th
+                  data-col-id="expand"
+                  style={{ left: idxStickyWidth }}
+                  className={`px-1.5 font-extrabold text-slate-300 text-center uppercase tracking-wider sticky z-30 bg-slate-900 border-r border-b border-slate-800 ${isFitScreen ? "w-8 min-w-0" : "w-8 min-w-[32px]"} print:hidden no-print ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                >
                   <span className="sr-only">Expand</span>
                 </th>
               )}
@@ -948,7 +1053,8 @@ export function DetailedReportTable({
                 <th
                   data-col-id="bolNo"
                   onClick={() => handleSort("bol_number")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider sticky left-[72px] z-30 bg-slate-900 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.35)] border-r border-slate-700 min-w-[115px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  style={{ left: bolNoStickyLeft }}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider sticky z-30 bg-slate-900 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.35)] border-r border-b border-slate-700 ${isFitScreen ? "w-28 min-w-0" : "min-w-[115px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>BOL No.</span>
@@ -966,7 +1072,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="date"
                   onClick={() => handleSort("issue_date")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[90px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-20 min-w-0" : "min-w-[90px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Date</span>
@@ -984,7 +1090,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="truckDriver"
                   onClick={() => handleSort("truck_number")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[155px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-36 min-w-0" : "min-w-[155px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Truck / Driver</span>
@@ -1000,7 +1106,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="invoice"
                   onClick={() => handleSort("invoice_no")}
-                  className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider min-w-[95px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-20 min-w-0" : "min-w-[95px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Invoice</span>
@@ -1016,7 +1122,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="shipper"
                   onClick={() => handleSort("shipper_name")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[170px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-36 min-w-0" : "min-w-[170px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Shipper</span>
@@ -1032,7 +1138,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="consignee"
                   onClick={() => handleSort("consignee_name")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[170px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-36 min-w-0" : "min-w-[170px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Consignee</span>
@@ -1048,7 +1154,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="notify"
                   onClick={() => handleSort("notify_party")}
-                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[150px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-32 min-w-0" : "min-w-[150px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center gap-1">
                     <span>Notify Party</span>
@@ -1061,14 +1167,14 @@ export function DetailedReportTable({
 
               {/* Cargo Summary */}
               {visibleColumns.has("cargo") && (
-                <th data-col-id="cargo" className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[210px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="cargo" className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-44 min-w-0" : "min-w-[210px]"} print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Cargo Summary
                 </th>
               )}
 
               {/* Route */}
               {visibleColumns.has("route") && (
-                <th data-col-id="route" className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider min-w-[170px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="route" className={`px-2.5 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-36 min-w-0" : "min-w-[170px]"} print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Route & Border
                 </th>
               )}
@@ -1078,7 +1184,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="packages"
                   onClick={() => handleSort("packages")}
-                  className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[110px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider ${isFitScreen ? "w-22 min-w-0" : "min-w-[110px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Packages</span>
@@ -1094,7 +1200,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="netWt"
                   onClick={() => handleSort("net_weight")}
-                  className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[105px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider ${isFitScreen ? "w-22 min-w-0" : "min-w-[105px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Net Wt</span>
@@ -1110,7 +1216,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="grossWt"
                   onClick={() => handleSort("gross_weight")}
-                  className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[105px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider ${isFitScreen ? "w-22 min-w-0" : "min-w-[105px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Gross Wt</span>
@@ -1123,7 +1229,7 @@ export function DetailedReportTable({
 
               {/* Rate */}
               {visibleColumns.has("rate") && (
-                <th data-col-id="rate" className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[95px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="rate" className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider ${isFitScreen ? "w-20 min-w-0" : "min-w-[95px]"} print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Rate/KG
                 </th>
               )}
@@ -1133,7 +1239,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="value"
                   onClick={() => handleSort("goods_value")}
-                  className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider min-w-[135px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider ${isFitScreen ? "w-28 min-w-0" : "min-w-[135px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>Goods Value</span>
@@ -1146,14 +1252,14 @@ export function DetailedReportTable({
 
               {/* Container */}
               {visibleColumns.has("container") && (
-                <th data-col-id="container" className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider min-w-[130px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="container" className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-24 min-w-0" : "min-w-[130px]"} print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Container
                 </th>
               )}
 
               {/* Seal */}
               {visibleColumns.has("seal") && (
-                <th data-col-id="seal" className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider min-w-[100px] print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="seal" className={`px-2 font-extrabold text-slate-200 uppercase tracking-wider ${isFitScreen ? "w-20 min-w-0" : "min-w-[100px]"} print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Seal No.
                 </th>
               )}
@@ -1163,7 +1269,7 @@ export function DetailedReportTable({
                 <th
                   data-col-id="status"
                   onClick={() => handleSort("status")}
-                  className={`px-2 font-extrabold text-slate-200 text-center uppercase tracking-wider min-w-[100px] print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2 font-extrabold text-slate-200 text-center uppercase tracking-wider ${isFitScreen ? "w-20 min-w-0" : "min-w-[100px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
                 >
                   Status
                 </th>
@@ -1171,14 +1277,14 @@ export function DetailedReportTable({
 
               {/* PDF */}
               {visibleColumns.has("pdf") && (
-                <th data-col-id="pdf" className={`px-1.5 font-extrabold text-slate-300 text-center uppercase tracking-wider print:hidden no-print min-w-[70px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="pdf" className={`px-1.5 font-extrabold text-slate-300 text-center uppercase tracking-wider print:hidden no-print ${isFitScreen ? "w-12 min-w-0" : "min-w-[70px]"} ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   PDF
                 </th>
               )}
 
               {/* Actions */}
               {visibleColumns.has("actions") && (
-                <th data-col-id="actions" className={`px-2 font-extrabold text-slate-300 text-center uppercase tracking-wider print:hidden no-print min-w-[125px] ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="actions" className={`px-2 font-extrabold text-slate-300 text-center uppercase tracking-wider print:hidden no-print ${isFitScreen ? "w-24 min-w-0" : "min-w-[125px]"} ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Actions
                 </th>
               )}
@@ -1230,7 +1336,12 @@ export function DetailedReportTable({
                   >
                     {/* Index + Select Checkbox */}
                     {visibleColumns.has("idx") && (
-                      <td data-col-id="idx" className={`${cellPad} font-bold text-slate-400 text-center tabular-nums sticky left-0 z-10 bg-inherit border-r border-slate-100 dark:border-slate-800`}>
+                      <td
+                        data-col-id="idx"
+                        className={`${cellPad} font-bold text-slate-400 text-center tabular-nums sticky left-0 z-10 ${
+                          isSelected ? "bg-blue-100 dark:bg-blue-950" : "bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/80"
+                        } border-r border-b border-slate-100 dark:border-slate-800/80`}
+                      >
                         <div className="flex items-center justify-center gap-1.5">
                           <input
                             type="checkbox"
@@ -1251,7 +1362,10 @@ export function DetailedReportTable({
                       <td
                         data-col-id="expand"
                         onClick={(e) => toggleRowExpanded(doc.id, e)}
-                        className={`${cellPad} text-center sticky left-[40px] z-10 bg-inherit border-r border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900 print:hidden no-print`}
+                        style={{ left: idxStickyWidth }}
+                        className={`${cellPad} text-center sticky z-10 ${
+                          isSelected ? "bg-blue-100 dark:bg-blue-950" : "bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/80"
+                        } border-r border-b border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900 print:hidden no-print`}
                         title={isExpanded ? "Collapse Details" : "Expand Full Details"}
                       >
                         <button
@@ -1268,7 +1382,10 @@ export function DetailedReportTable({
                       <td
                         data-col-id="bolNo"
                         onClick={() => onOpenQuickView(doc)}
-                        className={`${cellPad} sticky left-[72px] z-10 bg-inherit shadow-[4px_0_8px_-2px_rgba(0,0,0,0.06)] border-r border-slate-200 dark:border-slate-800`}
+                        style={{ left: bolNoStickyLeft }}
+                        className={`${cellPad} sticky z-10 ${
+                          isSelected ? "bg-blue-100 dark:bg-blue-950" : "bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/80"
+                        } shadow-[4px_0_8px_-2px_rgba(0,0,0,0.06)] border-r border-b border-slate-200 dark:border-slate-800`}
                       >
                         <span
                           className="inline-flex items-center px-2 py-0.5 rounded-md font-mono font-black text-[11px] bg-blue-50 dark:bg-blue-950/70 text-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-800 tracking-tight whitespace-nowrap hover:bg-blue-100 hover:text-blue-950 transition-colors"
@@ -1281,14 +1398,14 @@ export function DetailedReportTable({
 
                     {/* Date */}
                     {visibleColumns.has("date") && (
-                      <td data-col-id="date" className={`${cellPad} font-medium text-slate-600 dark:text-slate-400 tabular-nums whitespace-nowrap`} title={doc.issue_date || doc.created_at}>
+                      <td data-col-id="date" className={`${cellPad} font-medium text-slate-600 dark:text-slate-400 tabular-nums whitespace-nowrap border-b border-slate-100 dark:border-slate-800/60`} title={doc.issue_date || doc.created_at}>
                         {formatDisplayDate(doc.issue_date || doc.created_at)}
                       </td>
                     )}
 
                     {/* Truck / Driver */}
                     {visibleColumns.has("truckDriver") && (
-                      <td data-col-id="truckDriver" className={`${cellPad}`}>
+                      <td data-col-id="truckDriver" className={`${cellPad} border-b border-slate-100 dark:border-slate-800/60`}>
                         <div className="flex flex-col min-w-0 space-y-0.5">
                           <span className="font-bold text-slate-900 dark:text-white font-mono text-[11px]" dir="ltr">
                             {truckText}
@@ -1296,7 +1413,7 @@ export function DetailedReportTable({
                           <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 flex-wrap">
                             {doc.driver_name && (
                               <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px] print:max-w-none print:whitespace-normal" title={doc.driver_name}>
-                                {doc.driver_name}
+                                <bdi dir="auto">{doc.driver_name}</bdi>
                               </span>
                             )}
                             {(() => {
@@ -1317,16 +1434,17 @@ export function DetailedReportTable({
                               if (!fName || fName === "-" || isFatherAlreadyInName) return null
                               return (
                                 <span className="text-[9.5px] print:text-[8px] text-slate-500 dark:text-slate-400 font-sans" title={`Father: ${fName}`}>
-                                  (ولد {fName})
+                                  <bdi dir="auto">(ولد {fName})</bdi>
                                 </span>
                               )
                             })()}
-                            {doc.driver_contact && (
-                              <span className="font-mono text-slate-400 truncate print:hidden" title={doc.driver_contact}>
-                                • {doc.driver_contact}
-                              </span>
-                            )}
                           </div>
+                          {doc.driver_contact && (
+                            <div className="flex items-center gap-1 text-[9.5px] text-slate-500 dark:text-slate-400 font-mono print:hidden" dir="ltr">
+                              <Phone className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                              <span className="truncate" title={doc.driver_contact}>{doc.driver_contact}</span>
+                            </div>
+                          )}
                           {(doc.driver_rent || (doc as any).driverFreight) && (
                             <span className="inline-flex items-center text-[9px] print:text-[7.5px] font-black text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 rounded px-1.5 py-0.2 w-fit whitespace-nowrap print:whitespace-normal" title="Driver Rent / کرایه موتر">
                               {doc.driver_rent || (doc as any).driverFreight}
@@ -1368,7 +1486,7 @@ export function DetailedReportTable({
                         dir={isShipperRtl ? "rtl" : "ltr"}
                         title={(doc as any).shipper_address || doc.shipper_name || "Missing"}
                       >
-                        <span className="hover:text-blue-600 transition-colors">
+                        <span className={`hover:text-blue-600 transition-colors ${isFitScreen ? "block truncate" : ""}`}>
                           {doc.shipper_name || <span className="text-rose-500 italic font-normal">Missing</span>}
                         </span>
                       </td>
@@ -1381,7 +1499,7 @@ export function DetailedReportTable({
                         dir={isConsigneeRtl ? "rtl" : "ltr"}
                         title={(doc as any).consignee_address || doc.consignee_name || "Missing"}
                       >
-                        <span className="hover:text-blue-600 transition-colors">
+                        <span className={`hover:text-blue-600 transition-colors ${isFitScreen ? "block truncate" : ""}`}>
                           {doc.consignee_name || <span className="text-rose-500 italic font-normal">Missing</span>}
                         </span>
                       </td>
@@ -1415,7 +1533,7 @@ export function DetailedReportTable({
 
                     {/* Cargo Summary */}
                     {visibleColumns.has("cargo") && (
-                      <td data-col-id="cargo" className={`${cellPad} min-w-[220px] print:min-w-0`}>
+                      <td data-col-id="cargo" className={`${cellPad} ${isFitScreen ? "min-w-0" : "min-w-[220px]"} print:min-w-0`}>
                         {cargoData.isMultiCargo ? (
                           <div className="flex flex-col space-y-1.5 py-0.5 print:space-y-0.5 print:py-0">
                             <div className="flex items-center gap-1.5 flex-wrap print:hidden">
@@ -1436,7 +1554,7 @@ export function DetailedReportTable({
                                     <span className="w-3.5 h-3.5 print:w-3 print:h-3 rounded bg-blue-50 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[9px] print:text-[7px] font-black flex items-center justify-center shrink-0 mt-0.5 border border-blue-200/80 dark:border-blue-800">
                                       {cIdx + 1}
                                     </span>
-                                    <span className="font-bold text-slate-900 dark:text-slate-100 break-words" title={item.fullTitle}>
+                                    <span className={`font-bold text-slate-900 dark:text-slate-100 ${isFitScreen ? "truncate" : "break-words"}`} title={item.fullTitle}>
                                       {item.fullTitle}
                                     </span>
                                   </div>
@@ -1464,8 +1582,8 @@ export function DetailedReportTable({
                             </div>
                           </div>
                         ) : (
-                          <div className="flex flex-col space-y-0.5 min-w-[180px] print:min-w-0">
-                            <span className="font-bold text-slate-900 dark:text-white break-words text-[11.5px] print:text-[8px] print:leading-tight" title={cargoData.singleCommodityTitle}>
+                          <div className={`flex flex-col space-y-0.5 ${isFitScreen ? "min-w-0" : "min-w-[180px]"} print:min-w-0`}>
+                            <span className={`font-bold text-slate-900 dark:text-white text-[11.5px] print:text-[8px] print:leading-tight ${isFitScreen ? "truncate" : "break-words"}`} title={cargoData.singleCommodityTitle}>
                               {cargoData.singleCommodityTitle}
                             </span>
                             <div className="flex items-center gap-1.5 text-[10px] print:text-[7.2px] text-slate-500 font-mono flex-wrap">
@@ -1568,7 +1686,7 @@ export function DetailedReportTable({
 
                     {/* Rate */}
                     {visibleColumns.has("rate") && (
-                      <td data-col-id="rate" className={`${cellPad} font-semibold tabular-nums text-right text-blue-700 dark:text-blue-300 whitespace-nowrap min-w-[110px] print:min-w-0`}>
+                      <td data-col-id="rate" className={`${cellPad} font-semibold tabular-nums text-right text-blue-700 dark:text-blue-300 whitespace-nowrap ${isFitScreen ? "min-w-0" : "min-w-[110px]"} print:min-w-0`}>
                         {cargoData.isMultiRate ? (
                           <div className="flex flex-col items-end space-y-1 print:space-y-0">
                             <span className="inline-flex items-center gap-1 text-[9px] print:text-[7px] font-black text-blue-900 dark:text-blue-200 bg-blue-100/90 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 rounded px-1.5 py-0.2 mb-0.5 print:mb-0 shadow-2xs print:hidden">

@@ -12,6 +12,8 @@ import { AfghanTruckPlate } from "@/components/ui/afghan-truck-plate"
 export interface PackingListPdfPageProps {
   data: ShippingDocumentData
   logoUrl?: string
+  brandLockupUrl?: string
+  logoDesignId?: string
   companyName?: string
   companySubtitle?: string
 }

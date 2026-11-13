@@ -1,64 +1,70 @@
 ---
-last_mapped_commit: e375f553418e664b7c4d0e8cf05859dcdbf106a4
-last_mapped_at: 2026-10-23
+last_mapped_commit: 8a57ed6fd9472c92904aad31bd40ae76281bc5c8
+last_mapped_at: 2026-11-13
 ---
 # External Integrations
 
-**Analysis Date:** 2026-10-23
+**Analysis Date:** 2026-11-13
 
 ## Storage & Data Persistence
 
 **Local-First JSON Database Engine:**
-- Architecture: Crash-proof atomic file operations with automatic `.bak` backups and serialized write queues
-- Module: `lib/services/blob-db.ts`
-- Persistence Files:
-  - `.local-bols.json` - Bills of Lading records, multi-modal routes, cargo and driver metadata
-  - `.local-account-ledgers.json` - Customer and party financial ledger entries
-  - `.local-bol-account-ledgers.json` - Shipment-specific ledger relations
-  - `.local-invoices.json` - Commercial invoices and fee breakdowns
-  - `.local-full-snapshot.json` - Comprehensive multi-table backup snapshot
-  - `.local-treasury.json` - Enterprise treasury accounts, cash/bank vouchers, and currency exchanges
-  - `.local-warehouse.json` - Warehouse receipts, lot inventory, damages, and gate passes
+- Architecture: Crash-proof atomic write operations (`.tmp` write -> `.bak` preservation -> atomic rename with exponential lock backoff)
+- Core Service: `lib/services/blob-db.ts`
+- Primary Production Stores:
+  - `.local-bols.json` - 284 production Bills of Lading records, multi-modal routing, and cargo weights
+  - `.local-shipments.json` - 288 shipment operational records and statuses
+  - `.local-accounts.json` - 92 client and supplier enterprise entities
+  - `.local-ledger-system.json` - Master accounting ledger system (40+ accounts, 1,300+ transactions)
+  - `.local-account-ledgers.json` & `.local-bol-account-ledgers.json` - Financial ledger relations
+  - `.local-invoices.json` - Invoices and fee breakdowns
+  - `.local-treasury-*.json` - Treasury accounts, cash/bank journals, and FX conversions
+  - Counter tokens: `.receipt-counter`, `.treasury-*-counter`, `.local-bol-sequence.json`
 
-**Cloud Storage (Optional / Serverless):**
-- Provider: Vercel Blob Storage (`@vercel/blob`)
-- Purpose: Remote cloud persistence when running in serverless environments
-- Fallback: Local filesystem or OS temporary directory (`os.tmpdir()`)
+**Cloud Storage & Remote Synchronization:**
+- **Google Cloud Storage (GCS)**:
+  - Integration: `scripts/gcs-automated-backup.cjs`
+  - Bucket: `gs://sky-ariana-backups/snapshots/`
+  - Capabilities: Pre-snapshot accounting invariance audit, SHA-256 fingerprinting, `.json.gz` compression, and automated GCS sync
+- **Multi-Device Cloud Sync Relay**:
+  - Integration: `lib/client/online-save-manager.ts` and `components/bill-of-lading/cloud-sync-modal.tsx`
+  - Endpoints: `/api/sync`, `/api/health`, `/api/sync/transfer-code`
+  - Security: Cryptographic transfer codes (`.local-sync-codes.json`) for peer-to-peer device pairing without public database exposure
+
+## Artificial Intelligence & Document Extraction
+
+**Google Gemini API Platform:**
+- Service: `lib/ai/ai-provider.ts`
+- Router: `app/api/ai/structured-extract/route.ts`
+- Primary Model: `gemini-3.8-flash` (with automated model normalization)
+- Capabilities:
+  - Multi-modal extraction of consignee, shipper, Afghan transit stations (Islam Qala, Torghundi, Hairatan, Spin Boldak), driver, and rent
+  - Strict OpenAPI/JSON schema adherence (`lib/ai/schemas/bol-schema.ts`)
+  - Sanctions compliance screening and dual-use cargo verification
+  - Comprehensive accounting audit mode (`runComprehensiveVerification`)
+  - Offline Fallback: Deterministic WhatsApp parser (`lib/services/whatsapp-parser.ts`)
 
 ## Desktop OS Integration (Electron Bridge)
 
-**Process Architecture:**
-- Electron Main Process: `electron/main.ts`
+**Architecture:**
+- Main Process: `electron/main.ts`
 - Preload Bridge: `electron/preload.ts` (exposes typed `window.skyDesktop` API)
 - IPC Handler Registry: `electron/ipc/register-ipc.ts`
 
 **Key OS Capabilities:**
-- **Native A4 Vector Printing**: `print:page` and `print:get-printers` query physical Windows printers and invoke Chromium vector printing.
-- **Windows 11 Print Dialog Optimization**: Injects `PreferLegacyPrintDialog` and `PreferLaunchLegacyDialog` into `HKCU\Software\Microsoft\Print\UnifiedPrintDialog` to bypass the Windows 11 Chromium preview error.
-- **In-Place NSIS Updater**: `updater:install` launches setup detached with process teardown (`taskkill /F /T`) to avoid file lock collisions.
-- **File System & Dialogs**: Native save file dialogs, directory browsing, and backup export/import.
-
-## Cloud Synchronization & Multi-Device Relay
-
-**Online Save Manager:**
-- Client Engine: `lib/client/online-save-manager.ts`
-- Functions: Offline queueing, FIFO background draining, exponential retry backoff, and non-blocking cloud relays.
-- Endpoints:
-  - `/api/sync` - Multi-device cloud state synchronization
-  - `/api/health` - Periodic connectivity probe
-  - `/api/sync/transfer-code` - Ephemeral cryptographic transfer code pairing for zero-setup LAN/WAN sync
+- **Native Vector Printing**: Direct A4 printing to Windows printers via Chromium print API
+- **Windows 11 Print Dialog Optimization**: Injects `PreferLegacyPrintDialog` into registry (`HKCU\Software\Microsoft\Print\UnifiedPrintDialog`) to bypass Windows 11 Chromium preview crash
+- **In-Place NSIS Updater**: `updater:install` launches setup detached with process teardown (`taskkill /F /T`) to eliminate file locks
+- **Native File Dialogs**: Vector PDF save dialogs, backup archive imports/exports
 
 ## Messaging & External Communication
 
 **WhatsApp Logistics Dispatch:**
 - Implementation: `lib/utils/bol-whatsapp-formatter.ts`
-- Protocol: `wa.me/` URI scheme with UTF-8 URL encoding
-- Capabilities:
-  - Multilingual templates: English, Pashto, and Persian/Dari
-  - Zero-Width Non-Joiner (`\u200C`) preservation for Afghan/Persian typography
-  - Customer Safe Mode: Redacts sensitive internal driver financial metrics prior to customer dispatch
+- Protocols: Direct `wa.me/` URI generation with UTF-8 encoding
+- Features: Multilingual templates (English, Pashto, Persian/Dari), Zero-Width Non-Joiner (`\u200C`) preservation, Customer Safe Mode (redacts driver cost margins)
 
 ---
 
-*Integrations analysis: 2026-10-23*
+*Integrations analysis: 2026-11-13*
 *Update after adding external services or APIs*

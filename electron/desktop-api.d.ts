@@ -1,5 +1,23 @@
 export {}
 
+
+export interface BackgroundSettings {
+  runInBackground: boolean
+  startWithWindows: boolean
+  minimizeToTray: boolean
+  notifyOnBackground: boolean
+}
+
+export interface BackgroundDiagnostics {
+  isResidentActive: boolean
+  isTrayInitialized: boolean
+  platform: string
+  uptimeSeconds: number
+  memoryMB: number
+  openAtLogin: boolean
+  trayTooltip: string
+}
+
 export interface DesktopUpdateInfo {
   success: boolean
   status: "ready_to_install" | "up_to_date" | "same_version_new_build" | "downgrade_warning" | "not_found" | "verification_failed" | "insufficient_space" | "error"
@@ -60,6 +78,13 @@ declare global {
       openUpdateFolder(targetPath?: string): Promise<{ success: boolean; error?: string }>
       selectInstallerFile(): Promise<string | null>
       onReleaseDetected?(callback: (data: any) => void): () => void
+      getBackgroundSettings(): Promise<{ success: boolean; settings?: BackgroundSettings; error?: string }>
+      saveBackgroundSettings(settings: Partial<BackgroundSettings>): Promise<{ success: boolean; settings?: BackgroundSettings; error?: string }>
+      minimizeToTray(): Promise<{ success: boolean; error?: string }>
+      quitApp(): Promise<{ success: boolean; error?: string }>
+      testTrayNotification(): Promise<{ success: boolean; message: string; error?: string }>
+      getBackgroundDiagnostics(): Promise<{ success: boolean; diagnostics?: BackgroundDiagnostics; error?: string }>
+      onBackgroundSettingsChanged?(callback: (settings: BackgroundSettings) => void): () => void
     }
   }
 }

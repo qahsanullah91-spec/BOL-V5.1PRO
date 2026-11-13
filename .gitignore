@@ -90,6 +90,9 @@ temp/
 coverage/
 *.heapsnapshot
 *.cpuprofile
-*.trace
 bol-software-v-5-3-pro/
-
+bol-ledger/
+logs/
+reports/
+.venv/
+*.tmp

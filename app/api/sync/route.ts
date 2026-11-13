@@ -54,6 +54,39 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const rawCode = searchParams.get("code")?.trim()
+    const mode = searchParams.get("mode")?.trim() || searchParams.get("format")?.trim()
+
+    // Mobile-optimized lightweight delta and pagination endpoint
+    if (mode === "light" || mode === "mobile") {
+      const masterSnapshot = await readJsonFile<any>(fullSnapshotFile, null)
+      const allDocs = Array.isArray(masterSnapshot?.documents) ? masterSnapshot.documents : []
+      const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10))
+      const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "20", 10)))
+      const offset = (page - 1) * limit
+      const paginatedDocs = allDocs.slice(offset, offset + limit).map((doc: any) => ({
+        bol_number: doc.bol_number || doc.bolNumber || "",
+        consignee_name: doc.consignee_name || doc.consignee || "",
+        cargo_description: doc.cargo_description || doc.commodity || "",
+        number_of_packages: doc.number_of_packages || doc.packages || "",
+        net_weight: doc.net_weight || doc.weight || "",
+        gross_weight: doc.gross_weight || "",
+        shipper_name: doc.shipper_name || doc.shipper || "",
+        issue_date: doc.issue_date || "",
+        final_destination: doc.final_destination || "",
+      }))
+
+      return NextResponse.json({
+        success: true,
+        source: "mobile-optimized-stream",
+        pagination: {
+          page,
+          limit,
+          total: allDocs.length,
+          totalPages: Math.ceil(allDocs.length / limit),
+        },
+        bols: paginatedDocs,
+      })
+    }
 
     // If no code is provided, return master snapshot for authorized local/desktop hydration
     if (!rawCode) {

@@ -5,9 +5,14 @@ import { readJsonFile, writeJsonFile } from "@/lib/services/blob-db"
 
 const CMR_DRAFT_FILE = getDataPath(".local-cmr-draft.json")
 const BOL_DRAFT_FILE = getDataPath(".local-bol-draft.json")
+const INVOICE_DRAFT_FILE = getDataPath(".local-invoice-draft.json")
+const EXPORT_DRAFT_FILE = getDataPath(".local-export-draft.json")
 
 function getDraftFilePath(type?: string | null): string {
-  if (type === "bol") return BOL_DRAFT_FILE
+  const norm = (type || "").toLowerCase().trim()
+  if (norm === "bol") return BOL_DRAFT_FILE
+  if (norm === "invoice") return INVOICE_DRAFT_FILE
+  if (norm === "export" || norm === "calculator" || norm === "quote") return EXPORT_DRAFT_FILE
   return CMR_DRAFT_FILE
 }
 

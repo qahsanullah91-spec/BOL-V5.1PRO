@@ -12,17 +12,17 @@ test('Watermark Library - Asset Inventory and Integrity Suite', async (t) => {
     { label: 'Clean White', category: 'Classic', url: '', opacity: 0 },
     { label: 'Premium Mountain', category: 'Classic', url: '/images/mountain-watermark-premium.png', opacity: 0.22 },
     { label: 'Original Mountain Grid', category: 'Classic', url: '/images/afghan_mountain_blueprint_bg.jpg', opacity: 0.08 },
-    { label: 'Truck Blueprint', category: 'Classic', url: '/images/overland_transit_blueprint.svg', opacity: 0.08 },
-    { label: 'Ship Blueprint', category: 'Classic', url: '/images/maritime_shipping_blueprint.svg', opacity: 0.08 },
-    { label: 'Flight Blueprint', category: 'Classic', url: '/images/air_cargo_blueprint.svg', opacity: 0.08 },
+    { label: 'Overland Heavy Cargo (Photo)', category: 'Classic', url: '/images/photo_overland_truck_heavy.jpg', opacity: 0.16 },
+    { label: 'Maritime Container Vessel (Photo)', category: 'Classic', url: '/images/photo_maritime_container_vessel.jpg', opacity: 0.16 },
+    { label: 'Aviation Cargo Freighter (Photo)', category: 'Classic', url: '/images/photo_aviation_cargo_aircraft.jpg', opacity: 0.16 },
     { label: 'Air Cargo', category: 'Classic', url: '/images/sky_freight_cargo_plane.jpg', opacity: 0.08 },
     { label: 'Fleet Pass', category: 'Classic', url: '/images/afghan_cargo_fleet_pass.jpg', opacity: 0.08 },
     { label: 'Port Vessel', category: 'Classic', url: '/images/maritime_port_cargo_ship.jpg', opacity: 0.08 },
   ]
   const allAssets = [...classics, ...bgData]
 
-  await t.test('1. Total asset count is exactly 49 items with valid schema', () => {
-    assert.equal(allAssets.length, 49, 'Expected exactly 49 total watermark assets')
+  await t.test('1. Total asset count has valid schema and catalog coverage', () => {
+    assert.equal(allAssets.length, 53, 'Expected exactly 53 total watermark assets')
     for (const item of allAssets) {
       assert.ok(item.label && typeof item.label === 'string', 'Asset must have a non-empty string label')
       assert.ok(item.category && typeof item.category === 'string', 'Asset must have a non-empty category')

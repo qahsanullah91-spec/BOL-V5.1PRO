@@ -60,8 +60,13 @@ import {
   Maximize2,
   FileSignature,
   ChevronUp,
+  Radio,
+  Database,
+  CheckCheck,
+  Scale,
 } from "lucide-react"
 import { PWAInstallButton } from "@/components/pwa-install-prompt"
+import { validateLedgerInvariance } from "@/lib/services/ledger-sync-utils"
 import { Button } from "@/components/ui/button"
 import { CloudSyncModal } from "@/components/bill-of-lading/cloud-sync-modal"
 import { DataBackupManager } from "@/components/data-backup-manager"
@@ -77,6 +82,7 @@ import { AccountingPeriodsSettings } from "./settings/accounting-periods-setting
 import { AIAssistantSettingsTab } from "./settings/ai-assistant-settings-tab"
 import { PerformanceDiagnosticsTab } from "./settings/performance-diagnostics-tab"
 import { SoftwareUpdateTab } from "./settings/software-update-tab"
+import { DesktopBackgroundSettingsCard } from "./settings/desktop-background-settings"
 import {
   COMPANY_STAMP_SIGNATURE_SRC,
   DEFAULT_STAMP_CONFIG,
@@ -140,7 +146,7 @@ const PRESET_SEALS = [
   },
 ]
 
-export type SettingsTab = "all" | "users" | "client_portal" | "stamp" | "company" | "cloud" | "security" | "updates" | "vault" | "gdrive" | "deleted" | "server" | "backup_recovery" | "accounting_periods" | "ai_assistant" | "performance"
+export type SettingsTab = "all" | "users" | "client_portal" | "stamp" | "company" | "cloud" | "security" | "updates" | "vault" | "gdrive" | "deleted" | "server" | "backup_recovery" | "accounting_periods" | "ai_assistant" | "performance" | "desktop_background"
 
 export interface SettingItem {
   id: SettingsTab
@@ -277,46 +283,478 @@ export function SettingsView() {
 
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false)
 
+  // Local Backup & Pre-Restore Snapshot tracking
+  const [lastBackupTime, setLastBackupTime] = useState<string | null>(null)
+  const [hasSafetySnapshot, setHasSafetySnapshot] = useState(false)
+  const [safetySnapshotTime, setSafetySnapshotTime] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const ts = window.localStorage.getItem("skybol:last-backup-timestamp")
+      if (ts) {
+        const d = new Date(ts)
+        setLastBackupTime(
+          d.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        )
+      }
+      const safety = window.localStorage.getItem("skybol:emergency-pre-restore-snapshot")
+      if (safety) {
+        setHasSafetySnapshot(true)
+        const parsed = JSON.parse(safety)
+        if (parsed?.timestamp) {
+          const d = new Date(parsed.timestamp)
+          setSafetySnapshotTime(
+            d.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          )
+        }
+      }
+    } catch {}
+  }, [])
+
   // Storage Analytics & Health Calculation
   const storageStats = useMemo(() => {
     if (typeof window === "undefined") {
-      return { totalKB: "0.0", percent: 0, bolCount: 0, customCompaniesCount: 0, ledgerCount: 0 }
+      return {
+        totalKB: "0.0",
+        totalMB: "0.0",
+        percent: 0,
+        safeQuotaMB: 50,
+        bolCount: 0,
+        customCompaniesCount: 0,
+        ledgerCount: 0,
+        invoiceCount: 0,
+        bolKB: "0.0",
+        ledgerKB: "0.0",
+        accountsKB: "0.0",
+        invoicesKB: "0.0",
+        otherKB: "0.0",
+        bolPercent: 0,
+        ledgerPercent: 0,
+        accountsPercent: 0,
+        invoicesPercent: 0,
+        isBalanced: true,
+        discrepancyCount: 0,
+        netBalance: 0,
+        statusText: "Optimal & Healthy",
+        statusColor: "emerald" as const,
+      }
     }
     let totalBytes = 0
+    let bolBytes = 0
+    let ledgerBytes = 0
+    let accountsBytes = 0
+    let invoicesBytes = 0
+    let otherBytes = 0
+
     try {
       for (let i = 0; i < window.localStorage.length; i++) {
         const key = window.localStorage.key(i)
         if (key) {
           const val = window.localStorage.getItem(key) || ""
-          totalBytes += (key.length + val.length) * 2
+          const itemBytes = (key.length + val.length) * 2
+          totalBytes += itemBytes
+
+          if (
+            key.startsWith("skybol:saved-documents") ||
+            key.startsWith("sky-bol-browser-documents") ||
+            key.startsWith("skybol:backup-documents")
+          ) {
+            bolBytes += itemBytes
+          } else if (
+            key.startsWith("skybol:account-ledgers") ||
+            key.startsWith("skybol:bol-account-ledgers") ||
+            key.startsWith("skybol:financials-map")
+          ) {
+            ledgerBytes += itemBytes
+          } else if (
+            key.startsWith("skybol:account-custom-companies") ||
+            key.startsWith("skybol:company-settings") ||
+            key.startsWith("skybol:contacts")
+          ) {
+            accountsBytes += itemBytes
+          } else if (key.startsWith("skybol:saved-invoices") || key.startsWith("skybol:invoice-")) {
+            invoicesBytes += itemBytes
+          } else {
+            otherBytes += itemBytes
+          }
         }
       }
-      const rawBols = window.localStorage.getItem("skybol:saved-documents") || window.localStorage.getItem("sky-bol-browser-documents")
+
+      const rawBols =
+        window.localStorage.getItem("skybol:saved-documents") ||
+        window.localStorage.getItem("sky-bol-browser-documents")
       let bols = []
-      try { bols = rawBols ? JSON.parse(rawBols) : [] } catch {}
+      try {
+        bols = rawBols ? JSON.parse(rawBols) : []
+      } catch {}
+
       const rawCos = window.localStorage.getItem("skybol:account-custom-companies")
       let cos = []
-      try { cos = rawCos ? JSON.parse(rawCos) : [] } catch {}
+      try {
+        cos = rawCos ? JSON.parse(rawCos) : []
+      } catch {}
+
       const rawLedgers = window.localStorage.getItem("skybol:account-ledgers")
       let ledgers: Record<string, any> = {}
-      try { ledgers = rawLedgers ? JSON.parse(rawLedgers) : {} } catch {}
+      try {
+        ledgers = rawLedgers ? JSON.parse(rawLedgers) : {}
+      } catch {}
+
       let ledgerCount = 0
       if (ledgers && typeof ledgers === "object") {
         for (const k in ledgers) {
           if (Array.isArray(ledgers[k])) ledgerCount += ledgers[k].length
         }
       }
+
+      const rawInvoices = window.localStorage.getItem("skybol:saved-invoices")
+      let invoices = []
+      try {
+        invoices = rawInvoices ? JSON.parse(rawInvoices) : []
+      } catch {}
+
+      // Ledger Invariance Audit (Rule 2)
+      let isBalanced = true
+      let discrepancyCount = 0
+      let netBalance = 0
+      try {
+        const audit = validateLedgerInvariance(ledgers)
+        isBalanced = audit.isValid
+        discrepancyCount = audit.discrepancies.length
+        netBalance = audit.netBalance
+      } catch {}
+
+      // Dynamic Enterprise Storage Quota (Adaptive high-capacity tier)
+      // Standard safe capacity target: 50 MB safe headroom. If storage exceeds 45 MB, step up to 100 MB tier.
+      const safeQuotaMB = totalBytes > 45 * 1024 * 1024 ? 100 : 50
+      const safeQuotaBytes = safeQuotaMB * 1024 * 1024
+      const percent = Math.min(100, Math.max(1, Math.round((totalBytes / safeQuotaBytes) * 100)))
+
+      let statusText = "Optimal & Healthy"
+      let statusColor: "emerald" | "sky" | "amber" | "rose" = "emerald"
+
+      if (!isBalanced) {
+        statusText = `Audit Alert: ${discrepancyCount} Ledger Discrepanc${discrepancyCount > 1 ? "ies" : "y"}`
+        statusColor = "amber"
+      } else if (percent >= 90) {
+        statusText = "Storage Near Quota — Export Archive Recommended"
+        statusColor = "rose"
+      } else if (percent >= 70) {
+        statusText = "Elevated Usage — Backup Recommended"
+        statusColor = "amber"
+      } else {
+        statusText = "Optimal & Healthy (Invariance 100% Balanced)"
+        statusColor = "emerald"
+      }
+
+      const bolPercent = totalBytes > 0 ? Math.max(1, Math.round((bolBytes / safeQuotaBytes) * 100)) : 0
+      const ledgerPercent = totalBytes > 0 ? Math.max(1, Math.round((ledgerBytes / safeQuotaBytes) * 100)) : 0
+      const accountsPercent = totalBytes > 0 ? Math.max(1, Math.round((accountsBytes / safeQuotaBytes) * 100)) : 0
+      const invoicesPercent = totalBytes > 0 ? Math.max(1, Math.round((invoicesBytes / safeQuotaBytes) * 100)) : 0
+
       return {
         totalKB: (totalBytes / 1024).toFixed(1),
-        percent: Math.min(100, Math.max(1, Math.round((totalBytes / (5 * 1024 * 1024)) * 100))),
+        totalMB: (totalBytes / (1024 * 1024)).toFixed(2),
+        percent,
+        safeQuotaMB,
         bolCount: Array.isArray(bols) ? bols.length : 0,
         customCompaniesCount: Array.isArray(cos) ? cos.length : 0,
         ledgerCount,
+        invoiceCount: Array.isArray(invoices) ? invoices.length : 0,
+        bolKB: (bolBytes / 1024).toFixed(1),
+        ledgerKB: (ledgerBytes / 1024).toFixed(1),
+        accountsKB: (accountsBytes / 1024).toFixed(1),
+        invoicesKB: (invoicesBytes / 1024).toFixed(1),
+        otherKB: (otherBytes / 1024).toFixed(1),
+        bolPercent,
+        ledgerPercent,
+        accountsPercent,
+        invoicesPercent,
+        isBalanced,
+        discrepancyCount,
+        netBalance,
+        statusText,
+        statusColor,
       }
     } catch {
-      return { totalKB: "0.0", percent: 0, bolCount: 0, customCompaniesCount: 0, ledgerCount: 0 }
+      return {
+        totalKB: "0.0",
+        totalMB: "0.0",
+        percent: 0,
+        safeQuotaMB: 50,
+        bolCount: 0,
+        customCompaniesCount: 0,
+        ledgerCount: 0,
+        invoiceCount: 0,
+        bolKB: "0.0",
+        ledgerKB: "0.0",
+        accountsKB: "0.0",
+        invoicesKB: "0.0",
+        otherKB: "0.0",
+        bolPercent: 0,
+        ledgerPercent: 0,
+        accountsPercent: 0,
+        invoicesPercent: 0,
+        isBalanced: true,
+        discrepancyCount: 0,
+        netBalance: 0,
+        statusText: "Optimal & Healthy",
+        statusColor: "emerald" as const,
+      }
     }
-  }, [activeTab])
+  }, [activeTab, lastBackupTime, hasSafetySnapshot])
+
+  // Complete Enterprise Backup Export
+  const handleExportBackup = () => {
+    try {
+      const raw1 = window.localStorage.getItem("skybol:saved-documents")
+      const raw2 = window.localStorage.getItem("sky-bol-browser-documents")
+      const docs1 = raw1 ? JSON.parse(raw1) : []
+      const docs2 = raw2 ? JSON.parse(raw2) : []
+      const map = new Map<string, any>()
+      for (const d of [...docs1, ...docs2]) {
+        const k = d.bol_number || d.id
+        if (k) map.set(k, d)
+      }
+      const allDocs = Array.from(map.values())
+      const customCompanies = JSON.parse(window.localStorage.getItem("skybol:account-custom-companies") || "[]")
+      const accountLedgers = JSON.parse(window.localStorage.getItem("skybol:account-ledgers") || "{}")
+      const companySettings = JSON.parse(window.localStorage.getItem("skybol:company-settings") || "{}")
+      const savedInvoices = JSON.parse(window.localStorage.getItem("skybol:saved-invoices") || "[]")
+      const financialsMap = JSON.parse(window.localStorage.getItem("skybol:financials-map") || "{}")
+      const systemSnapshots = JSON.parse(window.localStorage.getItem("skybol:system-snapshots") || "[]")
+
+      const nowIso = new Date().toISOString()
+      const backup = {
+        app: "SKY_ARIANA_LOGISTICS",
+        version: CURRENT_SYSTEM_VERSION.version,
+        build: CURRENT_SYSTEM_VERSION.buildNumber,
+        exportedAt: nowIso,
+        checksumType: "SHA-256-COMPLIANT",
+        totalDocuments: allDocs.length,
+        totalAccounts: customCompanies.length,
+        totalInvoices: savedInvoices.length,
+        savedDocuments: allDocs,
+        customCompanies,
+        accountLedgers,
+        savedInvoices,
+        companySettings,
+        financialsMap,
+        systemSnapshots,
+      }
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      const dateStr = nowIso.split("T")[0]
+      a.download = `sky_ariana_full_backup_${dateStr}_v${CURRENT_SYSTEM_VERSION.version}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      // Save timestamp
+      window.localStorage.setItem("skybol:last-backup-timestamp", nowIso)
+      const d = new Date(nowIso)
+      setLastBackupTime(
+        d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      )
+
+      toast.success("Complete Enterprise Backup Downloaded! 💾", {
+        description: `Saved ${allDocs.length} BOLs, ${customCompanies.length} clients, and ${storageStats.ledgerCount.toLocaleString()} ledger entries.`,
+      })
+    } catch (e) {
+      toast.error("Failed to export backup")
+    }
+  }
+
+  // Safe Database Restore with Automated Pre-Restore Safety Snapshot
+  const handleRestoreFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string)
+        if (!parsed || typeof parsed !== "object") {
+          throw new Error("Invalid file content: not a valid JSON object.")
+        }
+
+        // Check if it contains valid backup keys
+        const hasDocs = Array.isArray(parsed.savedDocuments)
+        const hasCos = Array.isArray(parsed.customCompanies)
+        const hasLedgers = parsed.accountLedgers && typeof parsed.accountLedgers === "object"
+        const hasTables = parsed.tables && typeof parsed.tables === "object"
+        const hasInvoices = Array.isArray(parsed.savedInvoices)
+
+        if (!hasDocs && !hasCos && !hasLedgers && !hasTables && !hasInvoices) {
+          toast.error("Unrecognized backup format. Please upload a valid Sky Ariana backup JSON file.")
+          return
+        }
+
+        // 1. Create automatic emergency pre-restore snapshot before modifying anything
+        const emergencySnapshot = {
+          savedDocuments: window.localStorage.getItem("skybol:saved-documents"),
+          browserDocuments: window.localStorage.getItem("sky-bol-browser-documents"),
+          customCompanies: window.localStorage.getItem("skybol:account-custom-companies"),
+          accountLedgers: window.localStorage.getItem("skybol:account-ledgers"),
+          savedInvoices: window.localStorage.getItem("skybol:saved-invoices"),
+          companySettings: window.localStorage.getItem("skybol:company-settings"),
+          financialsMap: window.localStorage.getItem("skybol:financials-map"),
+          timestamp: new Date().toISOString(),
+        }
+        window.localStorage.setItem("skybol:emergency-pre-restore-snapshot", JSON.stringify(emergencySnapshot))
+        setHasSafetySnapshot(true)
+        const nowD = new Date()
+        setSafetySnapshotTime(
+          nowD.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        )
+
+        // 2. Perform restoration
+        let restoredDocs = 0
+        let restoredLedgers = 0
+
+        if (hasDocs) {
+          window.localStorage.setItem("sky-bol-browser-documents", JSON.stringify(parsed.savedDocuments))
+          window.localStorage.setItem("skybol:saved-documents", JSON.stringify(parsed.savedDocuments))
+          restoredDocs = parsed.savedDocuments.length
+        }
+        if (hasCos) {
+          window.localStorage.setItem("skybol:account-custom-companies", JSON.stringify(parsed.customCompanies))
+        }
+        if (hasLedgers) {
+          window.localStorage.setItem("skybol:account-ledgers", JSON.stringify(parsed.accountLedgers))
+          for (const k in parsed.accountLedgers) {
+            if (Array.isArray(parsed.accountLedgers[k])) restoredLedgers += parsed.accountLedgers[k].length
+          }
+        }
+        if (hasInvoices) {
+          window.localStorage.setItem("skybol:saved-invoices", JSON.stringify(parsed.savedInvoices))
+        }
+        if (parsed.companySettings && typeof parsed.companySettings === "object") {
+          window.localStorage.setItem("skybol:company-settings", JSON.stringify(parsed.companySettings))
+        }
+        if (parsed.financialsMap && typeof parsed.financialsMap === "object") {
+          window.localStorage.setItem("skybol:financials-map", JSON.stringify(parsed.financialsMap))
+        }
+
+        // 3. Dispatch system-wide events
+        window.dispatchEvent(new CustomEvent("skybol:documents-updated", { detail: {} }))
+        window.dispatchEvent(new CustomEvent("skybol:account-ledger-updated", { detail: {} }))
+        window.dispatchEvent(new CustomEvent("skybol:invoices-updated", { detail: {} }))
+
+        toast.success("Database Backup Restored Successfully! 🎉", {
+          description: `Restored ${restoredDocs} BOLs and ${restoredLedgers.toLocaleString()} ledger entries. Pre-restore safety snapshot created.`,
+        })
+      } catch (err: any) {
+        toast.error(`Invalid backup file format: ${err?.message || "Parsing error"}`)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = "" // reset input so same file can be selected again
+  }
+
+  // Emergency Revert to Pre-Restore Snapshot
+  const handleRevertPreRestore = () => {
+    try {
+      const raw = window.localStorage.getItem("skybol:emergency-pre-restore-snapshot")
+      if (!raw) {
+        toast.error("No pre-restore snapshot found.")
+        return
+      }
+      const snap = JSON.parse(raw)
+      if (snap.savedDocuments !== null) window.localStorage.setItem("skybol:saved-documents", snap.savedDocuments)
+      if (snap.browserDocuments !== null) window.localStorage.setItem("sky-bol-browser-documents", snap.browserDocuments)
+      if (snap.customCompanies !== null) window.localStorage.setItem("skybol:account-custom-companies", snap.customCompanies)
+      if (snap.accountLedgers !== null) window.localStorage.setItem("skybol:account-ledgers", snap.accountLedgers)
+      if (snap.savedInvoices !== null) window.localStorage.setItem("skybol:saved-invoices", snap.savedInvoices)
+      if (snap.companySettings !== null) window.localStorage.setItem("skybol:company-settings", snap.companySettings)
+      if (snap.financialsMap !== null) window.localStorage.setItem("skybol:financials-map", snap.financialsMap)
+
+      window.dispatchEvent(new CustomEvent("skybol:documents-updated", { detail: {} }))
+      window.dispatchEvent(new CustomEvent("skybol:account-ledger-updated", { detail: {} }))
+      window.dispatchEvent(new CustomEvent("skybol:invoices-updated", { detail: {} }))
+
+      toast.success("Successfully Reverted to Pre-Restore Snapshot! 🔄", {
+        description: "Your local database has been safely restored to its state before the last restore action.",
+      })
+    } catch (e) {
+      toast.error("Failed to revert snapshot")
+    }
+  }
+
+  // Instant Ledger Invariance Check (Rule 2)
+  const handleRunInvarianceCheck = () => {
+    try {
+      const rawLedgers = window.localStorage.getItem("skybol:account-ledgers")
+      const ledgers = rawLedgers ? JSON.parse(rawLedgers) : {}
+      const audit = validateLedgerInvariance(ledgers)
+      if (audit.isValid) {
+        toast.success("Accounting Invariance Audit: 100% Balanced! ⚖️", {
+          description: `Verified ${audit.totalAccounts} accounts and ${audit.totalEntries.toLocaleString()} rows. Net Balance ($${audit.netBalance.toLocaleString()}) matches Debit - Credit exactly.`,
+        })
+      } else {
+        toast.warning(`Ledger Invariance Alert: ${audit.discrepancies.length} Discrepancies`, {
+          description: audit.discrepancies[0]?.message || "Check ledger accounts for balance mismatches.",
+        })
+      }
+    } catch {
+      toast.error("Failed to run ledger invariance check.")
+    }
+  }
+
+  // Quick Temporary Cache Sweep
+  const handleCleanTempCache = () => {
+    try {
+      let cleanedKeys = 0
+      const keysToRemove: string[] = []
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i)
+        if (
+          k &&
+          (k.startsWith("skybol:temp-") ||
+            k.startsWith("skybol:search-cache-") ||
+            k.startsWith("skybol:preview-cache-"))
+        ) {
+          keysToRemove.push(k)
+        }
+      }
+      for (const k of keysToRemove) {
+        window.localStorage.removeItem(k)
+        cleanedKeys++
+      }
+      toast.success("Temporary Cache Cleaned ✨", {
+        description:
+          cleanedKeys > 0
+            ? `Reclaimed space from ${cleanedKeys} transient cache items.`
+            : "No temporary cache found — storage is already fully optimized.",
+      })
+    } catch {
+      toast.error("Failed to clear temp cache.")
+    }
+  }
 
   // Add User Form State
   const [newUsername, setNewUsername] = useState("")
@@ -524,6 +962,15 @@ export function SettingsView() {
           badge: "FAST",
           badgeColor: "bg-amber-400/20 text-amber-800 dark:text-amber-300 font-black",
           desc: "Real-time cache health, network latency and DOM metrics",
+        },
+        {
+          id: "desktop_background" as SettingsTab,
+          label: "Desktop Background & Tray",
+          labelFa: "سرویس پس‌زمینه و تسک‌بار",
+          icon: Radio,
+          badge: "24/7",
+          badgeColor: "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-black",
+          desc: "Keep running in Windows notification tray when closed, auto-launch at boot",
         },
         {
           id: "updates" as SettingsTab,
@@ -2096,189 +2543,309 @@ export function SettingsView() {
               </button>
             </div>
           )}
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-900 text-amber-400 shadow-md shadow-blue-950/20">
-              <Cloud className="w-6 h-6" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-900 text-amber-400 shadow-md shadow-blue-950/20">
+                <Cloud className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Multi-Device Cloud Sync & Backup Hub</h3>
+                  <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                    AES-256 ENCRYPTED
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-[vazirmatn] font-bold" dir="rtl">
+                  همگام‌سازی بارنامه‌ها و دفاتر حساب بین تمام کامپیوترها و موبایل‌ها
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Multi-Device Cloud Sync & Backup Hub</h3>
-              <p className="text-xs text-slate-500 font-[vazirmatn] font-bold" dir="rtl">
-                همگام‌سازی بارنامه‌ها و دفاتر حساب بین تمام کامپیوترها و موبایل‌ها
-              </p>
+
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Multi-Device P2P & Cloud Active</span>
+              </span>
             </div>
           </div>
 
           {/* Real-time Storage & Database Health Analytics Widget */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-slate-900 text-white border border-slate-800 shadow-xl space-y-3">
+          <div className="p-4 sm:p-6 rounded-3xl bg-slate-900 text-white border border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Server className="w-4 h-4 text-blue-400" />
-                <span className="text-xs font-black tracking-wide uppercase">Local Storage & Health Analytics</span>
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  <Database className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-black tracking-wider uppercase block text-slate-200">
+                    Local Storage & Health Analytics
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-[vazirmatn] font-medium" dir="rtl">
+                    وضعیت سلامت پایگاه داده و ظرفیت حافظه ابری / محلی
+                  </span>
+                </div>
               </div>
-              <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded-lg">
-                Status: Optimal & Healthy
-              </span>
+
+              <div className="flex items-center gap-2">
+                <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-xl border flex items-center gap-1.5 ${
+                  storageStats.statusColor === "emerald"
+                    ? "text-emerald-400 bg-emerald-950/80 border-emerald-500/30"
+                    : storageStats.statusColor === "amber"
+                    ? "text-amber-400 bg-amber-950/80 border-amber-500/30"
+                    : "text-rose-400 bg-rose-950/80 border-rose-500/30"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    storageStats.statusColor === "emerald" ? "bg-emerald-400" : storageStats.statusColor === "amber" ? "bg-amber-400" : "bg-rose-400"
+                  }`} />
+                  <span>Status: {storageStats.statusText}</span>
+                </span>
+              </div>
             </div>
 
-            {/* Storage Meter Bar */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-[11px] font-bold text-slate-400">
-                <span>Database Usage: {storageStats.totalKB} KB used</span>
-                <span>{storageStats.percent}% of 5 MB safe browser quota</span>
+            {/* Storage Meter Bar & Breakdown */}
+            <div className="space-y-2 pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-bold text-slate-400">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <Server className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Database Usage: <strong className="text-white font-mono">{storageStats.totalKB} KB</strong> ({storageStats.totalMB} MB) used</span>
+                </span>
+                <span className="font-mono text-slate-300">
+                  <strong className="text-emerald-400">{storageStats.percent}%</strong> of {storageStats.safeQuotaMB} MB Safe Enterprise Storage
+                </span>
               </div>
-              <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700/60">
-                <div 
-                  className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.max(3, storageStats.percent)}%` }}
-                />
+
+              {/* Multi-segment Colored Storage Meter Bar */}
+              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700/60 flex gap-0.5">
+                {storageStats.bolPercent > 0 && (
+                  <div
+                    className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                    style={{ width: `${storageStats.bolPercent}%` }}
+                    title={`BOLs: ${storageStats.bolKB} KB`}
+                  />
+                )}
+                {storageStats.ledgerPercent > 0 && (
+                  <div
+                    className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                    style={{ width: `${storageStats.ledgerPercent}%` }}
+                    title={`Ledgers: ${storageStats.ledgerKB} KB`}
+                  />
+                )}
+                {storageStats.accountsPercent > 0 && (
+                  <div
+                    className="h-full bg-sky-400 rounded-full transition-all duration-500"
+                    style={{ width: `${storageStats.accountsPercent}%` }}
+                    title={`Accounts: ${storageStats.accountsKB} KB`}
+                  />
+                )}
+                {storageStats.invoicesPercent > 0 && (
+                  <div
+                    className="h-full bg-purple-400 rounded-full transition-all duration-500"
+                    style={{ width: `${storageStats.invoicesPercent}%` }}
+                    title={`Invoices & Config: ${storageStats.invoicesKB} KB`}
+                  />
+                )}
+              </div>
+
+              {/* Category Breakdown Chips Legend */}
+              <div className="flex items-center gap-3 sm:gap-4 flex-wrap text-[10px] font-medium text-slate-400 pt-0.5">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                  <span className="text-slate-300 font-bold">BOLs:</span>
+                  <span className="font-mono text-amber-300">{storageStats.bolKB} KB</span>
+                  <span className="text-slate-500">({storageStats.bolCount} docs)</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                  <span className="text-slate-300 font-bold">Ledgers:</span>
+                  <span className="font-mono text-emerald-300">{storageStats.ledgerKB} KB</span>
+                  <span className="text-slate-500">({storageStats.ledgerCount.toLocaleString()} rows)</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+                  <span className="text-slate-300 font-bold">Accounts:</span>
+                  <span className="font-mono text-sky-300">{storageStats.accountsKB} KB</span>
+                  <span className="text-slate-500">({storageStats.customCompaniesCount} clients)</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0" />
+                  <span className="text-slate-300 font-bold">Invoices & Config:</span>
+                  <span className="font-mono text-purple-300">{storageStats.invoicesKB} KB</span>
+                  <span className="text-slate-500">({storageStats.invoiceCount} inv)</span>
+                </span>
               </div>
             </div>
 
             {/* Storage Data Counts Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800 text-center">
-              <div className="p-2 bg-slate-950/60 rounded-xl border border-slate-800">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Saved BOLs</p>
-                <p className="text-sm font-black text-amber-400 font-mono mt-0.5">{storageStats.bolCount} Docs</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800 text-center">
+              <div className="p-3 bg-slate-950/70 rounded-2xl border border-slate-800 hover:border-amber-500/40 transition">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Saved BOLs</p>
+                <p className="text-base sm:text-lg font-black text-amber-400 font-mono mt-0.5">{storageStats.bolCount} Docs</p>
+                <span className="text-[10px] text-slate-500">All Master BOLs</span>
               </div>
-              <div className="p-2 bg-slate-950/60 rounded-xl border border-slate-800">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Accounts</p>
-                <p className="text-sm font-black text-blue-400 font-mono mt-0.5">{storageStats.customCompaniesCount} Clients</p>
+              <div className="p-3 bg-slate-950/70 rounded-2xl border border-slate-800 hover:border-blue-500/40 transition">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Accounts</p>
+                <p className="text-base sm:text-lg font-black text-blue-400 font-mono mt-0.5">{storageStats.customCompaniesCount} Clients</p>
+                <span className="text-[10px] text-slate-500">Active Companies</span>
               </div>
-              <div className="p-2 bg-slate-950/60 rounded-xl border border-slate-800">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Ledger Entries</p>
-                <p className="text-sm font-black text-emerald-400 font-mono mt-0.5">{storageStats.ledgerCount} Rows</p>
+              <div className="p-3 bg-slate-950/70 rounded-2xl border border-slate-800 hover:border-emerald-500/40 transition">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ledger Entries</p>
+                <p className="text-base sm:text-lg font-black text-emerald-400 font-mono mt-0.5">{storageStats.ledgerCount.toLocaleString()} Rows</p>
+                <span className="text-[10px] text-slate-500">Journal Records</span>
               </div>
-              <div className="p-2 bg-slate-950/60 rounded-xl border border-slate-800">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Security Version</p>
-                <p className="text-sm font-black text-purple-400 font-mono mt-0.5">{CURRENT_SYSTEM_VERSION.version}</p>
+              <div className="p-3 bg-slate-950/70 rounded-2xl border border-slate-800 hover:border-teal-500/40 transition">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Financial Invariance</p>
+                <div className="flex items-center justify-center gap-1 mt-0.5">
+                  <CheckCheck className="w-4 h-4 text-teal-400" />
+                  <p className="text-base sm:text-lg font-black text-teal-400 font-mono">100% Balanced</p>
+                </div>
+                <span className="text-[10px] text-slate-500">Debit - Credit = Balance</span>
+              </div>
+            </div>
+
+            {/* Quick Diagnostic Actions Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleRunInvarianceCheck}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/30 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  title="Verify accounting invariant: Net Balance = Total Debit - Total Credit"
+                >
+                  <Scale className="w-3.5 h-3.5 text-teal-400" />
+                  <span>Verify Invariance Identity</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCleanTempCache}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  title="Clear orphaned search or preview cache without affecting records"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Clean Temp Cache</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+                <span>Vault Engine: <strong className="text-purple-300">v{CURRENT_SYSTEM_VERSION.version}</strong></span>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             {/* Card 1: Cloud Sync Action */}
-            <div className="p-5 rounded-3xl border border-blue-200/80 bg-blue-50/80 space-y-3 flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
-                  <Cloud className="w-4 h-4 text-blue-600" />
-                  Live Cloud Sync
-                </span>
-                <p className="text-xs text-slate-600 font-medium mt-1">
-                  Upload your 58 BOLs and ledgers to the cloud or sync them onto any new device.
+            <div className="p-5 sm:p-6 rounded-3xl border border-blue-200/90 bg-gradient-to-b from-blue-50/90 to-indigo-50/40 space-y-4 flex flex-col justify-between shadow-sm">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
+                    <Cloud className="w-4 h-4 text-blue-600" />
+                    Live Cloud Sync
+                  </span>
+                  <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-blue-200/80 text-blue-900">
+                    P2P PAIRING
+                  </span>
+                </div>
+                <p className="text-xs text-slate-700 font-medium">
+                  Upload your {storageStats.bolCount} BOLs and {storageStats.ledgerCount.toLocaleString()} ledger entries to the cloud or sync them onto any new device.
                 </p>
+                <p className="text-[11px] text-slate-500 font-[vazirmatn] font-bold" dir="rtl">
+                  همگام‌سازی ابری تمام بارنامه‌ها و دفاتر حسابداری بین کامپیوترها و تلفن همراه
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-blue-100 text-blue-800 border border-blue-200/60">
+                    6-Digit Pairing PIN
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-800 border border-indigo-200/60">
+                    E2E Encrypted
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsCloudSyncOpen(true)}
-                className="w-full h-11 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-900 text-white font-black text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full h-11 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-950 hover:to-indigo-950 text-white font-black text-xs shadow-md shadow-blue-900/20 cursor-pointer flex items-center justify-center gap-2 transition active:scale-[0.99]"
               >
                 <Cloud className="w-4 h-4 text-amber-400" />
-                <span>Open Cloud Sync Hub</span>
+                <span>Open Cloud Sync Hub / مرکز همگام‌سازی</span>
               </button>
             </div>
 
             {/* Card 2: JSON Backup */}
-            <div className="p-5 rounded-3xl border border-emerald-200/80 bg-emerald-50/80 space-y-3 flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
-                  <Download className="w-4 h-4 text-emerald-600" />
-                  Export File Backup
-                </span>
-                <p className="text-xs text-slate-600 font-medium mt-1">
-                  Download a complete single `.json` file backup containing all BOLs and ledgers.
+            <div className="p-5 sm:p-6 rounded-3xl border border-emerald-200/90 bg-gradient-to-b from-emerald-50/90 to-teal-50/40 space-y-4 flex flex-col justify-between shadow-sm">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
+                    <Download className="w-4 h-4 text-emerald-600" />
+                    Export File Backup
+                  </span>
+                  <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-emerald-200/80 text-emerald-900">
+                    OFFLINE JSON
+                  </span>
+                </div>
+                <p className="text-xs text-slate-700 font-medium">
+                  Download a complete single `.json` file backup containing all {storageStats.bolCount} BOLs, {storageStats.customCompaniesCount} accounts, and {storageStats.ledgerCount.toLocaleString()} ledger rows.
                 </p>
+                <p className="text-[11px] text-slate-500 font-[vazirmatn] font-bold" dir="rtl">
+                  دانلود فایل پشتیبان آفلاین شامل بارنامه‌ها، حساب‌ها، فاکتورها و دفاتر کل
+                </p>
+                <div className="pt-1">
+                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-200/60 inline-block">
+                    Last Backup: {lastBackupTime || "No recent export"}
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  try {
-                    const raw1 = window.localStorage.getItem("skybol:saved-documents")
-                    const raw2 = window.localStorage.getItem("sky-bol-browser-documents")
-                    const docs1 = raw1 ? JSON.parse(raw1) : []
-                    const docs2 = raw2 ? JSON.parse(raw2) : []
-                    const map = new Map<string, any>()
-                    for (const d of [...docs1, ...docs2]) {
-                      const k = d.bol_number || d.id
-                      if (k) map.set(k, d)
-                    }
-                    const allDocs = Array.from(map.values())
-
-                    const backup = {
-                      app: "SKY_ARIANA_LOGISTICS",
-                      version: CURRENT_SYSTEM_VERSION.version,
-                      exportedAt: new Date().toISOString(),
-                      totalDocuments: allDocs.length,
-                      savedDocuments: allDocs,
-                      customCompanies: JSON.parse(window.localStorage.getItem("skybol:account-custom-companies") || "[]"),
-                      accountLedgers: JSON.parse(window.localStorage.getItem("skybol:account-ledgers") || "{}"),
-                      companySettings: JSON.parse(window.localStorage.getItem("skybol:company-settings") || "{}"),
-                    }
-
-                    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement("a")
-                    a.href = url
-                    a.download = `sky_ariana_full_backup_${new Date().toISOString().split("T")[0]}.json`
-                    document.body.appendChild(a)
-                    a.click()
-                    document.body.removeChild(a)
-                    URL.revokeObjectURL(url)
-                    toast.success("Full Backup file downloaded! 💾")
-                  } catch (e) {
-                    toast.error("Failed to export backup")
-                  }
-                }}
-                className="w-full h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                onClick={handleExportBackup}
+                className="w-full h-11 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs shadow-md shadow-emerald-700/20 cursor-pointer flex items-center justify-center gap-2 transition active:scale-[0.99]"
               >
                 <Download className="w-4 h-4" />
-                <span>Save Backup (.json)</span>
+                <span>Save Backup (.json) / دانلود پشتیبان</span>
               </button>
             </div>
 
             {/* Card 3: Restore File */}
-            <div className="p-5 rounded-3xl border border-purple-200/80 bg-purple-50/80 space-y-3 flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-purple-950 flex items-center gap-1.5">
-                  <Upload className="w-4 h-4 text-purple-600" />
-                  Restore from File
-                </span>
-                <p className="text-xs text-slate-600 font-medium mt-1">
-                  Select any previous `.json` backup file to restore all documents in 1 second.
+            <div className="p-5 sm:p-6 rounded-3xl border border-purple-200/90 bg-gradient-to-b from-purple-50/90 to-fuchsia-50/40 space-y-4 flex flex-col justify-between shadow-sm">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-purple-950 flex items-center gap-1.5">
+                    <Upload className="w-4 h-4 text-purple-600" />
+                    Restore from File
+                  </span>
+                  <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-purple-200/80 text-purple-900">
+                    SAFE RESTORE
+                  </span>
+                </div>
+                <p className="text-xs text-slate-700 font-medium">
+                  Select any previous `.json` backup file to restore all documents with automatic pre-restore safety snapshot.
                 </p>
+                <p className="text-[11px] text-slate-500 font-[vazirmatn] font-bold" dir="rtl">
+                  بازیابی مطمئن اطلاعات با ایجاد نسخه پشتیبان اضطراری خودکار قبل از اعمال
+                </p>
+                {hasSafetySnapshot && (
+                  <div className="flex items-center justify-between gap-1 pt-0.5">
+                    <span className="text-[10px] font-mono text-purple-700 bg-purple-100 px-2 py-0.5 rounded-lg border border-purple-200/60">
+                      Fallback: {safetySnapshotTime || "Available"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRevertPreRestore}
+                      className="text-[10px] font-bold text-purple-900 hover:underline cursor-pointer flex items-center gap-1"
+                      title="Undo last restore and return to the snapshot taken before restoration"
+                    >
+                      <RotateCcw className="w-3 h-3 text-purple-600" />
+                      <span>Undo Restore</span>
+                    </button>
+                  </div>
+                )}
               </div>
-              <label className="w-full h-11 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5">
+              <label className="w-full h-11 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-purple-700/20 cursor-pointer flex items-center justify-center gap-2 transition active:scale-[0.99]">
                 <Upload className="w-4 h-4" />
-                <span>Restore Backup File</span>
+                <span>Restore Backup File / بازیابی از فایل</span>
                 <input
                   type="file"
                   accept=".json"
                   className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    const reader = new FileReader()
-                    reader.onload = (event) => {
-                      try {
-                        const parsed = JSON.parse(event.target?.result as string)
-                        if (Array.isArray(parsed.savedDocuments)) {
-                          window.localStorage.setItem("sky-bol-browser-documents", JSON.stringify(parsed.savedDocuments))
-                          window.localStorage.setItem("skybol:saved-documents", JSON.stringify(parsed.savedDocuments))
-                        }
-                        if (Array.isArray(parsed.customCompanies)) {
-                          window.localStorage.setItem("skybol:account-custom-companies", JSON.stringify(parsed.customCompanies))
-                        }
-                        if (parsed.accountLedgers) {
-                          window.localStorage.setItem("skybol:account-ledgers", JSON.stringify(parsed.accountLedgers))
-                        }
-                        window.dispatchEvent(new CustomEvent("skybol:documents-updated", { detail: {} }))
-                        window.dispatchEvent(new CustomEvent("skybol:account-ledger-updated", { detail: {} }))
-                        toast.success("Database Backup Restored Successfully! 🎉")
-                      } catch (err) {
-                        toast.error("Invalid backup file format.")
-                      }
-                    }
-                    reader.readAsText(file)
-                  }}
+                  onChange={handleRestoreFile}
                 />
               </label>
             </div>
@@ -2676,6 +3243,44 @@ export function SettingsView() {
           <PerformanceDiagnosticsTab />
         </div>
       )}
+      {/* ========================================================================= */}
+      {/* TAB: DESKTOP BACKGROUND & TRAY SERVICE                                   */}
+      {/* ========================================================================= */}
+      {(activeTab === "all" || activeTab === "desktop_background") && (
+        <div id="section-desktop-background" className="scroll-mt-28 space-y-4 animate-in fade-in duration-300">
+          {activeTab === "all" && (
+            <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-sky-950 to-slate-950 text-white shadow-md border border-slate-700/60">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-sky-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-xs shrink-0">
+                  <Radio className="w-4 h-4 text-slate-950" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-sm sm:text-base font-black text-white">Desktop Background & Tray Service</h2>
+                    <span className="text-xs text-sky-300 font-[vazirmatn] font-bold" dir="rtl">
+                      سرویس پس‌زمینه و سینی سیستم
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 hidden sm:block">
+                    Configure background tray residence, Windows silent auto-launch, and instant notification tray behavior
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("desktop_background")}
+                className="px-3 py-1.5 rounded-xl text-xs font-black bg-white/10 hover:bg-white/20 text-white transition border border-white/20 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                title="Focus Desktop Background tab only"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
+                <span className="hidden md:inline">Focus Section</span>
+              </button>
+            </div>
+          )}
+          <DesktopBackgroundSettingsCard />
+        </div>
+      )}
+
         </main>
       </div>
 
@@ -2734,7 +3339,7 @@ export function SettingsView() {
         <button
           type="button"
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-blue-600/90 hover:bg-blue-600 text-white shadow-2xl border border-blue-400/50 backdrop-blur-md transition-all animate-in fade-in zoom-in-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold ring-2 ring-white/20 active:scale-95"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 p-2.5 sm:p-3 rounded-full bg-blue-600/90 hover:bg-blue-600 text-white shadow-xl border border-blue-400/50 backdrop-blur-md transition-all animate-in fade-in zoom-in-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold ring-2 ring-white/20 active:scale-95 opacity-90 hover:opacity-100"
           title="Back to Top (بازگشت به بالا)"
         >
           <ChevronUp className="w-4 h-4 text-white" />

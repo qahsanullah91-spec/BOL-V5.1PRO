@@ -19,6 +19,7 @@ export const PHOTO_BACKGROUNDS: DocumentBackground[] = [
   { label: 'Salang Summit Pass (Photo)', category: 'Mountains', url: '/images/mountain-watermark-premium.png', opacity: 0.18 },
   { label: 'Afghan Mountain Ridge', category: 'Mountains', url: '/images/afghan_mountain_blueprint_bg.jpg', opacity: 0.15 },
   { label: 'Pamir Valley Transit', category: 'Mountains', url: '/images/mountain_logistics_bg.jpg', opacity: 0.15 },
+  { label: 'Winding Mountain Pass (Photo)', category: 'Mountains', url: '/images/watermark-photos/winding-pass.jpg', opacity: 0.16 },
 
   // Overland Transit & Logistics
   { label: 'Freight Truck Convoy (Photo)', category: 'Overland', url: '/images/photo_overland_truck_convoy.jpg', opacity: 0.16 },
@@ -28,12 +29,23 @@ export const PHOTO_BACKGROUNDS: DocumentBackground[] = [
   { label: 'Modern Cargo Fleet', category: 'Overland', url: '/images/modern_cargo_convoy.jpg', opacity: 0.15 },
   { label: 'Afghan Transit Pass', category: 'Overland', url: '/images/afghan_cargo_fleet_pass.jpg', opacity: 0.15 },
   { label: 'Inland Dry Port Hub', category: 'Overland', url: '/images/border_dry_port.jpg', opacity: 0.15 },
+  { label: 'Cargo Convoy Fleet (Photo)', category: 'Overland', url: '/images/watermark-photos/cargo-convoy.jpg', opacity: 0.16 },
+  { label: 'Trans-Asian Rail Corridor (Photo)', category: 'Overland', url: '/images/watermark-photos/rail-corridor.jpg', opacity: 0.16 },
+  { label: 'Desert Horizon Route (Photo)', category: 'Overland', url: '/images/watermark-photos/horizon-route.jpg', opacity: 0.16 },
 
   // Maritime & Ocean Shipping
   { label: 'Ocean Container Ship (Photo)', category: 'Maritime', url: '/images/photo_ocean_containership.jpg', opacity: 0.16 },
   { label: 'Harbor Gantry Terminal (Photo)', category: 'Maritime', url: '/images/photo_harbor_cranes_port.jpg', opacity: 0.16 },
   { label: 'Deep Sea Cargo Vessel', category: 'Maritime', url: '/images/maritime_port_cargo_ship.jpg', opacity: 0.15 },
   { label: 'Container Port Sunset', category: 'Maritime', url: '/images/container_terminal_sunset.jpg', opacity: 0.15 },
+  { label: 'Ocean Passage Vessel (Photo)', category: 'Maritime', url: '/images/watermark-photos/ocean-passage.jpg', opacity: 0.16 },
+  { label: 'Harbor Morning Terminal (Photo)', category: 'Maritime', url: '/images/watermark-photos/harbor-morning.jpg', opacity: 0.16 },
+  { label: 'Coastal Freight Haul (Photo)', category: 'Maritime', url: '/images/watermark-photos/coastal-freight.jpg', opacity: 0.16 },
+  { label: 'Container Port Gantry (Photo)', category: 'Maritime', url: '/images/watermark-photos/container-port.jpg', opacity: 0.16 },
+  { label: 'Deep Blue Sea Shipping (Photo)', category: 'Maritime', url: '/images/watermark-photos/deep-blue.jpg', opacity: 0.16 },
+  { label: 'Island Channel Route (Photo)', category: 'Maritime', url: '/images/watermark-photos/island-channel.jpg', opacity: 0.16 },
+  { label: 'Lighthouse Harbor Bay (Photo)', category: 'Maritime', url: '/images/watermark-photos/lighthouse-bay.jpg', opacity: 0.16 },
+  { label: 'Sunset Anchorage Harbor (Photo)', category: 'Maritime', url: '/images/watermark-photos/sunset-anchorage.jpg', opacity: 0.16 },
 
   // Aviation & Air Freight
   { label: 'Cargo Freighter Jet (Photo)', category: 'Aviation', url: '/images/photo_cargo_freighter_jet.jpg', opacity: 0.16 },
@@ -48,12 +60,12 @@ export const PHOTO_BACKGROUNDS: DocumentBackground[] = [
   { label: 'Golden Compass Rose (Art)', category: 'Geometric', url: '/images/photo_golden_compass_rose.jpg', opacity: 0.16 },
 ]
 
-// 3. Classic Technical Blueprints
+// 3. Realistic Logistics & Multi-Modal Transport Watermarks
 export const CLASSIC_BACKGROUNDS: DocumentBackground[] = [
   ...BASE_BACKGROUNDS,
-  { label: 'Truck Blueprint', category: 'Classic', url: '/images/overland_transit_blueprint.svg', opacity: 0.18 },
-  { label: 'Ship Blueprint', category: 'Classic', url: '/images/maritime_shipping_blueprint.svg', opacity: 0.18 },
-  { label: 'Flight Blueprint', category: 'Classic', url: '/images/air_cargo_blueprint.svg', opacity: 0.18 },
+  { label: 'Overland Heavy Cargo (Photo)', category: 'Classic', url: '/images/photo_overland_truck_heavy.jpg', opacity: 0.16 },
+  { label: 'Maritime Container Vessel (Photo)', category: 'Classic', url: '/images/photo_maritime_container_vessel.jpg', opacity: 0.16 },
+  { label: 'Aviation Cargo Freighter (Photo)', category: 'Classic', url: '/images/photo_aviation_cargo_aircraft.jpg', opacity: 0.16 },
 ]
 
 // 4. Combined Master Document Backgrounds Catalog
@@ -61,7 +73,7 @@ export const DOCUMENT_BACKGROUNDS: DocumentBackground[] = [
   ...BASE_BACKGROUNDS,
   ...PHOTO_BACKGROUNDS,
   ...artwork,
-  { label: 'Truck Blueprint', category: 'Classic', url: '/images/overland_transit_blueprint.svg', opacity: 0.18 },
-  { label: 'Ship Blueprint', category: 'Classic', url: '/images/maritime_shipping_blueprint.svg', opacity: 0.18 },
-  { label: 'Flight Blueprint', category: 'Classic', url: '/images/air_cargo_blueprint.svg', opacity: 0.18 },
+  { label: 'Overland Heavy Cargo (Photo)', category: 'Classic', url: '/images/photo_overland_truck_heavy.jpg', opacity: 0.16 },
+  { label: 'Maritime Container Vessel (Photo)', category: 'Classic', url: '/images/photo_maritime_container_vessel.jpg', opacity: 0.16 },
+  { label: 'Aviation Cargo Freighter (Photo)', category: 'Classic', url: '/images/photo_aviation_cargo_aircraft.jpg', opacity: 0.16 },
 ]

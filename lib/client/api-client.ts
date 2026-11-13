@@ -152,10 +152,11 @@ class ServerApiClient {
   private startHealthCheck(): void {
     if (this.pingInterval) clearInterval(this.pingInterval)
     this.pingInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return
       if (this.serverUrl && this.token) {
         void this.checkConnection()
       }
-    }, 15000) // Every 15 seconds
+    }, 30000) // Every 30 seconds
   }
 
   /**

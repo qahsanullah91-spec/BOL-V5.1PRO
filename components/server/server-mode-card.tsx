@@ -18,12 +18,23 @@ import {
   Users,
   CheckCircle2,
   XCircle,
+  ShieldCheck,
+  Radio,
+  Clock,
+  Sparkles,
+  RotateCcw,
+  FolderArchive,
+  FolderOpen,
+  Archive,
+  Loader2,
+  Database,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { apiClient, type ServerConnectionState } from "@/lib/client/api-client"
 import { offlineQueue } from "@/lib/client/offline-queue"
 
@@ -43,6 +54,13 @@ export function ServerModeCard() {
   const [adminPassword, setAdminPassword] = useState("")
   const [devices, setDevices] = useState<any[]>([])
   const [backups, setBackups] = useState<any[]>([])
+  const [backupDir, setBackupDir] = useState<string>("C:\\ProgramData\\SkyArianaBOL\\backups\\")
+  const [isRefreshingBackups, setIsRefreshingBackups] = useState(false)
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false)
+  const [isMigrating, setIsMigrating] = useState(false)
+  const [restoringFile, setRestoringFile] = useState<string | null>(null)
+  const [copiedPath, setCopiedPath] = useState(false)
+  const [copiedFilename, setCopiedFilename] = useState<string | null>(null)
 
   // Client PC state
   const [clientServerUrl, setClientServerUrl] = useState("")
@@ -81,12 +99,14 @@ export function ServerModeCard() {
   const loadBackups = async () => {
     try {
       const activeToken = typeof window !== "undefined" ? localStorage.getItem("sky_server_token") : null
-      if (!activeToken) return
-      const res = await fetch("/api/server/backups", {
-        headers: { Authorization: `Bearer ${activeToken}` }
-      })
+      const headers: Record<string, string> = {}
+      if (activeToken) headers["Authorization"] = `Bearer ${activeToken}`
+      const res = await fetch("/api/server/backups", { headers })
       const data = await res.json()
-      if (data.success) setBackups(data.backups || [])
+      if (data.success) {
+        setBackups(data.backups || [])
+        if (data.backupDir) setBackupDir(data.backupDir)
+      }
     } catch {}
   }
 
@@ -209,13 +229,18 @@ export function ServerModeCard() {
 
   // Create Backup
   const handleCreateBackup = async () => {
+    setIsCreatingBackup(true)
     setLoading(true)
     setErrorMsg(null)
+    setSuccessMsg(null)
     try {
-      const res = await fetch("/api/server/backups", { method: "POST" })
+      const activeToken = typeof window !== "undefined" ? localStorage.getItem("sky_server_token") : null
+      const headers: Record<string, string> = {}
+      if (activeToken) headers["Authorization"] = `Bearer ${activeToken}`
+      const res = await fetch("/api/server/backups", { method: "POST", headers })
       const data = await res.json()
       if (data.success) {
-        setSuccessMsg(`Backup created: ${data.backup.filename}`)
+        setSuccessMsg(`Backup created: ${data.backup?.filename || "Server snapshot archive ready"}`)
         await loadBackups()
       } else {
         setErrorMsg(data.error || "Backup failed")
@@ -223,6 +248,7 @@ export function ServerModeCard() {
     } catch (err: any) {
       setErrorMsg(err.message || "Backup failed")
     } finally {
+      setIsCreatingBackup(false)
       setLoading(false)
     }
   }
@@ -232,12 +258,17 @@ export function ServerModeCard() {
     if (!window.confirm(`Are you sure you want to restore ${filename}? A pre-restore snapshot will be created automatically.`)) {
       return
     }
+    setRestoringFile(filename)
     setLoading(true)
     setErrorMsg(null)
+    setSuccessMsg(null)
     try {
+      const activeToken = typeof window !== "undefined" ? localStorage.getItem("sky_server_token") : null
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (activeToken) headers["Authorization"] = `Bearer ${activeToken}`
       const res = await fetch("/api/server/backups", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ filename }),
       })
       const data = await res.json()
@@ -250,6 +281,7 @@ export function ServerModeCard() {
     } catch (err: any) {
       setErrorMsg(err.message || "Restore failed")
     } finally {
+      setRestoringFile(null)
       setLoading(false)
     }
   }
@@ -259,22 +291,134 @@ export function ServerModeCard() {
     if (!window.confirm("Migrate existing local records into the server database? A backup will be preserved automatically.")) {
       return
     }
+    setIsMigrating(true)
     setLoading(true)
     setErrorMsg(null)
+    setSuccessMsg(null)
     try {
-      const res = await fetch("/api/server/migrate", { method: "POST" })
+      const activeToken = typeof window !== "undefined" ? localStorage.getItem("sky_server_token") : null
+      const headers: Record<string, string> = {}
+      if (activeToken) headers["Authorization"] = `Bearer ${activeToken}`
+      const res = await fetch("/api/server/migrate", { method: "POST", headers })
       const data = await res.json()
       if (data.success) {
-        setSuccessMsg(`Migration complete! Migrated: ${data.counts.bols} BOLs, ${data.counts.invoices} invoices, ${data.counts.ledgerAccounts} ledger accounts.`)
+        setSuccessMsg(`Migration complete! Migrated: ${data.counts?.bols ?? 0} BOLs, ${data.counts?.invoices ?? 0} invoices, ${data.counts?.ledgerAccounts ?? 0} ledger accounts.`)
         await refreshStatus()
+        await loadBackups()
       } else {
         setErrorMsg(data.error || "Migration failed")
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Migration failed")
     } finally {
+      setIsMigrating(false)
       setLoading(false)
     }
+  }
+
+  // Delete Backup
+  const handleDeleteBackup = async (filename: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete ${filename}?`)) {
+      return
+    }
+    setLoading(true)
+    setErrorMsg(null)
+    setSuccessMsg(null)
+    try {
+      const activeToken = typeof window !== "undefined" ? localStorage.getItem("sky_server_token") : null
+      const headers: Record<string, string> = {}
+      if (activeToken) headers["Authorization"] = `Bearer ${activeToken}`
+      const res = await fetch(`/api/server/backups?filename=${encodeURIComponent(filename)}`, {
+        method: "DELETE",
+        headers,
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccessMsg(`Backup archive ${filename} permanently deleted.`)
+        await loadBackups()
+      } else {
+        setErrorMsg(data.error || "Failed to delete backup")
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to delete backup")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Refresh Backups list
+  const handleRefreshBackups = async () => {
+    setIsRefreshingBackups(true)
+    try {
+      await loadBackups()
+    } finally {
+      setTimeout(() => setIsRefreshingBackups(false), 500)
+    }
+  }
+
+  // Copy directory path
+  const handleCopyPath = (pathText: string) => {
+    navigator.clipboard.writeText(pathText)
+    setCopiedPath(true)
+    setTimeout(() => setCopiedPath(false), 2000)
+  }
+
+  // Open directory in native explorer
+  const handleOpenFolder = (dirPath: string) => {
+    const skyDesktop = typeof window !== "undefined" ? (window as any).skyDesktop : null
+    if (skyDesktop?.openFile) {
+      skyDesktop.openFile(dirPath)
+    } else if (skyDesktop?.revealFile) {
+      skyDesktop.revealFile(dirPath)
+    } else if (skyDesktop?.openUpdateFolder) {
+      skyDesktop.openUpdateFolder(dirPath)
+    } else {
+      handleCopyPath(dirPath)
+      setSuccessMsg(`Backup storage directory copied to clipboard: ${dirPath}`)
+    }
+  }
+
+  // Reveal specific backup file in native explorer
+  const handleRevealBackup = (targetFile: string) => {
+    const skyDesktop = typeof window !== "undefined" ? (window as any).skyDesktop : null
+    const baseDir = backupDir.endsWith("\\") || backupDir.endsWith("/") ? backupDir : `${backupDir}\\`
+    const fullPath = targetFile.includes(":\\") || targetFile.startsWith("/")
+      ? targetFile
+      : `${baseDir}${targetFile}`
+    if (skyDesktop?.revealFile) {
+      skyDesktop.revealFile(fullPath)
+    } else if (skyDesktop?.openFile) {
+      skyDesktop.openFile(fullPath)
+    } else {
+      navigator.clipboard.writeText(fullPath)
+      setSuccessMsg(`File path copied: ${fullPath}`)
+    }
+  }
+
+  // Download backup archive
+  const handleDownloadBackup = (filename: string) => {
+    const link = document.createElement("a")
+    link.href = `/api/server/backups?download=${encodeURIComponent(filename)}`
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // Copy filename
+  const handleCopyFilename = (filename: string) => {
+    navigator.clipboard.writeText(filename)
+    setCopiedFilename(filename)
+    setTimeout(() => setCopiedFilename(null), 2000)
+  }
+
+  // Format bytes to KB / MB
+  const formatSize = (bytes: number): string => {
+    if (!bytes || bytes <= 0) return "0 KB"
+    if (bytes < 1024 * 1024) {
+      return `${Math.round(bytes / 1024)} KB`
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
   }
 
   // Client Test Connection
@@ -313,43 +457,68 @@ export function ServerModeCard() {
   return (
     <div className="space-y-6">
       {/* Mode Switcher */}
-      <Card className="border-slate-200">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Server className="h-5 w-5 text-blue-600" />
-                Office LAN Server & Client Architecture
-              </CardTitle>
-              <CardDescription>
-                Run one Main PC as the central server and connect other PCs securely over the local network.
-              </CardDescription>
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-xs shrink-0 ring-4 ring-blue-50 mt-0.5 sm:mt-0">
+              <Server className="h-5 w-5" />
             </div>
-            <div className="flex rounded-lg border border-slate-200 p-1 bg-slate-50">
-              <button
-                type="button"
-                onClick={() => handleModeSwitch("server")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  mode === "server" ? "bg-white shadow text-blue-700 font-bold" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Server className="inline-block h-3.5 w-3.5 mr-1.5" />
-                Main Server PC
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModeSwitch("client")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  mode === "client" ? "bg-white shadow text-blue-700 font-bold" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Laptop className="inline-block h-3.5 w-3.5 mr-1.5" />
-                Client PC
-              </button>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-sans text-base font-black text-slate-900 tracking-tight">
+                  Office LAN Server & Client Architecture
+                </h3>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "font-black text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border",
+                    mode === "server"
+                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                  )}
+                >
+                  {mode === "server" ? "Server Host Active" : "Client Workstation"}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Run one Main PC as the central server and connect other PCs securely over the local network.
+              </p>
+              <span className="text-[11px] text-slate-400 font-[vazirmatn] block mt-0.5" dir="rtl">
+                معماری سرور مرکزی و کلاینت‌های شبکه محلی اداری
+              </span>
             </div>
           </div>
-        </CardHeader>
-      </Card>
+
+          <div className="inline-flex rounded-xl border border-slate-200/90 p-1 bg-slate-100/90 shadow-inner self-start md:self-center">
+            <button
+              type="button"
+              onClick={() => handleModeSwitch("server")}
+              className={cn(
+                "px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                mode === "server"
+                  ? "bg-white shadow-xs text-blue-700 font-black ring-1 ring-slate-950/5"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+              )}
+            >
+              <Server className="h-3.5 w-3.5 text-blue-600" />
+              Main Server PC
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeSwitch("client")}
+              className={cn(
+                "px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                mode === "client"
+                  ? "bg-white shadow-xs text-indigo-700 font-black ring-1 ring-slate-950/5"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+              )}
+            >
+              <Laptop className="h-3.5 w-3.5 text-indigo-600" />
+              Client PC
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Notifications */}
       {errorMsg && (
@@ -370,118 +539,241 @@ export function ServerModeCard() {
         <div className="space-y-6">
           {/* Server Overview */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-slate-50 border-slate-200">
-              <CardContent className="pt-4">
-                <div className="text-xs text-slate-500 font-medium">Server Address (Local LAN)</div>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="font-mono text-sm font-bold text-slate-800">
+            {/* Card 1: Server Address */}
+            <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-slate-50/80 p-4 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-blue-100/90 text-blue-700 flex items-center justify-center border border-blue-200/80 shadow-2xs">
+                      <Wifi className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-slate-900 block leading-tight">Server Address (Local LAN)</span>
+                      <span className="font-[vazirmatn] text-[10px] text-slate-400 block" dir="rtl">آدرس شبکه محلی سرور</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100/90 text-blue-800 border border-blue-200 font-mono">
+                    Port 8000
+                  </span>
+                </div>
+
+                <div className="mt-2.5 p-2 rounded-xl bg-white border border-blue-200/80 shadow-2xs flex items-center justify-between gap-2">
+                  <span className="font-mono text-xs sm:text-sm font-black text-blue-950 tracking-tight truncate">
                     {statusData?.serverUrl || "http://127.0.0.1:8000"}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 w-7 p-0"
+                    className="h-7 px-2 text-xs font-bold text-blue-700 hover:bg-blue-50 shrink-0 gap-1 rounded-lg cursor-pointer"
                     onClick={() => copyToClipboard(statusData?.serverUrl || "http://127.0.0.1:8000", "serverUrl")}
                   >
-                    {copied === "serverUrl" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied === "serverUrl" ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                        <span className="text-[11px] text-emerald-700 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        <span className="text-[11px]">Copy</span>
+                      </>
+                    )}
                   </Button>
                 </div>
-                <div className="mt-1 text-[11px] text-slate-500">Provide this address to Client PCs</div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card className="bg-slate-50 border-slate-200">
-              <CardContent className="pt-4">
-                <div className="text-xs text-slate-500 font-medium">Central Data Directory</div>
-                <div className="mt-1 font-mono text-xs font-semibold text-slate-800 truncate" title="C:\ProgramData\SkyArianaBOL\">
-                  C:\ProgramData\SkyArianaBOL\
-                </div>
-                <div className="mt-1 text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-                  <Shield className="h-3 w-3" /> No Windows file share needed
-                </div>
-              </CardContent>
-            </Card>
+              <div className="mt-3 pt-2.5 border-t border-blue-100/80 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Provide this address to Client PCs</span>
+                <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-[11px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  LAN Active
+                </span>
+              </div>
+            </div>
 
-            <Card className="bg-slate-50 border-slate-200">
-              <CardContent className="pt-4">
-                <div className="text-xs text-slate-500 font-medium">Connected Devices</div>
-                <div className="mt-1 text-lg font-bold text-slate-800">
-                  {devices.length} Registered
+            {/* Card 2: Central Data Directory */}
+            <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-slate-50/80 p-4 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100/90 text-emerald-700 flex items-center justify-center border border-emerald-200/80 shadow-2xs">
+                      <HardDrive className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-slate-900 block leading-tight">Central Data Directory</span>
+                      <span className="font-[vazirmatn] text-[10px] text-slate-400 block" dir="rtl">مسیر ذخیره‌سازی مرکزی پایگاه داده</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-800 border border-emerald-200">
+                    Direct SQLite
+                  </span>
                 </div>
-                <div className="mt-1 text-[11px] text-slate-500">
+
+                <div className="mt-2.5 p-2 rounded-xl bg-white border border-emerald-200/80 shadow-2xs">
+                  <div className="font-mono text-xs font-bold text-slate-800 truncate" title="C:\ProgramData\SkyArianaBOL\">
+                    C:\ProgramData\SkyArianaBOL\
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-emerald-100/80 flex items-center justify-between text-[11px]">
+                <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                  <ShieldCheck className="h-3.5 w-3.5" /> No Windows file share needed
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Zero Lock Risk
+                </span>
+              </div>
+            </div>
+
+            {/* Card 3: Connected Devices */}
+            <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-slate-50/80 p-4 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-100/90 text-indigo-700 flex items-center justify-center border border-indigo-200/80 shadow-2xs">
+                      <Users className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-slate-900 block leading-tight">Connected Devices</span>
+                      <span className="font-[vazirmatn] text-[10px] text-slate-400 block" dir="rtl">دستگاه‌های متصل و کلاینت‌ها</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100/90 text-indigo-800 border border-indigo-200">
+                    Active Mesh
+                  </span>
+                </div>
+
+                <div className="mt-2.5 flex items-baseline gap-2">
+                  <span className="text-2xl font-black text-slate-950 tracking-tight">{devices.length}</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Registered Workstations</span>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-indigo-100/80 flex items-center justify-between text-[11px] text-slate-600 font-medium">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   {devices.filter((d) => !d.revoked).length} Active trusted sessions
-                </div>
-              </CardContent>
-            </Card>
+                </span>
+                <span className="text-slate-400 font-mono text-[10px]">
+                  {devices.filter((d) => d.revoked).length} revoked
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Initial Admin Setup Prompt if not configured */}
           {!statusData?.adminConfigured && (
-            <Card className="border-amber-200 bg-amber-50/50">
-              <CardContent className="pt-5 pb-5">
-                <div className="flex items-start gap-3">
-                  <Shield className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-slate-900">Set Up Central Server Administrator</h4>
-                    <p className="text-xs text-slate-600 mt-0.5">
-                      Protect pairing code generation and database management by configuring an administrator password.
-                    </p>
-                    {adminSetupOpen ? (
-                      <div className="mt-3 flex flex-wrap gap-3 items-end">
-                        <div>
-                          <Label className="text-xs">Username</Label>
-                          <Input
-                            value={adminUsername}
-                            onChange={(e) => setAdminUsername(e.target.value)}
-                            className="h-8 text-xs w-36 mt-1 bg-white"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Password (min 8 chars)</Label>
-                          <Input
-                            type="password"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                            className="h-8 text-xs w-48 mt-1 bg-white"
-                          />
-                        </div>
-                        <Button size="sm" onClick={handleAdminSetup} disabled={loading} className="h-8 text-xs">
-                          Save Admin Account
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setAdminSetupOpen(false)} className="h-8 text-xs">
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button size="sm" onClick={() => setAdminSetupOpen(true)} className="mt-3 h-8 text-xs">
-                        Configure Admin Now
-                      </Button>
-                    )}
-                  </div>
+            <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 p-5 shadow-2xs">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200 shadow-2xs shrink-0 mt-0.5">
+                  <Shield className="h-5 w-5" />
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-sans text-sm font-black text-slate-900 tracking-tight">
+                      Set Up Central Server Administrator
+                    </h4>
+                    <Badge variant="outline" className="bg-amber-100/80 text-amber-800 border-amber-300 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                      Security Recommended
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    Protect pairing code generation and database management by configuring an administrator password.
+                  </p>
+                  <span className="text-[11px] text-slate-400 font-[vazirmatn] block mt-0.5" dir="rtl">
+                    پیکربندی حساب مدیر کل جهت حفاظت از کدهای جفت‌سازی و مدیریت پایگاه داده
+                  </span>
+
+                  {adminSetupOpen ? (
+                    <div className="mt-3.5 flex flex-wrap gap-3 items-end p-3.5 bg-white/90 border border-amber-200/80 rounded-xl shadow-2xs">
+                      <div>
+                        <Label className="text-xs font-bold text-slate-700">Username</Label>
+                        <Input
+                          value={adminUsername}
+                          onChange={(e) => setAdminUsername(e.target.value)}
+                          className="h-9 text-xs w-36 mt-1 bg-white rounded-xl border-slate-300"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold text-slate-700">Password (min 8 chars)</Label>
+                        <Input
+                          type="password"
+                          value={adminPassword}
+                          onChange={(e) => setAdminPassword(e.target.value)}
+                          className="h-9 text-xs w-48 mt-1 bg-white rounded-xl border-slate-300"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={handleAdminSetup}
+                        disabled={loading}
+                        className="h-9 px-4 text-xs font-bold rounded-xl bg-amber-700 hover:bg-amber-800 text-white cursor-pointer shadow-2xs"
+                      >
+                        Save Admin Account
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setAdminSetupOpen(false)}
+                        className="h-9 text-xs rounded-xl hover:bg-slate-100 cursor-pointer"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => setAdminSetupOpen(true)}
+                      className="mt-3 h-8.5 px-3.5 text-xs font-bold bg-amber-700 hover:bg-amber-800 text-white rounded-xl shadow-2xs cursor-pointer"
+                    >
+                      Configure Admin Now
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Pairing Code Generator */}
-          <Card className="border-slate-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-blue-600" />
-                Device Pairing & Access Control
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Generate secure, one-time 15-minute pairing codes for new Client PCs.
-              </CardDescription>
+          <Card className="border border-slate-200/90 bg-white rounded-2xl shadow-xs overflow-hidden transition-all duration-200">
+            <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/60 to-white">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-xs shrink-0 ring-4 ring-blue-50 mt-0.5 sm:mt-0">
+                    <KeyRound className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-sans text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                        Device Pairing & Access Control
+                      </h3>
+                      <Badge variant="outline" className="bg-blue-50/80 text-blue-700 border-blue-200 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                        15-Min TTL
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                      Generate secure, one-time 15-minute pairing codes for new Client PCs.
+                    </p>
+                    <span className="text-[11px] text-slate-400 font-[vazirmatn] block mt-0.5" dir="rtl">
+                      جفت‌سازی دستگاه‌ها، صدور کدهای امنیتی موقت و کنترل دسترسی کلاینت‌ها
+                    </span>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <div>
-                  <Label className="text-xs">Device Role</Label>
+
+            <CardContent className="p-4 sm:p-5 space-y-4">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row sm:items-end justify-between gap-3.5">
+                <div className="space-y-1.5 flex-1 max-w-sm">
+                  <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+                    Authorized Workstation Role
+                  </Label>
                   <select
                     value={pairingRole}
                     onChange={(e) => setPairingRole(e.target.value)}
-                    className="h-8 text-xs rounded-md border border-slate-300 bg-white px-2 mt-1 block"
+                    className="h-9 text-xs rounded-xl border border-slate-300 bg-white px-3 font-semibold text-slate-800 shadow-2xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full outline-none transition-all cursor-pointer"
                   >
                     <option value="accounting">Accounting (Ledger & Invoices)</option>
                     <option value="operations">Operations (BOL & Cargo)</option>
@@ -489,8 +781,13 @@ export function ServerModeCard() {
                     <option value="admin">Administrator (Full Access)</option>
                   </select>
                 </div>
-                <div className="pt-5">
-                  <Button size="sm" onClick={handleGeneratePairingCode} disabled={loading} className="h-8 text-xs gap-1.5">
+                <div>
+                  <Button
+                    size="sm"
+                    onClick={handleGeneratePairingCode}
+                    disabled={loading}
+                    className="h-9 px-4 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-2xs gap-1.5 transition-all cursor-pointer"
+                  >
                     <KeyRound className="h-3.5 w-3.5" />
                     Generate Pairing Code
                   </Button>
@@ -498,73 +795,114 @@ export function ServerModeCard() {
               </div>
 
               {generatedCode && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-blue-700 font-medium">One-Time Pairing Code (Valid for 15 minutes)</div>
-                    <div className="font-mono text-xl font-bold tracking-wider text-blue-950 mt-0.5">
+                <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white border border-blue-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-200">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-blue-900 uppercase tracking-wide">
+                        One-Time Pairing Code
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full border border-blue-200 capitalize">
+                        Role: {generatedCode.role || pairingRole}
+                      </span>
+                    </div>
+                    <div className="font-mono text-2xl font-black tracking-widest text-blue-950 bg-white border border-blue-200/80 px-3 py-1 rounded-lg inline-block shadow-inner">
                       {generatedCode.code}
                     </div>
-                    <div className="text-[11px] text-blue-600 mt-1">
-                      Expires: {new Date(generatedCode.expiresAt).toLocaleTimeString()}
+                    <div className="text-[11px] text-blue-600 flex items-center gap-1 font-medium">
+                      <Clock className="h-3 w-3" />
+                      Expires at {new Date(generatedCode.expiresAt).toLocaleTimeString()} (Valid for 15 minutes)
                     </div>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => copyToClipboard(generatedCode.code, "pairCode")}
-                    className="gap-1.5 bg-white"
+                    className="gap-2 bg-white hover:bg-blue-50 border-blue-200 text-blue-800 font-bold h-9 px-3.5 rounded-xl shadow-2xs cursor-pointer"
                   >
-                    {copied === "pairCode" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                    Copy Code
+                    {copied === "pairCode" ? (
+                      <>
+                        <Check className="h-4 w-4 text-emerald-600" />
+                        <span className="text-emerald-700">Copied to Clipboard!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        <span>Copy Code</span>
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
 
-              {/* Devices Table */}
-              <div className="mt-4">
-                <div className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" />
-                  Registered Client Devices
+              {/* Devices Section */}
+              <div className="pt-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-xs font-black text-slate-800 flex items-center gap-2">
+                    <Users className="h-4 w-4 text-blue-600" />
+                    <span>Registered Client Devices</span>
+                    <Badge variant="outline" className="text-[10px] font-bold ml-1 bg-slate-50 border-slate-200">
+                      {devices.length} Total
+                    </Badge>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Workstations authorized to connect to this server
+                  </span>
                 </div>
+
                 {devices.length === 0 ? (
-                  <div className="text-xs text-slate-400 py-3 text-center border border-dashed rounded-md">
-                    No client devices registered yet.
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-6 text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-blue-600 mx-auto flex items-center justify-center shadow-2xs mb-3">
+                      <Laptop className="h-6 w-6" />
+                    </div>
+                    <h4 className="text-xs font-black text-slate-800">No Client Devices Registered Yet</h4>
+                    <p className="text-[11px] text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
+                      Pair other computers on your office network to allow multi-user operations. Select a role above and click <span className="font-semibold text-slate-700">"Generate Pairing Code"</span>.
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[10px] text-slate-600 font-medium">
+                      <span className="px-2.5 py-1 rounded-full bg-white border border-slate-200 shadow-2xs">1. Generate Code</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="px-2.5 py-1 rounded-full bg-white border border-slate-200 shadow-2xs">2. Open Client PC Settings</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="px-2.5 py-1 rounded-full bg-white border border-slate-200 shadow-2xs">3. Enter Server URL & Code</span>
+                    </div>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto border border-slate-200 rounded-md">
+                  <div className="overflow-x-auto border border-slate-200/90 rounded-xl shadow-2xs">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-semibold">
+                      <thead className="bg-slate-50/90 text-slate-700 border-b border-slate-200 font-black">
                         <tr>
-                          <th className="p-2.5">Device Name</th>
-                          <th className="p-2.5">Role</th>
-                          <th className="p-2.5">IP Address</th>
-                          <th className="p-2.5">Status</th>
-                          <th className="p-2.5 text-right">Actions</th>
+                          <th className="p-3">Device Name</th>
+                          <th className="p-3">Role</th>
+                          <th className="p-3">IP Address</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3 text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-100 bg-white">
                         {devices.map((device) => (
-                          <tr key={device.id}>
-                            <td className="p-2.5 font-medium text-slate-800">{device.name}</td>
-                            <td className="p-2.5 capitalize">
-                              <Badge variant="outline" className="text-[10px]">{device.role}</Badge>
+                          <tr key={device.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="p-3 font-bold text-slate-900">{device.name}</td>
+                            <td className="p-3 capitalize">
+                              <Badge variant="outline" className="text-[10px] font-bold bg-slate-50 border-slate-200">
+                                {device.role}
+                              </Badge>
                             </td>
-                            <td className="p-2.5 font-mono text-[11px] text-slate-600">{device.ip}</td>
-                            <td className="p-2.5">
+                            <td className="p-3 font-mono text-[11px] text-slate-600">{device.ip}</td>
+                            <td className="p-3">
                               {device.revoked ? (
-                                <Badge variant="destructive" className="text-[10px]">Revoked</Badge>
+                                <Badge variant="destructive" className="text-[10px] font-bold">Revoked</Badge>
                               ) : device.blocked ? (
-                                <Badge variant="destructive" className="text-[10px]">Blocked</Badge>
+                                <Badge variant="destructive" className="text-[10px] font-bold">Blocked</Badge>
                               ) : (
-                                <Badge className="bg-emerald-600 text-[10px]">Trusted</Badge>
+                                <Badge className="bg-emerald-600 text-[10px] font-bold">Trusted</Badge>
                               )}
                             </td>
-                            <td className="p-2.5 text-right space-x-1">
+                            <td className="p-3 text-right space-x-1">
                               {!device.revoked ? (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 px-2 text-rose-600 text-[11px]"
+                                  className="h-7 px-2.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-bold rounded-lg cursor-pointer"
                                   onClick={() => handleDeviceAction(device.id, "revoke")}
                                 >
                                   Revoke
@@ -573,7 +911,7 @@ export function ServerModeCard() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 px-2 text-emerald-600 text-[11px]"
+                                  className="h-7 px-2.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 text-xs font-bold rounded-lg cursor-pointer"
                                   onClick={() => handleDeviceAction(device.id, "unrevoke")}
                                 >
                                   Unrevoke
@@ -591,68 +929,264 @@ export function ServerModeCard() {
           </Card>
 
           {/* Central Backups & Migration */}
-          <Card className="border-slate-200">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <HardDrive className="h-4 w-4 text-blue-600" />
-                    Server Database Backups & Migration
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Local zip archives saved directly to C:\ProgramData\SkyArianaBOL\backups\.
-                  </CardDescription>
+          <Card className="border border-slate-200/90 bg-white rounded-2xl shadow-xs overflow-hidden transition-all duration-200">
+            <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/60 to-white">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-xs shrink-0 ring-4 ring-blue-50 mt-0.5 sm:mt-0">
+                    <HardDrive className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-sans text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                        Server Database Backups & Migration
+                      </h3>
+                      <Badge variant="outline" className="text-[10px] font-bold bg-blue-50/80 text-blue-700 border-blue-200/80 px-2 py-0.5 rounded-full">
+                        {backups.length} {backups.length === 1 ? "Archive" : "Archives"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                      Automated & on-demand ZIP snapshots with instant rollback protection
+                    </p>
+                    <span className="text-[11px] text-slate-400 font-[vazirmatn] block mt-0.5" dir="rtl">
+                      نسخه‌های پشتیبان سرور، بازیابی و مهاجرت اطلاعات محلی
+                    </span>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+
+                <div className="flex items-center gap-2 flex-wrap self-start lg:self-center">
                   <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void handleRefreshBackups()}
+                    disabled={loading || isRefreshingBackups}
+                    className="h-8 px-2.5 text-xs text-slate-600 hover:text-slate-900 border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs font-semibold gap-1.5 cursor-pointer"
+                    title="Refresh backups archive list"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5 text-slate-500", isRefreshingBackups && "animate-spin text-blue-600")} />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </Button>
+
+                  <Button
+                    type="button"
                     size="sm"
                     variant="outline"
                     onClick={handleMigrateData}
-                    disabled={loading}
-                    className="h-8 text-xs gap-1.5"
+                    disabled={loading || isMigrating}
+                    className="h-8 px-3 text-xs font-semibold text-slate-700 hover:text-blue-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition-colors shadow-2xs gap-1.5 cursor-pointer"
+                    title="Migrate existing local JSON records into central server database"
                   >
-                    <Upload className="h-3.5 w-3.5 text-blue-600" />
-                    Migrate Existing Local Data
+                    {isMigrating ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5 text-blue-600" />
+                    )}
+                    <span>{isMigrating ? "Migrating..." : "Migrate Existing Local Data"}</span>
                   </Button>
+
                   <Button
+                    type="button"
                     size="sm"
                     onClick={handleCreateBackup}
-                    disabled={loading}
-                    className="h-8 text-xs gap-1.5"
+                    disabled={loading || isCreatingBackup}
+                    className="h-8 px-3.5 text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-2xs transition-all gap-1.5 cursor-pointer"
+                    title="Create an immediate ZIP archive of the server database"
                   >
-                    <Download className="h-3.5 w-3.5" />
-                    Backup Now
+                    {isCreatingBackup ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    <span>{isCreatingBackup ? "Backing up..." : "Backup Now"}</span>
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+
+            <CardContent className="p-4 sm:p-5 space-y-4">
+              {/* Directory Path Pill */}
+              <div className="p-3 bg-slate-50/90 border border-slate-200/80 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-600 flex items-center justify-center shrink-0 shadow-2xs">
+                    <FolderArchive className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                        Storage Vault Path
+                      </span>
+                      <span className="text-[10px] text-slate-400 hidden sm:inline">• Local Archive Vault</span>
+                    </div>
+                    <div className="font-mono text-xs font-semibold text-slate-800 truncate select-all">
+                      {backupDir || "C:\\ProgramData\\SkyArianaBOL\\backups\\"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 self-end md:self-center shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyPath(backupDir || "C:\\ProgramData\\SkyArianaBOL\\backups\\")}
+                    className="h-7 px-2.5 text-[11px] font-semibold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 gap-1.5 shadow-2xs cursor-pointer"
+                    title="Copy directory path to clipboard"
+                  >
+                    {copiedPath ? (
+                      <>
+                        <Check className="h-3 w-3 text-emerald-600" />
+                        <span className="text-emerald-700 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3 text-slate-500" />
+                        <span>Copy Path</span>
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenFolder(backupDir || "C:\\ProgramData\\SkyArianaBOL\\backups\\")}
+                    className="h-7 px-2.5 text-[11px] font-semibold bg-white border-slate-200 text-slate-700 hover:text-blue-700 hover:bg-blue-50/50 gap-1.5 shadow-2xs cursor-pointer"
+                    title="Open backup folder in Windows Explorer"
+                  >
+                    <FolderOpen className="h-3 w-3 text-blue-600" />
+                    <span>Open Folder</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Backups Empty State or List */}
               {backups.length === 0 ? (
-                <div className="text-xs text-slate-400 py-3 text-center border border-dashed rounded-md">
-                  No server backups created yet. Click "Backup Now" to create your first archive.
+                <div className="border-2 border-dashed border-slate-200/90 bg-gradient-to-b from-slate-50/60 via-white to-slate-50/30 rounded-2xl p-7 sm:p-10 text-center flex flex-col items-center justify-center gap-3.5 transition-all">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-b from-blue-50 to-indigo-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-xs">
+                    <HardDrive className="h-7 w-7 text-blue-600" />
+                  </div>
+                  <div className="max-w-md space-y-1">
+                    <h4 className="font-sans text-sm sm:text-base font-black text-slate-800 tracking-tight">
+                      No Server Backups Created Yet
+                    </h4>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Create a point-in-time snapshot of the central database before client sync operations, software updates, or data migration.
+                    </p>
+                    <span className="text-[11px] text-slate-400 font-[vazirmatn] block pt-0.5" dir="rtl">
+                      هنوز هیچ نسخه پشتیبانی از پایگاه داده مرکزی در این پوشه ذخیره نشده است
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleCreateBackup}
+                    disabled={loading || isCreatingBackup}
+                    className="mt-1 h-9 px-4 text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs gap-2 cursor-pointer"
+                  >
+                    {isCreatingBackup ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    <span>{isCreatingBackup ? "Creating Archive..." : "Create First Backup"}</span>
+                  </Button>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                   {backups.map((b) => (
                     <div
                       key={b.filename}
-                      className="p-2.5 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between text-xs"
+                      className="p-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200/90 hover:border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-colors"
                     >
-                      <div>
-                        <div className="font-mono font-medium text-slate-800">{b.filename}</div>
-                        <div className="text-[11px] text-slate-500">
-                          {Math.round(b.sizeBytes / 1024)} KB • {new Date(b.createdAt).toLocaleString()}
+                      <div className="flex items-start sm:items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 shadow-2xs">
+                          <Archive className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="font-mono font-bold text-slate-800 text-xs truncate select-all flex items-center gap-2">
+                            <span>{b.filename}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyFilename(b.filename)}
+                              className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                              title="Copy filename"
+                            >
+                              {copiedFilename === b.filename ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
+                            <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 bg-slate-200/70 text-slate-700 border-0">
+                              {formatSize(b.sizeBytes)}
+                            </Badge>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-slate-400" />
+                              {new Date(b.createdAt).toLocaleString()}
+                            </span>
+                            {b.manifest?.recordCounts && (
+                              <span className="text-[10px] text-slate-400 hidden md:inline">
+                                ({b.manifest.recordCounts.bols ?? 0} BOLs, {b.manifest.recordCounts.invoices ?? 0} Invoices)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleRestoreBackup(b.filename)}
-                        disabled={loading}
-                        className="h-7 text-xs text-amber-700 hover:text-amber-900"
-                      >
-                        Restore
-                      </Button>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRevealBackup(b.filePath || b.filename)}
+                          className="h-7 px-2 text-xs text-slate-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
+                          title="Reveal file in Windows Explorer"
+                        >
+                          <FolderOpen className="h-3.5 w-3.5" />
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadBackup(b.filename)}
+                          className="h-7 px-2 text-xs text-slate-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
+                          title="Download backup archive"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRestoreBackup(b.filename)}
+                          disabled={loading || restoringFile === b.filename}
+                          className="h-7 px-2.5 text-xs font-bold text-amber-700 hover:text-amber-900 border-amber-200 bg-amber-50/40 hover:bg-amber-100/60 shadow-2xs gap-1.5 cursor-pointer"
+                          title="Restore database from this archive"
+                        >
+                          {restoringFile === b.filename ? (
+                            <Loader2 className="h-3 w-3 animate-spin text-amber-700" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3 text-amber-700" />
+                          )}
+                          <span>{restoringFile === b.filename ? "Restoring..." : "Restore"}</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteBackup(b.filename)}
+                          disabled={loading}
+                          className="h-7 px-2 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 cursor-pointer"
+                          title="Delete backup archive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -664,118 +1198,159 @@ export function ServerModeCard() {
 
       {/* CLIENT PC VIEW */}
       {mode === "client" && (
-        <Card className="border-slate-200">
-          <CardHeader>
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Laptop className="h-5 w-5 text-blue-600" />
-              Connect to Main Sky Ariana Server
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Connect this workstation to the central Sky Ariana Server PC over the local network.
-            </CardDescription>
+        <Card className="border border-slate-200/90 bg-white rounded-2xl shadow-xs overflow-hidden transition-all duration-200">
+          <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/60 to-white">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white flex items-center justify-center shadow-xs shrink-0 ring-4 ring-indigo-50 mt-0.5 sm:mt-0">
+                  <Laptop className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-sans text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                      Connect to Main Sky Ariana Server
+                    </h3>
+                    <Badge variant="outline" className="bg-indigo-50/80 text-indigo-700 border-indigo-200 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                      Client Mesh
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Connect this workstation to the central Sky Ariana Server PC over the local network.
+                  </p>
+                  <span className="text-[11px] text-slate-400 font-[vazirmatn] block mt-0.5" dir="rtl">
+                    اتصال این ایستگاه کاری به سرور مرکزی اسکای آریانا از طریق شبکه محلی
+                  </span>
+                </div>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-4 sm:p-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs">Server URL (e.g. http://192.168.1.50:8000)</Label>
-                <div className="flex gap-2 mt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Wifi className="h-3.5 w-3.5 text-blue-600" />
+                  Server URL (e.g. http://192.168.1.50:8000)
+                </Label>
+                <div className="flex gap-2">
                   <Input
                     placeholder="http://192.168.1.50:8000"
                     value={clientServerUrl}
                     onChange={(e) => setClientServerUrl(e.target.value)}
-                    className="h-8 text-xs font-mono"
+                    className="h-9 text-xs font-mono rounded-xl border-slate-300 bg-slate-50/60 focus:bg-white"
                   />
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleTestClientConnection}
                     disabled={loading || !clientServerUrl}
-                    className="h-8 text-xs shrink-0"
+                    className="h-9 px-3 text-xs font-bold rounded-xl border-slate-300 hover:bg-slate-50 shrink-0 gap-1.5 cursor-pointer shadow-2xs"
                   >
+                    <Radio className="h-3.5 w-3.5 text-blue-600" />
                     Test Ping
                   </Button>
                 </div>
                 {testResult && (
-                  <div className={`text-[11px] mt-1.5 flex items-center gap-1 ${testResult.success ? "text-emerald-600 font-semibold" : "text-rose-600"}`}>
+                  <div className={cn(
+                    "text-[11px] mt-1.5 flex items-center gap-1.5 font-semibold p-2 rounded-lg border",
+                    testResult.success
+                      ? "text-emerald-700 bg-emerald-50/80 border-emerald-200"
+                      : "text-rose-700 bg-rose-50/80 border-rose-200"
+                  )}>
                     {testResult.success ? (
                       <>
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Server connected ({testResult.latencyMs}ms)
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                        <span>Central server responding with latency: <strong className="font-mono">{testResult.latencyMs}ms</strong></span>
                       </>
                     ) : (
                       <>
-                        <XCircle className="h-3.5 w-3.5" />
-                        {testResult.error || "Connection failed"}
+                        <XCircle className="h-3.5 w-3.5 text-rose-600 shrink-0" />
+                        <span>{testResult.error || "Connection failed. Verify server PC is running on this LAN."}</span>
                       </>
                     )}
                   </div>
                 )}
               </div>
 
-              <div>
-                <Label className="text-xs">Workstation Name</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Laptop className="h-3.5 w-3.5 text-indigo-600" />
+                  Workstation Name
+                </Label>
                 <Input
                   placeholder="e.g. Accounting PC 2"
                   value={clientDeviceName}
                   onChange={(e) => setClientDeviceName(e.target.value)}
-                  className="h-8 text-xs mt-1"
+                  className="h-9 text-xs rounded-xl border-slate-300 bg-slate-50/60 focus:bg-white"
                 />
               </div>
             </div>
 
-            <div>
-              <Label className="text-xs">Pairing Code (Obtain from Main Server PC)</Label>
-              <div className="flex gap-2 mt-1">
+            <div className="space-y-1.5 pt-1">
+              <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5 text-blue-600" />
+                Pairing Code (Obtain from Main Server PC)
+              </Label>
+              <div className="flex gap-2">
                 <Input
                   placeholder="SKY-XXXX-XXXX"
                   value={clientPairingCode}
                   onChange={(e) => setClientPairingCode(e.target.value.toUpperCase())}
-                  className="h-8 text-xs font-mono uppercase tracking-wider max-w-sm"
+                  className="h-9 text-xs font-mono uppercase tracking-widest max-w-sm rounded-xl border-slate-300 bg-slate-50/60 focus:bg-white font-bold"
                 />
                 <Button
                   size="sm"
                   onClick={handleClientPair}
                   disabled={loading || !clientPairingCode || !clientServerUrl}
-                  className="h-8 text-xs"
+                  className="h-9 px-4 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-2xs gap-1.5 cursor-pointer"
                 >
+                  <KeyRound className="h-3.5 w-3.5" />
                   Pair & Connect
                 </Button>
               </div>
             </div>
 
             {/* Client Status Indicator */}
-            <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className={`h-3 w-3 rounded-full ${
-                  clientState.status === "connected" ? "bg-emerald-500" :
-                  clientState.status === "reconnecting" ? "bg-amber-500" :
+            <div className="mt-4 p-3.5 bg-slate-50/90 border border-slate-200/90 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "h-3.5 w-3.5 rounded-full shrink-0 shadow-2xs",
+                  clientState.status === "connected" ? "bg-emerald-500 animate-pulse" :
+                  clientState.status === "reconnecting" ? "bg-amber-500 animate-pulse" :
                   "bg-rose-500"
-                }`} />
+                )} />
                 <div>
-                  <div className="text-xs font-semibold capitalize text-slate-800">
-                    Status: {clientState.status}
+                  <div className="text-xs font-black capitalize text-slate-800 flex items-center gap-2">
+                    <span>Workstation Status: {clientState.status}</span>
+                    <Badge variant="outline" className={cn(
+                      "text-[10px] font-bold uppercase",
+                      clientState.status === "connected" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                      clientState.status === "reconnecting" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                      "bg-rose-50 text-rose-700 border-rose-200"
+                    )}>
+                      {clientState.status}
+                    </Badge>
                   </div>
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-[11px] text-slate-500 mt-0.5">
                     {clientState.latencyMs ? `Latency: ${clientState.latencyMs}ms` : "Offline queue active"}
                     {pendingQueueCount > 0 ? ` • ${pendingQueueCount} pending changes queued` : ""}
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 self-end sm:self-center">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => apiClient.checkConnection()}
-                  className="h-7 text-xs gap-1"
+                  className="h-8 text-xs font-semibold gap-1.5 rounded-lg bg-white border-slate-200 hover:bg-slate-50 cursor-pointer shadow-2xs"
                 >
-                  <RefreshCw className="h-3 w-3" /> Check Now
+                  <RefreshCw className="h-3.5 w-3.5 text-slate-600" /> Check Now
                 </Button>
                 {clientState.status !== "unconfigured" && (
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => apiClient.clearCredentials()}
-                    className="h-7 text-xs text-rose-600 hover:text-rose-700"
+                    className="h-8 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer"
                   >
                     Disconnect
                   </Button>

@@ -1,49 +1,55 @@
 ---
-last_mapped_commit: e375f553418e664b7c4d0e8cf05859dcdbf106a4
-last_mapped_at: 2026-10-23
+last_mapped_commit: 8a57ed6fd9472c92904aad31bd40ae76281bc5c8
+last_mapped_at: 2026-11-13
 ---
 # Areas of Concern & Technical Debt
 
-**Analysis Date:** 2026-10-23
+**Analysis Date:** 2026-11-13
 
-## Known Technical Debt & Platform Nuances
+## Runtime & Environment Gotchas
 
-### 1. Windows PowerShell Execution Policy Restrictions
+### 1. Port 3001 Hardcoding & Port 3000 Collision
 
-- **Issue**: Default Windows PowerShell script execution policy blocks executing `npm.ps1` (`SecurityError / UnauthorizedAccess`).
-- **Mitigation**: Always run npm commands via `cmd /c "npm ..."` or invoke Node directly (`node --test ...`).
-- **Status**: Documented and mitigated across local workflow scripts.
+- **Issue**: `next dev`, `next start`, and `electron:dev` (via `wait-on`) hardcode port 3001. Port 3000 hosts a different service on this developer workstation.
+- **Rule**: Never change the development or production server port to 3000. All health checks, Electron URLs, and test requests must strictly target `http://localhost:3001`.
 
-### 2. Windows In-Place Process & File Locking
+### 2. Hidden-Window Rendering in Electron
 
-- **Issue**: Windows operating system strictly locks `.exe` and `.dll` binaries in `Program Files` while processes are running. NSIS installers historically raised *"AQ COMPANIES cannot be closed"* error dialogs during automatic updates.
+- **Issue**: Libraries like `html-to-image` (`toCanvas`) and `yieldToPaint` (based on `requestAnimationFrame`) **hang indefinitely when the Electron window is hidden** (e.g. during background PDF generation or headless tasks).
+- **Mitigation**: Use `toSvg` plus a manual `Image` loader with a timeout cap instead of `toCanvas` or rAF loops.
+
+### 3. Tailwind Glob Scanning Safety
+
+- **Issue**: Temporary files or scrap files with curly braces or junk patterns in their names crash `next build` during Tailwind's glob scanning phase.
+- **Mitigation**: `scripts/check-tailwind-glob-safety.cjs` guards this in prebuild and release workflows. Maintain clean workspace naming.
+
+### 4. BOL Editor Toolbar CSS Wrapping
+
+- **Issue**: The `.bol-editor-toolbar` in `app/globals.css` must wrap and never clip or use `overflow-x: auto / hidden` at any breakpoint. `.toolbar-group-nav-appearance` must wrap below 1024px. Source-assertion tests strictly enforce this.
+
+### 5. Windows In-Place Process & File Locking
+
+- **Issue**: Running Electron and Node background processes lock executable binaries, causing NSIS installers to fail if instances remain active during updates.
 - **Mitigation**:
-  - Implemented `build/installer.nsh` with `customCheckAppRunning` and `customInit` macros executing `taskkill /F /T /IM "AQ COMPANIES.exe"` and `taskkill /F /T /IM "aq-backend.exe"`.
-  - Added delayed detached installer launcher in `electron/ipc/register-ipc.ts` with immediate application exit.
-- **Monitoring**: Verify that automatic updates on Windows 10/11 machines complete without manual Task Manager intervention.
+  - `build/installer.nsh` executes `taskkill /F /T /IM "AQ COMPANIES.exe"` and `taskkill /F /T /IM "electron.exe"`.
+  - `electron/ipc/register-ipc.ts` implements delayed detached installer execution.
 
-### 3. Multi-PC LAN & Offline Editing Conflicts
+## Data Persistence & Concurrency Concerns
 
-- **Issue**: Multiple logistics coordinators may edit the same BOL or account ledger entries concurrently across different office terminals without an active internet connection.
+### 6. Live Business Data Protection
+
+- **Issue**: Root `.local-*.json` files (`.local-bols.json`, `.local-account-ledgers.json`, `.local-ledger-system.json`, `.local-invoices.json`, etc.) contain real production records.
 - **Mitigation**:
-  - `OnlineSaveManager` provides offline FIFO queueing and auto-drain with 4xx error eviction.
-  - Delta synchronization engine (`lib/sync/sync-queue.ts`) records field-level modifications and resolves non-overlapping edits.
-  - Ephemeral transfer codes allow point-to-point snapshot synchronization without cloud infrastructure.
+  - Direct deletion, resetting, or re-seeding is strictly prohibited.
+  - All writes must go through the atomic temporary file staging in `lib/services/blob-db.ts`.
+  - Automated daily snapshots are compressed and stored in `data/backups/gcs-snapshots/` via `scripts/gcs-automated-backup.cjs`.
 
-### 4. Dual Runtime Target Compatibility (Desktop vs Web)
+### 7. Source-Assertion Test Fragility
 
-- **Issue**: Features relying on Electron native modules (`window.skyDesktop.print`, `window.skyDesktop.getPrinters`, file system dialogs) are unavailable when the application is accessed as a web application via Vercel or standard browsers.
-- **Mitigation**: All native desktop bridge calls must maintain defensive checks:
-  `if (typeof window !== "undefined" && window.skyDesktop?.print) { ... } else { window.print() }`
-
-### 5. Memory Management with Growing Ledger Snapshots
-
-- **Issue**: Local JSON files (`.local-bols.json`, `.local-account-ledgers.json`) grow continuously as hundreds of new shipments are created each quarter.
-- **Mitigation**:
-  - `lib/services/blob-db.ts` enforces a bounded LRU memory cache capped at 100 entries (`MAX_CACHE_ENTRIES = 100`).
-  - Report tables implement client-side pagination and lazy rendering to preserve 60fps UI performance.
+- **Issue**: Modifying class names, prop names, or markup strings in toolbars or views can break source-assertion tests (`tests/*.test.cjs`) without causing runtime syntax or TypeScript errors.
+- **Mitigation**: Always run `node tests/<matching-test>.test.cjs` or full `npm test` after modifying UI layout or CSS.
 
 ---
 
-*Concerns analysis: 2026-10-23*
+*Concerns analysis: 2026-11-13*
 *Update as technical debt is resolved or new concerns arise*

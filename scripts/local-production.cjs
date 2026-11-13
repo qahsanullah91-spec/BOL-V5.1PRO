@@ -14,6 +14,7 @@ if (mode === 'build') {
   env.TMP = temporaryDirectory
   env.SKY_NEXT_DIST_DIR = '.next-production'
   env.SKY_STANDALONE = '1'
+  env.NODE_OPTIONS = (process.env.NODE_OPTIONS ? process.env.NODE_OPTIONS + ' ' : '') + '--max-old-space-size=8192'
 } else if (mode === 'start') {
   env.SKY_NEXT_DIST_DIR = '.next-production'
 }
@@ -21,7 +22,7 @@ if (mode === 'build') {
 const host = process.env.SERVER_HOST || (process.env.LAN_MODE === 'true' ? '0.0.0.0' : '127.0.0.1')
 const port = process.env.SERVER_PORT || '3000'
 
-const args = mode === 'build' ? ['build'] : ['start', '--hostname', host, '-p', port]
+const args = mode === 'build' ? ['build', '--webpack'] : ['start', '--hostname', host, '-p', port]
 
 function runProcess(attempt = 1) {
   const child = spawn(process.execPath, [require.resolve('next/dist/bin/next'), ...args, ...process.argv.slice(3)], {

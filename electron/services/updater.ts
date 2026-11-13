@@ -263,8 +263,8 @@ export function readReleaseManifest(dir: string): ReleaseManifest | null {
 }
 
 export async function evaluateSystemUpdate(customCandidate?: string | null): Promise<DesktopUpdateInfo> {
-  const currentVersion = (app.getVersion() || "5.4.14").replace(/^v/i, "")
-  const currentBuild = "2026.10.26-PRO-5"
+  const currentVersion = (app.getVersion() || "5.18.18").replace(/^v/i, "")
+  const currentBuild = "2026.11.13-PRO-13"
 
   const candidate = findInstallerCandidate(customCandidate)
   if (!candidate || !fs.existsSync(candidate.installerPath)) {
@@ -429,7 +429,7 @@ export async function createPreUpdateBackup(): Promise<{
   try {
     const dataDir = getDataDirectory()
     const backupRoot = path.join(dataDir, "backups")
-    const currentVer = app.getVersion() || "5.4.14"
+    const currentVer = app.getVersion() || "5.18.18"
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
     const backupName = `pre-update-v${currentVer.replace(/^v/i, "")}-${timestamp}`
     const targetDir = path.join(backupRoot, backupName)
@@ -489,7 +489,7 @@ export async function createPreUpdateBackup(): Promise<{
       backupType: "PRE_UPDATE_PROTECTIVE_SNAPSHOT",
       appName: "AQ-COMPANIES",
       currentVersion: currentVer,
-      buildNumber: "2026.10.26-PRO-5",
+      buildNumber: "2026.11.13-PRO-13",
       createdAt: new Date().toISOString(),
       files: copiedFiles,
       recordCounts: {

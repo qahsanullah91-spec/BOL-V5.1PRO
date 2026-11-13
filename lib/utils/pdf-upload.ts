@@ -4,6 +4,15 @@ import { COMPANY_STAMP_SIGNATURE_DATA_URL, getCompanyStampDataUrl } from "@/lib/
 import { isPashtoOrArabic, prepareBidiPdfText } from "@/lib/utils/pashto-bidi"
 import { extractInvoiceNumber } from "@/lib/utils/shipping-documents"
 import { isUUID } from "@/lib/utils/bol-filters"
+import {
+  buildEmbeddedPdfFontCss,
+  inlineElementImagesPreservingVector,
+  loadSvgImage,
+  computeClampedCanvasDimensions,
+  drawImageHighQualityToCanvas,
+  captureElectronVectorPdf,
+  withCaptureTimeout,
+} from "@/lib/utils/pdf-high-res-capture"
 
 // Dynamically import PDF libraries only in browser environment
 let html2canvasLib: any = null
@@ -146,20 +155,37 @@ function blobToDataURL(blob: Blob): Promise<string> {
 }
 
 async function fetchAsBase64(url: string) {
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`Failed to load asset: ${url}`)
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null
+  const timer = controller && typeof window !== "undefined" ? window.setTimeout(() => controller.abort(), 5000) : null
+  try {
+    const response = await fetch(url, controller ? { signal: controller.signal } : undefined)
+    if (!response.ok) {
+      throw new Error(`Failed to load asset: ${url}`)
+    }
+    const dataUrl = await blobToDataURL(await response.blob())
+    return dataUrl.split(",")[1] || ""
+  } finally {
+    if (timer !== null && typeof window !== "undefined") {
+      window.clearTimeout(timer)
+    }
   }
-  const dataUrl = await blobToDataURL(await response.blob())
-  return dataUrl.split(",")[1] || ""
 }
 
 async function fetchImageDataURL(url?: string) {
   try {
     const source = url || "/images/logo.png"
-    const response = await fetch(source)
-    if (!response.ok) return null
-    return blobToDataURL(await response.blob())
+    if (source.startsWith("data:")) return source
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null
+    const timer = controller && typeof window !== "undefined" ? window.setTimeout(() => controller.abort(), 5000) : null
+    try {
+      const response = await fetch(source, controller ? { signal: controller.signal } : undefined)
+      if (!response.ok) return null
+      return blobToDataURL(await response.blob())
+    } finally {
+      if (timer !== null && typeof window !== "undefined") {
+        window.clearTimeout(timer)
+      }
+    }
   } catch {
     return null
   }
@@ -503,7 +529,7 @@ export async function generateModernBOLPDFBlob(options: ModernBOLPDFOptions): Pr
   const form = options.formData
   const companyTitle = cleanPDFText(options.companyName) || "SKY ARIANA LIMITED"
   const companyTagline = cleanPDFText(options.companySubtitle) || "Import & Export - International Transportation"
-  const companyPersian = cleanPDFText(options.companyNamePersian) || "شرکت حمل و نقل بین المللی سکای آریانا لمیتد"
+  const companyPersian = cleanPDFText(options.companyNamePersian) || "شرکت حمل و نقل بین المللی اسکای آریانا"
   let pageNo = 1
   let y = PAGE_MARGIN
 
@@ -719,7 +745,7 @@ export async function generatePremiumBOLPDFBlob(options: ModernBOLPDFOptions): P
   const form = options.formData
   const companyTitle = cleanPDFText(options.companyName) || "SKY ARIANA LIMITED"
   const companyTagline = cleanPDFText(options.companySubtitle) || "Import & Export - International Transportation"
-  const companyPersian = cleanPDFText(options.companyNamePersian) || "شرکت حمل و نقل بین المللی سکای آریانا لمیتد"
+  const companyPersian = cleanPDFText(options.companyNamePersian) || "شرکت حمل و نقل بین المللی اسکای آریانا"
   const contactCardWidth = (CONTENT_WIDTH - 3) / 2
   let y = PAGE_MARGIN
 
@@ -908,6 +934,7 @@ export type GenerateBOLPDFBlobOptions = {
   fileName?: string
   previewElement?: HTMLElement | null
   modern?: ModernBOLPDFOptions
+  useElectronVectorPdf?: boolean
   onFallback?: (reason: string) => void
 }
 
@@ -945,7 +972,7 @@ export async function generateBOLPDFBlob(
           formData: rawDoc as BillOfLadingFormData,
           logoUrl: "/images/logo.png",
           companyName: "SKY ARIANA LIMITED",
-          companyNamePersian: "شرکت حمل و نقل بین المللی سکای آریانا لمیتد",
+          companyNamePersian: "شرکت حمل و نقل بین المللی اسکای آریانا",
           companySubtitle: "Import & Export - International Transportation",
           companyPhone: "+93 700 939 365",
           companyEmail: "info@skyariana.com",
@@ -965,7 +992,9 @@ export async function generateBOLPDFBlob(
 
   if (previewElement) {
     try {
-      return await generatePDFBlob(previewElement, fileName)
+      return await generatePDFBlob(previewElement, fileName, {
+        useElectronVectorPdf: options?.useElectronVectorPdf,
+      })
     } catch (error) {
       console.warn("Direct element PDF capture failed, falling back to premium generator:", error)
       options?.onFallback?.(error instanceof Error ? error.message : String(error))
@@ -1217,18 +1246,10 @@ function sanitizeElementForPDF(source: Element, target: Element): void {
     setPDFStyle(targetElement, "white-space", "nowrap")
   }
 
-  if (sourceStyle.borderTopStyle !== "none") {
-    setPDFStyle(targetElement, "border-top-color", borderColor)
-  }
-  if (sourceStyle.borderRightStyle !== "none") {
-    setPDFStyle(targetElement, "border-right-color", borderColor)
-  }
-  if (sourceStyle.borderBottomStyle !== "none") {
-    setPDFStyle(targetElement, "border-bottom-color", borderColor)
-  }
-  if (sourceStyle.borderLeftStyle !== "none") {
-    setPDFStyle(targetElement, "border-left-color", borderColor)
-  }
+  setPDFStyle(targetElement, "border-top-color", borderColor)
+  setPDFStyle(targetElement, "border-right-color", borderColor)
+  setPDFStyle(targetElement, "border-bottom-color", borderColor)
+  setPDFStyle(targetElement, "border-left-color", borderColor)
 
   if (backgroundImage === "none" && hasUnsupportedColor(sourceStyle.backgroundImage)) {
     setPDFStyle(targetElement, "background-image", "none")
@@ -1255,8 +1276,16 @@ function sanitizeElementForPDF(source: Element, target: Element): void {
  */
 export async function generatePDFBlob(
   element: HTMLElement,
-  fileName: string
+  fileName: string,
+  options?: { useElectronVectorPdf?: boolean },
 ): Promise<Blob> {
+  if (options?.useElectronVectorPdf) {
+    const vectorBlob = await captureElectronVectorPdf("bol", { landscape: false })
+    if (vectorBlob) {
+      return await normalizePDFBlob(vectorBlob)
+    }
+  }
+
   const jsPDF = await loadJSPDFLibrary()
   const pageWidth = 210
   const pageHeight = 297
@@ -1267,62 +1296,24 @@ export async function generatePDFBlob(
       ? element
       : (element.querySelector?.('[data-bol-a4="true"]') as HTMLElement | null)) || element
 
-  // 1. Wait for document fonts and all image assets to be fully ready & decoded
+  // 1. Wait for document fonts and all image assets to be fully ready & decoded (with bounded timeouts)
   if (typeof document !== "undefined" && document.fonts) {
     try {
-      await document.fonts.ready
+      await withCaptureTimeout(document.fonts.ready, 2000).catch(() => {})
     } catch {}
   }
 
-  const images = Array.from(a4Element.querySelectorAll("img"))
-  await Promise.all(
-    images.map(async (img) => {
-      if (!img.complete) {
-        await new Promise<void>((resolve) => {
-          img.onload = () => resolve()
-          img.onerror = () => resolve()
-        })
-      }
-      if (typeof img.decode === "function") {
-        try {
-          await img.decode()
-        } catch {}
-      }
-    })
-  )
+  // Pre-inline images while preserving SVG vector clarity, and build embedded font CSS
+  await withCaptureTimeout(
+    inlineElementImagesPreservingVector(a4Element, fetchImageDataURL),
+    5000,
+  ).catch(() => {})
 
-  // 2. Pre-bundle embedded font CSS for html-to-image so it doesn't fail on external stylesheets
+  // 2. Pre-bundle embedded font CSS for html-to-image (including Vazirmatn & Noto)
   let fontCSS = ""
   try {
-    const fonts = await loadPDFFontAssets()
-    if (fonts) {
-      fontCSS = `
-        @font-face {
-          font-family: 'NotoSans';
-          font-weight: 400;
-          font-style: normal;
-          src: url(data:font/truetype;charset=utf-8;base64,${fonts.notoSansRegular}) format('truetype');
-        }
-        @font-face {
-          font-family: 'NotoSans';
-          font-weight: 700;
-          font-style: normal;
-          src: url(data:font/truetype;charset=utf-8;base64,${fonts.notoSansBold}) format('truetype');
-        }
-        @font-face {
-          font-family: 'NotoNaskhArabic';
-          font-weight: 400;
-          font-style: normal;
-          src: url(data:font/truetype;charset=utf-8;base64,${fonts.arabicRegular}) format('truetype');
-        }
-        @font-face {
-          font-family: 'NotoNaskhArabic';
-          font-weight: 700;
-          font-style: normal;
-          src: url(data:font/truetype;charset=utf-8;base64,${fonts.arabicBold}) format('truetype');
-        }
-      `
-    }
+    const fonts = await withCaptureTimeout(loadPDFFontAssets(), 4000).catch(() => null)
+    fontCSS = buildEmbeddedPdfFontCss(fonts)
   } catch (fontErr) {
     console.warn("Could not pre-bundle fonts for PDF capture:", fontErr)
   }
@@ -1335,7 +1326,7 @@ export async function generatePDFBlob(
 
   // 3. Primary capture: High-resolution native SVG foreignObject rasterization via html-to-image
   try {
-    const { toCanvas } = await import("html-to-image")
+    const { toSvg } = await import("html-to-image")
 
     // Cooperative yield to keep UI responsive and spinners rendering
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -1346,6 +1337,7 @@ export async function generatePDFBlob(
       format: "a4",
       compress: true,
       putOnlyUsedFonts: true,
+      precision: 16,
     })
 
     const cleanTitle = (fileName || "BOL").replace(/\.pdf$/i, "")
@@ -1361,39 +1353,84 @@ export async function generatePDFBlob(
         pdf.addPage("a4", "portrait")
       }
       const pageEl = pagesToRender[pIdx]
-      const canvas = await toCanvas(pageEl, {
-        pixelRatio: 3.5, // Ultra-sharp 336+ DPI true high-resolution print quality
-        quality: 1.0,
-        cacheBust: false,
-        skipFonts: true, // Embedded via fontEmbedCSS to avoid stylesheet CORS/SecurityError crashes
-        fontEmbedCSS: fontCSS,
-        backgroundColor: "#ffffff",
-        style: {
-          transform: "none",
-          margin: "0",
-          opacity: "1",
-          visibility: "visible",
-          boxShadow: "none",
-          outline: "none",
-          WebkitFontSmoothing: "antialiased",
-          MozOsxFontSmoothing: "grayscale",
-          textRendering: "geometricPrecision",
-        } as any,
-        filter: (node: HTMLElement) => {
-          if (!node) return true
-          if (node.getAttribute?.("data-print-ignore") === "true") return false
-          if (node.getAttribute?.("data-pdf-ignore") === "true") return false
-          if (node.getAttribute?.("data-html2canvas-ignore") === "true") return false
-          if (typeof node.className === "string" && (node.className.includes("no-print") || node.className.includes("print:hidden"))) return false
-          if (node.classList?.contains?.("no-print")) return false
-          if (node.getAttribute?.("data-qr-code") === "true" || node.closest?.("[data-qr-code]")) return true
-          if (node.tagName === "BUTTON") return false
-          return true
-        },
-      })
+      const elementFilter = (node: HTMLElement) => {
+        if (!node) return true
+        if (node.getAttribute?.("data-print-ignore") === "true") return false
+        if (node.getAttribute?.("data-pdf-ignore") === "true") return false
+        if (node.getAttribute?.("data-html2canvas-ignore") === "true") return false
+        if (node.getAttribute?.("data-stamp-controls") === "true" || node.closest?.('[data-stamp-controls="true"]')) return false
+        if (node.getAttribute?.("data-preview-toolbar") === "true" || node.closest?.('[data-preview-toolbar="true"]')) return false
+        if (typeof node.className === "string" && (node.className.includes("no-print") || node.className.includes("print:hidden"))) return false
+        if (node.classList?.contains?.("no-print")) return false
+        if (node.getAttribute?.("data-qr-code") === "true" || node.closest?.("[data-qr-code]")) return true
+        if (node.tagName === "BUTTON") return false
+        return true
+      }
 
-      const imageData = canvas.toDataURL("image/jpeg", 0.99)
-      pdf.addImage(imageData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
+      const captureStyle = {
+        transform: "none",
+        margin: "0",
+        opacity: "1",
+        visibility: "visible",
+        boxShadow: "none",
+        outline: "none",
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+        textRendering: "geometricPrecision",
+      } as any
+
+      const rasterizeSvgToPng = async (svgDataUrl: string, timeoutMs: number): Promise<string> => {
+        const img = await loadSvgImage(svgDataUrl, timeoutMs, "Timed out rasterizing the page for PDF export.")
+        const ratio = 4 // Clamped strictly <= 4096px CPU canvas edge to prevent GPU VRAM tile corruption
+        const { width: targetWidth, height: targetHeight } = computeClampedCanvasDimensions(
+          pageEl.offsetWidth || 794,
+          pageEl.offsetHeight || 1123,
+          ratio,
+          4096,
+        )
+        const canvas = drawImageHighQualityToCanvas(img, targetWidth, targetHeight)
+        return canvas.toDataURL("image/png")
+      }
+
+      let imageData: string | null = null
+
+      try {
+        const svgDataUrl = await withCaptureTimeout(
+          toSvg(pageEl, {
+            pixelRatio: 4,
+            cacheBust: false,
+            skipFonts: Boolean(fontCSS),
+            fontEmbedCSS: fontCSS || undefined,
+            backgroundColor: "#ffffff",
+            style: captureStyle,
+            filter: elementFilter,
+          }),
+          20000,
+          "Timed out building SVG snapshot for PDF export.",
+        )
+
+        imageData = await rasterizeSvgToPng(svgDataUrl, 20000)
+      } catch (svgErr) {
+        console.warn("Primary toSvg capture failed in pdf-upload, retrying lightweight SVG capture:", svgErr)
+        const lightSvgDataUrl = await withCaptureTimeout(
+          toSvg(pageEl, {
+            pixelRatio: 4,
+            cacheBust: false,
+            skipFonts: true,
+            fontEmbedCSS: undefined,
+            backgroundColor: "#ffffff",
+            style: captureStyle,
+            filter: elementFilter,
+          }),
+          12000,
+          "Timed out building lightweight SVG snapshot for PDF export.",
+        )
+        imageData = await rasterizeSvgToPng(lightSvgDataUrl, 12000)
+      }
+
+      if (imageData) {
+        pdf.addImage(imageData, "PNG", 0, 0, pageWidth, pageHeight, undefined, "MEDIUM")
+      }
     }
 
     const blob = pdf.output("blob") as Blob
@@ -1416,6 +1453,7 @@ export async function generatePDFBlob(
       unit: "mm",
       format: "a4",
       compress: true,
+      precision: 16,
     })
 
     const cleanTitle = (fileName || "BOL").replace(/\.pdf$/i, "")
@@ -1464,11 +1502,18 @@ export async function generatePDFBlob(
       wrapper.appendChild(clonedElement)
       document.body.appendChild(wrapper)
 
-      // Cooperative yield before fallback canvas creation
+      // Cooperative yield before fallback canvas creation: guarantee fonts & images are fully decoded
+      if (typeof document !== "undefined" && document.fonts?.ready) {
+        try { await document.fonts.ready } catch {}
+      }
+      try {
+        const clonedImgs = Array.from(clonedElement.querySelectorAll("img"))
+        await Promise.all(clonedImgs.map((img) => (img.complete ? Promise.resolve() : img.decode?.().catch(() => {}))))
+      } catch {}
       await new Promise((resolve) => setTimeout(resolve, 0))
 
       const canvas = await html2canvas(clonedElement, {
-        scale: 3.125, // True 300 DPI print-grade resolution (300 / 96 = 3.125)
+        scale: 4, // 384 DPI print-grade resolution
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
@@ -1490,9 +1535,27 @@ export async function generatePDFBlob(
           return false
         },
         onclone: (clonedDocument: Document) => {
+          try {
+            if (clonedDocument.documentElement) {
+              clonedDocument.documentElement.style.backgroundColor = "#ffffff"
+              clonedDocument.documentElement.style.color = "#0f172a"
+            }
+            if (clonedDocument.body) {
+              clonedDocument.body.style.backgroundColor = "#ffffff"
+              clonedDocument.body.style.color = "#0f172a"
+            }
+            clonedDocument.querySelectorAll("style").forEach((styleNode) => {
+              if (styleNode.textContent && /oklch/i.test(styleNode.textContent)) {
+                styleNode.textContent = styleNode.textContent.replace(/oklch\([^)]+\)/gi, "#1d4ed8")
+              }
+            })
+          } catch {}
           const style = clonedDocument.createElement("style")
           style.textContent = `
                 :root, html, body {
+                  background-color: #ffffff !important;
+                  background: #ffffff !important;
+                  color: #0f172a !important;
                   --background: #ffffff !important;
                   --foreground: #0f172a !important;
                   --card: #ffffff !important;
@@ -1547,8 +1610,8 @@ export async function generatePDFBlob(
         },
       })
 
-      const imageData = canvas.toDataURL("image/jpeg", 0.99)
-      pdf.addImage(imageData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
+      const imageData = canvas.toDataURL("image/png")
+      pdf.addImage(imageData, "PNG", 0, 0, pageWidth, pageHeight, undefined, "MEDIUM")
 
       wrapper.remove()
       wrapper = null

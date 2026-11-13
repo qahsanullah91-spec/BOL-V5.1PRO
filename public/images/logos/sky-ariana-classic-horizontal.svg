@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1920" height="512" viewBox="0 0 1920 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="textBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#164e9e"/>
+    </linearGradient>
+  </defs>
+
+  
+<g transform="translate(36, 36) scale(0.21484375)">
+  <defs>
+    
+      <linearGradient id="discGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#2563eb"/>
+        <stop offset="35%" stop-color="#164e9e"/>
+        <stop offset="100%" stop-color="#0f2d6b"/>
+      </linearGradient>
+      <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#1d4ed8"/>
+        <stop offset="100%" stop-color="#0e3a8a"/>
+      </linearGradient>
+      <clipPath id="letterClip">
+        <circle cx="1024" cy="1024" r="760"/>
+      </clipPath>
+    
+  </defs>
+
+  <!-- 1. Outer Concentric Ring -->
+  <circle cx="1024" cy="1024" r="940" fill="none" stroke="url(#ringGrad)" stroke-width="56"/>
+
+  <!-- 2. Concentric White Spacing Ring -->
+  <circle cx="1024" cy="1024" r="912" fill="none" stroke="#ffffff" stroke-width="72"/>
+
+  <!-- 3. Inner Solid Disc -->
+  <circle cx="1024" cy="1024" r="840" fill="url(#discGrad)"/>
+  <circle cx="1024" cy="1024" r="834" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="3"/>
+
+  <!-- 4. Monogram Letters (S - K - Y) clipped to inner letter radius -->
+  <g clip-path="url(#letterClip)">
+    
+    <!-- ==================== LETTER S ==================== -->
+    <rect x="634" y="0" width="104" height="850" fill="#ffffff"/>
+    
+    <path d="
+      M 738 340
+      A 760 760 0 0 0 264 1024
+      L 368 1024
+      A 656 656 0 0 1 634 444
+      L 738 444
+      Z
+    " fill="#ffffff"/>
+
+    <polygon points="
+      358,940 
+      462,940 
+      748,1108 
+      624,1108
+    " fill="#ffffff"/>
+
+    <rect x="634" y="1198" width="104" height="850" fill="#ffffff"/>
+
+    <path d="
+      M 264 1024
+      A 760 760 0 0 0 738 1680
+      L 634 1680
+      A 656 656 0 0 1 368 1024
+      Z
+    " fill="#ffffff"/>
+
+    <!-- ==================== LETTER K ==================== -->
+    <rect x="820" y="0" width="104" height="2048" fill="#ffffff"/>
+    
+    <rect x="1126" y="0" width="104" height="760" fill="#ffffff"/>
+    <rect x="1126" y="1288" width="104" height="760" fill="#ffffff"/>
+
+    <polygon points="
+      924,974 
+      1126,740 
+      1230,740 
+      1230,848 
+      924,1082
+    " fill="#ffffff"/>
+
+    <polygon points="
+      924,1074 
+      1126,1308 
+      1230,1308 
+      1230,1200 
+      924,966
+    " fill="#ffffff"/>
+
+    <!-- ==================== LETTER Y ==================== -->
+    <rect x="1312" y="0" width="104" height="840" fill="#ffffff"/>
+    <rect x="1620" y="0" width="104" height="840" fill="#ffffff"/>
+
+    <polygon points="
+      1312,840 
+      1416,840 
+      1570,1016 
+      1570,1060 
+      1466,1060 
+      1312,894
+    " fill="#ffffff"/>
+
+    <polygon points="
+      1724,840 
+      1620,840 
+      1466,1016 
+      1466,1060 
+      1570,1060 
+      1724,894
+    " fill="#ffffff"/>
+
+    <rect x="1466" y="1040" width="104" height="1008" fill="#ffffff"/>
+
+  </g>
+</g>
+
+  <!-- Text Column -->
+  <g transform="translate(530, 0)">
+    <!-- English Wordmark -->
+    <text x="0" y="195" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="142" font-weight="900" letter-spacing="0.04em" fill="url(#textBlue)">SKY ARIANA</text>
+    
+    <!-- Tagline / Transport scope in navy badge -->
+    <rect x="0" y="240" width="860" height="74" rx="14" fill="#164e9e"/>
+    <text x="430" y="291" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" letter-spacing="0.12em" fill="#ffffff" text-anchor="middle">INTERNATIONAL TRANSPORT CO.</text>
+    
+    <!-- Persian / Dari Corporate Title -->
+    <text x="860" y="415" font-family="'Vazirmatn', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif" font-size="48" font-weight="800" fill="#0f172a" text-anchor="end" dir="rtl">شرکت حمل و نقل بین المللی اسکای آریانا</text>
+  </g>
+</svg>

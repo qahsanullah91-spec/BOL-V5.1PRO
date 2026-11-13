@@ -216,27 +216,51 @@
     "opacity": 0.18
   },
   {
-    "label": "Soft Arches",
+    "label": "Silk Road Archways (Photo)",
     "category": "Geometric",
-    "url": "/images/document-backgrounds/soft-arches.svg",
-    "opacity": 0.18
+    "url": "/images/photo_silk_road_archways.jpg",
+    "opacity": 0.16
   },
   {
-    "label": "Route Geometry",
+    "label": "Intermodal Logistics Hub (Photo)",
     "category": "Geometric",
-    "url": "/images/document-backgrounds/route-geometry.svg",
-    "opacity": 0.18
+    "url": "/images/photo_logistics_hub_terminal.jpg",
+    "opacity": 0.16
   },
   {
-    "label": "Pearl Waves",
+    "label": "Coastal Cargo Harbor (Photo)",
     "category": "Geometric",
-    "url": "/images/document-backgrounds/pearl-waves.svg",
-    "opacity": 0.18
+    "url": "/images/photo_coastal_cargo_harbor.jpg",
+    "opacity": 0.16
+  },
+  {
+    "label": "Celestial Navigation Star (Photo)",
+    "category": "Geometric",
+    "url": "/images/photo_celestial_navigation_star.jpg",
+    "opacity": 0.16
   },
   {
     "label": "Northern Star",
     "category": "Geometric",
     "url": "/images/document-backgrounds/northern-star.svg",
+    "opacity": 0.18
+  },
+  {
+    "label": "Pearl Waves",
+    "category": "Maritime",
+    "url": "/images/document-backgrounds/pearl-waves.svg",
+    "opacity": 0.18
+  },
+  {
+    "label": "Route Geometry",
+    "category": "Overland",
+    "url": "/images/document-backgrounds/route-geometry.svg",
+    "opacity": 0.18
+  },
+  {
+    "label": "Soft Arches",
+    "category": "Classic",
+    "url": "/images/document-backgrounds/soft-arches.svg",
     "opacity": 0.18
   }
 ]

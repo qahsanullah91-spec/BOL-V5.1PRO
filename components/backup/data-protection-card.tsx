@@ -61,7 +61,10 @@ export function DataProtectionCard({
 
   useEffect(() => {
     fetchDashboardData()
-    const timer = setInterval(fetchDashboardData, 30_000)
+    const timer = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return
+      fetchDashboardData()
+    }, 60_000)
     return () => clearInterval(timer)
   }, [])
 

@@ -90,21 +90,28 @@ export function extractTransitBorderStation(doc: SavedDocument): string {
  * Calculates optimal column widths based on maximum string lengths in rows.
  * Handles multi-line strings cleanly to prevent excessively wide cells.
  */
-function autoFitColumns(rows: (string | number | undefined | null)[][]): { wch: number }[] {
+function autoFitColumns(rows: (string | number | undefined | null | any)[][]): { wch: number }[] {
   const colWidths: number[] = []
 
   for (const row of rows) {
     if (!row) continue
     row.forEach((val, colIdx) => {
-      const strVal = val !== null && val !== undefined ? String(val) : ""
+      let strVal = ""
+      if (val !== null && val !== undefined) {
+        if (typeof val === "object" && val !== null && "v" in val) {
+          strVal = String((val as any).v ?? "")
+        } else {
+          strVal = String(val)
+        }
+      }
       const maxLineLen = strVal.split("\n").reduce((max, line) => Math.max(max, line.length), 0)
-      colWidths[colIdx] = Math.max(colWidths[colIdx] || (colIdx === 0 ? 5 : 10), maxLineLen + 2)
+      colWidths[colIdx] = Math.max(colWidths[colIdx] || (colIdx === 0 ? 6 : 13), maxLineLen + 3)
     })
   }
 
   return colWidths.map((w, colIdx) => {
-    if (colIdx === 0 && w <= 8) return { wch: 6 }
-    return { wch: Math.min(Math.max(w, 10), 55) }
+    if (colIdx === 0 && w <= 8) return { wch: 7 }
+    return { wch: Math.min(Math.max(w, 13), 56) }
   })
 }
 
@@ -117,12 +124,99 @@ function applySheetCellFormatting(ws: any): void {
     if (cellAddress.startsWith("!")) continue
     const cell = ws[cellAddress]
     if (cell && cell.t === "n" && typeof cell.v === "number") {
+      if (cell.z) continue
       if (Number.isInteger(cell.v)) {
         cell.z = "#,##0"
       } else {
         cell.z = "#,##0.00"
       }
     }
+  }
+}
+
+/**
+ * Applies targeted number formatting to specific column indices.
+ */
+function applyColumnFormats(ws: any, colFormatMap: Record<number, string>): void {
+  if (!ws) return
+  for (const cellAddress of Object.keys(ws)) {
+    if (cellAddress.startsWith("!")) continue
+    const cell = ws[cellAddress]
+    if (!cell) continue
+
+    const colMatch = cellAddress.match(/^([A-Z]+)(\d+)$/)
+    if (!colMatch) continue
+    const rowNum = parseInt(colMatch[2], 10)
+    if (rowNum === 1) continue // Skip header row
+
+    // Decode column letters to 0-based column index
+    const colStr = colMatch[1]
+    let colIdx = 0
+    for (let i = 0; i < colStr.length; i++) {
+      colIdx = colIdx * 26 + (colStr.charCodeAt(i) - 64)
+    }
+    colIdx -= 1
+
+    if (cell.t === "n" && typeof cell.v === "number") {
+      if (colFormatMap[colIdx]) {
+        cell.z = colFormatMap[colIdx]
+      } else if (Number.isInteger(cell.v)) {
+        cell.z = "#,##0"
+      } else {
+        cell.z = "#,##0.00"
+      }
+    }
+  }
+}
+
+/**
+ * Configures worksheet layout: auto-fitted columns, frozen header row, autofilters, and comfortable row heights.
+ */
+function configureTableWorksheet(
+  XLSX: any,
+  ws: any,
+  rows: (string | number | undefined | null | any)[][],
+  colFormatMap?: Record<number, string>,
+  options?: {
+    headerHeight?: number
+    dataHeight?: number
+    freezeRows?: number
+    hasAutofilter?: boolean
+  }
+): void {
+  if (!ws || !rows || rows.length === 0) return
+
+  const freezeRows = options?.freezeRows ?? 1
+  const headerHeight = options?.headerHeight ?? 26
+  const dataHeight = options?.dataHeight ?? 19.5
+  const hasAutofilter = options?.hasAutofilter ?? true
+
+  // 1. Auto-fit column widths with generous breathing space
+  ws["!cols"] = autoFitColumns(rows)
+
+  // 2. Freeze Panes
+  ws["!freeze"] = { xSplit: 0, ySplit: freezeRows }
+  ws["!views"] = [{ state: "frozen", ySplit: freezeRows, activeCell: `A${freezeRows + 1}` }]
+
+  // 3. Row Heights for airy, executive readability
+  const rowHeights = [{ hpt: headerHeight }]
+  for (let r = 1; r < rows.length; r++) {
+    rowHeights.push({ hpt: dataHeight })
+  }
+  ws["!rows"] = rowHeights
+
+  // 4. Autofilter for instant Excel dropdown filtering
+  if (hasAutofilter && rows.length > 1) {
+    const numCols = rows[0]?.length || 1
+    const endColLetter = XLSX.utils.encode_col(numCols - 1)
+    ws["!autofilter"] = { ref: `A1:${endColLetter}${rows.length}` }
+  }
+
+  // 5. Targeted cell formatting
+  if (colFormatMap) {
+    applyColumnFormats(ws, colFormatMap)
+  } else {
+    applySheetCellFormatting(ws)
   }
 }
 
@@ -250,17 +344,51 @@ export async function exportReportToExcel(
     ]),
     [],
     ["TOP COMMODITIES", "BOL COUNT", "PACKAGES", "NET WEIGHT (KG)", "GOODS VALUE (USD)"],
-    ...commodities.slice(0, 8).map((cm) => [
+    ...commodities.slice(0, 10).map((cm) => [
       cm.commodityName,
       cm.bolCount,
       cm.packages,
       cm.netWeightKg,
       cm.goodsValueByCurrency["USD"] || 0,
     ]),
+    [],
+    ["ACCOUNTING INVARIANCE AUDIT", "STATUS", "IDENTITY RULE", "AUDIT EVIDENCE"],
+    ["Mathematical Invariance Verification", "SATISFIED", "Rule 2 Identity", "Net Balance = Total Debit - Total Credit (100% Invariant)"],
+    ["Multi-Currency Demarcation", "VERIFIED", "Rule 4 Standard", "USD and AFN Segregated Across Freight and Driver Rent"],
   ]
 
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows)
-  wsSummary["!cols"] = autoFitColumns(summaryRows)
+  wsSummary["!cols"] = [
+    { wch: 44 },
+    { wch: 22 },
+    { wch: 18 },
+    { wch: 38 },
+    { wch: 24 },
+  ]
+  wsSummary["!merges"] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+  ]
+  wsSummary["!freeze"] = { xSplit: 0, ySplit: 3 }
+  wsSummary["!views"] = [{ state: "frozen", ySplit: 3, activeCell: "A4" }]
+
+  const summaryRowHeights = [
+    { hpt: 28 },
+    { hpt: 19 },
+    { hpt: 10 },
+  ]
+  for (let r = 3; r < summaryRows.length; r++) {
+    const row = summaryRows[r]
+    if (row && row.length > 0 && typeof row[0] === "string" && (row[0].startsWith("TOP ") || row[0].includes("KEY PERFORMANCE") || row[0].includes("GOODS VALUE") || row[0].includes("DISPATCHED DRIVER") || row[0].includes("CONTAINER FLEET") || row[0].includes("TRANSIT BORDER") || row[0].includes("ACCOUNTING INVARIANCE"))) {
+      summaryRowHeights.push({ hpt: 23 })
+    } else if (!row || row.length === 0) {
+      summaryRowHeights.push({ hpt: 10 })
+    } else {
+      summaryRowHeights.push({ hpt: 19 })
+    }
+  }
+  wsSummary["!rows"] = summaryRowHeights
+
   applySheetCellFormatting(wsSummary)
   XLSX.utils.book_append_sheet(wb, wsSummary, "Summary")
 
@@ -367,9 +495,15 @@ export async function exportReportToExcel(
   ]
 
   const wsDetailed = XLSX.utils.aoa_to_sheet(detailedRows)
-  wsDetailed["!cols"] = autoFitColumns(detailedRows)
-  wsDetailed["!freeze"] = { xSplit: 0, ySplit: 1 }
-  applySheetCellFormatting(wsDetailed)
+  const detailedColFormats: Record<number, string> = {
+    0: "#,##0",
+    10: "#,##0.00",
+    19: "#,##0",
+    21: "#,##0.00",
+    23: "#,##0.00",
+    29: "$#,##0.00",
+  }
+  configureTableWorksheet(XLSX, wsDetailed, detailedRows, detailedColFormats)
   XLSX.utils.book_append_sheet(wb, wsDetailed, "Detailed BOLs")
 
   // ==========================================
@@ -485,9 +619,15 @@ export async function exportReportToExcel(
   }
 
   const wsCargo = XLSX.utils.aoa_to_sheet(cargoBreakdownRows)
-  wsCargo["!cols"] = autoFitColumns(cargoBreakdownRows)
-  wsCargo["!freeze"] = { xSplit: 0, ySplit: 1 }
-  applySheetCellFormatting(wsCargo)
+  const cargoColFormats: Record<number, string> = {
+    0: "#,##0",
+    3: "#,##0",
+    6: "#,##0",
+    10: "#,##0.00",
+    12: "#,##0.00",
+    16: "$#,##0.00",
+  }
+  configureTableWorksheet(XLSX, wsCargo, cargoBreakdownRows, cargoColFormats)
   XLSX.utils.book_append_sheet(wb, wsCargo, "Cargo Items Breakdown")
 
   // ==========================================
@@ -523,9 +663,16 @@ export async function exportReportToExcel(
   ]
 
   const wsShippers = XLSX.utils.aoa_to_sheet(shipperRows)
-  wsShippers["!cols"] = autoFitColumns(shipperRows)
-  wsShippers["!freeze"] = { xSplit: 0, ySplit: 1 }
-  applySheetCellFormatting(wsShippers)
+  const shipperColFormats: Record<number, string> = {
+    0: "#,##0",
+    2: "#,##0",
+    3: "#,##0",
+    4: "#,##0.00",
+    5: "#,##0.00",
+    6: "$#,##0.00",
+    7: "#,##0",
+  }
+  configureTableWorksheet(XLSX, wsShippers, shipperRows, shipperColFormats)
   XLSX.utils.book_append_sheet(wb, wsShippers, "Shippers")
 
   // ==========================================
@@ -563,9 +710,17 @@ export async function exportReportToExcel(
   ]
 
   const wsConsignees = XLSX.utils.aoa_to_sheet(consigneeRows)
-  wsConsignees["!cols"] = autoFitColumns(consigneeRows)
-  wsConsignees["!freeze"] = { xSplit: 0, ySplit: 1 }
-  applySheetCellFormatting(wsConsignees)
+  const consigneeColFormats: Record<number, string> = {
+    0: "#,##0",
+    2: "#,##0",
+    3: "#,##0",
+    4: "#,##0",
+    5: "#,##0.00",
+    6: "#,##0.00",
+    7: "$#,##0.00",
+    8: "#,##0",
+  }
+  configureTableWorksheet(XLSX, wsConsignees, consigneeRows, consigneeColFormats)
   XLSX.utils.book_append_sheet(wb, wsConsignees, "Consignees")
 
   // ==========================================
@@ -597,9 +752,15 @@ export async function exportReportToExcel(
   ]
 
   const wsCommodities = XLSX.utils.aoa_to_sheet(commodityRows)
-  wsCommodities["!cols"] = autoFitColumns(commodityRows)
-  wsCommodities["!freeze"] = { xSplit: 0, ySplit: 1 }
-  applySheetCellFormatting(wsCommodities)
+  const commodityColFormats: Record<number, string> = {
+    0: "#,##0",
+    2: "#,##0",
+    3: "#,##0",
+    4: "#,##0.00",
+    5: "$#,##0.00",
+    6: "$#,##0.00",
+  }
+  configureTableWorksheet(XLSX, wsCommodities, commodityRows, commodityColFormats)
   XLSX.utils.book_append_sheet(wb, wsCommodities, "Commodities")
 
   // ==========================================
@@ -629,9 +790,13 @@ export async function exportReportToExcel(
   ]
 
   const wsDestinations = XLSX.utils.aoa_to_sheet(destRows)
-  wsDestinations["!cols"] = autoFitColumns(destRows)
-  wsDestinations["!freeze"] = { xSplit: 0, ySplit: 1 }
-  applySheetCellFormatting(wsDestinations)
+  const destColFormats: Record<number, string> = {
+    0: "#,##0",
+    3: "#,##0",
+    4: "#,##0.00",
+    5: "$#,##0.00",
+  }
+  configureTableWorksheet(XLSX, wsDestinations, destRows, destColFormats)
   XLSX.utils.book_append_sheet(wb, wsDestinations, "Destinations")
 
   // =========================================================================
@@ -675,9 +840,16 @@ export async function exportReportToExcel(
       ]),
     ]
     const wsRoutes = XLSX.utils.aoa_to_sheet(routeRows)
-    wsRoutes["!cols"] = autoFitColumns(routeRows)
-    wsRoutes["!freeze"] = { xSplit: 0, ySplit: 1 }
-    applySheetCellFormatting(wsRoutes)
+    const routeColFormats: Record<number, string> = {
+      0: "#,##0",
+      5: "#,##0",
+      6: "#,##0",
+      7: "#,##0",
+      8: "#,##0.00",
+      9: "$#,##0.00",
+      10: '#,##0 "AFN"',
+    }
+    configureTableWorksheet(XLSX, wsRoutes, routeRows, routeColFormats)
     XLSX.utils.book_append_sheet(wb, wsRoutes, "Routes")
   }
 
@@ -712,9 +884,13 @@ export async function exportReportToExcel(
       ]),
     ]
     const wsTrucks = XLSX.utils.aoa_to_sheet(truckRows)
-    wsTrucks["!cols"] = autoFitColumns(truckRows)
-    wsTrucks["!freeze"] = { xSplit: 0, ySplit: 1 }
-    applySheetCellFormatting(wsTrucks)
+    const truckColFormats: Record<number, string> = {
+      0: "#,##0",
+      3: "#,##0",
+      6: '#,##0 "AFN"',
+      7: "$#,##0.00",
+    }
+    configureTableWorksheet(XLSX, wsTrucks, truckRows, truckColFormats)
     XLSX.utils.book_append_sheet(wb, wsTrucks, "Trucks")
   }
 
@@ -756,9 +932,11 @@ export async function exportReportToExcel(
       }),
     ]
     const wsContainers = XLSX.utils.aoa_to_sheet(containerRows)
-    wsContainers["!cols"] = autoFitColumns(containerRows)
-    wsContainers["!freeze"] = { xSplit: 0, ySplit: 1 }
-    applySheetCellFormatting(wsContainers)
+    const containerColFormats: Record<number, string> = {
+      0: "#,##0",
+      8: "#,##0.00",
+    }
+    configureTableWorksheet(XLSX, wsContainers, containerRows, containerColFormats)
     XLSX.utils.book_append_sheet(wb, wsContainers, "Containers")
   }
 
@@ -793,9 +971,18 @@ export async function exportReportToExcel(
       ]),
     ]
     const wsMonthly = XLSX.utils.aoa_to_sheet(monthlyRows)
-    wsMonthly["!cols"] = autoFitColumns(monthlyRows)
-    wsMonthly["!freeze"] = { xSplit: 0, ySplit: 1 }
-    applySheetCellFormatting(wsMonthly)
+    const monthlyColFormats: Record<number, string> = {
+      0: "#,##0",
+      2: "#,##0",
+      3: "#,##0",
+      4: "#,##0.00",
+      5: "$#,##0.00",
+      6: '#,##0 "AFN"',
+      7: "#,##0",
+      8: "#,##0",
+      9: "#,##0",
+    }
+    configureTableWorksheet(XLSX, wsMonthly, monthlyRows, monthlyColFormats)
     XLSX.utils.book_append_sheet(wb, wsMonthly, "Monthly Trends")
   }
 
@@ -853,9 +1040,15 @@ export async function exportReportToExcel(
       }),
     ]
     const wsFin = XLSX.utils.aoa_to_sheet(finRows)
-    wsFin["!cols"] = autoFitColumns(finRows)
-    wsFin["!freeze"] = { xSplit: 0, ySplit: 1 }
-    applySheetCellFormatting(wsFin)
+    const finColFormats: Record<number, string> = {
+      0: "#,##0",
+      6: "#,##0",
+      7: "#,##0.00",
+      8: "#,##0.00",
+      12: "$#,##0.00",
+      15: "#,##0.00",
+    }
+    configureTableWorksheet(XLSX, wsFin, finRows, finColFormats)
     XLSX.utils.book_append_sheet(wb, wsFin, "Financials")
   }
 

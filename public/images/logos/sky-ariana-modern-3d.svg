@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="2048" height="2048" viewBox="0 0 2048 2048" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Metallic Chrome Ring Gradient -->
+    <linearGradient id="chromeRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="15%" stop-color="#cbd5e1"/>
+      <stop offset="30%" stop-color="#64748b"/>
+      <stop offset="45%" stop-color="#f8fafc"/>
+      <stop offset="60%" stop-color="#334155"/>
+      <stop offset="80%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <!-- Chrome Outer Rim Bevel -->
+    <linearGradient id="chromeBevel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="50%" stop-color="#94a3b8" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#020617" stop-opacity="0.85"/>
+    </linearGradient>
+
+    <!-- Deep 3D Sapphire Enamel Dome Gradient -->
+    <radialGradient id="sapphireDome" cx="42%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="35%" stop-color="#1d4ed8"/>
+      <stop offset="70%" stop-color="#1e3a8a"/>
+      <stop offset="100%" stop-color="#09142e"/>
+    </radialGradient>
+
+    <!-- Upper Dome Glass Specular Gloss Reflection -->
+    <linearGradient id="glassGloss" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.58"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- 3D Letter Chrome Bevel - Top-Left Light -->
+    <linearGradient id="letterLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#f1f5f9"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+
+    <!-- 3D Letter Shadow Gradient -->
+    <linearGradient id="letterShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#020617" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <filter id="sealDropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="32" flood-color="#020617" flood-opacity="0.45"/>
+    </filter>
+
+    <filter id="letterDepth" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="4" dy="10" stdDeviation="8" flood-color="#020617" flood-opacity="0.6"/>
+    </filter>
+
+    <clipPath id="letterClip">
+      <circle cx="1024" cy="1024" r="760"/>
+    </clipPath>
+    <clipPath id="domeClip">
+      <circle cx="1024" cy="1024" r="840"/>
+    </clipPath>
+  </defs>
+
+  <!-- 1. Ambient Drop Shadow Ring Base -->
+  <circle cx="1024" cy="1024" r="968" fill="none" stroke="url(#chromeRing)" stroke-width="56" filter="url(#sealDropShadow)"/>
+
+  <!-- 2. Outer Chrome Ring with Bevel -->
+  <circle cx="1024" cy="1024" r="940" fill="none" stroke="url(#chromeRing)" stroke-width="56"/>
+  <circle cx="1024" cy="1024" r="966" fill="none" stroke="url(#chromeBevel)" stroke-width="4"/>
+  <circle cx="1024" cy="1024" r="914" fill="none" stroke="#0f172a" stroke-width="3" opacity="0.7"/>
+
+  <!-- 3. Concentric Spacing Channel -->
+  <circle cx="1024" cy="1024" r="912" fill="none" stroke="#ffffff" stroke-width="72"/>
+  <circle cx="1024" cy="1024" r="876" fill="none" stroke="#cbd5e1" stroke-width="3" opacity="0.8"/>
+
+  <!-- 4. Deep Sapphire Enamel Dome with Chrome Rim -->
+  <circle cx="1024" cy="1024" r="840" fill="url(#sapphireDome)"/>
+  <circle cx="1024" cy="1024" r="840" fill="none" stroke="url(#chromeRing)" stroke-width="8"/>
+  <circle cx="1024" cy="1024" r="834" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.7"/>
+
+  <!-- 5. Glass Specular Highlight Arc (Upper Dome Gloss) -->
+  <path d="M 320 840 A 840 840 0 0 1 1728 840 C 1500 640 1200 560 1024 560 C 848 560 548 640 320 840 Z" fill="url(#glassGloss)" clip-path="url(#domeClip)"/>
+
+  <!-- 6. Letters Geometry with 3D Emboss & Shadow -->
+  <!-- Shadow Pass -->
+  <g clip-path="url(#letterClip)" transform="translate(6, 12)" fill="url(#letterShadow)" opacity="0.65">
+    <rect x="0" y="284" width="738" height="104"/>
+    <rect x="634" y="284" width="104" height="792"/>
+    <rect x="634" y="972" width="1414" height="104"/>
+    <rect x="0" y="972" width="388" height="1076"/>
+    <rect x="0" y="1660" width="738" height="104"/>
+    <rect x="820" y="0" width="104" height="2048"/>
+    <polygon points="1230,284 1126,284 924,1024 924,920 1126,284"/>
+    <polygon points="1230,1764 1126,1764 924,1024 924,1128 1126,1764"/>
+    <rect x="1126" y="0" width="104" height="284"/>
+    <rect x="1126" y="1764" width="104" height="284"/>
+    <rect x="1312" y="0" width="104" height="840"/>
+    <rect x="1620" y="0" width="104" height="840"/>
+    <polygon points="1416,840 1570,1016 1570,1060 1466,1060 1312,894"/>
+    <polygon points="1724,840 1620,840 1466,1016 1466,1060 1570,1060 1724,894"/>
+    <rect x="1466" y="1040" width="104" height="1008"/>
+  </g>
+
+  <!-- Foreground 3D Chrome Letters Pass -->
+  <g clip-path="url(#letterClip)" fill="url(#letterLight)" filter="url(#letterDepth)">
+    <rect x="0" y="284" width="738" height="104"/>
+    <rect x="634" y="284" width="104" height="792"/>
+    <rect x="634" y="972" width="1414" height="104"/>
+    <rect x="0" y="972" width="388" height="1076"/>
+    <rect x="0" y="1660" width="738" height="104"/>
+    <line x1="0" y1="284" x2="738" y2="284" stroke="#ffffff" stroke-width="6"/>
+    <line x1="634" y1="284" x2="634" y2="1024" stroke="#ffffff" stroke-width="6"/>
+
+    <rect x="820" y="0" width="104" height="2048"/>
+    <polygon points="1230,284 1126,284 924,1024 924,920 1126,284"/>
+    <polygon points="1230,1764 1126,1764 924,1024 924,1128 1126,1764"/>
+    <rect x="1126" y="0" width="104" height="284"/>
+    <rect x="1126" y="1764" width="104" height="284"/>
+    <line x1="820" y1="0" x2="820" y2="2048" stroke="#ffffff" stroke-width="6"/>
+    <line x1="1126" y1="0" x2="1126" y2="284" stroke="#ffffff" stroke-width="6"/>
+
+    <rect x="1312" y="0" width="104" height="840"/>
+    <rect x="1620" y="0" width="104" height="840"/>
+    <polygon points="1416,840 1570,1016 1570,1060 1466,1060 1312,894"/>
+    <polygon points="1724,840 1620,840 1466,1016 1466,1060 1570,1060 1724,894"/>
+    <rect x="1466" y="1040" width="104" height="1008"/>
+    <line x1="1312" y1="0" x2="1312" y2="840" stroke="#ffffff" stroke-width="6"/>
+    <line x1="1620" y1="0" x2="1620" y2="840" stroke="#ffffff" stroke-width="6"/>
+    <line x1="1466" y1="1040" x2="1466" y2="2048" stroke="#ffffff" stroke-width="6"/>
+  </g>
+</svg>

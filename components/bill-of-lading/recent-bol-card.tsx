@@ -431,7 +431,7 @@ export const RecentBolCard = memo(function RecentBolCard({
           <div>
             <div className="flex items-center justify-between gap-1">
               <span
-                className="font-black text-[11px] text-slate-900 dark:text-slate-200 tracking-tight uppercase truncate"
+                className="font-black text-[15px] text-slate-900 dark:text-slate-200 tracking-tight uppercase truncate"
                 title={cargo.commodity}
               >
                 {cargo.commodity}
@@ -443,7 +443,7 @@ export const RecentBolCard = memo(function RecentBolCard({
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-2 mt-1 text-[11px]">
+            <div className="flex items-center justify-between gap-2 mt-1 text-[14px]">
               <span
                 className="flex items-center gap-1 font-mono font-bold text-slate-800 dark:text-slate-200 truncate"
                 title={cargo.packages}

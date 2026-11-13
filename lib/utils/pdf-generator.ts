@@ -19,9 +19,9 @@ export async function generatePDFFromHTML(htmlElement: string, fileName: string)
       const opt = {
         margin: 0,
         filename: fileName,
-        image: { type: "jpeg", quality: 0.99 },
-        html2canvas: { scale: 3 },
-        jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+        image: { type: "png", quality: 1.0 },
+        html2canvas: { scale: 4, useCORS: true, backgroundColor: "#ffffff" },
+        jsPDF: { orientation: "portrait", unit: "mm", format: "a4", precision: 16 },
       } as const
 
       html2pdf()

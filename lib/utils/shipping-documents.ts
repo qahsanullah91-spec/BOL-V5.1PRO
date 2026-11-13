@@ -14,6 +14,17 @@ import {
   setSmartPDFFont,
   loadPDFFontAssets,
 } from "@/lib/utils/pdf-fonts"
+import {
+  buildEmbeddedPdfFontCss,
+  inlineElementImagesPreservingVector,
+  loadSvgImage,
+  computeClampedCanvasDimensions,
+  drawImageHighQualityToCanvas,
+  captureElectronVectorPdf,
+  mergePdfBlobs,
+  withCaptureTimeout,
+  sanitizeElementForPDF,
+} from "@/lib/utils/pdf-high-res-capture"
 
 export type ShippingDocumentKind = "bol" | "packing-list" | "stickers" | "bol-packing" | "all"
 export type StickerLayout = "single" | "sheet"
@@ -127,6 +138,7 @@ export interface GenerateShippingDocumentsOptions {
   companyLicence?: string
   stickerQuantity?: number
   stickerLayout?: StickerLayout
+  useElectronVectorPdf?: boolean
   onProgress?: (progress: number, message: string) => void
 }
 
@@ -2013,16 +2025,25 @@ function drawStickerSheetPage(
 
 async function imageUrlToDataUrl(url?: string): Promise<string | null> {
   if (!url) return null
+  if (url.startsWith("data:")) return url
   try {
-    const response = await fetch(url)
-    if (!response.ok) return null
-    const blob = await response.blob()
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(String(reader.result))
-      reader.onerror = () => reject(reader.error)
-      reader.readAsDataURL(blob)
-    })
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null
+    const timer = controller && typeof window !== "undefined" ? window.setTimeout(() => controller.abort(), 5000) : null
+    try {
+      const response = await fetch(url, controller ? { signal: controller.signal } : undefined)
+      if (!response.ok) return null
+      const blob = await response.blob()
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result))
+        reader.onerror = () => reject(reader.error)
+        reader.readAsDataURL(blob)
+      })
+    } finally {
+      if (timer !== null && typeof window !== "undefined") {
+        window.clearTimeout(timer)
+      }
+    }
   } catch {
     return null
   }
@@ -2031,143 +2052,260 @@ async function imageUrlToDataUrl(url?: string): Promise<string | null> {
 export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<void> {
   if (typeof document !== "undefined" && document.fonts) {
     try {
-      await document.fonts.ready
+      await withCaptureTimeout(document.fonts.ready, 2000).catch(() => {})
     } catch {}
   }
 
-  // Pre-bundle embedded font CSS so html-to-image renders fonts with 100% fidelity without CORS issues
+  // Pre-bundle embedded font CSS so html-to-image renders fonts (including Vazirmatn & Noto) with 100% fidelity
   let fontCSS = ""
   try {
-    const fonts = await loadPDFFontAssets()
-    if (fonts) {
-      fontCSS = `
-        @font-face {
-          font-family: 'NotoSans';
-          font-weight: 400;
-          font-style: normal;
-          src: url(data:font/truetype;charset=utf-8;base64,${fonts.notoSansRegular}) format('truetype');
-        }
-        @font-face {
-          font-family: 'NotoSans';
-          font-weight: 700;
-          font-style: normal;
-          src: url(data:font/truetype;charset=utf-8;base64,${fonts.notoSansBold}) format('truetype');
-        }
-        @font-face {
-          font-family: 'NotoNaskhArabic';
-          font-weight: 400;
-          font-style: normal;
-          src: url(data:font/truetype;charset=utf-8;base64,${fonts.arabicRegular}) format('truetype');
-        }
-        @font-face {
-          font-family: 'NotoNaskhArabic';
-          font-weight: 700;
-          font-style: normal;
-          src: url(data:font/truetype;charset=utf-8;base64,${fonts.arabicBold}) format('truetype');
-        }
-      `
-    }
+    const fonts = await withCaptureTimeout(loadPDFFontAssets(), 4000).catch(() => null)
+    fontCSS = buildEmbeddedPdfFontCss(fonts)
   } catch {}
 
-  // Pre-load and inline images (logo, official stamp, signatures) as base64 Data URLs
-  // This guarantees 100% crisp rendering and prevents missing image assets in offline / Electron / file:// PDF exports
-  if (typeof window !== "undefined" && element) {
-    try {
-      const imgElements = Array.from(element.querySelectorAll("img"))
-      await Promise.all(
-        imgElements.map(async (img) => {
-          try {
-            if (!img.complete) {
-              await new Promise<void>((resolve) => {
-                img.onload = () => resolve()
-                img.onerror = () => resolve()
-                setTimeout(resolve, 1500)
-              })
-            }
-            if (img.decode) {
-              try {
-                await img.decode()
-              } catch {}
-            }
-            // If image is loaded and not yet a data: URL, inline it via canvas or fetch
-            if (img.src && !img.src.startsWith("data:")) {
-              let inlined = false
-              try {
-                const canvas = document.createElement("canvas")
-                const w = img.naturalWidth || img.width || 300
-                const h = img.naturalHeight || img.height || 150
-                if (w > 0 && h > 0) {
-                  canvas.width = w
-                  canvas.height = h
-                  const ctx = canvas.getContext("2d")
-                  if (ctx) {
-                    ctx.drawImage(img, 0, 0, w, h)
-                    const dataUrl = canvas.toDataURL("image/png")
-                    if (dataUrl && dataUrl.length > 100 && dataUrl.startsWith("data:image/png")) {
-                      img.src = dataUrl
-                      inlined = true
-                    }
-                  }
-                }
-              } catch {}
-
-              if (!inlined) {
-                const fetchedDataUrl = await imageUrlToDataUrl(img.src)
-                if (fetchedDataUrl) {
-                  img.src = fetchedDataUrl
-                }
-              }
-            }
-          } catch {}
-        })
-      )
-    } catch {}
-  }
+  // Pre-load and inline images (logo, official stamp, signatures, watermarks) while preserving vector SVGs
+  await withCaptureTimeout(
+    inlineElementImagesPreservingVector(element, imageUrlToDataUrl),
+    5000,
+  ).catch(() => {})
 
   // Cooperative yield so the browser can paint progress indicators
   await new Promise((resolve) => setTimeout(resolve, 0))
 
-  const { toCanvas } = await import("html-to-image")
-  const canvas = await toCanvas(element, {
-    pixelRatio: 3.5, // Ultra-sharp 336+ DPI true high-resolution print quality
-    quality: 1.0,
-    cacheBust: false,
-    skipFonts: Boolean(fontCSS),
-    fontEmbedCSS: fontCSS || undefined,
-    backgroundColor: "#ffffff",
-    style: {
-      transform: "none",
-      margin: "0",
-      boxShadow: "none",
-      opacity: "1",
-      visibility: "visible",
-      WebkitFontSmoothing: "antialiased",
-      MozOsxFontSmoothing: "grayscale",
-      textRendering: "geometricPrecision",
-    } as any,
-    filter: (node: HTMLElement) => {
-      if (!node) return true
-      if (node.getAttribute?.("data-print-ignore") === "true") return false
-      if (node.getAttribute?.("data-pdf-ignore") === "true") return false
-      if (node.getAttribute?.("data-html2canvas-ignore") === "true") return false
-      if (typeof node.className === "string" && (node.className.includes("no-print") || node.className.includes("print:hidden"))) return false
-      if (node.classList?.contains?.("no-print")) return false
-      if (node.getAttribute?.("data-qr-code") === "true" || node.closest?.("[data-qr-code]")) return true
-      if (node.tagName === "BUTTON") return false
-      return true
-    },
-  })
+  const { toSvg } = await import("html-to-image")
+  const elementFilter = (node: HTMLElement) => {
+    if (!node) return true
+    if (node === element || node.contains?.(element)) return true
+    if (node.getAttribute?.("data-print-ignore") === "true") return false
+    if (node.getAttribute?.("data-pdf-ignore") === "true") return false
+    if (node.getAttribute?.("data-html2canvas-ignore") === "true") return false
+    if (node.getAttribute?.("data-stamp-controls") === "true" || node.closest?.('[data-stamp-controls="true"]')) return false
+    if (node.getAttribute?.("data-preview-toolbar") === "true" || node.closest?.('[data-preview-toolbar="true"]')) return false
+    if (node.classList?.contains?.("no-print")) return false
+    if (node.getAttribute?.("data-qr-code") === "true" || node.closest?.("[data-qr-code]")) return true
+    if (node.tagName === "BUTTON") return false
+    return true
+  }
+
+  const baseStyle = {
+    transform: "none",
+    margin: "0",
+    boxShadow: "none",
+    opacity: "1",
+    visibility: "visible",
+    WebkitFontSmoothing: "antialiased",
+    MozOsxFontSmoothing: "grayscale",
+    textRendering: "geometricPrecision",
+  } as any
+
+  const rasterizeSvgToPng = async (svgDataUrl: string, timeoutMs: number): Promise<string> => {
+    const img = await loadSvgImage(svgDataUrl, timeoutMs, "Timed out rasterizing the BOL document page.")
+    const ratio = 4 // Clamped strictly <= 4096px CPU canvas edge to prevent GPU VRAM tile corruption
+    const { width: targetWidth, height: targetHeight } = computeClampedCanvasDimensions(
+      element.offsetWidth || 794,
+      element.offsetHeight || 1123,
+      ratio,
+      4096,
+    )
+    const canvas = drawImageHighQualityToCanvas(img, targetWidth, targetHeight)
+    return canvas.toDataURL("image/png")
+  }
+
+  let imageData: string | null = null
+
+  try {
+    const svgDataUrl = await withCaptureTimeout(
+      toSvg(element, {
+        pixelRatio: 4, // Keep explicit 384+ DPI quality floor marker; SVG rasterizer below upscales safely
+        cacheBust: false,
+        skipFonts: Boolean(fontCSS),
+        fontEmbedCSS: fontCSS || undefined,
+        backgroundColor: "#ffffff",
+        style: baseStyle,
+        filter: elementFilter,
+      }),
+      20000,
+      "Timed out generating SVG snapshot for PDF export.",
+    )
+
+    imageData = await rasterizeSvgToPng(svgDataUrl, 20000)
+  } catch (svgErr) {
+    console.warn("Primary SVG PDF capture failed, retrying lightweight SVG capture:", svgErr)
+    try {
+      // Fallback A: retry toSvg without heavy multi-megabyte embedded @font-face CSS (uses browser-loaded fonts)
+      const lightSvgDataUrl = await withCaptureTimeout(
+        toSvg(element, {
+          pixelRatio: 4,
+          cacheBust: false,
+          skipFonts: true,
+          fontEmbedCSS: undefined,
+          backgroundColor: "#ffffff",
+          style: baseStyle,
+          filter: elementFilter,
+        }),
+        12000,
+        "Timed out on lightweight SVG snapshot.",
+      )
+
+      imageData = await rasterizeSvgToPng(lightSvgDataUrl, 12000)
+    } catch (lightSvgErr) {
+      console.warn("Lightweight SVG capture failed, falling back to html2canvas:", lightSvgErr)
+      // Fallback B: isolated html2canvas capture in clean DOM wrapper (immune to cloned iframe tree-lookup errors)
+      const html2canvasMod = await import("html2canvas")
+      const html2canvasFn = html2canvasMod.default || (html2canvasMod as unknown as any)
+
+      const pixelWidth = Math.round((210 * 96) / 25.4)
+      const pixelHeight = Math.round((297 * 96) / 25.4)
+
+      const clonedElement = element.cloneNode(true) as HTMLElement
+      clonedElement.removeAttribute("data-pdf-export")
+      clonedElement.style.width = "210mm"
+      clonedElement.style.height = "297mm"
+      clonedElement.style.maxHeight = "297mm"
+      clonedElement.style.maxWidth = "210mm"
+      clonedElement.style.minHeight = "297mm"
+      clonedElement.style.overflow = "hidden"
+      clonedElement.style.background = "#ffffff"
+      clonedElement.style.boxShadow = "none"
+      clonedElement.style.margin = "0"
+      sanitizeElementForPDF(element, clonedElement)
+
+      const wrapper = document.createElement("div")
+      wrapper.style.position = "fixed"
+      wrapper.style.left = "-10000px"
+      wrapper.style.top = "0"
+      wrapper.style.width = "210mm"
+      wrapper.style.height = "297mm"
+      wrapper.style.background = "#ffffff"
+      wrapper.style.overflow = "hidden"
+      wrapper.style.opacity = "1"
+      wrapper.style.pointerEvents = "none"
+      wrapper.style.zIndex = "-1"
+      wrapper.style.setProperty("--border", "#cbd5e1", "important")
+      wrapper.style.setProperty("--background", "#ffffff", "important")
+      wrapper.style.setProperty("--foreground", "#0f172a", "important")
+      wrapper.appendChild(clonedElement)
+      document.body.appendChild(wrapper)
+
+      try {
+        if (typeof document !== "undefined" && document.fonts?.ready) {
+          try { await document.fonts.ready } catch {}
+        }
+        try {
+          const clonedImgs = Array.from(clonedElement.querySelectorAll("img"))
+          await Promise.all(clonedImgs.map((img) => (img.complete ? Promise.resolve() : img.decode?.().catch(() => {}))))
+        } catch {}
+
+        const h2cCanvas = await withCaptureTimeout<HTMLCanvasElement>(
+          html2canvasFn(clonedElement, {
+            scale: 4, // 384 DPI print-grade resolution
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: "#ffffff",
+            logging: false,
+            width: pixelWidth,
+            height: pixelHeight,
+            windowWidth: pixelWidth,
+            windowHeight: pixelHeight,
+            onclone: (clonedDoc: Document) => {
+              try {
+                if (clonedDoc.documentElement) {
+                  clonedDoc.documentElement.style.backgroundColor = "#ffffff"
+                  clonedDoc.documentElement.style.color = "#0f172a"
+                }
+                if (clonedDoc.body) {
+                  clonedDoc.body.style.backgroundColor = "#ffffff"
+                  clonedDoc.body.style.color = "#0f172a"
+                }
+                clonedDoc.querySelectorAll("style").forEach((styleNode) => {
+                  if (styleNode.textContent && /oklch/i.test(styleNode.textContent)) {
+                    styleNode.textContent = styleNode.textContent.replace(/oklch\([^)]+\)/gi, "#1d4ed8")
+                  }
+                })
+              } catch {}
+              const styleEl = clonedDoc.createElement("style")
+              styleEl.textContent = `
+                :root, html, body {
+                  background-color: #ffffff !important;
+                  background: #ffffff !important;
+                  color: #0f172a !important;
+                }
+                *, *::before, *::after {
+                  --border: #cbd5e1 !important;
+                  --background: #ffffff !important;
+                  --foreground: #0f172a !important;
+                  --card: #ffffff !important;
+                  --card-foreground: #0f172a !important;
+                  --popover: #ffffff !important;
+                  --primary: #2563eb !important;
+                  --primary-foreground: #ffffff !important;
+                  --secondary: #f1f5f9 !important;
+                  --secondary-foreground: #0f172a !important;
+                  --muted: #f1f5f9 !important;
+                  --muted-foreground: #64748b !important;
+                  --accent: #f1f5f9 !important;
+                  --accent-foreground: #0f172a !important;
+                  --destructive: #ef4444 !important;
+                  --destructive-foreground: #ffffff !important;
+                  --ring: #2563eb !important;
+                }
+              `
+              clonedDoc.head?.appendChild(styleEl)
+            },
+            ignoreElements: (el: Element) => {
+              if (el === clonedElement) return false
+              const tag = el.tagName?.toUpperCase()
+              if (tag === "BUTTON" || tag === "FILTER" || tag === "DEFS") return true
+              if (el.getAttribute?.("data-print-ignore") === "true") return true
+              if (el.getAttribute?.("data-pdf-ignore") === "true") return true
+              if (el.getAttribute?.("data-html2canvas-ignore") === "true") return true
+              if (el.classList?.contains?.("no-print")) return true
+              return false
+            },
+          }),
+          25000,
+          "Timed out rendering document page via fallback engine.",
+        )
+        imageData = h2cCanvas.toDataURL("image/png")
+      } finally {
+        if (wrapper.parentNode) {
+          wrapper.parentNode.removeChild(wrapper)
+        }
+      }
+    }
+  }
 
   // Cooperative yield between rasterization and PDF embedding
   await new Promise((resolve) => setTimeout(resolve, 0))
 
-  const imageData = canvas.toDataURL("image/jpeg", 0.99)
-  pdf.addImage(imageData, "JPEG", 0, 0, PAGE_WIDTH, PAGE_HEIGHT, undefined, "FAST")
+  if (imageData) {
+    pdf.addImage(imageData, "PNG", 0, 0, PAGE_WIDTH, PAGE_HEIGHT, undefined, "MEDIUM")
+  }
 }
 
 export async function generateShippingDocumentsPDF(options: GenerateShippingDocumentsOptions): Promise<Blob> {
   options.onProgress?.(5, "Initializing PDF Document Engine...")
   const { jsPDF } = await import("jspdf")
+
+  const companyName = clean(options.companyName || options.data.companyName) || "SKY ARIANA LTD"
+  const companySubtitle = clean(options.companySubtitle || options.data.companySubtitle) || "International Transportation • Transit • Forwarding"
+
+  const isComplete = options.kind === "all"
+  const includesBol = options.kind === "bol" || options.kind === "bol-packing" || isComplete
+  const includesPacking = options.kind === "packing-list" || options.kind === "bol-packing" || isComplete
+  const includesStickers = options.kind === "stickers" || isComplete
+
+  // Fast-path inside Electron Desktop: capture 100% infinite-resolution vector PDF via Chromium printToPDF
+  let vectorBolBlob: Blob | null = null
+  if (includesBol && options.useElectronVectorPdf) {
+    options.onProgress?.(25, "Rendering Vector Bill of Lading...")
+    vectorBolBlob = await captureElectronVectorPdf("bol", { landscape: false })
+    if (vectorBolBlob && !includesPacking && !includesStickers) {
+      options.onProgress?.(100, "Complete!")
+      return vectorBolBlob
+    }
+  }
+
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -2177,16 +2315,8 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
   })
 
   options.onProgress?.(15, "Loading typography and official fonts...")
-  await registerPDFFonts(pdf)
-
-  const companyName = clean(options.companyName || options.data.companyName) || "SKY ARIANA LTD"
-  const companySubtitle = clean(options.companySubtitle || options.data.companySubtitle) || "International Transportation • Transit • Forwarding"
+  await withCaptureTimeout(registerPDFFonts(pdf), 5000).catch(() => false)
   const logoDataUrl = await imageUrlToDataUrl(options.logoUrl)
-
-  const isComplete = options.kind === "all"
-  const includesBol = options.kind === "bol" || options.kind === "bol-packing" || isComplete
-  const includesPacking = options.kind === "packing-list" || options.kind === "bol-packing" || isComplete
-  const includesStickers = options.kind === "stickers" || isComplete
 
   let pageHasContent = false
 
@@ -2201,7 +2331,7 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
   // ----------------------------------------------------
   // BILL OF LADING (Single or Multi-Page)
   // ----------------------------------------------------
-  if (includesBol) {
+  if (includesBol && !vectorBolBlob) {
     options.onProgress?.(25, "Rendering Master Bill of Lading...")
     const bolElement =
       options.bolElement ||
@@ -2222,13 +2352,19 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
         pdf.addPage("a4", "portrait")
       }
       options.onProgress?.(
-        Math.round(25 + ((i + 1) / pagesToRender.length) * 25),
+        Math.round(25 + (i / pagesToRender.length) * 20),
         pagesToRender.length > 1
           ? `Rendering Bill of Lading (Page ${i + 1} of ${pagesToRender.length})...`
           : "Rendering Master Bill of Lading..."
       )
       await drawBolPage(pdf, pagesToRender[i])
       pageHasContent = true
+      options.onProgress?.(
+        Math.round(25 + ((i + 1) / pagesToRender.length) * 25),
+        pagesToRender.length > 1
+          ? `Rendered Bill of Lading (Page ${i + 1} of ${pagesToRender.length})`
+          : "Master Bill of Lading ready"
+      )
     }
   }
 
@@ -2245,9 +2381,16 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
           (document.querySelector('[data-shipping-preview-export="packing-list"]') as HTMLElement | null)
         : null
 
+    let packingRendered = false
     if (packingElement) {
-      await drawBolPage(pdf, packingElement)
-    } else {
+      try {
+        await drawBolPage(pdf, packingElement)
+        packingRendered = true
+      } catch (packingErr) {
+        console.warn("Packing list DOM capture failed, falling back to direct vector engine:", packingErr)
+      }
+    }
+    if (!packingRendered) {
       drawPackingList(pdf, options.data, logoDataUrl, companyName, companySubtitle)
     }
   }
@@ -2279,22 +2422,31 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
       }
 
       pageHasContent = addPageIfNeeded(pdf, pageHasContent)
+      let stickerRendered = false
       if (stickerElement) {
-        await drawBolPage(pdf, stickerElement)
-      } else if (layout === "sheet") {
-        drawStickerSheetPage(pdf, options.data, logoDataUrl, companyName, firstCarton, quantity)
-      } else {
-        drawStickerPage(
-          pdf,
-          options.data,
-          logoDataUrl,
-          companyName,
-          quantity > 1 ? commodityForCarton(options.data, firstCarton) : undefined,
-          undefined,
-          undefined,
-          firstCarton + 1,
-          quantity,
-        )
+        try {
+          await drawBolPage(pdf, stickerElement)
+          stickerRendered = true
+        } catch (stickerErr) {
+          console.warn("Sticker label DOM capture failed, falling back to direct vector engine:", stickerErr)
+        }
+      }
+      if (!stickerRendered) {
+        if (layout === "sheet") {
+          drawStickerSheetPage(pdf, options.data, logoDataUrl, companyName, firstCarton, quantity)
+        } else {
+          drawStickerPage(
+            pdf,
+            options.data,
+            logoDataUrl,
+            companyName,
+            quantity > 1 ? commodityForCarton(options.data, firstCarton) : undefined,
+            undefined,
+            undefined,
+            firstCarton + 1,
+            quantity,
+          )
+        }
       }
     }
   }
@@ -2303,9 +2455,12 @@ export async function generateShippingDocumentsPDF(options: GenerateShippingDocu
   // Final yield before serialization
   await new Promise((resolve) => setTimeout(resolve, 0))
 
-  const blob = pdf.output("blob") as Blob
-  const header = await blob.slice(0, 5).text()
-  if (header !== "%PDF-") throw new Error("Generated shipping document is not a valid PDF.")
+  const restBlobRaw = pdf.output("blob") as Blob
+  const restHeader = await restBlobRaw.slice(0, 5).text()
+  if (restHeader !== "%PDF-") throw new Error("Generated shipping document is not a valid PDF.")
+  const restBlob = restBlobRaw.type === "application/pdf" ? restBlobRaw : new Blob([restBlobRaw], { type: "application/pdf" })
+
+  const finalBlob = vectorBolBlob ? await mergePdfBlobs([vectorBolBlob, restBlob]) : restBlob
   options.onProgress?.(100, "Complete!")
-  return blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" })
+  return finalBlob
 }

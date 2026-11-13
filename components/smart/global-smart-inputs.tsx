@@ -71,9 +71,15 @@ function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value: strin
 
 function isEnhanceable(el: Element): el is HTMLInputElement | HTMLTextAreaElement {
   if (!(el instanceof HTMLInputElement) && !(el instanceof HTMLTextAreaElement)) return false
-  if (el.hasAttribute("data-smart-disable")) return false
+  if (el.hasAttribute("data-smart-disable") || el.hasAttribute("data-transit-stop")) return false
   if (el.readOnly || el.disabled) return false
-  if (el.closest("[contenteditable='true'], [data-smart-ignore='true']")) return false
+  if (
+    el.closest(
+      "[contenteditable='true'], [data-smart-ignore='true'], [data-smart-disable='true'], [data-transit-stops-container='true'], [data-route-stops='true'], #section-routes"
+    )
+  ) {
+    return false
+  }
   const type = (el as HTMLInputElement).type
   if (el instanceof HTMLInputElement && !["text", "search", "tel", "email", "url", ""].includes(type)) return false
   return true

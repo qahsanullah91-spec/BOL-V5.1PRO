@@ -438,7 +438,7 @@ export const SavedBolCargoSummary = memo(function SavedBolCargoSummary({
       {/* Row 1: Commodity title & multi-badge */}
       <div className="flex items-center justify-between gap-1">
         <span
-          className="font-extrabold text-[11px] text-slate-900 dark:text-slate-200 uppercase truncate"
+          className="font-extrabold text-[15px] text-slate-900 dark:text-slate-200 uppercase truncate"
           title={cargo.tooltip}
         >
           {cargo.commodity}
@@ -451,7 +451,7 @@ export const SavedBolCargoSummary = memo(function SavedBolCargoSummary({
       </div>
 
       {/* Row 2: Packages & Net Weight */}
-      <div className="flex items-center justify-between gap-2 text-[10.5px]">
+      <div className="flex items-center justify-between gap-2 text-[14px]">
         <span
           className="flex items-center gap-1 font-mono font-bold text-slate-800 dark:text-slate-300 truncate"
           title={cargo.packages}

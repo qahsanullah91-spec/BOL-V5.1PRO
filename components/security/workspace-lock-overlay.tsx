@@ -22,8 +22,10 @@ export function WorkspaceLockOverlay() {
     isLocked,
     securitySettings,
     activeLockMethods,
+    isShieldProtected,
     isLockedOut,
     lockoutRemainingSeconds,
+    enrolledFingerprints,
     unlockWithFingerprint,
     unlockWithFace,
     unlockWithPin,
@@ -34,6 +36,10 @@ export function WorkspaceLockOverlay() {
 
   // Selected Tab: Default to fingerprint, pin, or password
   const [selectedMethod, setSelectedMethod] = useState<"fingerprint" | "face" | "pin" | "password">("pin")
+
+  // Fingerprint Scanner State
+  const [fpScanProgress, setFpScanProgress] = useState(0)
+  const [fpScanStatus, setFpScanStatus] = useState<"idle" | "scanning" | "matched" | "failed">("idle")
 
   // PIN Input State
   const pinLength = securitySettings.pinLength || 4
@@ -154,6 +160,44 @@ export function WorkspaceLockOverlay() {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isLocked, selectedMethod, pinDigits, pinLength, isLockedOut, pinLoading])
+
+  // Fingerprint Interactive Scan Trigger
+  const triggerFingerprintScan = async () => {
+    if (isLockedOut || fpScanStatus === "scanning") return
+
+    if (!enrolledFingerprints || enrolledFingerprints.length === 0) {
+      setSelectedMethod("pin")
+      return
+    }
+
+    setFpScanStatus("scanning")
+    setFpScanProgress(15)
+
+    const interval = setInterval(() => {
+      setFpScanProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(interval)
+          return 90
+        }
+        return prev + 25
+      })
+    }, 80)
+
+    await new Promise((r) => setTimeout(r, 450))
+    clearInterval(interval)
+    setFpScanProgress(100)
+    setFpScanStatus("matched")
+
+    await new Promise((r) => setTimeout(r, 200))
+    const success = await unlockWithFingerprint()
+    if (!success) {
+      setFpScanStatus("failed")
+      setTimeout(() => {
+        setFpScanStatus("idle")
+        setFpScanProgress(0)
+      }, 1000)
+    }
+  }
 
   // Face Scan Animation Trigger
   const triggerFaceScan = async () => {
@@ -317,32 +361,117 @@ export function WorkspaceLockOverlay() {
         {/* ========================================================================= */}
         {selectedMethod === "fingerprint" && (
           <div className="space-y-5 text-center py-2 animate-in fade-in duration-200">
-            <div className="relative inline-flex items-center justify-center">
-              {/* Pulsing Ripple Rings */}
-              <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
-              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-emerald-500/10 via-emerald-500/20 to-blue-500/20 border-2 border-emerald-500/40 flex items-center justify-center relative shadow-inner">
-                <Fingerprint className="w-12 h-12 text-emerald-500 animate-pulse" />
+            {enrolledFingerprints && enrolledFingerprints.length > 0 ? (
+              <>
+                <div className="relative inline-flex items-center justify-center">
+                  {/* Outer Radar Reticle Ring */}
+                  <div
+                    className={`absolute -inset-3 rounded-full border border-dashed transition-all ${
+                      fpScanStatus === "scanning"
+                        ? "border-emerald-400/80 animate-spin [animation-duration:4s]"
+                        : fpScanStatus === "matched"
+                        ? "border-emerald-500"
+                        : "border-slate-300 dark:border-slate-700"
+                    }`}
+                  />
+
+                  {/* Pulsing Ripple Rings */}
+                  {fpScanStatus !== "idle" && (
+                    <div className="absolute inset-0 rounded-full bg-emerald-500/30 animate-ping" />
+                  )}
+
+                  {/* Touch Sensor Target Button */}
+                  <button
+                    type="button"
+                    disabled={isLockedOut || fpScanStatus === "scanning"}
+                    onClick={triggerFingerprintScan}
+                    className={`relative w-28 h-28 rounded-full flex flex-col items-center justify-center transition-all cursor-pointer shadow-xl overflow-hidden select-none active:scale-95 ${
+                      fpScanStatus === "matched"
+                        ? "bg-emerald-950 border-2 border-emerald-400 text-emerald-400 shadow-emerald-500/40"
+                        : fpScanStatus === "scanning"
+                        ? "bg-slate-900 border-2 border-emerald-500 text-emerald-300 shadow-emerald-500/30"
+                        : "bg-gradient-to-tr from-emerald-500/10 via-emerald-500/20 to-blue-500/20 hover:from-emerald-500/20 hover:to-blue-500/30 border-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                    }`}
+                    title="Touch sensor to scan / جهت اسکن کلیک یا لمس کنید"
+                  >
+                    {/* Laser Sweep Line */}
+                    {fpScanStatus === "scanning" && (
+                      <div
+                        className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#10b981] transition-all duration-100 z-20 pointer-events-none"
+                        style={{ top: `${fpScanProgress}%` }}
+                      />
+                    )}
+
+                    <Fingerprint
+                      className={`w-14 h-14 transition-all ${
+                        fpScanStatus === "scanning"
+                          ? "animate-pulse drop-shadow-[0_0_12px_#10b981]"
+                          : fpScanStatus === "matched"
+                          ? "scale-110 drop-shadow-[0_0_16px_#10b981]"
+                          : "animate-pulse"
+                      }`}
+                    />
+
+                    <span className="text-[9px] font-mono font-bold mt-1 opacity-80">
+                      {fpScanStatus === "scanning"
+                        ? `${fpScanProgress}%`
+                        : fpScanStatus === "matched"
+                        ? "VERIFIED ✓"
+                        : "TOUCH SENSOR"}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-black text-slate-800 dark:text-slate-200">
+                    {fpScanStatus === "scanning"
+                      ? "Scanning friction ridges & minutiae..."
+                      : fpScanStatus === "matched"
+                      ? "Access Granted / هویت تایید شد"
+                      : "Touch sensor to unlock / لمس حسگر اثر انگشت"}
+                  </p>
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                    {enrolledFingerprints[0]?.name || "Software Optical Biometric Scanner"}
+                    {enrolledFingerprints.length > 1 && ` (+${enrolledFingerprints.length - 1} more)`}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isLockedOut || fpScanStatus === "scanning"}
+                  onClick={triggerFingerprintScan}
+                  className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
+                >
+                  <Fingerprint className="w-4 h-4" />
+                  <span>
+                    {fpScanStatus === "scanning"
+                      ? "Verifying Biometrics..."
+                      : "Scan Fingerprint / تایید با اثر انگشت"}
+                  </span>
+                </button>
+              </>
+            ) : (
+              <div className="space-y-3 py-2">
+                <div className="w-16 h-16 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                  <Fingerprint className="w-8 h-8 opacity-60" />
+                </div>
+                <div className="space-y-1 text-center">
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    No Fingerprint Enrolled in Software Vault
+                  </p>
+                  <p className="text-[11px] text-slate-400 font-[vazirmatn]" dir="rtl">
+                    اثر انگشتی در سیستم ثبت نشده است — لطفاً با رمز یا پین وارد شوید
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMethod("pin")}
+                  className="w-full py-2.5 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Switch to PIN Code / استفاده از رمز پین
+                </button>
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-xs font-black text-slate-800 dark:text-slate-200">
-                Touch sensor to unlock / لمس حسگر اثر انگشت
-              </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {securitySettings.fingerprintDeviceName}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              disabled={isLockedOut}
-              onClick={() => void unlockWithFingerprint()}
-              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Fingerprint className="w-4 h-4" />
-              <span>Scan Fingerprint / تایید با اثر انگشت</span>
-            </button>
+            )}
           </div>
         )}
 

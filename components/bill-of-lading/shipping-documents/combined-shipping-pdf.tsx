@@ -40,6 +40,8 @@ export interface CombinedShippingPdfProps {
   onOpenChange: (open: boolean) => void
   data: ShippingDocumentData
   logoUrl?: string
+  brandLockupUrl?: string
+  logoDesignId?: string
   companyName?: string
   companySubtitle?: string
   bolPreview?: ReactNode

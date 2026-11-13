@@ -20,8 +20,8 @@ export interface ParsedUserIntent {
 // Regex patterns for authoritative business references
 const CONTAINER_REGEX = /\b([A-Z]{4}\s?\d{7})\b/i
 const BOL_REGEX = /\b(NSA[\s-]?\d{3,6}|BOL-?[A-Z0-9-]{3,15}|SKY-?[A-Z0-9-]{3,15})\b/i
-const INVOICE_REGEX = /\b(INV-?[A-Z0-9-]{3,15})\b/i
-const BOOKING_REGEX = /\b(BKG-?[A-Z0-9-]{3,15})\b/i
+const INVOICE_REGEX = /\b(INV-(?:[A-Z0-9-]{2,15})|INV\d{3,15})\b/i
+const BOOKING_REGEX = /\b(BKG-(?:[A-Z0-9-]{2,15})|BKG\d{3,15})\b/i
 const TRUCK_PLATE_REGEX = /\b(\d{4,6}[A-Z]|\d{5})\b/i
 
 /**
@@ -67,6 +67,24 @@ export function routeUserIntent(prompt: string): ParsedUserIntent {
     if (lower.includes('whatsapp') || lower.includes('update customer') || lower.includes('tell customer')) {
       return {
         intent: 'WHATSAPP_STATUS',
+        confidence: 0.95,
+        isExactIdentifier: true,
+        targetIdentifier: rawBol,
+        filters: { bolNumber: rawBol },
+      }
+    }
+
+    // Check if user wants smart verification / audit / sanctions check for this BOL
+    if (
+      lower.includes('verify') ||
+      lower.includes('audit') ||
+      lower.includes('sanction') ||
+      lower.includes('routing') ||
+      lower.includes('discrepancy') ||
+      lower.includes('compliance')
+    ) {
+      return {
+        intent: 'SMART_VERIFICATION',
         confidence: 0.95,
         isExactIdentifier: true,
         targetIdentifier: rawBol,
@@ -313,9 +331,31 @@ export function routeUserIntent(prompt: string): ParsedUserIntent {
   }
 
   // --------------------------------------------------------------------------
-  // 10. Audit History
+  // 10. Smart Verification & Discrepancy Audit (Option 3)
   // --------------------------------------------------------------------------
-  if (lower.includes('who changed') || lower.includes('audit') || lower.includes('history of')) {
+  if (
+    lower.includes('verify ledger') ||
+    lower.includes('audit ledger') ||
+    lower.includes('discrepancy') ||
+    lower.includes('invariance') ||
+    lower.includes('verify border') ||
+    lower.includes('check routing') ||
+    lower.includes('sanction') ||
+    lower.includes('compliance check') ||
+    lower.includes('verify accounting')
+  ) {
+    return {
+      intent: 'SMART_VERIFICATION',
+      confidence: 0.95,
+      isExactIdentifier: false,
+      filters: extractDateAndEntityFilters(lower),
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 11. Audit History
+  // --------------------------------------------------------------------------
+  if (lower.includes('who changed') || lower.includes('audit history') || lower.includes('history of')) {
     return {
       intent: 'AUDIT_HISTORY',
       confidence: 0.85,

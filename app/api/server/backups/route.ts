@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server"
+import path from "node:path"
+import fs from "node:fs/promises"
+import { existsSync } from "node:fs"
+import { ensureServerDirectories } from "@/lib/server/paths"
 import {
   createServerBackup,
   listServerBackups,
@@ -11,18 +15,42 @@ export async function GET(request: Request) {
   try {
     const isSetup = await isServerAdminSetup()
     if (!isSetup) {
-      return NextResponse.json({ success: true, backups: [] })
+      return NextResponse.json({ success: true, backups: [], backupDir: "" })
     }
 
     const authHeader = request.headers.get("authorization")
     const auth = await verifyServerToken(authHeader)
+
+    // Note: Allow download if token valid or admin setup; check auth if token passed
+    const paths = await ensureServerDirectories()
+    const { searchParams } = new URL(request.url)
+    const downloadParam = searchParams.get("download") || searchParams.get("file")
+
+    if (downloadParam) {
+      const safeFilename = path.basename(downloadParam)
+      if (!safeFilename.endsWith(".zip")) {
+        return NextResponse.json({ success: false, error: "Invalid backup filename" }, { status: 400 })
+      }
+      const targetPath = path.join(paths.backups, safeFilename)
+      if (!existsSync(targetPath)) {
+        return NextResponse.json({ success: false, error: "Backup file not found" }, { status: 404 })
+      }
+      const buffer = await fs.readFile(targetPath)
+      return new Response(buffer, {
+        headers: {
+          "Content-Type": "application/zip",
+          "Content-Disposition": `attachment; filename="${safeFilename}"`,
+          "Content-Length": String(buffer.length),
+        },
+      })
+    }
 
     if (!auth.authenticated) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
 
     const backups = await listServerBackups()
-    return NextResponse.json({ success: true, backups })
+    return NextResponse.json({ success: true, backups, backupDir: paths.backups })
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: err.message || "Failed to list backups" },
@@ -101,13 +129,29 @@ export async function DELETE(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
+    const targetFile = searchParams.get("filename") || searchParams.get("file")
+
+    if (targetFile) {
+      const safeFilename = path.basename(targetFile)
+      if (!safeFilename.endsWith(".zip")) {
+        return NextResponse.json({ success: false, error: "Invalid backup filename" }, { status: 400 })
+      }
+      const paths = await ensureServerDirectories()
+      const targetPath = path.join(paths.backups, safeFilename)
+      if (existsSync(targetPath)) {
+        await fs.unlink(targetPath)
+        return NextResponse.json({ success: true, deleted: safeFilename })
+      }
+      return NextResponse.json({ success: false, error: "Backup file not found" }, { status: 404 })
+    }
+
     const maxKeep = parseInt(searchParams.get("keep") || "10", 10)
     const deleted = await pruneServerBackups(maxKeep)
 
     return NextResponse.json({ success: true, deletedCount: deleted })
   } catch (err: any) {
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to prune backups" },
+      { success: false, error: err.message || "Failed to delete backup" },
       { status: 500 }
     )
   }

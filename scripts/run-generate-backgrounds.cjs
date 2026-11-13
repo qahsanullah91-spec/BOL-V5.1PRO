@@ -59,6 +59,11 @@ for (const [filename, svgContent] of Object.entries(allBackgrounds)) {
 
 console.log(`Successfully generated and synced all ${count} security watermark SVGs!`);
 
+// Synchronize high-definition photographic security watermarks (12 master items)
+console.log('Generating and synchronizing high-definition photographic security watermarks...');
+const { execFileSync } = require('node:child_process');
+execFileSync(process.execPath, [path.join(__dirname, 'generate-photographic-security-watermarks.cjs')], { stdio: 'inherit' });
+
 // Synchronize all photographic & raster images in public/images
 console.log('Synchronizing high-resolution photographic pictures to release targets...');
 const imageFiles = fs.readdirSync(publicImagesDir).filter((file) => {

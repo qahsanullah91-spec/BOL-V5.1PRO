@@ -3,6 +3,21 @@ import type { BillOfLadingFormData } from "@/lib/types/bill-of-lading"
 type WhatsAppBol = BillOfLadingFormData
 type Party = string | Record<string, unknown> | null | undefined
 
+export function toAsciiDigits(str: string): string {
+  if (!str) return ""
+  return str
+    .replace(/[۰٠]/g, "0")
+    .replace(/[۱١]/g, "1")
+    .replace(/[۲٢]/g, "2")
+    .replace(/[۳٣]/g, "3")
+    .replace(/[۴٤]/g, "4")
+    .replace(/[۵٥]/g, "5")
+    .replace(/[۶٦]/g, "6")
+    .replace(/[۷٧]/g, "7")
+    .replace(/[۸٨]/g, "8")
+    .replace(/[۹٩]/g, "9")
+}
+
 export function cleanValue(value: unknown): string {
   if (typeof value !== "string" && typeof value !== "number") return ""
   const text = String(value).trim()
@@ -31,6 +46,14 @@ function cleanCargoText(text: string): string {
     .replace(/\bBLACK-RAISNIS\b/gi, "BLACK RAISINS")
     .replace(/\bGREEN-RAISNIS\b/gi, "GREEN RAISINS")
     .replace(/\bGOLDEN-RAISNIS\b/gi, "GOLDEN RAISINS")
+    .replace(/\bRED-RAISNIS\b/gi, "RED RAISINS")
+    .replace(/\bFIGGIS\b/gi, "FIGS")
+    .replace(/\bAPRICOTTS?\b/gi, "APRICOTS")
+    .replace(/\bPISTACHIOES\b/gi, "PISTACHIOS")
+    .replace(/\bALMONND\b/gi, "ALMOND")
+    .replace(/\bCUMINN\b/gi, "CUMIN")
+    .replace(/\bSAFFRONN\b/gi, "SAFFRON")
+    .replace(/\bLICORICEE\b/gi, "LICORICE")
 }
 
 function cargoSummary(value: unknown, packagesValue?: unknown): string {
@@ -40,15 +63,15 @@ function cargoSummary(value: unknown, packagesValue?: unknown): string {
       .replace(/^(?:cargo|commodity|description of goods|goods)\s*[:#-]?\s*/i, "")
       .trim(),
   ).filter(segment => segment &&
-    !/^(?:container\s*&\s*cargo|document\s*&\s*shipping|transit date|hs\s*code|afghan\s*tc|invoice|inv no|lot no|batch no|booking|seal no|container no)\b/i.test(segment) &&
+    !/^(?:container\s*&\s*cargo|document\s*&\s*shipping|transit date|hs\s*code|afghan\s*tc|invoice|inv no|lot no|batch no|booking|seal no|container no|total|total\s*weight|total\s*invoice|packing\/?tare|invoice\s*rate)\b/i.test(segment) &&
     !/^[:#-]?\s*$/.test(segment),
   ).join("; ")
 
   if (!summary && packagesValue) {
     const pkgText = cleanValue(packagesValue)
-    const match = pkgText.match(/(?:[-–—:]\s*)([A-Za-z\s()]+)$/)
+    const match = pkgText.match(/(?:[-–—:]\s*)([A-Za-z\u0600-\u06FF\s()]+)$/)
     if (match && match[1]) {
-      const stripped = match[1].replace(/^(?:ctns?|cartons?|bags?|packages?|pkgs?|units?|boxes?)\s*[-:]?\s*/i, "").trim()
+      const stripped = match[1].replace(/^(?:ctns?|cartons?|bags?|packages?|pkgs?|units?|boxes?|کارتن|بوجی|کیسه)\s*[-:]?\s*/i, "").trim()
       if (stripped) summary = stripped
     }
   }
@@ -57,11 +80,11 @@ function cargoSummary(value: unknown, packagesValue?: unknown): string {
 }
 
 function cleanPackageCount(packagesValue: unknown, packageType?: unknown): string {
-  const text = cleanValue(packagesValue)
+  const text = toAsciiDigits(cleanValue(packagesValue))
   if (!text) return ""
   
   // Find all matches like "777 CTNS", "304 CTNS", "1501 CTNS", "380 BAGS"
-  const matches = [...text.matchAll(/(\d[\d,]*)\s*[-–—]?\s*(CTNS?|CARTONS?|BAGS?|PKGS?|PACKAGES?|UNITS?|BOXES?|ROLLS?)\b/gi)]
+  const matches = [...text.matchAll(/(\d[\d,]*)\s*[-–—]?\s*(CTNS?|CARTONS?|BAGS?|PKGS?|PACKAGES?|UNITS?|BOXES?|ROLLS?|کارتن|بوجی|کیسه|بکس|بسته)\b/gi)]
   if (matches.length > 1) {
     let total = 0
     const parts = matches.map(m => {
@@ -126,7 +149,7 @@ export function formatPartyForWhatsApp(party: Party, details: Record<string, unk
 function cleanTruckNumber(value: unknown): string {
   const text = cleanValue(value)
   if (!text) return ""
-  return text.replace(/^(\d+)([\u0600-\u06FF])/, "$1 $2")
+  return text.replace(/^(\d+)\s*[-–—/]?\s*([\u0600-\u06FF])/, "$1 $2")
 }
 
 function extractRouteNote(bol: WhatsAppBol): string {
@@ -139,7 +162,7 @@ function extractRouteNote(bol: WhatsAppBol): string {
     (bol as any).route_persian
   )
   if (!raw) return ""
-  return raw.replace(/^مسیر\s*[:#-]?\s*/i, "").trim()
+  return raw.replace(/^مسیر\s*[:#-]+\s*/i, "").trim()
 }
 
 export function buildWhatsAppBOLMessage(bol: WhatsAppBol): string {
@@ -197,6 +220,11 @@ export function buildWhatsAppBOLMessage(bol: WhatsAppBol): string {
 }
 
 function extractInvoiceNumber(bol: WhatsAppBol): string {
+  const direct = bol.invoice_number || (bol as any).invoice_no || (bol as any).invoiceNo
+  if (direct) {
+    const clean = cleanValue(direct)
+    return clean.toUpperCase().startsWith("INV-") ? clean.toUpperCase() : `INV-${clean}`
+  }
   if (bol.invoice_number) {
     const clean = cleanValue(bol.invoice_number)
     return clean.toUpperCase().startsWith("INV-") ? clean.toUpperCase() : `INV-${clean}`
@@ -232,7 +260,7 @@ function formatTruckNumberExecutive(value: unknown): string {
   const text = cleanValue(value)
   if (!text) return ""
   // Check if plate has an Afghan province attached like "12797کندهار" or "12797 - کندهار"
-  const m = text.match(/^(\d+)\s*[-–—]?\s*(.+)$/)
+  const m = text.match(/^(\d+)\s*[-–—/]?\s*(.+)$/)
   if (m) {
     const num = m[1]
     const prov = m[2].trim()
@@ -250,6 +278,11 @@ function formatTruckNumberExecutive(value: unknown): string {
       "balkh": "Balkh",
       "مزار": "Mazar-i-Sharif",
       "مزارشریف": "Mazar-i-Sharif",
+      "مزار شریف": "Mazar-i-Sharif",
+      "بدخشان": "Badakhshan",
+      "تخار": "Takhar",
+      "پکتیا": "Paktia",
+      "خوست": "Khost",
       "ننگرهار": "Nangarhar",
       "nangarhar": "Nangarhar",
       "جلال آباد": "Jalalabad",
@@ -279,17 +312,26 @@ function getBilingualCommodity(commodity: string): string {
   const upper = commodity.toUpperCase().replace(/[-_]+/g, " ")
   const found: { en: string; fa: string }[] = []
 
-  if (upper.includes("BLACK RAISIN") || upper.includes("BLACK-RAISNIS") || upper.includes("BLACK RAISNIS")) {
+  if (upper.includes("BLACK RAISIN") || upper.includes("BLACK-RAISNIS") || upper.includes("BLACK RAISNIS") || upper.includes("کشمش سیاه")) {
     found.push({ en: "BLACK RAISINS", fa: "کشمش سیاه" })
   }
-  if (upper.includes("GREEN RAISIN") || upper.includes("GREEN-RAISNIS")) {
+  if (upper.includes("GREEN RAISIN") || upper.includes("GREEN-RAISNIS") || upper.includes("کشمش سبز")) {
     found.push({ en: "GREEN RAISINS", fa: "کشمش سبز" })
   }
-  if (upper.includes("GOLDEN RAISIN") || upper.includes("GOLDEN-RAISNIS") || upper.includes("GOLDEN RAISNIS")) {
+  if (upper.includes("GOLDEN RAISIN") || upper.includes("GOLDEN-RAISNIS") || upper.includes("GOLDEN RAISNIS") || upper.includes("کشمش طلایی") || upper.includes("کشمش طلائی")) {
     found.push({ en: "GOLDEN RAISINS", fa: "کشمش طلایی" })
   }
-  if (upper.includes("RED RAISIN") || upper.includes("RED-RAISNIS")) {
+  if (upper.includes("RED RAISIN") || upper.includes("RED-RAISNIS") || upper.includes("کشمش سرخ")) {
     found.push({ en: "RED RAISINS", fa: "کشمش سرخ" })
+  }
+  if (upper.includes("GARDAK") || upper.includes("گردک")) {
+    found.push({ en: "GARDAK RAISINS", fa: "کشمش گردک" })
+  }
+  if (upper.includes("SHONDOKHANI") || upper.includes("SHONDO KHANI") || upper.includes("شندوخانی")) {
+    found.push({ en: "SHONDOKHANI RAISINS", fa: "کشمش شندوخانی" })
+  }
+  if (upper.includes("ABJOSH") || upper.includes("آبجوش")) {
+    found.push({ en: "ABJOSH RAISINS", fa: "کشمش آبجوش" })
   }
   if (upper.includes("DRIED FIG") || upper.includes("DRY FIGS") || upper.includes("FIGS") || upper.includes("انجیر")) {
     found.push({ en: "DRIED FIGS", fa: "انجیر خشک" })
@@ -297,7 +339,11 @@ function getBilingualCommodity(commodity: string): string {
   if (upper.includes("PISTACHIO") || upper.includes("پسته")) {
     found.push({ en: "PISTACHIO", fa: "پسته" })
   }
-  if (upper.includes("ALMOND") || upper.includes("بادام")) {
+  if (upper.includes("MAMRA") || upper.includes("مامایی")) {
+    found.push({ en: "MAMRA ALMONDS", fa: "بادام مامایی" })
+  } else if (upper.includes("KAGHAZI") || upper.includes("کاغذی")) {
+    found.push({ en: "KAGHAZI ALMONDS", fa: "بادام کاغذی" })
+  } else if (upper.includes("ALMOND") || upper.includes("بادام")) {
     found.push({ en: "ALMONDS", fa: "بادام" })
   }
   if (upper.includes("WALNUT") || upper.includes("چهارمغز")) {
@@ -315,7 +361,9 @@ function getBilingualCommodity(commodity: string): string {
   if (upper.includes("LICORICE") || upper.includes("شیرین بویه") || upper.includes("مهک")) {
     found.push({ en: "AFGHAN LICORICE", fa: "شیرین بویه" })
   }
-  if (upper.includes("APRICOT") || upper.includes("زردآلو") || upper.includes("قیسی")) {
+  if (upper.includes("SHAKAR PARA") || upper.includes("SHAKARPARA") || upper.includes("شکرپاره")) {
+    found.push({ en: "SHAKAR PARA APRICOTS", fa: "قیسی شکرپاره" })
+  } else if (upper.includes("APRICOT") || upper.includes("زردآلو") || upper.includes("قیسی")) {
     found.push({ en: "DRIED APRICOTS", fa: "زردآلو خشک" })
   }
   if (upper.includes("PINE NUT") || upper.includes("CHILGOZA") || upper.includes("جلغوزه")) {
@@ -323,6 +371,18 @@ function getBilingualCommodity(commodity: string): string {
   }
   if (upper.includes("CUMIN") || upper.includes("زیره")) {
     found.push({ en: "CUMIN SEEDS", fa: "زیره" })
+  }
+  if (upper.includes("ASAFOETIDA") || upper.includes("HING") || upper.includes("انغوزه") || upper.includes("هنگ")) {
+    found.push({ en: "ASAFOETIDA (HING)", fa: "انغوزه (هنگ)" })
+  }
+  if (upper.includes("CHERRY") || upper.includes("CHERRIES") || upper.includes("گیلاس") || upper.includes("آلوبالو")) {
+    found.push({ en: "FRESH CHERRIES", fa: "گیلاس تازه" })
+  }
+  if (upper.includes("GRAPES") || upper.includes("انگور")) {
+    found.push({ en: "FRESH GRAPES", fa: "انگور تازه" })
+  }
+  if (upper.includes("SESAME") || upper.includes("کنجد")) {
+    found.push({ en: "SESAME SEEDS", fa: "کنجد" })
   }
 
   if (found.length === 1) {
@@ -410,6 +470,42 @@ function getCountryFlag(location: string): string {
   }
   if (/tajikistan|تاجیکستان|dushanbe/.test(loc)) {
     return "🇹🇯"
+  }
+  if (/saudi|عربستان|سعودی|riyadh|jeddah/.test(loc)) {
+    return "🇸🇦"
+  }
+  if (/qatar|قطر|doha/.test(loc)) {
+    return "🇶🇦"
+  }
+  if (/oman|عمان|muscat|sohar/.test(loc)) {
+    return "🇴🇲"
+  }
+  if (/china|چین|shanghai|ningbo|shenzhen|guangzhou/.test(loc)) {
+    return "🇨🇳"
+  }
+  if (/russia|روسیه|moscow/.test(loc)) {
+    return "🇷🇺"
+  }
+  if (/kazakhstan|قزاقستان|almaty/.test(loc)) {
+    return "🇰🇿"
+  }
+  if (/saudi|عربستان|سعودی|riyadh|jeddah/.test(loc)) {
+    return "🇸🇦"
+  }
+  if (/qatar|قطر|doha/.test(loc)) {
+    return "🇶🇦"
+  }
+  if (/oman|عمان|muscat|sohar/.test(loc)) {
+    return "🇴🇲"
+  }
+  if (/china|چین|shanghai|ningbo|shenzhen|guangzhou/.test(loc)) {
+    return "🇨🇳"
+  }
+  if (/russia|روسیه|moscow/.test(loc)) {
+    return "🇷🇺"
+  }
+  if (/kazakhstan|قزاقستان|almaty/.test(loc)) {
+    return "🇰🇿"
   }
   return ""
 }
@@ -526,6 +622,15 @@ export function formatTransitDetailsText(bol: WhatsAppBol): { en: string; fa: st
   } else if (/spin\s*boldak|اسپین\s*بولدک|chaman|چمن/i.test(allContext)) {
     borderEn = "Spin Boldak"
     borderFa = "اسپین بولدک"
+  } else if (/aqina|آقینه/i.test(allContext)) {
+    borderEn = "Aqina"
+    borderFa = "آقینه"
+  } else if (/sher\s*khan|شیرخان/i.test(allContext)) {
+    borderEn = "Sher Khan Bandar"
+    borderFa = "شیرخان بندر"
+  } else if (/torkham|تورخم/i.test(allContext)) {
+    borderEn = "Torkham"
+    borderFa = "تورخم"
   }
 
   // Check if Pakistan corridor
@@ -611,26 +716,36 @@ export function buildWhatsAppShipmentUpdate(bol: WhatsAppBol): string {
   const commodity = getBilingualCommodity(rawCargo)
   const packages = cleanPackageCount(bol.number_of_packages, bol.package_type)
   const netWeight = formatNumberWithCommas(withUnit(bol.net_weight, "KG"))
+  const grossWeight = formatNumberWithCommas(withUnit(bol.gross_weight, "KG"))
   const unitPrice = formatUnitPrice(bol)
   const route = formatTransitRouteExecutive(bol)
   const details = formatTransitDetailsText(bol)
+  const issueDate = cleanValue(bol.issue_date || (bol as any).issueDate || (bol as any).date)
+  const driverRent = bol.driver_rent ? withUnit(bol.driver_rent, bol.driver_rent_currency || "AFN") : ""
 
   const docLines = [
     blNo ? `📄 *B/L No. / شماره بارنامه:* ${blNo}` : "",
     invoiceNo ? `🧾 *Invoice No. / شماره فاکتور:* ${invoiceNo}` : "",
+    issueDate ? `📅 *Date / تاریخ:* ${issueDate}` : "",
     truck ? `🚚 *Truck No. / شماره موتر:* ${truck}` : "",
+    bol.container_numbers ? `📦 *Container / کانتینر:* ${cleanValue(bol.container_numbers)}${bol.seal_numbers ? ` (Seal: ${cleanValue(bol.seal_numbers)})` : ""}` : "",
   ].filter(Boolean)
+
+  const driverLine = bol.driver_name ? `👤 *Driver / راننده:* ${bol.driver_name}${bol.driver_contact ? ` (${bol.driver_contact})` : ""}` : ""
 
   const partyLines = [
     shipper ? `🏢 *Shipper / فرستنده:* ${shipper}` : "",
     consignee ? `🏢 *Consignee / گیرنده:* ${consignee}` : "",
+    driverLine,
   ].filter(Boolean)
 
   const cargoLines = [
     commodity ? `🍇 *Commodity / نوع کالا:* ${commodity}` : "",
     packages ? `📦 *Packages / تعداد کارتن:* ${packages}` : "",
     netWeight ? `⚖️ *Net Weight / وزن خالص:* ${netWeight}` : "",
+    grossWeight && grossWeight !== netWeight ? `⚖️ *Gross Weight / وزن ناخالص:* ${grossWeight}` : "",
     unitPrice ? `💵 *Unit Price / قیمت واحد:* ${unitPrice}` : "",
+    driverRent ? `💵 *Driver Rent / کرایه موتر:* ${driverRent}` : "",
   ].filter(Boolean)
 
   if (!docLines.length && !cargoLines.length) return ""
@@ -640,12 +755,7 @@ export function buildWhatsAppShipmentUpdate(bol: WhatsAppBol): string {
     route,
   ].join("\n")
 
-  const detailsBlock = [
-    "🚛 *TRANSIT DETAILS / جزئیات ترانزیت:*",
-    details.en,
-    "",
-    details.fa,
-  ].join("\n")
+  const detailsBlock = details.fa || ""
 
   const sections = [
     "🚢 *SKY ARIANA LIMITED*\n📋 *SHIPMENT UPDATE / اطلاعیه حمل بار*\n━━━━━━━━━━━━━━━",
@@ -662,20 +772,29 @@ export function buildWhatsAppShipmentUpdate(bol: WhatsAppBol): string {
 
 export function buildWhatsAppBilingualMessage(bol: WhatsAppBol): string {
   const route = routeDetails(bol)
+  const routeText = route.text ? route.text.replace(/ ➜ /g, " ➔ ") : ""
   const routeNote = extractRouteNote(bol)
   const containerType = [cleanValue(bol.container_size), cleanValue(bol.container_type || bol.equipment_type)].filter(Boolean).join(" ")
   const meaningfulCargo = cargoSummary(bol.cargo_description, bol.number_of_packages)
   const formattedPackages = cleanPackageCount(bol.number_of_packages, bol.package_type)
   const truck = cleanTruckNumber(bol.truck_number)
 
+  const invoiceNo = extractInvoiceNumber(bol)
+  const issueDate = cleanValue(bol.issue_date || (bol as any).issueDate)
+  const driverRent = bol.driver_rent ? withUnit(bol.driver_rent, bol.driver_rent_currency || "AFN") : ""
+
   const details = [
     bol.bol_number ? `📄 *BOL / نمبر بارنامه:* ${bol.bol_number}` : "",
+    invoiceNo ? `🧾 *Invoice / فاکتور:* ${invoiceNo}` : "",
+    issueDate ? `📅 *Date / نېټه / تاریخ:* ${issueDate}` : "",
     truck ? `🚚 *Truck / موټر نمبر:* ${truck}` : "",
+    bol.driver_name ? `👤 *Driver / راننده:* ${bol.driver_name}${bol.driver_contact ? ` (${bol.driver_contact})` : ""}` : "",
+    driverRent ? `💵 *Driver Rent / کرایه موتر:* ${driverRent}` : "",
     meaningfulCargo ? `🍇 *Commodity / جنس:* ${meaningfulCargo}` : "",
     (formattedPackages || bol.number_of_packages) ? `📦 *Packages / تعداد کارتن:* ${formattedPackages || cleanValue(bol.number_of_packages)}` : "",
     bol.net_weight ? `⚖️ *Net Weight / خالص وزن:* ${withUnit(bol.net_weight, "KG")}` : "",
     (containerType || bol.container_numbers) ? `📦 *Container / کانتینر:* ${[containerType, cleanValue(bol.container_numbers)].filter(Boolean).join(" • ")}` : "",
-    route.text ? `🛣️ *Route / مسیر ترانزیت:*\n${route.text}` : "",
+    routeText ? `🗺️ *Route / مسیر ترانزیت:*\n${routeText}` : "",
     routeNote ? `🗺️ *مسیر:* ${routeNote}` : "",
     bol.vessel_name ? `🚢 *Vessel / کشتی:* ${bol.vessel_name}` : "",
     route.etd ? `📅 *ETD / تاریخ حرکت:* ${route.etd}` : "",
@@ -687,9 +806,9 @@ export function buildWhatsAppBilingualMessage(bol: WhatsAppBol): string {
   return [
     "🚢 *SKY ARIANA LIMITED*",
     "📋 *اطلاعیه باربری / SHIPMENT UPDATE*",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "───────────────────────────",
     details.join("\n"),
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "───────────────────────────",
     "🌐 *Sky Ariana Limited* • International Transportation",
   ].join("\n")
 }
@@ -701,9 +820,12 @@ export function buildWhatsAppQuickMessage(bol: WhatsAppBol): string {
   const formattedPackages = cleanPackageCount(bol.number_of_packages, bol.package_type)
   const truck = cleanTruckNumber(bol.truck_number)
 
+  const invoiceNo = extractInvoiceNumber(bol)
   const items: string[] = []
   if (bol.bol_number) items.push(`• *BOL:* ${bol.bol_number}`)
+  if (invoiceNo) items.push(`• *Invoice:* ${invoiceNo}`)
   if (truck) items.push(`• *Truck:* ${truck}`)
+  if (bol.driver_name) items.push(`• *Driver:* ${bol.driver_name}${bol.driver_contact ? ` (${bol.driver_contact})` : ""}`)
   if (meaningfulCargo || formattedPackages) {
     const cargoLine = [meaningfulCargo, formattedPackages].filter(Boolean).join(" — ")
     items.push(`• *Cargo:* ${cargoLine}`)

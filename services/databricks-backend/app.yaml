@@ -1,0 +1,23 @@
+command:
+  - "uvicorn"
+  - "main:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+
+  - name: SERVING_ENDPOINT_NAME
+    valueFrom: serving-endpoint
+
+  - name: VECTOR_SEARCH_INDEX_NAME
+    valueFrom: vector-search-index
+
+  - name: DB_CONNECTION_STRING
+    valueFrom: database
+
+  - name: VOLUME_ROOT_PATH
+    value: "/Volumes/main_catalog/logistics_schema/app_documents"

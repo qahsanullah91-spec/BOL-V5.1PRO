@@ -1,7 +1,7 @@
 {
   "name": "aq-companies",
   "productName": "AQ COMPANIES",
-  "version": "5.4.14",
+  "version": "5.18.18",
   "description": "AQ COMPANIES - Logistics and BOL Management Desktop Workspace",
   "author": "Ahsanullah Qureshi",
   "copyright": "Copyright © Ahsanullah Qureshi",
@@ -24,6 +24,7 @@
   },
   "scripts": {
     "dev": "next dev --webpack -p 3001",
+    "postinstall": "node scripts/patch-html2canvas.cjs",
     "electron:dev": "concurrently -k -s first \"npm:dev\" \"npm:electron:dev:launch\"",
     "electron:dev:launch": "wait-on http://127.0.0.1:3001 && cross-env ELECTRON_START_URL=http://127.0.0.1:3001 npm run build:electron && electron .",
     "build": "next build || next build",
@@ -93,6 +94,7 @@
     "@upstash/redis": "^1.38.2",
     "@vercel/analytics": "1.6.1",
     "@vercel/blob": "^2.8.0",
+    "@vercel/speed-insights": "^2.1.0",
     "adm-zip": "^0.6.1",
     "autoprefixer": "^10.4.20",
     "browserslist": "^4.29.3",
@@ -157,9 +159,6 @@
     "appId": "com.aqcompanies.bol",
     "productName": "AQ COMPANIES",
     "electronDist": "node_modules/electron/dist",
-    "toolsets": {
-      "nsis": "1.2.1"
-    },
     "asar": true,
     "npmRebuild": false,
     "nodeGypRebuild": false,

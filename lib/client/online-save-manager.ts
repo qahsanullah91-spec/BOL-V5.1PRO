@@ -57,8 +57,9 @@ class OnlineSaveManager {
 
       // Background heartbeat for verified connectivity & auto-draining
       this.heartbeatInterval = setInterval(() => {
+        if (typeof document !== "undefined" && document.hidden) return
         void this.verifyConnectivity()
-      }, 30000)
+      }, 45000)
 
       this.drainInterval = setInterval(() => {
         if (this.isOnline && this.pendingQueue.length > 0 && !this.isSyncing) {

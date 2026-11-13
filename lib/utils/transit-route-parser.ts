@@ -36,13 +36,42 @@ const KNOWN_TRANSIT_LOCATIONS = [
   "حمرية شارجه",
   "حمرية",
 
-  // ─── Oman Sohar Port ───
+  // ─── Oman All Ports (Sohar, Suwaiq, Salalah, Duqm, Muscat, Khasab, Shinas, Sur) ───
   "بندر صحار (عمان)",
+  "بندر صحار – عمان",
+  "بندر صحار - عمان",
   "بندر صحار عمان",
   "بندر صحار",
   "صحار (عمان)",
+  "صحار – عمان",
+  "صحار - عمان",
   "صحار عمان",
   "صحار",
+  "بندر السویق (عمان)",
+  "بندر السویق – عمان",
+  "بندر السویق - عمان",
+  "بندر السویق عمان",
+  "بندر السویق",
+  "السویق",
+  "بندر السويق (عمان)",
+  "بندر السويق – عمان",
+  "بندر السويق - عمان",
+  "بندر السويق عمان",
+  "بندر السويق",
+  "السويق",
+  "بندر صلاله (عمان)",
+  "بندر صلاله عمان",
+  "بندر صلاله",
+  "صلاله",
+  "بندر دقم (عمان)",
+  "بندر دقم عمان",
+  "بندر دقم",
+  "بندر سلطان قابوس (مسقط)",
+  "بندر سلطان قابوس",
+  "بندر مسقط",
+  "بندر خصب",
+  "بندر شناص",
+  "بندر صور",
 
   // ─── UAE Jebel Ali / Dubai Hubs ───
   "بندر جبل علی (دبی)",
@@ -54,9 +83,45 @@ const KNOWN_TRANSIT_LOCATIONS = [
   "دبی",
 
   // ─── Iranian Transit Ports & Borders ───
+  "بندر شهید رجایی (بندرعباس)",
+  "بندر شهید رجایی",
+  "بندر شهید باهنر",
   "بندرعباس",
+  "بندر چابهار (شهید بهشتی)",
   "بندر چابهار",
   "چابهار",
+  "بندر امام خمینی",
+  "بندر بوشهر",
+  "بندر خرمشهر",
+  "بندر آبادان",
+  "بندر لنگه",
+  "بندر قشم",
+  "بندر جاسک – ایران",
+  "بندر جاسک - ایران",
+  "بندر جاسک (ایران)",
+  "بندر جاسک",
+  "جاسک – ایران",
+  "جاسک - ایران",
+  "جاسک",
+  "Jask Port – IRAN",
+  "Jask Port - IRAN",
+  "Jask Port, IR",
+  "Jask Port",
+  "Bandar Jask Port",
+  "Suwaiq Port – Oman",
+  "Suwaiq Port - Oman",
+  "Suwaiq Port",
+  "Port of Suwaiq",
+  "Sohar Port – Oman",
+  "Sohar Port - Oman",
+  "Sohar Port",
+  "Sohar Port & Freezone",
+  "بندر عسلویه",
+  "بندر انزلی",
+  "مجتمع بندری کاسپین",
+  "بندر نوشهر",
+  "بندر امیرآباد",
+  "بندر آستارا",
   "میرجاوه",
   "دوغارون",
 
@@ -94,6 +159,42 @@ const KNOWN_TRANSIT_LOCATIONS = [
  * Parses a raw logistics route directive text (such as "از نیمروز کانتینر معمولی از بندرعباس کانتینر یخچالی (با سوییچ بی ال در دبی / جبل علی)")
  * into structured multi-leg segments, container type indicators, switch B/L instructions, and destinations.
  */
+/**
+ * Normalizes bidirectional mixed Persian/English logistics route directives.
+ * Fixes split words (e.g. یخچا...لی -> یخچالی), inverted brackets )Term( -> (Term),
+ * missing letters (e.g. موندر -> موندرا), and guarantees proper whitespace isolation.
+ */
+export function cleanRouteText(text?: string | null): string {
+  if (!text || typeof text !== "string") return ""
+  let s = text
+
+  // 1. Repair word fragmentation where an English/Latin parenthetical was accidentally inserted mid-word:
+  // e.g. یخچا)Full Way Reefer(لی or یخچا(Full Way Reefer)لی -> یخچالی ($1)
+  s = s.replace(/یخچا\s*[\)\(]\s*([A-Za-z0-9\/\-_]+(?:\s+[A-Za-z0-9\/\-_]+)*)\s*[\)\(]\s*لی/g, "یخچالی ($1)")
+
+  // 2. Repair truncated destination port name before parenthetical English name:
+  // e.g. موندر)Mundra( or موندر(Mundra) -> موندرا (Mundra)
+  s = s.replace(/موندر\s*[\)\(]\s*Mundra\s*[\)\(]/gi, "موندرا (Mundra)")
+
+  // 3. Fix general reversed parentheses around Latin/English phrases caused by RTL keyboard entry:
+  // e.g. )Full Way Reefer( -> (Full Way Reefer)
+  // Must require actual word characters on both ends so it never matches the whitespace boundary between ") ("
+  s = s.replace(/\)[ \t]*([A-Za-z0-9\/\-_]+(?:\s+[A-Za-z0-9\/\-_]+)*)[ \t]*\(/g, " ($1) ")
+
+  // 4. Ensure proper spacing around opening and closing parentheses:
+  // Strip redundant whitespace immediately inside opening/closing parentheses:
+  s = s.replace(/\(\s+/g, "(").replace(/\s+\)/g, ")")
+
+  // Ensure proper spacing around opening and closing parentheses adjacent to non-space characters:
+  s = s.replace(/([^\s\(\[\{])\(/g, "$1 (")
+  s = s.replace(/\)([^\s\)\.\,،؛\!\?\]\}])/g, ") $1")
+
+  // 5. Clean up redundant spaces and standardize spacing around Persian/Arabic commas, periods, colons, and semicolons:
+  s = s.replace(/[ \t]+/g, " ").replace(/\s+([،\.\:\;\!\?])/g, "$1").trim()
+
+  return s
+}
+
 export function parseLogisticsRoute(rawText?: string | null): ParsedLogisticsRoute {
   if (!rawText || typeof rawText !== "string") {
     return {
@@ -106,7 +207,8 @@ export function parseLogisticsRoute(rawText?: string | null): ParsedLogisticsRou
     }
   }
 
-  const text = rawText.trim()
+  const cleaned = cleanRouteText(rawText)
+  const text = cleaned.trim()
   if (!text) {
     return {
       originalText: "",

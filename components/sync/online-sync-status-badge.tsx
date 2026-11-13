@@ -2,7 +2,7 @@
 
 import React from "react"
 import { useOnlineSaveStatus } from "@/lib/client/use-online-save-status"
-import { Cloud, CheckCircle2, RefreshCw, AlertTriangle, CloudOff } from "lucide-react"
+import { Cloud, CloudCheck, CheckCircle2, RefreshCw, AlertTriangle, CloudOff } from "lucide-react"
 import { toast } from "sonner"
 
 export interface OnlineSyncStatusBadgeProps {
@@ -59,14 +59,23 @@ export function OnlineSyncStatusBadge({
       <button
         type="button"
         onClick={handleClick}
-        className={`relative inline-flex items-center justify-center p-1 rounded-lg transition-all cursor-pointer ${
+        aria-label={
           !isOnline
-            ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50"
+            ? "Cloud offline"
             : isSyncing
-            ? "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+            ? "Syncing documents to cloud"
             : pendingCount > 0
-            ? "text-amber-600 hover:bg-amber-50"
-            : "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+            ? `${pendingCount} documents pending cloud sync`
+            : "Cloud synchronized and online"
+        }
+        className={`relative inline-flex h-8 w-8 items-center justify-center rounded-lg border shadow-2xs transition-all cursor-pointer ${
+          !isOnline
+            ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+            : isSyncing
+            ? "border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300 animate-pulse"
+            : pendingCount > 0
+            ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+            : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/70 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
         } ${className}`}
         title={
           !isOnline
@@ -75,20 +84,20 @@ export function OnlineSyncStatusBadge({
             ? "Syncing documents to Cloud..."
             : pendingCount > 0
             ? `${pendingCount} document(s) pending online sync. Click to retry.`
-            : `Cloud Synchronized (Last: ${lastSyncTime || "now"}). Click to test connection.`
+            : `Cloud Synchronized & Online (Last: ${lastSyncTime || "now"}). Click to test connection.`
         }
       >
         {isSyncing ? (
-          <RefreshCw className="h-3.5 w-3.5 animate-spin text-blue-600" />
+          <RefreshCw className="h-4 w-4 animate-spin text-blue-600 shrink-0" />
         ) : !isOnline ? (
-          <CloudOff className="h-3.5 w-3.5 text-amber-600" />
+          <CloudOff className="h-4 w-4 text-amber-600 shrink-0" />
         ) : pendingCount > 0 ? (
-          <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
         ) : (
-          <Cloud className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          <CloudCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
         )}
         {pendingCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-black text-white">
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-white shadow-xs">
             {pendingCount}
           </span>
         )}

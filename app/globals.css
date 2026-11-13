@@ -3920,8 +3920,10 @@
 }
 
 .party-card-glass {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.92);
   border-color: #93c5fd;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .party-card-solid {
@@ -3981,6 +3983,7 @@
   font-weight: 700;
   color: #2563eb;
   line-height: 1.2;
+  white-space: nowrap !important;
 }
 
 .party-card-body {
@@ -4418,75 +4421,17 @@
     height: 23px !important;
   }
 
-  .shipment-info-card {
-    min-height: 11.5mm !important;
-    border-color: #fca5a5 !important;
-    background: #fffbeb !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+  /* BOL Print High-Fidelity A4 Parity */
+  .party-card-glass {
+    border-color: #93c5fd !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  .shipment-info-card p:first-child {
-    margin-bottom: 2px !important;
-    font-size: 6.8pt !important;
-    line-height: 1.15 !important;
-    color: #c2410c !important;
-    font-weight: 800 !important;
-  }
-
-  .party-card,
-  .party-card-glass,
   .exporter-contact-detail-card {
-    border-color: #fde68a !important;
-    background: #fffdf5 !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-  }
-
-  .party-card {
-    border-radius: 3mm !important;
-  }
-
-  .party-card-header {
-    padding: 1.2mm 2mm 1mm !important;
-    gap: 1.5mm !important;
-  }
-
-  .party-card-icon {
-    width: 4.8mm !important;
-    height: 4.8mm !important;
-    min-width: 4.8mm !important;
-    border-radius: 1.8mm !important;
-  }
-
-  .party-card-icon svg {
-    width: 3.2mm !important;
-    height: 3.2mm !important;
-  }
-
-  .party-card-body {
-    padding: 1.2mm 2mm 1.4mm !important;
-    gap: 1mm !important;
-  }
-
-  .party-card-title {
-    font-size: 6.8pt !important;
-  }
-
-  .party-card-name {
-    font-size: 7.8pt !important;
-    line-height: 1.15 !important;
-  }
-
-  .party-card-info-list {
-    gap: 0.8mm !important;
-  }
-
-  .party-card-info-text {
-    font-size: 6.3pt !important;
-    line-height: 1.15 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .route-timeline-badge {
@@ -4771,6 +4716,17 @@
   image-rendering: -webkit-optimize-contrast;
 }
 
+.bol-brand-lockup-img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 29.5mm;
+  max-height: 29.5mm;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  filter: drop-shadow(0 1.5px 3.5px rgba(30, 58, 138, 0.08));
+}
+
 /* Screen view for the print-safe wrapper. */
 .print-page {
   background: white;
@@ -4889,7 +4845,7 @@
   nav, header:not([data-bol-header="true"]), footer:not([data-bol-footer="true"]),
   .navbar, .sidebar, .top-bar,
   button, .btn, .no-print,
-  [role="combobox"], [role="listbox"], [role="button"],
+  [role="combobox"], [role="listbox"], [role="button"]:not([data-qr-code="true"]):not([data-qr-code="true"] *),
   .sky-ledger-edit-actions,
   .sky-toolbar, .account-select, .company-select {
     display: none !important;
@@ -5149,6 +5105,7 @@
 
   [data-bol-page="true"],
   .bol-a4-page {
+    position: relative !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
@@ -5202,11 +5159,20 @@
   }
 
   [data-bol-content="true"][data-density="compact"] {
-    gap: 1.6mm !important;
+    gap: 1.0mm !important;
   }
 
   [data-bol-content="true"][data-density="ultra"] {
-    gap: 1.2mm !important;
+    gap: 0.5mm !important;
+  }
+
+  [data-bol-autofit-canvas="true"] {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    position: relative !important;
   }
 
   [data-bol-footer="true"] {
@@ -5226,31 +5192,31 @@
   [data-pdf-export="true"] img[data-company-stamp-img="true"] {
     display: block !important;
     visibility: visible !important;
-    height: 21mm !important;
-    max-height: 22mm !important;
-    min-height: 18mm !important;
+    height: 30mm !important;
+    max-height: 35mm !important;
+    min-height: 22mm !important;
     width: auto !important;
-    max-width: 46mm !important;
+    max-width: 56mm !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     image-rendering: -webkit-optimize-contrast !important;
-    filter: contrast(1.08) saturate(1.15) !important;
+    filter: contrast(1.1) saturate(1.2) drop-shadow(0 1.5px 3.5px rgba(20, 50, 120, 0.22)) !important;
   }
 
   [data-density="compact"] [data-company-stamp-img="true"],
   [data-density="compact"] img[data-company-stamp-img="true"] {
-    height: 18mm !important;
-    max-height: 19mm !important;
-    min-height: 15mm !important;
-    max-width: 40mm !important;
+    height: 25mm !important;
+    max-height: 28mm !important;
+    min-height: 18mm !important;
+    max-width: 50mm !important;
   }
 
   [data-density="ultra"] [data-company-stamp-img="true"],
   [data-density="ultra"] img[data-company-stamp-img="true"] {
-    height: 15mm !important;
-    max-height: 16mm !important;
-    min-height: 12mm !important;
-    max-width: 36mm !important;
+    height: 20mm !important;
+    max-height: 22mm !important;
+    min-height: 15mm !important;
+    max-width: 44mm !important;
   }
 
   [data-density="ultra"] .route-timeline-container {
@@ -5259,8 +5225,8 @@
   }
 
   [data-density="ultra"] .route-timeline-card {
-    padding: 3px 2.5px 4px !important;
-    min-height: 52px !important;
+    padding: 2px 2px 3px !important;
+    min-height: 46px !important;
   }
 
   [data-density="compact"] .route-timeline-container {
@@ -5292,17 +5258,52 @@
 
   [data-print-root="true"] section,
   [data-print-root="true"] .party-card,
+  [data-print-root="true"] .party-card-glass,
   [data-print-root="true"] .party-card-solid,
   [data-print-root="true"] [data-print-section] {
-    background-color: rgba(255, 255, 255, 0.98) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  [data-bol-watermark="true"],
+  [data-bol-watermark="true"] img {
+    display: block !important;
+    visibility: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
   [data-bol-watermark="true"] {
-    visibility: visible !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+    position: absolute !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    border-radius: 14px !important;
+  }
+
+  [data-bol-watermark="true"] img {
+    position: absolute !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    pointer-events: none !important;
   }
 
   [data-pdf-bol-badge="true"] svg,
@@ -5316,6 +5317,53 @@
 
   [data-pdf-bol-badge="true"] svg rect,
   [data-bol-title-card="true"] svg rect {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* QR Code Print Guarantee in BOL Document Card Header */
+  [data-qr-code="true"],
+  [data-qr-code="true"][role="button"],
+  .bol-qr-container,
+  .bol-qr-container [data-qr-code="true"],
+  [data-print-root="true"] [data-qr-code="true"],
+  [data-bol-header="true"] [data-qr-code="true"],
+  [data-bol-a4="true"] [data-qr-code="true"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  [data-qr-code="true"] svg,
+  [data-qr-code="true"][role="button"] svg,
+  .bol-qr-container svg,
+  [data-print-root="true"] [data-qr-code="true"] svg,
+  [data-bol-header="true"] [data-qr-code="true"] svg,
+  [data-bol-a4="true"] [data-qr-code="true"] svg {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  [data-qr-code="true"] svg rect,
+  [data-qr-code="true"] svg path,
+  .bol-qr-container svg rect,
+  .bol-qr-container svg path {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -5668,7 +5716,8 @@
     break-inside: avoid !important;
   }
 
-  [data-bol-footer="true"] {
+  [data-bol-footer="true"],
+  [data-print-root="true"] [data-bol-footer="true"] {
     flex: 0 0 auto !important;
     position: relative !important;
     bottom: 0 !important;
@@ -5676,6 +5725,17 @@
     margin-top: auto !important;
     page-break-before: avoid !important;
     break-before: avoid !important;
+    background: linear-gradient(90deg, rgba(239, 246, 255, 0.90) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(240, 249, 255, 0.90) 100%) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  [data-authorized-signature="true"],
+  [data-print-root="true"] [data-authorized-signature="true"] {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-color: rgba(30, 58, 138, 0.20) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Eco / Monochrome mode when color header option is unchecked */
@@ -6259,6 +6319,35 @@
     image-rendering: high-quality !important;
   }
 
+  .bol-brand-lockup-img,
+  [data-pdf-export="true"] .bol-brand-lockup-img,
+  [data-print-root="true"] .bol-brand-lockup-img {
+    display: block !important;
+    visibility: visible !important;
+    max-width: 92mm !important;
+    width: auto !important;
+    height: 29.5mm !important;
+    max-height: 29.5mm !important;
+    object-fit: contain !important;
+    image-rendering: -webkit-optimize-contrast !important;
+  }
+
+  [data-density="compact"] .bol-brand-lockup-img,
+  [data-pdf-export="true"][data-density="compact"] .bol-brand-lockup-img,
+  [data-print-root="true"][data-density="compact"] .bol-brand-lockup-img {
+    height: 25mm !important;
+    max-height: 25mm !important;
+    max-width: 82mm !important;
+  }
+
+  [data-density="ultra"] .bol-brand-lockup-img,
+  [data-pdf-export="true"][data-density="ultra"] .bol-brand-lockup-img,
+  [data-print-root="true"][data-density="ultra"] .bol-brand-lockup-img {
+    height: 21mm !important;
+    max-height: 21mm !important;
+    max-width: 74mm !important;
+  }
+
   
     .bol-header,
   [data-pdf-export="true"] .bol-header,
@@ -6267,7 +6356,7 @@
     overflow: visible !important;
     border: 1px solid #bfdbfe !important;
     border-radius: 14px !important;
-    background: #f8fbff !important;
+    background: linear-gradient(135deg, rgba(240, 247, 255, 0.92), rgba(255, 255, 255, 0.96) 40%, rgba(240, 247, 255, 0.92)) !important;
     width: 100% !important;
     display: flex !important;
     align-items: center !important;
@@ -6283,7 +6372,7 @@
     overflow: visible !important;
     border: 1px solid #2563eb !important;
     border-radius: 10px !important;
-    background: #ffffff !important;
+    background: rgba(255, 255, 255, 0.94) !important;
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
   }
@@ -6300,7 +6389,7 @@
   .bol-header-bottom,
   [data-pdf-export="true"] .bol-header-bottom,
   [data-print-root="true"] .bol-header-bottom {
-    background: #ffffff !important;
+    background: rgba(255, 255, 255, 0.94) !important;
     border-top: 1px solid #bfdbfe !important;
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
@@ -6495,7 +6584,8 @@
     break-inside: avoid !important;
   }
 
-  [data-bol-footer="true"] {
+  [data-bol-footer="true"],
+  [data-print-root="true"] [data-bol-footer="true"] {
     flex: 0 0 auto !important;
     position: relative !important;
     bottom: 0 !important;
@@ -6503,6 +6593,17 @@
     margin-top: auto !important;
     page-break-before: avoid !important;
     break-before: avoid !important;
+    background: linear-gradient(90deg, rgba(239, 246, 255, 0.90) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(240, 249, 255, 0.90) 100%) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  [data-authorized-signature="true"],
+  [data-print-root="true"] [data-authorized-signature="true"] {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-color: rgba(30, 58, 138, 0.20) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   [data-print-section],
@@ -6518,8 +6619,10 @@
     overflow: hidden !important;
     border: 0.2mm solid #bfdbfe !important;
     border-radius: 2.2mm !important;
-    background: #ffffff !important;
+    background: rgba(255, 255, 255, 0.92) !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   [data-print-section] > div:first-child {
@@ -6592,6 +6695,22 @@
   [data-print-section="cargo"] .grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     gap: 0.6mm !important;
+  }
+
+  [data-print-section="cargo"] > div:first-child,
+  [data-print-section="cargo-page2"] > div:first-child {
+    min-height: 5.6mm !important;
+    padding: 0.8mm 2.6mm !important;
+  }
+
+  [data-print-section="cargo"] > div:first-child h3,
+  [data-print-section="cargo-page2"] > div:first-child h3 {
+    font-size: 8.8pt !important;
+  }
+
+  [data-print-section="cargo"] > div:first-child p.bol-persian-text,
+  [data-print-section="cargo-page2"] > div:first-child p.bol-persian-text {
+    font-size: 9.6pt !important;
   }
 
   [data-print-root="true"] .rounded-lg,
@@ -6827,11 +6946,20 @@
 }
 
 [data-bol-a4="true"] .party-card,
-[data-pdf-export="true"] .party-card {
+[data-pdf-export="true"] .party-card,
+[data-print-root="true"] .party-card {
   border-radius: 6px !important;
   border: 1px solid #bfdbfe !important;
   box-shadow: none !important;
-  background: #ffffff !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+[data-bol-a4="true"] .party-card-glass,
+[data-pdf-export="true"] .party-card-glass {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: #93c5fd !important;
 }
 
 [data-bol-a4="true"] .party-card-header,
@@ -6870,6 +6998,8 @@
   justify-content: space-between !important;
   width: 100% !important;
   gap: 4px !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
 }
 
 [data-bol-a4="true"] .party-card-title,
@@ -6891,6 +7021,7 @@
   color: #2563eb !important;
   line-height: 1.1 !important;
   direction: rtl !important;
+  white-space: nowrap !important;
 }
 
 [data-bol-a4="true"] .party-card-body,
@@ -7003,17 +7134,59 @@
   border-radius: 6px !important;
 }
 
+/* Adaptive Ultra-Density Compaction for Long Party Addresses & Bank Details */
+[data-bol-a4="true"][data-density="ultra"] .party-card-info-text,
+[data-pdf-export="true"][data-density="ultra"] .party-card-info-text,
+[data-bol-a4="true"][data-density="ultra"] .party-card-info-text span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]),
+[data-pdf-export="true"][data-density="ultra"] .party-card-info-text span:not(.persian-text):not(.bol-persian-text):not([dir="rtl"]) {
+  font-size: 7.6pt !important;
+  line-height: 1.16 !important;
+}
+
+[data-bol-a4="true"][data-density="ultra"] .party-card-body,
+[data-pdf-export="true"][data-density="ultra"] .party-card-body {
+  padding: 2.5px 5px !important;
+  gap: 2px !important;
+}
+
+[data-bol-a4="true"][data-density="ultra"] .party-card-header,
+[data-pdf-export="true"][data-density="ultra"] .party-card-header {
+  padding: 2px 5px !important;
+}
+
+[data-bol-a4="true"][data-density="ultra"] .party-card-title,
+[data-pdf-export="true"][data-density="ultra"] .party-card-title,
+[data-bol-a4="true"][data-density="ultra"] .party-card-subtitle,
+[data-pdf-export="true"][data-density="ultra"] .party-card-subtitle {
+  font-size: 8.4pt !important;
+}
+
+[data-bol-a4="true"][data-density="ultra"] .party-card-name,
+[data-pdf-export="true"][data-density="ultra"] .party-card-name {
+  font-size: 9.0pt !important;
+}
+
 [data-bol-a4="true"] .route-timeline-container,
-[data-pdf-export="true"] .route-timeline-container {
+[data-pdf-export="true"] .route-timeline-container,
+[data-print-root="true"] .route-timeline-container {
   padding: 3px 4px !important;
   border-radius: 8px !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(240, 247, 255, 0.90) 100%) !important;
+  border: 1px solid rgba(191, 219, 254, 0.8) !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 [data-bol-a4="true"] .route-timeline-card,
-[data-pdf-export="true"] .route-timeline-card {
+[data-pdf-export="true"] .route-timeline-card,
+[data-print-root="true"] .route-timeline-card {
   min-height: 52px !important;
   padding: 3px 2.5px 4px !important;
   border-radius: 6px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid #bfdbfe !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Synchronized Cargo Grid Column Header Styles - Strictly Centered */
@@ -7467,7 +7640,7 @@
 
 
 /* ==========================================================================
-   Side-by-Side Route & Cargo Dashboard Layout
+   Side-by-Side Route & Cargo Dashboard Layout (3 Side-by-Side Columns)
    ========================================================================== */
 .route-cargo-dashboard {
   display: grid;
@@ -7485,7 +7658,8 @@
 }
 
 .route-cargo-dashboard .route-section,
-.route-cargo-dashboard .cargo-section {
+.route-cargo-dashboard .cargo-section,
+.route-cargo-dashboard .intelligence-section {
   width: 100%;
   min-width: 0;
   align-self: start;
@@ -7493,7 +7667,7 @@
 
 @media (min-width: 1200px) {
   .route-cargo-dashboard {
-    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
     gap: 16px;
   }
 }
@@ -7501,6 +7675,13 @@
 @media (min-width: 1400px) {
   .route-cargo-dashboard {
     gap: 18px;
+  }
+}
+
+@media (min-width: 1800px) {
+  .route-cargo-dashboard {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
   }
 }
 
@@ -7915,3 +8096,9 @@
   }
 }
 
+
+@media (min-width: 1200px) and (max-width: 1799px) {
+  .route-cargo-dashboard .intelligence-section .cargo-inputs-rates-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

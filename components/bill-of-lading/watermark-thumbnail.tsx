@@ -71,7 +71,7 @@ export function WatermarkThumbnail({
   const filterStyle = highContrast
     ? isSvg
       ? 'contrast(1.32) brightness(0.92) saturate(1.4)'
-      : 'contrast(1.18) brightness(0.95) saturate(1.2)'
+      : 'contrast(1.04) brightness(0.98)'
     : undefined
 
   // Photographic watermarks print as a full-page background cover, so preview
@@ -105,11 +105,6 @@ export function WatermarkThumbnail({
       className={`relative aspect-[210/297] h-full max-h-full mx-auto rounded-md overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/80 shadow-xs flex items-center justify-center p-0.5 group-hover:border-blue-400 group-hover:shadow-md transition-all ${className}`}
       aria-label={`Watermark thumbnail for ${label}`}
     >
-      {/* Subtle Paper Corner Marks to simulate authentic security document */}
-      <div className="absolute top-1 left-1 w-1.5 h-1.5 border-t border-l border-slate-300 dark:border-slate-600 pointer-events-none z-10" />
-      <div className="absolute top-1 right-1 w-1.5 h-1.5 border-t border-r border-slate-300 dark:border-slate-600 pointer-events-none z-10" />
-      <div className="absolute bottom-1 left-1 w-1.5 h-1.5 border-b border-l border-slate-300 dark:border-slate-600 pointer-events-none z-10" />
-      <div className="absolute bottom-1 right-1 w-1.5 h-1.5 border-b border-r border-slate-300 dark:border-slate-600 pointer-events-none z-10" />
 
       {content}
     </div>

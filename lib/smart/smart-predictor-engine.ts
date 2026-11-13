@@ -375,9 +375,11 @@ class SmartPredictorEngineImpl {
       }
 
       // 2. Cross-category scan for shared entities (e.g. consignee matching a known shipper/account)
+      // Strictly restricted to company party roles: never leak shippers into routes or trucks.
       const primaryResults = scored.size
-      if (primaryResults < limit) {
-        const pool: FieldCategory[] = ["shipper", "consignee", "notify", "commodity", "route", "truck", "driver"]
+      const isParty = ["shipper", "consignee", "notify"].includes(category)
+      if (primaryResults < limit && isParty) {
+        const pool: FieldCategory[] = ["shipper", "consignee", "notify"]
         for (const [key, rec] of this.values) {
           if (rec.category === category || !pool.includes(rec.category)) continue
           const cleanTarget = cleanSearchText(rec.lower)

@@ -126,7 +126,7 @@
 
 
 /* ==========================================================================
-   Side-by-Side Route & Cargo Dashboard Layout
+   Side-by-Side Route & Cargo Dashboard Layout (3 Side-by-Side Columns)
    ========================================================================== */
 .route-cargo-dashboard {
   display: grid;
@@ -144,7 +144,8 @@
 }
 
 .route-cargo-dashboard .route-section,
-.route-cargo-dashboard .cargo-section {
+.route-cargo-dashboard .cargo-section,
+.route-cargo-dashboard .intelligence-section {
   width: 100%;
   min-width: 0;
   align-self: start;
@@ -152,7 +153,7 @@
 
 @media (min-width: 1200px) {
   .route-cargo-dashboard {
-    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
     gap: 16px;
   }
 }
@@ -160,6 +161,13 @@
 @media (min-width: 1400px) {
   .route-cargo-dashboard {
     gap: 18px;
+  }
+}
+
+@media (min-width: 1800px) {
+  .route-cargo-dashboard {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
   }
 }
 
@@ -515,3 +523,9 @@
   }
 }
 
+
+@media (min-width: 1200px) and (max-width: 1799px) {
+  .route-cargo-dashboard .intelligence-section .cargo-inputs-rates-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

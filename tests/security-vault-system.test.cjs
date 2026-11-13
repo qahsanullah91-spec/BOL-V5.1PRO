@@ -39,6 +39,20 @@ test('Multi-Modal Security & Biometric Vault Suite', async (t) => {
     assert.match(src, /userVerification:\s*["']required["']/, 'WebAuthn requires biometric user verification');
     assert.match(src, /enrollPlatformPasskey/, 'enrollPlatformPasskey helper is defined');
     assert.match(src, /verifyPlatformPasskey/, 'verifyPlatformPasskey helper is defined');
+    assert.match(src, /saveEnrolledFingerprint/, 'saveEnrolledFingerprint helper is defined');
+    assert.match(src, /deleteEnrolledFingerprint/, 'deleteEnrolledFingerprint helper is defined');
+    assert.match(src, /verifySoftwareFingerprint/, 'verifySoftwareFingerprint helper is defined');
+  });
+
+  await t.test('2b. In-System Fingerprint Scanner and Software Vault Modal', () => {
+    const scannerModalPath = path.join(rootDir, 'components', 'security', 'fingerprint-scanner-modal.tsx');
+    assert.ok(fs.existsSync(scannerModalPath), 'fingerprint-scanner-modal.tsx exists');
+    const modalSrc = fs.readFileSync(scannerModalPath, 'utf8');
+    assert.match(modalSrc, /FingerprintScannerModal/, 'FingerprintScannerModal component defined');
+    assert.match(modalSrc, /index_right/, 'Right Index finger supported');
+    assert.match(modalSrc, /thumb_right/, 'Right Thumb supported');
+    assert.match(modalSrc, /laser|sweep|progress/i, 'Visual scanner laser sweep implemented');
+    assert.match(modalSrc, /Save to Software/i, 'Save to software button present');
   });
 
   await t.test('3. PIN Code salted hashing and anti-brute-force lockout protection', () => {
@@ -82,6 +96,18 @@ test('Multi-Modal Security & Biometric Vault Suite', async (t) => {
     assert.match(src, /رمز پین سریع/, 'Persian PIN code label rendered');
     assert.match(src, /ماتریس تایید امنیتی برای عملیات‌های حساس/, 'Persian Action Gate matrix label rendered');
     assert.match(src, /grid-cols-1\s+lg:grid-cols-2/, 'Bento grid layout present');
+    assert.match(src, /Argon2id\s*\+\s*AES-256 GCM/, 'Argon2id + AES-256 GCM cipher badge rendered');
+    assert.match(src, /Security Posture Score/, 'Real-time security posture score gauge rendered');
+    assert.match(src, /showConfirmPass/, 'Confirm password show/hide eye toggle is implemented');
+    assert.match(src, /Test Sensor/, 'Interactive Fingerprint sensor testing action rendered');
+    assert.match(src, /3D Anti-Spoofing & Liveness/, '3D face anti-spoofing and liveness detection toggle rendered');
+    assert.match(src, /Ledger Invariance Lock/, 'Accounting invariance identity gate rendered');
+  });
+
+  await t.test('7b. Security Posture Score calculation helper exported and functions properly', () => {
+    const src = fs.readFileSync(securityServicePath, 'utf8');
+    assert.match(src, /calculateSecurityPostureScore/, 'calculateSecurityPostureScore is defined and exported');
+    assert.match(src, /accountingLedgerLock\?:?\s*boolean/, 'accountingLedgerLock is defined on SecurityActionGates');
   });
 
   await t.test('8. IndexedDB Vault creates object stores and provides .aqvault export', () => {

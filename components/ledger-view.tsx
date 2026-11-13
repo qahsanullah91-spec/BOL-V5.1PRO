@@ -46,6 +46,7 @@ import { EditLedgerEntryDialog } from '@/components/edit-ledger-entry-dialog'
 import Image from 'next/image'
 import { SupportedCurrency, CURRENCY_CONFIGS, convertFromUSD, formatCurrencyAmount, exportToUtf8CSV } from '@/lib/utils/currency'
 import { AccountLedgerDocument, buildLedgerPdfFileName, calculateLedgerTotals } from '@/components/ledger/account-ledger-document'
+import { AccountLedgerSettingsDialog } from '@/components/ledger/account-ledger-settings-dialog'
 
 // Column mapping type
 interface ColumnMapping {
@@ -2328,7 +2329,7 @@ export const LedgerView = memo(function LedgerView() {
               backgroundImage: `url(${getLedgerSettings().backgroundImage})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              opacity: 0.1,
+              opacity: getLedgerSettings().backgroundOpacity ?? 0.1,
               zIndex: 0,
             }}
           />
@@ -2351,28 +2352,43 @@ export const LedgerView = memo(function LedgerView() {
             </div>
 
             {/* Center - Logo and Company Name */}
-            <div className="flex-1 flex flex-col items-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={getLedgerSettings().logoUrl || getLedgerSettings().companyLogo || "/logo.png"} 
-                alt="SKY ARIANA Logo" 
-                className="h-10 sm:h-14 max-w-[120px] sm:max-w-[140px] object-contain mb-1" 
-              />
-              <p className="text-base sm:text-lg font-bold text-blue-800">SKY ARIANA</p>
-              <p className="text-[9px] sm:text-[10px] text-blue-600 tracking-[0.15em] uppercase">Transport & Logistics</p>
+            <div className="flex-1 flex flex-col items-center justify-center">
+              {getLedgerSettings().brandLockupUrl && 
+               !['circular-seal', 'circular-seal-3d', 'circular-seal-gold'].includes(getLedgerSettings().logoDesignId || '') ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img 
+                  src={getLedgerSettings().brandLockupUrl} 
+                  alt="SKY ARIANA Brand Lockup" 
+                  className="h-10 sm:h-14 max-w-[220px] sm:max-w-[280px] object-contain drop-shadow-2xs" 
+                />
+              ) : (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
+                    src={getLedgerSettings().logoUrl || getLedgerSettings().companyLogo || "/logo.png"} 
+                    alt="SKY ARIANA Logo" 
+                    className="h-10 sm:h-12 max-w-[120px] sm:max-w-[140px] object-contain mb-1" 
+                  />
+                  <p className="text-base sm:text-lg font-bold text-blue-800">
+                    {getLedgerSettings().companyName || "SKY ARIANA"}
+                  </p>
+                  <p className="text-[9px] sm:text-[10px] text-blue-600 tracking-[0.15em] uppercase">
+                    {getLedgerSettings().companySubtitle || "Transport & Logistics"}
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Right - Company Address */}
             <div className="flex-1 w-full md:w-auto text-center md:text-right hidden sm:block">
               <p className="text-[10px] sm:text-[11px] font-semibold text-blue-700 mb-0.5">AFGHANISTAN OFFICE</p>
               <p className="text-[8px] sm:text-[9px] text-blue-600 leading-relaxed">
-                2nd Floor, 16 No. Office, Shahidano Chowk,<br className="hidden md:inline" />
-                Etimad Rahmi Market, Kandahar, Afghanistan
+                {getLedgerSettings().companyAddress || "2nd Floor, 16 No. Office, Shahidano Chowk, Etimad Rahmi Market, Kandahar, Afghanistan"}
               </p>
               <p className="text-[8px] sm:text-[9px] text-blue-500 mt-1">
-                Tel: +93 700 939 365 • info@skyariana.com
+                Tel: {getLedgerSettings().companyPhone || "+93 700 939 365"} • {getLedgerSettings().companyEmail || "info@skyariana.com"}
               </p>
-              <p className="text-[7px] sm:text-[8px] text-blue-400 mt-0.5">Licence: 2401-2198</p>
+              <p className="text-[7px] sm:text-[8px] text-blue-400 mt-0.5">Licence: {getLedgerSettings().companyLicence || "2401-2198"}</p>
             </div>
           </div>
         </div>
@@ -3227,84 +3243,19 @@ export const LedgerView = memo(function LedgerView() {
         onPdfDelete={handleDeletePdfForEntry}
       />
 
-      {/* Ledger Settings Dialog */}
-      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ledger Settings</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            {/* Company Logo */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Company Logo</label>
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-16 border rounded flex items-center justify-center bg-gray-50 overflow-hidden">
-                  {getLedgerSettings().companyLogo ? (
-                    <Image
-                      src={getLedgerSettings().companyLogo}
-                      alt="Company Logo"
-                      width={80}
-                      height={60}
-                      className="object-contain"
-                    />
-                  ) : (
-                    <ImageIcon className="h-8 w-8 text-gray-400" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <Input
-                    type="text"
-                    placeholder="/logo.png"
-                    value={getLedgerSettings().companyLogo}
-                    onChange={(e) => updateLedgerSettings(currentAccount!.id, currentCompany!.id, { companyLogo: e.target.value })}
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Enter logo path (e.g., /logo.png)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Background Image */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">PDF Background Image</label>
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-16 border rounded flex items-center justify-center bg-gray-50 overflow-hidden">
-                  {getLedgerSettings().backgroundImage ? (
-                    <Image
-                      src={getLedgerSettings().backgroundImage}
-                      alt="Background"
-                      width={80}
-                      height={60}
-                      className="object-cover"
-                    />
-                  ) : (
-                    <ImageIcon className="h-8 w-8 text-gray-400" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <Input
-                    type="text"
-                    placeholder="/ledger-background.png"
-                    value={getLedgerSettings().backgroundImage}
-                    onChange={(e) => updateLedgerSettings(currentAccount!.id, currentCompany!.id, { backgroundImage: e.target.value })}
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Enter background image path for PDF
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" onClick={() => setIsSettingsOpen(false)}>
-              Done
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Account Ledger Settings Dialog with Visual Logo Gallery & Watermark Controls */}
+      <AccountLedgerSettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        currentAccount={currentAccount}
+        currentCompany={currentCompany}
+        ledgerSettings={getLedgerSettings()}
+        onUpdateSettings={(newSettings) => {
+          if (currentAccount && currentCompany) {
+            updateLedgerSettings(currentAccount.id, currentCompany.id, newSettings);
+          }
+        }}
+      />
 
       {/* Delete Confirmation Dialog (Yes / No Modal) */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

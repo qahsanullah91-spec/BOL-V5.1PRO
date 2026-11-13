@@ -71,5 +71,36 @@ test("SmartPredictorEngine - Zero-Character Suppression & Query-Triggered Recomm
       layerCode.includes("HighlightedMatch"),
       "Must include HighlightedMatch component for query word highlighting"
     )
+    assert.ok(
+      layerCode.includes("data-transit-stop") && layerCode.includes("data-transit-stops-container"),
+      "GlobalSmartInputLayer must suppress smart recommendations in transit stop fields and containers"
+    )
+  })
+
+  await t.test("Route and transit stop category never leaks shipper or consignee recommendations", () => {
+    engine.learn("NAJEB AMIN LTD", "shipper")
+    engine.learn("RAHMAT NAZAR LTD", "shipper")
+    engine.learn("MANIK TRADERS", "consignee")
+    engine.learn("Bandar Abbas, Iran", "route")
+    engine.learn("Kandahar, Afghanistan", "route")
+
+    const routeRes = engine.suggest("route", "d")
+    // Shippers and consignees must NEVER be suggested in route / transit stops
+    assert.ok(!routeRes.some((r) => r.category === "shipper" || r.category === "consignee"), "Route category must never leak shippers or consignees")
+    assert.ok(routeRes.every((r) => r.category === "route"), "All results for route must strictly have category route")
+  })
+
+  await t.test("BOL Editor transit stop location inputs declare data-smart-disable and data-transit-stop", () => {
+    const editorPath = path.join(__dirname, "..", "components", "bill-of-lading", "bol-editor.tsx")
+    const editorCode = fs.readFileSync(editorPath, "utf8")
+
+    assert.ok(
+      editorCode.includes('data-smart-disable="true"') && editorCode.includes('data-transit-stop="true"'),
+      "BOL Editor transit stop inputs must declare data-smart-disable and data-transit-stop"
+    )
+    assert.ok(
+      editorCode.includes('data-transit-stops-container="true"'),
+      "BOL Editor route section must declare data-transit-stops-container"
+    )
   })
 })

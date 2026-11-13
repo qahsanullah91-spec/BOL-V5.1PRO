@@ -1,5 +1,5 @@
 import fs from "node:fs"
-import { app, BrowserWindow, Menu, nativeImage, shell } from "electron"
+import { app, BrowserWindow, Menu, nativeImage, shell, powerMonitor } from "electron"
 import { spawn, type ChildProcess } from "node:child_process"
 import { createServer } from "node:net"
 import { mkdir, readFile } from "node:fs/promises"
@@ -8,10 +8,26 @@ import { registerIpcHandlers } from "./ipc/register-ipc"
 import { atomicWriteFile } from "./services/atomic-file"
 import { initializeDataDirectory } from "./services/data"
 import { backendManager } from "./backend-manager"
+import {
+  initBackgroundService,
+  loadBackgroundSettings,
+  showAndFocusWindow,
+  notifyBackgroundActive,
+  isQuitting,
+  setQuitting,
+  updateTrayMenu,
+} from "./services/background-service"
 
 const PRODUCT_NAME = "AQ COMPANIES"
 const PRODUCT_DESCRIPTION = "Logistics & BOL Management"
 const DEVELOPER_NAME = "Ahsanullah Qureshi"
+if (process.platform === "win32") {
+  // Prevent Chromium from freezing renderers, dropping DirectX swapchains, or suspending event loops when minimized/occluded
+  app.commandLine.appendSwitch("disable-backgrounding-occluded-windows")
+  app.commandLine.appendSwitch("disable-renderer-backgrounding")
+  app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion")
+}
+
 if (!app.isPackaged) {
   app.setName(`${PRODUCT_NAME} Dev`)
 } else {
@@ -65,7 +81,7 @@ async function reservePort(): Promise<number> {
 
 async function waitForServer(url: string): Promise<void> {
   const expiresAt = Date.now() + 90_000 // 90s grace period for cold start / busy disk
-  const cleanUrl = url.trim().replace(/\/+$/, "")
+  const cleanUrl = url.trim().replace(/\/+$/, "").replace("localhost", "127.0.0.1")
   const probeUrl = `${cleanUrl}/api/health`
   const rootUrl = `${cleanUrl}/`
   let attempts = 0
@@ -73,20 +89,20 @@ async function waitForServer(url: string): Promise<void> {
   while (Date.now() < expiresAt) {
     try {
       const response = await fetch(probeUrl, {
-        signal: AbortSignal.timeout(2500),
+        signal: AbortSignal.timeout(1800),
       })
       if (response.status < 500) {
         logMain(`Probe succeeded at ${probeUrl} with HTTP ${response.status}`)
         // Warm up root page in background asynchronously without delaying window URL transition
-        void fetch(rootUrl, { signal: AbortSignal.timeout(4000) }).catch(() => {})
+        void fetch(rootUrl, { signal: AbortSignal.timeout(3000) }).catch(() => {})
         return
       }
     } catch (err: any) {
       // Server warming up
     }
     attempts++
-    // Adaptive fast polling: 80ms for first 25 attempts (~2s), then 200ms
-    const pollDelay = attempts < 25 ? 80 : 200
+    // Adaptive fast polling: 60ms for first 30 attempts (~1.8s), then 150ms
+    const pollDelay = attempts < 30 ? 60 : 150
     await new Promise((resolve) => setTimeout(resolve, pollDelay))
   }
   throw new Error("The bundled application server did not start in time")
@@ -113,7 +129,8 @@ process.on("unhandledRejection", (reason) => {
 async function startApplicationServer(dataDirectory: string): Promise<string> {
   const developmentUrl = process.env.ELECTRON_START_URL
   if (!app.isPackaged) {
-    applicationUrl = (developmentUrl || "http://127.0.0.1:3001").trim()
+    // "localhost" (not 127.0.0.1) is required: WebAuthn/Windows Hello rejects IP-address RP IDs with "This is an invalid domain."
+  applicationUrl = (developmentUrl || "http://localhost:3001").trim()
     await waitForServer(applicationUrl)
     return applicationUrl
   }
@@ -140,7 +157,20 @@ async function startApplicationServer(dataDirectory: string): Promise<string> {
   applicationServer.stdout?.on("data", (d) => logMain(`[AppServer] ${d.toString().trim()}`))
   applicationServer.stderr?.on("data", (d) => logMain(`[AppServer Error] ${d.toString().trim()}`))
   applicationServer.once("error", (error) => logMain(`[AppServer Failed to spawn] ${error.message}`))
-  applicationServer.once("exit", (code) => logMain(`[AppServer Exited] code ${code}`))
+  applicationServer.once("exit", (code) => {
+    logMain(`[AppServer Exited] code ${code}`)
+    if (!isQuitting() && app.isPackaged && mainWindow && !mainWindow.isDestroyed()) {
+      logMain("[AppServer Recovery] Re-spawning bundled application server...")
+      void startApplicationServer(dataDirectory).then((newUrl) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          logMain(`[AppServer Recovery] Navigating to restored server: ${newUrl}`)
+          void mainWindow.loadURL(newUrl)
+        }
+      }).catch((recoveryErr) => {
+        logMain(`[AppServer Recovery Failed] ${recoveryErr?.message}`)
+      })
+    }
+  })
   logMain(`Waiting for app server at ${applicationUrl}...`)
   await waitForServer(applicationUrl)
   logMain(`App server ready at ${applicationUrl}`)
@@ -415,7 +445,7 @@ function getSplashHtml(): string {
       <span class="status-dot"></span>
       <span id="txt">Starting core engine...</span>
     </div>
-    <div class="badge">AQ-SYSTEM v5.4.14 PRO • ULTRA PERFORMANCE RUNTIME</div>
+    <div class="badge">AQ-SYSTEM v5.18.18 PRO • ULTRA PERFORMANCE RUNTIME</div>
   </div>
   <script>
     const steps = [
@@ -466,6 +496,7 @@ async function createMainWindow(): Promise<void> {
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      backgroundThrottling: false,
     },
   })
 
@@ -487,24 +518,103 @@ async function createMainWindow(): Promise<void> {
   mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
     logMain(`[Renderer Console L${level}] ${message} (${sourceId}:${line})`)
   })
-
-  // Show window smoothly once the initial splash layout has rendered
-  mainWindow.once("ready-to-show", () => {
-    logMain(`Main window ready-to-show triggered`)
-    mainWindow?.show()
-    if (state.maximized) {
-      mainWindow?.maximize()
+  mainWindow.webContents.on("unresponsive", () => {
+    logMain("[Renderer Warning] webContents became unresponsive. Requesting compositor redraw...")
+    try {
+      mainWindow?.webContents.invalidate()
+    } catch {}
+  })
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    logMain(`[Renderer Crash] reason=${details.reason} exitCode=${details.exitCode}`)
+    if (details.reason !== "clean-exit" && mainWindow && !mainWindow.isDestroyed()) {
+      logMain("Reloading main window after unexpected renderer exit...")
+      if (applicationUrl) {
+        void mainWindow.loadURL(applicationUrl)
+      }
     }
   })
 
-  mainWindow.on("close", () => {
+  const startHidden = process.argv.includes("--hidden") || process.argv.includes("--minimized")
+
+  // Show window smoothly once the initial splash layout has rendered
+  mainWindow.once("ready-to-show", () => {
+    logMain(`Main window ready-to-show triggered (startHidden=${startHidden})`)
+    if (!startHidden) {
+      mainWindow?.show()
+      if (state.maximized) {
+        mainWindow?.maximize()
+      }
+    } else {
+      logMain(`App launched with --hidden flag; remaining silent in system tray.`)
+    }
+    updateTrayMenu()
+  })
+
+  mainWindow.on("show", () => {
+    logMain("Main window shown")
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      try {
+        mainWindow.webContents.send("window:restored")
+      } catch {}
+    }
+    updateTrayMenu()
+  })
+
+  mainWindow.on("restore", () => {
+    logMain("Main window restored from taskbar/tray")
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (!mainWindow.isVisible()) {
+        mainWindow.show()
+      }
+    }
+    updateTrayMenu()
+  })
+
+  mainWindow.on("focus", () => {
+    // Focus handled natively by Chromium without forcing compositor invalidation
+  })
+
+  mainWindow.on("hide", () => {
+    updateTrayMenu()
+  })
+
+  mainWindow.on("minimize", () => {
+    const bgSettings = loadBackgroundSettings()
+    if (bgSettings.minimizeToTray) {
+      mainWindow?.hide()
+      updateTrayMenu()
+      logMain(`Window minimize intercepted; hidden to background tray.`)
+      notifyBackgroundActive(
+        "AQ COMPANIES Minimized",
+        "Running in background. Double-click tray icon to restore."
+      )
+    } else {
+      logMain("Window minimized to taskbar.")
+    }
+  })
+
+  mainWindow.on("close", (event) => {
     if (!mainWindow) return
     const bounds = mainWindow.getNormalBounds()
     void atomicWriteFile(statePath, JSON.stringify({ ...bounds, maximized: mainWindow.isMaximized() }, null, 2))
+
+    const bgSettings = loadBackgroundSettings()
+    if (!isQuitting() && bgSettings.runInBackground) {
+      event.preventDefault()
+      mainWindow.hide()
+      updateTrayMenu()
+      logMain(`Window close intercepted; kept resident in background tray.`)
+      notifyBackgroundActive(
+        "AQ COMPANIES Running in Background",
+        "Application is running in the system tray. Click the icon to reopen."
+      )
+      return
+    }
   })
   mainWindow.on("closed", () => {
     logMain(`Main window closed event fired`)
     mainWindow = null
+    updateTrayMenu()
   })
 
   // Load instant branded splash screen into window immediately
@@ -512,10 +622,26 @@ async function createMainWindow(): Promise<void> {
   await mainWindow.loadURL(splashDataUrl)
 
   // Await the application server (which has been booting in parallel)
-  const targetUrl = await serverPromise
+  let targetUrl = ""
+  try {
+    targetUrl = await serverPromise
+  } catch (serverErr: any) {
+    logMain(`[AppServer Start Error] ${serverErr?.message || serverErr}`)
+    dialogError(serverErr)
+    return
+  }
   logMain(`Loading application URL: ${targetUrl}`)
-  await mainWindow.loadURL(targetUrl)
-  logMain(`Main window URL load completed successfully`)
+  try {
+    await mainWindow.loadURL(targetUrl)
+    logMain(`Main window URL load completed successfully`)
+  } catch (err: any) {
+    logMain(`[First loadURL failed: ${err?.message}]. Retrying in 400ms...`)
+    await new Promise((r) => setTimeout(r, 400))
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      await mainWindow.loadURL(targetUrl)
+      logMain(`Main window URL retry load completed successfully`)
+    }
+  }
 }
 
 if (handleSquirrelEvent()) {
@@ -538,10 +664,16 @@ if (handleSquirrelEvent()) {
   })
   app.on("second-instance", () => {
     logMain(`Second instance triggered; focusing existing window.`)
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      if (!mainWindow.isVisible()) mainWindow.show()
-      mainWindow.focus()
+    showAndFocusWindow(mainWindow)
+    updateTrayMenu()
+    if (mainWindow && !mainWindow.isDestroyed() && applicationUrl) {
+      const currentUrl = mainWindow.webContents.getURL()
+      if (!currentUrl || currentUrl.startsWith("data:text/html") || currentUrl.includes("chrome-error://")) {
+        logMain(`Window was stuck on splash or error URL (${currentUrl}); navigating to applicationUrl: ${applicationUrl}`)
+        void mainWindow.loadURL(applicationUrl)
+      } else {
+        mainWindow.webContents.executeJavaScript('window.dispatchEvent(new Event("resize")); void document.body.offsetHeight;').catch(() => {})
+      }
     }
   })
 function startReleaseFolderWatcher(windowGetter: () => BrowserWindow | null): void {
@@ -599,9 +731,28 @@ function configureWindowsPrintPreferences(): void {
     configureWindowsPrintPreferences()
     logMain(`Electron app ready. Setting up menus and windows...`)
     Menu.setApplicationMenu(buildApplicationMenu())
+    initBackgroundService(() => mainWindow)
     registerIpcHandlers({ getWindow: () => mainWindow, dataDirectory: path.join(app.getPath("userData"), "data") })
     await createMainWindow()
     startReleaseFolderWatcher(() => mainWindow)
+
+    powerMonitor.on("resume", () => {
+      logMain("System resumed from sleep.")
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          mainWindow.webContents.send("window:restored")
+        } catch {}
+      }
+    })
+
+    powerMonitor.on("unlock-screen", () => {
+      logMain("System screen unlocked.")
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          mainWindow.webContents.send("window:restored")
+        } catch {}
+      }
+    })
   }).catch((error) => {
     logMain(`[App Error on Startup] ${error instanceof Error ? (error.stack || error.message) : String(error)}`)
     console.error(error)
@@ -614,6 +765,7 @@ function configureWindowsPrintPreferences(): void {
   })
   app.on("before-quit", () => {
     logMain(`App before-quit fired. Cleaning up backend and servers...`)
+    setQuitting(true)
     void backendManager.stop().catch(console.error)
     applicationServer?.kill()
     applicationServer = null

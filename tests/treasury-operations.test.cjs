@@ -34,6 +34,8 @@ async function restoreFile(filePath) {
   try {
     if (backups.has(filePath)) {
       await fs.writeFile(filePath, backups.get(filePath), "utf-8")
+    } else if (fsSync.existsSync(filePath)) {
+      await fs.unlink(filePath)
     }
   } catch (_) {}
 }
@@ -49,6 +51,12 @@ describe("Enterprise Treasury & Cash/Bank Management Engine", () => {
     await backupFile(EXCHANGES_FILE)
     await backupFile(RECONCILIATIONS_FILE)
     await backupFile(PERIODS_FILE)
+
+    if (fsSync.existsSync(ACCOUNTS_FILE)) await fs.unlink(ACCOUNTS_FILE)
+    if (fsSync.existsSync(TRANSACTIONS_FILE)) await fs.unlink(TRANSACTIONS_FILE)
+    if (fsSync.existsSync(TRANSFERS_FILE)) await fs.unlink(TRANSFERS_FILE)
+    if (fsSync.existsSync(EXCHANGES_FILE)) await fs.unlink(EXCHANGES_FILE)
+    if (fsSync.existsSync(RECONCILIATIONS_FILE)) await fs.unlink(RECONCILIATIONS_FILE)
 
     treasuryService = loadTypescript("lib/treasury/treasury-service.ts")
     periodService = loadTypescript("lib/accounting/period-closing/period-service.ts")
@@ -168,12 +176,13 @@ describe("Enterprise Treasury & Cash/Bank Management Engine", () => {
     const initialBalance = targetAccount.current_balance
 
     const result = await treasuryService.recordCustomerReceipt({
+      idempotency_key: `rcpt-test-3-${Date.now()}-${Math.random()}`,
       customer_name: "Najeb Amin Limited",
       amount: 4000,
       currency: "USD",
       received_into_account_id: targetAccount.id,
       payment_method: "BANK_TRANSFER",
-      reference: "TT-774921",
+      reference: `TT-${Date.now()}`,
       transaction_date: "2026-10-10",
       remarks: "Advance freight payment for 2x40ft containers",
     })
@@ -450,5 +459,14 @@ describe("Enterprise Treasury & Cash/Bank Management Engine", () => {
     // Internal transfers and FX are NOT included in net operational cash flow
     const expectedNet = usdReport.customer_receipts - (usdReport.supplier_payments + usdReport.operational_expenses)
     assert.equal(usdReport.net_operational_cash_flow, expectedNet)
+  })
+
+  after(async () => {
+    await restoreFile(ACCOUNTS_FILE)
+    await restoreFile(TRANSACTIONS_FILE)
+    await restoreFile(TRANSFERS_FILE)
+    await restoreFile(EXCHANGES_FILE)
+    await restoreFile(RECONCILIATIONS_FILE)
+    await restoreFile(PERIODS_FILE)
   })
 })

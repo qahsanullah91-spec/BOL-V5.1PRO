@@ -155,11 +155,22 @@ for (const dirName of dirsToPrune) {
   }
 }
 
+try {
+  execSync('taskkill /F /IM "AQ COMPANIES.exe" /T 2>nul || ver >nul', { shell: true })
+  execSync('taskkill /F /IM "aq-backend.exe" /T 2>nul || ver >nul', { shell: true })
+} catch {}
+
 const electronBuilderBin = path.join(rootDir, "node_modules", "electron-builder", "cli.js")
 execSync(`node "${electronBuilderBin}" --win nsis --x64`, {
   cwd: rootDir,
   stdio: "inherit",
-  env: { ...process.env, CSC_IDENTITY_AUTO_DISCOVERY: "false" }
+  env: {
+    ...process.env,
+    CSC_IDENTITY_AUTO_DISCOVERY: "false",
+    ...(fs.existsSync(path.join(rootDir, "node_modules", "7zip-bin", "win", "x64", "7za.exe"))
+      ? { ELECTRON_BUILDER_7ZIP_PATH: path.join(rootDir, "node_modules", "7zip-bin", "win", "x64", "7za.exe") }
+      : {})
+  }
 })
 
 // Step 5: Validate Installer, Generate SHA-256 Checksum, and Publish release-manifest.json
@@ -199,3 +210,4 @@ console.log(`SHA-256 Checksum:     ${installerHash}`)
 console.log(`Checksum File:        ${path.basename(sha256File)}`)
 console.log(`Build Duration:       ${duration}s`)
 console.log("=================================================================\n")
+

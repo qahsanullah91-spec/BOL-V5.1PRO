@@ -4,6 +4,7 @@ import { useState, useEffect, useEffectEvent, useRef, useCallback, memo, useMemo
 import { createPortal } from "react-dom"
 import dynamic from "next/dynamic"
 import { DraftSaveQueue } from "@/lib/services/draft-save-queue"
+import { putVaultItem, getVaultItem, deleteVaultItem } from "@/lib/save/indexed-db-vault"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -68,7 +69,7 @@ import { BillOfLadingFormData, initialFormData, RouteStop, AFGHANISTAN_DOCUMENT_
 import { isUUID, cleanBolNumber, normalizeBolRecord, parseBolSeq, formatCanonicalDriverRent } from "@/lib/utils/bol-filters"
 import { onlineSaveManager } from "@/lib/client/online-save-manager"
 import { OnlineSyncStatusBadge } from "@/components/sync/online-sync-status-badge"
-import { ArrowLeft, Printer, Save, FileText, Eye, Plus, Loader2, Calendar, Truck, MapPin, Trash2, ArrowRight, Package, Edit3, ImageIcon, Upload, RotateCcw, ScrollText, Check, Download, Building2, Phone, Mail, Ship, Plane, Train, AlertCircle, User, Bell, Globe, Shield, Leaf, Heart, Scale, Bookmark, BookmarkPlus, X, IdCard, Car, Landmark, ShieldCheck, Receipt, List, ChevronDown, ChevronUp, Info, CheckCircle2, Circle, Sparkles, Copy, Box, ArrowLeftRight, Zap, Calculator, Sliders, SlidersHorizontal, Layers, Keyboard, Cloud, DownloadCloud, UploadCloud, RefreshCw, FileSpreadsheet, Coins, Hash, MoreHorizontal, Palette, ZoomIn, ZoomOut, Maximize2, Minimize2, FolderArchive, Search, Snowflake } from "lucide-react"
+import { ArrowLeft, Printer, Save, FileText, Eye, Plus, Loader2, Calendar, Truck, MapPin, MapPinOff, Trash2, ArrowRight, Package, Edit3, ImageIcon, Upload, RotateCcw, ScrollText, Check, Download, Building2, Phone, Mail, Ship, Plane, Train, AlertCircle, User, Bell, Globe, Shield, Leaf, Heart, Scale, Bookmark, BookmarkPlus, X, IdCard, Car, Landmark, ShieldCheck, Receipt, List, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, CheckCircle2, Circle, Sparkles, Copy, Box, ArrowLeftRight, Zap, Calculator, Sliders, SlidersHorizontal, Layers, Keyboard, Cloud, DownloadCloud, UploadCloud, RefreshCw, FileSpreadsheet, Coins, Hash, MoreHorizontal, Palette, ZoomIn, ZoomOut, Maximize2, Minimize2, FolderArchive, Search, Snowflake } from "lucide-react"
 import { formatPersianDate, getDualDates } from "@/lib/utils/persian-date"
 import {
   generateBOLPDFBlob,
@@ -85,14 +86,8 @@ import {
   type ShippingDocumentKind,
   type StickerLayout,
 } from "@/lib/utils/shipping-documents"
-const PackingListPdfPage = dynamic(
-  safeChunkDynamic(() => import("./shipping-documents/packing-list-pdf-page").then((m) => m.PackingListPdfPage)),
-  { ssr: false }
-)
-const StickerPdfPage = dynamic(
-  safeChunkDynamic(() => import("./shipping-documents/sticker-pdf-page").then((m) => m.StickerPdfPage)),
-  { ssr: false }
-)
+import { PackingListPdfPage } from "./shipping-documents/packing-list-pdf-page"
+import { StickerPdfPage } from "./shipping-documents/sticker-pdf-page"
 import { AfghanTruckPlate } from "@/components/ui/afghan-truck-plate"
 import { RoutePresetSelector } from "./route-preset-selector"
 import { ShipmentFilesSkeleton } from "./shipment-files-skeleton"
@@ -114,6 +109,20 @@ const BolFilesAttachmentsTab = dynamic(
   safeChunkDynamic(() => import("./bol-files-attachments-tab").then((m) => m.BolFilesAttachmentsTab)),
   {
     loading: () => <div className="p-4 sm:p-6"><ShipmentFilesSkeleton /></div>,
+    ssr: false,
+  }
+)
+const PackingListView = dynamic(
+  safeChunkDynamic(() => import("./packing-list-view").then((m) => m.PackingListView)),
+  {
+    loading: () => <div className="p-6 text-sm text-slate-600">Loading Packing List…</div>,
+    ssr: false,
+  }
+)
+const CommercialInvoiceView = dynamic(
+  safeChunkDynamic(() => import("./commercial-invoice-view").then((m) => m.CommercialInvoiceView)),
+  {
+    loading: () => <div className="p-6 text-sm text-slate-600">Loading Commercial Invoice…</div>,
     ssr: false,
   }
 )
@@ -323,15 +332,33 @@ const getInvoiceNoFromDescription = (description?: string | null) => {
   return match?.[1]?.trim() || ""
 }
 
+function cleanPartyName(name?: string | null): string {
+  if (!name || typeof name !== "string") return ""
+  return name.replace(/^[\s@#*]+/, "").replace(/[\s@#*]+$/, "").trim()
+}
+
 function mergeSavedParties(seedParties: SavedParty[], storedParties: SavedParty[]) {
   const byName = new Map<string, SavedParty>()
 
   for (const party of seedParties) {
-    byName.set(party.name.trim().toLowerCase(), party)
+    const cleaned = cleanPartyName(party.name)
+    if (cleaned) {
+      byName.set(cleaned.toLowerCase(), { ...party, name: cleaned })
+    }
   }
 
   for (const party of storedParties) {
-    byName.set(party.name.trim().toLowerCase(), party)
+    const cleaned = cleanPartyName(party.name)
+    if (cleaned) {
+      const existing = byName.get(cleaned.toLowerCase())
+      byName.set(cleaned.toLowerCase(), {
+        ...party,
+        name: cleaned,
+        address: party.address?.trim() || existing?.address || "",
+        contact: party.contact?.trim() || existing?.contact || "",
+        email: party.email?.trim() || existing?.email || "",
+      })
+    }
   }
 
   const usedIds = new Map<string, number>()
@@ -727,10 +754,12 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     }
   }, [activeTab])
   const [logoUrl, setLogoUrl] = useState<string>("/images/sky-ariana-logo.png")
+  const [brandLockupUrl, setBrandLockupUrl] = useState<string>("/images/sky-ariana-brand-lockup.png")
+  const [logoDesignId, setLogoDesignId] = useState<string>("modern-flat")
   const logoInputRef = useRef<HTMLInputElement>(null)
   const isCompanySettingsLoadedRef = useRef(false)
   const [companyName, setCompanyName] = useState("SKY ARIANA LIMITED")
-  const [companyNamePersian, setCompanyNamePersian] = useState("شرکت حمل و نقل بین المللی سکای آریانا لمیتد")
+  const [companyNamePersian, setCompanyNamePersian] = useState("شرکت حمل و نقل بین المللی اسکای آریانا")
   const [companySubtitle, setCompanySubtitle] = useState("Import & Export - International Transportation")
   const [companyPhone, setCompanyPhone] = useState("+93 700 939 365, +93 711 435 529")
   const [companyEmail, setCompanyEmail] = useState("info@skyariana.com, transport@skyariana.com")
@@ -857,6 +886,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         window.localStorage.setItem("skybol:last-active-document-id", bolNumber)
         window.localStorage.setItem(`skybol:draft:${cleanBolNumber(bolNumber)}`, JSON.stringify(currentDocData))
       }
+
+      // Tier 2: SessionStorage Isolation Mirror (survives accidental refreshes even if localStorage is full or locked)
+      try {
+        window.sessionStorage.setItem("skybol:active-form-draft:backup", JSON.stringify(currentDocData))
+      } catch (_) {}
+
+      // Tier 3: IndexedDB Data Vault (asynchronous durable persistence with large quota)
+      void putVaultItem("bol_drafts", "skybol:active-form-draft", currentDocData).catch(() => {})
+      if (bolNumber) {
+        void putVaultItem("bol_drafts", `skybol:draft:${cleanBolNumber(bolNumber)}`, currentDocData).catch(() => {})
+      }
+
       return currentDocData
     } catch (e) {
       console.warn("Local storage draft save error:", e)
@@ -945,27 +986,33 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     flushDraftRef.current = flushDraftToServer
   }, [flushDraftToServer])
 
-  // Enterprise Multi-Tier Real-Time Auto-Saving Engine (0ms local, 450ms debounced server, 20s heartbeat)
+  // Enterprise Multi-Tier Real-Time Auto-Saving Engine (Debounced local 150ms, debounced server 500ms, 30s heartbeat)
   useEffect(() => {
     if (typeof window === "undefined") return
     if (checkingDraft || hasRecoverableDraft || isHydrating) return
 
-    // 1. Instant local write (0ms latency on every keystroke)
-    persistLocalDraftSync()
+    // 1. Debounced local write (150ms) to eliminate main-thread blocking during active keystrokes
+    const localTimer = setTimeout(() => {
+      persistLocalDraftSync()
+    }, 150)
 
-    // 2. Schedule debounced server backup (450ms)
-    setAutoSaveStatus("saving")
-    const timer = setTimeout(() => {
+    // 2. Schedule debounced server backup (500ms) - only flip autoSaveStatus to "saving" when server queue actually fires
+    const serverTimer = setTimeout(() => {
+      if (isMountedRef.current) {
+        setAutoSaveStatus("saving")
+      }
       flushDraftToServer()
-    }, 450)
+    }, 500)
 
-    // 3. Heartbeat backup every 20 seconds
+    // 3. Heartbeat backup every 30 seconds (guarded by visibility to conserve CPU)
     const heartbeat = setInterval(() => {
-      flushDraftToServer()
-    }, 20000)
+      if (typeof document !== "undefined" && document.hidden) return
+      flushDraftToServer(true)
+    }, 30000)
 
     return () => {
-      clearTimeout(timer)
+      clearTimeout(localTimer)
+      clearTimeout(serverTimer)
       clearInterval(heartbeat)
       // Note: Do NOT flush synchronously on every keystroke/effect re-run.
       // Doing so previously blocked the main thread for >1000ms on resets and fast typing.
@@ -976,11 +1023,15 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   useEffect(() => {
     if (typeof window === "undefined") return
     const handleFlush = () => {
+      persistLocalDraftSync()
       flushDraftRef.current?.(true)
+      void draftQueue.current?.flush()
     }
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
+        persistLocalDraftSync()
         flushDraftRef.current?.(true)
+        void draftQueue.current?.flush()
       }
     }
 
@@ -993,8 +1044,9 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       window.removeEventListener("beforeunload", handleFlush)
       document.removeEventListener("visibilitychange", handleVisibility)
       flushDraftRef.current?.(true)
+      void draftQueue.current?.flush()
     }
-  }, [])
+  }, [persistLocalDraftSync])
 
   useEffect(() => {
     const handleOnlineSyncComplete = (e: Event) => {
@@ -1011,11 +1063,23 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }, [onRefreshDocuments])
   const [activeRouteIndex, setActiveRouteIndex] = useState<number | null>(null)
   const [showLocationDropdown, setShowLocationDropdown] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (showLocationDropdown === null) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowLocationDropdown(null)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [showLocationDropdown])
   const [selectedCountryFilter, setSelectedCountryFilter] = useState("ALL")
   const [selectedIndiaCategoryFilter, setSelectedIndiaCategoryFilter] = useState("ALL")
   const [disableModeFilter, setDisableModeFilter] = useState(false)
   const [showStampSignature, setShowStampSignature] = useState(true)
   const [routeLocationSearch, setRouteLocationSearch] = useState("")
+  const [filterByRouteInput, setFilterByRouteInput] = useState(false)
   const [savedShippers, setSavedShippers] = useState<SavedParty[]>([])
   const [selectedShipperId, setSelectedShipperId] = useState<string>("")
   const [showShipperDropdown, setShowShipperDropdown] = useState(false)
@@ -1156,6 +1220,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   const handleDiscardDraft = () => {
     window.localStorage.removeItem("sky-bol-live-draft")
     window.localStorage.removeItem("skybol:active-form-draft")
+    try { window.sessionStorage.removeItem("skybol:active-form-draft:backup") } catch (_) {}
+    void deleteVaultItem("bol_drafts", "skybol:active-form-draft").catch(() => {})
     fetch("/api/draft?type=bol", { method: "DELETE" }).catch(() => {})
     setHasRecoverableDraft(false)
     toast.info("Unsaved draft discarded")
@@ -1298,6 +1364,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     companyAddress?: string
     companyLicence?: string
     logoUrl?: string
+    brandLockupUrl?: string
+    logoDesignId?: string
     bgImageUrl?: string
     bgOpacity?: number
     iranOffice?: {
@@ -2016,7 +2084,31 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           } catch (_) {}
         }
 
-        // If local draft is missing or empty, attempt recovery from server draft
+        // Tier 2 Fallback: Check SessionStorage mirror
+        if (!draftData) {
+          try {
+            const sessionRaw = window.sessionStorage.getItem("skybol:active-form-draft:backup")
+            if (sessionRaw) {
+              const parsed = JSON.parse(sessionRaw)
+              if (parsed?.updated_at || parsed?.bol_number) {
+                draftData = parsed
+              }
+            }
+          } catch (_) {}
+        }
+
+        // Tier 3 Fallback: Check IndexedDB Vault
+        if (!draftData) {
+          try {
+            const vaultRecord = await getVaultItem<any>("bol_drafts", "skybol:active-form-draft")
+            const vData = vaultRecord?.payload || vaultRecord
+            if (vData && (vData.updated_at || vData.bol_number)) {
+              draftData = vData
+            }
+          } catch (_) {}
+        }
+
+        // Tier 4 Fallback: If local/vault draft is missing or empty, attempt recovery from server draft
         if (!draftData) {
           try {
             const sDraftRes = await fetch("/api/draft?type=bol")
@@ -2076,6 +2168,12 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           applyLoadedDocument(draftData, draftData.bol_number || "draft")
           setHasRecoverableDraft(false)
           setCheckingDraft(false)
+          setAutoSaveStatus("saved")
+          if (draftData.updated_at) {
+            const formattedTime = new Date(draftData.updated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+            setLastAutoSaveTime(formattedTime)
+            setLastAutoSavedTime(formattedTime)
+          }
           initialized = true
           toast.info("Resumed Active BOL", {
             description: `Restored ${draftData.bol_number || "active BOL"} with your latest details.`,
@@ -2970,7 +3068,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     const currentShipper: SavedParty = {
       id: existingMatch ? existingMatch.id : crypto.randomUUID(),
       name: shipperName,
-      address: (formData.shipper_address || "").trim(),
+      address: (formData.shipper_address || "").trim() || (existingMatch?.address || ""),
       contact: (formData.shipper_contact || "").trim(),
       email: (formData.shipper_email || "").trim(),
       savedAt: new Date().toISOString(),
@@ -3043,7 +3141,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     const currentConsignee: SavedParty = {
       id: existingMatch ? existingMatch.id : crypto.randomUUID(),
       name: consigneeName,
-      address: (formData.consignee_address || "").trim(),
+      address: (formData.consignee_address || "").trim() || (existingMatch?.address || ""),
       contact: (formData.consignee_contact || "").trim(),
       email: (formData.consignee_email || "").trim(),
       savedAt: new Date().toISOString(),
@@ -3120,7 +3218,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     const currentNotifyParty: SavedParty = {
       id: existingMatch ? existingMatch.id : crypto.randomUUID(),
       name: notifyPartyName,
-      address: (formData.notify_party_address || "").trim(),
+      address: (formData.notify_party_address || "").trim() || (existingMatch?.address || ""),
       contact: "",
       email: "",
       savedAt: new Date().toISOString(),
@@ -3920,6 +4018,26 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     })
   }
 
+  const applyJaskSuwaiqSoharCorridorPreset = () => {
+    setFormData((prev) => ({
+      ...prev,
+      routes: [
+        { id: crypto.randomUUID(), location: "Nimroz / Milak, AF", locationPersian: "زرنج / نیمروز، افغانستان", stopOrder: 1, transportMode: "truck" },
+        { id: crypto.randomUUID(), location: "Jask Port – IRAN", locationPersian: "جاسک – ایران", stopOrder: 2, transportMode: "truck" },
+        { id: crypto.randomUUID(), location: "Suwaiq Port – Oman", locationPersian: "بندر السویق – عمان", stopOrder: 3, transportMode: "vessel" },
+        { id: crypto.randomUUID(), location: "Sohar Port – Oman", locationPersian: "بندر صحار – عمان", stopOrder: 4, transportMode: "vessel" },
+      ],
+      port_of_loading: "Jask Port – IRAN",
+      port_of_discharge: "Suwaiq Port – Oman",
+      place_of_delivery: "Sohar Port – Oman",
+      cargo_route_note: "مسیر ترانزیت: نیمروز / زرنج ⬅️ بندر جاسک (ایران) ⬅️ بندر السویق (عمان) ⬅️ بندر صحار (عمان)",
+    }))
+    setActiveRouteIndex(0)
+    toast.success("Applied Oman-Iran Corridor Preset", {
+      description: "نیمروز ➔ جاسک (ایران) ➔ بندر السویق (عمان) ➔ بندر صحار (عمان) مسیر اعمال شد",
+    })
+  }
+
   const openSaveRouteModal = () => {
     if (!formData.routes || formData.routes.length === 0) {
       toast.error("No Route Stops", { description: "لطفاً ابتدا حداقل یک توقفگاه در مسیر اضافه کنید" })
@@ -4374,15 +4492,51 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     { name: "Ishkashim, AF", persian: "اشکاشم، افغانستان", country: "Afghanistan", code: "ISH", isBorder: true, borderCountry: "Tajikistan" },
     { name: "Ai-Khanoum, AF", persian: "آیخانم، افغانستان", country: "Afghanistan", code: "AIK", isBorder: true, borderCountry: "Tajikistan" },
     
-    // Iran - Ports & Major Cities
-    { name: "Bandar Abbas, IR", persian: "بندرعباس، ایران", country: "Iran", code: "BND", isPort: true, portName: "Bandar Abbas (Shahid Rajaee)" },
-    { name: "Chabahar, IR", persian: "چابهار، ایران", country: "Iran", code: "CHA", isPort: true, portName: "Chabahar Port (Shahid Beheshti)" },
-    { name: "Bandar Imam Khomeini, IR", persian: "بندر امام خمینی، ایران", country: "Iran", code: "BIK", isPort: true, portName: "Bandar Imam Khomeini (BIK)" },
-    { name: "Bushehr, IR", persian: "بوشهر، ایران", country: "Iran", code: "BSH", isPort: true, portName: "Bushehr Port" },
-    { name: "Khorramshahr, IR", persian: "خرمشهر، ایران", country: "Iran", code: "KHR", isPort: true, portName: "Khorramshahr Port" },
-    { name: "Bandar Lenguh, IR", persian: "بندر لنگه، ایران", country: "Iran", code: "BLG", isPort: true, portName: "Bandar Lengeh" },
-    { name: "Bandar Anzali, IR", persian: "بندر انزلی، ایران", country: "Iran", code: "ANZ", isPort: true, portName: "Bandar Anzali" },
-    { name: "Dougharoun, IR", persian: "دوغارون، ایران", country: "Iran", code: "DGH" },
+    // 🇮🇷 Iran — All Commercial Seaports & Terminals (Persian Gulf, Sea of Oman & Caspian Sea) + Major Cities
+    { name: "Bandar Abbas (Shahid Rajaee Port), IR", persian: "بندرعباس (بندر شهید رجایی)، ایران", country: "Iran", code: "BND", isPort: true, portName: "Bandar Abbas (Shahid Rajaee)", locationType: "SEA_PORT_MAJOR", unLocode: "IRBND", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Bandar Abbas, Shahid Rajaee, IRBND, بندرعباس, شهید رجایی" },
+    { name: "Bandar Abbas (Shahid Bahonar Port), IR", persian: "بندرعباس (بندر شهید باهنر)، ایران", country: "Iran", code: "BND-BHN", isPort: true, portName: "Shahid Bahonar Port (Bandar Abbas)", locationType: "SEA_PORT_MAJOR", unLocode: "IRBND", seaCargo: true, containerEnabled: true, aliases: "Shahid Bahonar, Bahonar Port, Bandar Abbas, شهید باهنر" },
+    { name: "Chabahar Port (Shahid Beheshti), IR", persian: "بندر چابهار (شهید بهشتی)، ایران", country: "Iran", code: "CHA", isPort: true, portName: "Chabahar Port (Shahid Beheshti)", locationType: "SEA_PORT_MAJOR", unLocode: "IRZBR", seaCargo: true, containerEnabled: true, aliases: "Chabahar, Shahid Beheshti, ZBR, چابهار" },
+    { name: "Chabahar (Shahid Kalantari Port), IR", persian: "بندر چابهار (شهید کلانتری)، ایران", country: "Iran", code: "CHA-KLN", isPort: true, portName: "Shahid Kalantari Port (Chabahar)", locationType: "SEA_PORT_MAJOR", unLocode: "IRZBR", seaCargo: true, aliases: "Shahid Kalantari, Chabahar, شهید کلانتری" },
+    { name: "Bandar Imam Khomeini (BIK), IR", persian: "بندر امام خمینی، ایران", country: "Iran", code: "BIK", isPort: true, portName: "Bandar Imam Khomeini (BIK)", locationType: "SEA_PORT_MAJOR", unLocode: "IRBKM", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "BIK, Bandar Khomeini, IRBKM, Sarbandar" },
+    { name: "Bushehr Port, IR", persian: "بندر بوشهر، ایران", country: "Iran", code: "BSH", isPort: true, portName: "Bushehr Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRBUZ", seaCargo: true, containerEnabled: true, aliases: "Bushehr, IRBUZ, بندر بوشهر" },
+    { name: "Khorramshahr Port, IR", persian: "بندر خرمشهر، ایران", country: "Iran", code: "KHR", isPort: true, portName: "Khorramshahr Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRKHO", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Khorramshahr, IRKHO, Arvand, خرمشهر" },
+    { name: "Abadan Port, IR", persian: "بندر آبادان، ایران", country: "Iran", code: "ABD-PORT", isPort: true, portName: "Abadan Port", locationType: "SEA_PORT", unLocode: "IRABD", seaCargo: true, aliases: "Abadan, IRABD, بندر آبادان" },
+    { name: "Bandar Lengeh Port, IR", persian: "بندر لنگه، ایران", country: "Iran", code: "BLG", isPort: true, portName: "Bandar Lengeh", locationType: "SEA_PORT", unLocode: "IRBDH", seaCargo: true, aliases: "Bandar Lenguh, Lengeh, IRBDH, بندر لنگه" },
+    { name: "Qeshm Island Port (Bahman / Kaveh), IR", persian: "بندر قشم (اسکله بهمن / کاوه)، ایران", country: "Iran", code: "GSM", isPort: true, portName: "Qeshm Port", locationType: "SEA_PORT", unLocode: "IRGSM", seaCargo: true, aliases: "Qeshm, Bahman Port, Kaveh Port, Shahid Zakeri, قشم" },
+    { name: "Kish Island Port, IR", persian: "بندر کیش، ایران", country: "Iran", code: "KIH-PORT", isPort: true, portName: "Kish Commercial Port", locationType: "SEA_PORT", unLocode: "IRKIH", seaCargo: true, aliases: "Kish, IRKIH, بندر کیش" },
+    { name: "Jask Port – IRAN", persian: "جاسک – ایران", country: "Iran", code: "JSK", isPort: true, portName: "Jask Port (Bandar Jask)", locationType: "SEA_PORT_MAJOR", unLocode: "IRJSK", seaCargo: true, containerEnabled: true, cargoEnabled: true, roadConnected: true, state: "Hormozgan", aliases: "Jask Port – IRAN, Jask Port - Iran, Jask Port, Bandar Jask Port, Bandar Jask, Port of Jask, Jask, IRJSK, JSK, جاسک – ایران, جاسک - ایران, بندر جاسک, بندر جاسک، ایران, جاسک, پایانه تجاری و نفتی جاسک, Jask Port - IRAN, Jask Port, IR" },
+    { name: "Bandar Jask Port, IR", persian: "بندر جاسک، ایران", country: "Iran", code: "JSK", isPort: true, portName: "Bandar Jask Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRJSK", seaCargo: true, containerEnabled: true, cargoEnabled: true, roadConnected: true, state: "Hormozgan", aliases: "Bandar Jask Port, Jask Port, Jask Port - Iran, Jask Port, IR, Jask, IRJSK, JSK, بندر جاسک، ایران, بندر جاسک, جاسک - ایران, جاسک" },
+    { name: "Bandar Mahshahr Port (Imam Khomeini Petrochemical), IR", persian: "بندر ماهشهر، ایران", country: "Iran", code: "MRX", isPort: true, portName: "Bandar Mahshahr Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRMRX", seaCargo: true, aliases: "Mahshahr, IRMRX, ماهشهر" },
+    { name: "Assaluyeh Port (Pars Special Energy Zone), IR", persian: "بندر عسلویه (منطقه ویژه پارس)، ایران", country: "Iran", code: "PGU", isPort: true, portName: "Assaluyeh / Pars Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRPGU", seaCargo: true, aliases: "Assaluyeh, Asaluyeh, Tombak, Pars Port, عسلویه" },
+    { name: "Bandar Kangan Port, IR", persian: "بندر کنگان، ایران", country: "Iran", code: "KNG", isPort: true, portName: "Kangan Port", locationType: "SEA_PORT", unLocode: "IRKNG", seaCargo: true, aliases: "Kangan, کنگان" },
+    { name: "Bandar Genaveh Port, IR", persian: "بندر گناوه، ایران", country: "Iran", code: "GNV", isPort: true, portName: "Bandar Genaveh", locationType: "SEA_PORT", unLocode: "IRGNV", seaCargo: true, aliases: "Genaveh, Ganaveh, گناوه" },
+    { name: "Bandar Deylam Port, IR", persian: "بندر دیلم، ایران", country: "Iran", code: "DYL", isPort: true, portName: "Bandar Deylam", locationType: "SEA_PORT", seaCargo: true, aliases: "Deylam, بندر دیلم" },
+    { name: "Bandar Dayyer Port, IR", persian: "بندر دیر، ایران", country: "Iran", code: "DYR", isPort: true, portName: "Bandar Dayyer", locationType: "SEA_PORT", seaCargo: true, aliases: "Dayyer, بندر دیر" },
+    { name: "Bandar Charak Port, IR", persian: "بندر چارک، ایران", country: "Iran", code: "CHK", isPort: true, portName: "Bandar Charak", locationType: "SEA_PORT", seaCargo: true, aliases: "Charak, چارک" },
+    { name: "Bandar Khamir / Pohl Port, IR", persian: "بندر خمیر / بندر پل، ایران", country: "Iran", code: "KHM", isPort: true, portName: "Bandar Khamir / Pohl", locationType: "SEA_PORT", seaCargo: true, aliases: "Khamir, Pohl, Pol, بندر خمیر, بندر پل" },
+    { name: "Bandar Kong Port, IR", persian: "بندر کنگ، ایران", country: "Iran", code: "KOG", isPort: true, portName: "Bandar Kong", locationType: "SEA_PORT", seaCargo: true, aliases: "Kong, بندر کنگ" },
+    { name: "Bandar Tiab Port, IR", persian: "بندر تیاب (هرمزگان)، ایران", country: "Iran", code: "TYB", isPort: true, portName: "Bandar Tiab", locationType: "SEA_PORT", seaCargo: true, aliases: "Tiab, بندر تیاب" },
+    { name: "Bandar Sirik Port, IR", persian: "بندر سیریک (هرمزگان)، ایران", country: "Iran", code: "SRK", isPort: true, portName: "Bandar Sirik", locationType: "SEA_PORT", seaCargo: true, aliases: "Sirik, بندر سیریک" },
+    { name: "Konarak Port, IR", persian: "بندر کنارک (سیستان و بلوچستان)، ایران", country: "Iran", code: "KNR", isPort: true, portName: "Konarak Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Konarak, کنارک" },
+    { name: "Beris / Pasabandar Port, IR", persian: "بندر بریس / پسابندر، ایران", country: "Iran", code: "PSB", isPort: true, portName: "Beris / Pasabandar Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Beris, Pasabandar, بریس, پسابندر" },
+    { name: "Parsian Commercial Port, IR", persian: "بندر پارسیان، ایران", country: "Iran", code: "PRS-IR", isPort: true, portName: "Parsian Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Parsian, پارسیان" },
+    { name: "Kharg Island Oil & Cargo Terminal, IR", persian: "پایانه دریایی جزیره خارگ، ایران", country: "Iran", code: "KHG", isPort: true, portName: "Kharg Island Terminal", locationType: "SEA_PORT", unLocode: "IRKHK", seaCargo: true, aliases: "Kharg, Khark, IRKHK, خارگ" },
+    { name: "Lavan Island Port, IR", persian: "بندر جزیره لاوان، ایران", country: "Iran", code: "LVP", isPort: true, portName: "Lavan Island Port", locationType: "SEA_PORT", unLocode: "IRLVP", seaCargo: true, aliases: "Lavan, لاوان" },
+    { name: "Sirri Island Port, IR", persian: "بندر جزیره سیری، ایران", country: "Iran", code: "SXI", isPort: true, portName: "Sirri Island Port", locationType: "SEA_PORT", unLocode: "IRSXI", seaCargo: true, aliases: "Sirri, سیری" },
+    { name: "Hormuz Island Port, IR", persian: "بندر جزیره هرمز، ایران", country: "Iran", code: "HRM", isPort: true, portName: "Hormuz Island Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Hormuz, هرمز" },
+    { name: "Hendijan Port (Sajafi), IR", persian: "بندر هندیجان (سجافی)، ایران", country: "Iran", code: "HND", isPort: true, portName: "Hendijan Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Hendijan, Sajafi, هندیجان" },
+    { name: "Arvandkenar Port, IR", persian: "بندر اروندکنار، ایران", country: "Iran", code: "ARV", isPort: true, portName: "Arvandkenar Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Arvandkenar, اروندکنار" },
+    // Caspian Sea Ports (Northern Iran)
+    { name: "Bandar Anzali Port, IR", persian: "بندر انزلی (دریای خزر)، ایران", country: "Iran", code: "ANZ", isPort: true, portName: "Bandar Anzali", locationType: "SEA_PORT_MAJOR", unLocode: "IRBAZ", seaCargo: true, containerEnabled: true, aliases: "Anzali, IRBAZ, بندر انزلی" },
+    { name: "Caspian Port (Anzali Free Zone), IR", persian: "مجتمع بندری کاسپین (منطقه آزاد انزلی)، ایران", country: "Iran", code: "CASP-IR", isPort: true, portName: "Caspian Port (Anzali FZ)", locationType: "SEA_PORT_MAJOR", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Caspian Port, Anzali Free Zone, بندر کاسپین" },
+    { name: "Nowshahr Port, IR", persian: "بندر نوشهر (مازندران)، ایران", country: "Iran", code: "NSH", isPort: true, portName: "Nowshahr Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRNSH", seaCargo: true, containerEnabled: true, aliases: "Nowshahr, Noshahr, IRNSH, نوشهر" },
+    { name: "Amirabad Port (Behshahr SEZ), IR", persian: "بندر امیرآباد (بهشهر / مازندران)، ایران", country: "Iran", code: "AMR", isPort: true, portName: "Amirabad Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRAMR", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Amirabad, Behshahr, IRAMR, امیرآباد" },
+    { name: "Fereydunkenar Port, IR", persian: "بندر فریدونکنار، ایران", country: "Iran", code: "FRD", isPort: true, portName: "Fereydunkenar Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Fereydunkenar, فریدونکنار" },
+    { name: "Astara Port (Gilan), IR", persian: "بندر آستارا، ایران", country: "Iran", code: "AST-PORT", isPort: true, portName: "Astara Port", locationType: "SEA_PORT", unLocode: "IRAST", borderCountry: "Azerbaijan", isBorder: true, seaCargo: true, railConnected: true, aliases: "Astara, IRAST, بندر آستارا" },
+    { name: "Bandar Torkaman Port, IR", persian: "بندر ترکمن (گلستان)، ایران", country: "Iran", code: "TRK-IR", isPort: true, portName: "Bandar Torkaman", locationType: "SEA_PORT", seaCargo: true, aliases: "Torkaman, بندر ترکمن" },
+    { name: "Bandar Gaz Port, IR", persian: "بندر گز (گلستان)، ایران", country: "Iran", code: "BGA", isPort: true, portName: "Bandar Gaz", locationType: "SEA_PORT", seaCargo: true, aliases: "Bandar Gaz, بندر گز" },
+    { name: "Khaje Nafas Port, IR", persian: "بندر خواجه نفس (گلستان)، ایران", country: "Iran", code: "KHN", isPort: true, portName: "Khaje Nafas Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Khaje Nafas, خواجه نفس" },
+    { name: "Dougharoun, IR", persian: "دوغارون، ایران", country: "Iran", code: "DGH", isBorder: true, borderCountry: "Afghanistan" },
     { name: "Tehran, IR", persian: "تهران، ایران", country: "Iran", code: "TEH" },
     { name: "Mashhad, IR", persian: "مشهد، ایران", country: "Iran", code: "MSH" },
     { name: "Zahedan, IR", persian: "زاهدان، ایران", country: "Iran", code: "ZAH" },
@@ -4462,9 +4616,28 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     { name: "Jeddah Islamic Port, SA", persian: "بندر اسلامی جده، عربستان", country: "Saudi Arabia", code: "JED", isPort: true, portName: "Jeddah Islamic Port" },
     { name: "King Abdullah Port, SA", persian: "بندر ملک عبدالله، عربستان", country: "Saudi Arabia", code: "KAP", isPort: true, portName: "King Abdullah Port" },
     { name: "Bahrain Port (Khalifa Bin Salman), BH", persian: "بندر خلیفه بن سلمان، بحرین", country: "Bahrain", code: "BAH", isPort: true, portName: "Khalifa Bin Salman Port" },
-    { name: "Sohar Port, OM", persian: "بندر صحار، عمان", country: "Oman", code: "SOH", isPort: true, portName: "Sohar Port" },
-    { name: "Salalah Port, OM", persian: "بندر صلاله، عمان", country: "Oman", code: "SLL", isPort: true, portName: "Port of Salalah" },
-    { name: "Muscat (Sultan Qaboos), OM", persian: "بندر مسقط، عمان", country: "Oman", code: "MCT", isPort: true, portName: "Port Sultan Qaboos" },
+    // 🇴🇲 Oman — All Commercial Seaports, Terminals & Dry Ports
+    { name: "Sohar Port & Freezone, OM", persian: "بندر صحار، عمان", country: "Oman", code: "SOH", isPort: true, portName: "Sohar Port", locationType: "SEA_PORT_MAJOR", unLocode: "OMSOH", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Sohar, Sohar Port, OMSOH, بندر صحار, بندر صحار – عمان, Sohar Port – Oman" },
+    { name: "Sohar Port – Oman", persian: "بندر صحار – عمان", country: "Oman", code: "SOH", isPort: true, portName: "Sohar Port", locationType: "SEA_PORT_MAJOR", unLocode: "OMSOH", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Sohar, Sohar Port, Sohar Port – Oman, Sohar Port - Oman, Sohar Port & Freezone, OMSOH, بندر صحار, بندر صحار – عمان, بندر صحار - عمان, صحار" },
+    { name: "Port of Salalah, OM", persian: "بندر صلاله، عمان", country: "Oman", code: "SLL", isPort: true, portName: "Port of Salalah", locationType: "SEA_PORT_MAJOR", unLocode: "OMSLL", seaCargo: true, containerEnabled: true, aliases: "Salalah, Salalah Port, OMSLL, بندر صلاله" },
+    { name: "Port Sultan Qaboos (Muscat / Muttrah), OM", persian: "بندر سلطان قابوس (مسقط)، عمان", country: "Oman", code: "MCT", isPort: true, portName: "Port Sultan Qaboos", locationType: "SEA_PORT_MAJOR", unLocode: "OMMCT", seaCargo: true, containerEnabled: true, aliases: "Muscat Port, Sultan Qaboos, Muttrah, OMMCT, بندر مسقط, بندر سلطان قابوس" },
+    { name: "Port of Duqm (SEZAD), OM", persian: "بندر دقم (منطقه ویژه اقتصادی)، عمان", country: "Oman", code: "DQM", isPort: true, portName: "Port of Duqm", locationType: "SEA_PORT_MAJOR", unLocode: "OMDQM", seaCargo: true, containerEnabled: true, aliases: "Duqm, Duqm Port, OMDQM, SEZAD, بندر دقم" },
+    { name: "Port of Suwaiq (Al Suwaiq), OM", persian: "بندر السويق، عمان", country: "Oman", code: "SWQ", isPort: true, portName: "Port of Suwaiq", locationType: "SEA_PORT_MAJOR", unLocode: "OMSWQ", seaCargo: true, containerEnabled: true, aliases: "Suwaiq, Suwaiq Port, Suwaiq Port - Oman, Suwaiq Port – Oman, Al Suwaiq, OMSWQ, بندر السويق, بندر السویق – عمان" },
+    { name: "Suwaiq Port – Oman", persian: "بندر السویق – عمان", country: "Oman", code: "SWQ", isPort: true, portName: "Suwaiq Port", locationType: "SEA_PORT_MAJOR", unLocode: "OMSWQ", seaCargo: true, containerEnabled: true, aliases: "Suwaiq, Suwaiq Port, Suwaiq Port – Oman, Suwaiq Port - Oman, Al Suwaiq, Port of Suwaiq, OMSWQ, بندر السویق, بندر السويق, بندر السویق – عمان, بندر السویق - عمان, السویق" },
+    { name: "Port of Khasab (Musandam), OM", persian: "بندر خصب (مسندم)، عمان", country: "Oman", code: "KHS", isPort: true, portName: "Port of Khasab", locationType: "SEA_PORT", unLocode: "OMKHS", seaCargo: true, containerEnabled: true, aliases: "Khasab, Khasab Port, OMKHS, بندر خصب" },
+    { name: "Port of Shinas, OM", persian: "بندر شناص، عمان", country: "Oman", code: "SHN", isPort: true, portName: "Port of Shinas", locationType: "SEA_PORT", unLocode: "OMSHN", seaCargo: true, containerEnabled: true, aliases: "Shinas, Shinas Port, OMSHN, بندر شناص" },
+    { name: "Port of Sur, OM", persian: "بندر صور، عمان", country: "Oman", code: "SUH", isPort: true, portName: "Port of Sur", locationType: "SEA_PORT", unLocode: "OMSUR", seaCargo: true, aliases: "Sur Port, OMSUR, بندر صور" },
+    { name: "Qalhat LNG Marine Terminal (Sur), OM", persian: "ترمینال قلهات (صور)، عمان", country: "Oman", code: "QAL", isPort: true, portName: "Qalhat Marine Terminal", locationType: "SEA_PORT", unLocode: "OMQAL", seaCargo: true, aliases: "Qalhat, OMQAL, قلهات" },
+    { name: "Mina Al Fahal Port (Muscat), OM", persian: "بندر الفحل (مسقط)، عمان", country: "Oman", code: "MFH", isPort: true, portName: "Mina Al Fahal", locationType: "SEA_PORT", unLocode: "OMMFH", seaCargo: true, aliases: "Mina Al Fahal, OMMFH, بندر الفحل" },
+    { name: "Masirah Port, OM", persian: "بندر مصیره، عمان", country: "Oman", code: "MSR", isPort: true, portName: "Port of Masirah", locationType: "SEA_PORT", unLocode: "OMMSR", seaCargo: true, aliases: "Masirah, OMMSR, بندر مصیره" },
+    { name: "Shannah Ferry & Cargo Port, OM", persian: "بندر شنه، عمان", country: "Oman", code: "SHH", isPort: true, portName: "Shannah Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Shannah, Shanna, بندر شنه" },
+    { name: "Khazaen Dry Port (Barka / Muscat ICD), OM", persian: "بندر خشک خزائن (مسقط / بركاء)، عمان", country: "Oman", code: "KZN", isPort: true, portName: "Khazaen Dry Port", locationType: "ICD", railConnected: true, roadConnected: true, containerEnabled: true, aliases: "Khazaen, Barka Dry Port, خزائن" },
+    { name: "Port of Dibba (Musandam), OM", persian: "بندر دبا (مسندم)، عمان", country: "Oman", code: "DBB-OM", isPort: true, portName: "Port of Dibba (Oman)", locationType: "SEA_PORT", seaCargo: true, aliases: "Dibba Oman, Dibba Al-Baya, بندر دبا" },
+    { name: "Lima Port (Musandam), OM", persian: "بندر لیما (مسندم)، عمان", country: "Oman", code: "LMA", isPort: true, portName: "Port of Lima", locationType: "SEA_PORT", seaCargo: true, aliases: "Lima Port, بندر لیما" },
+    { name: "Al Ashkharah Port, OM", persian: "بندر الاشخره، عمان", country: "Oman", code: "ASH-OM", isPort: true, portName: "Al Ashkharah Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Ashkharah, Al Ashkharah, بندر الاشخره" },
+    { name: "Raysut Port Terminal (Salalah), OM", persian: "اسکله ریسوت (صلاله)، عمان", country: "Oman", code: "RYS", isPort: true, portName: "Raysut Terminal", locationType: "SEA_PORT", seaCargo: true, aliases: "Raysut, ریسوت" },
+    { name: "Hasik Port (Dhofar), OM", persian: "بندر حاسک (ظفار)، عمان", country: "Oman", code: "HSK", isPort: true, portName: "Hasik Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Hasik, بندر حاسک" },
+    { name: "Mirbat Port (Dhofar), OM", persian: "بندر مرباط (ظفار)، عمان", country: "Oman", code: "MRB", isPort: true, portName: "Mirbat Port", locationType: "SEA_PORT", seaCargo: true, aliases: "Mirbat, بندر مرباط" },
     { name: "Shuwaikh Port (Kuwait), KW", persian: "بندر شیوخ، کویت", country: "Kuwait", code: "KWT", isPort: true, portName: "Shuwaikh Port" },
     { name: "Umm Qasr Port (Basra), IQ", persian: "بندر ام قصر (بصره)، عراق", country: "Iraq", code: "UQR", isPort: true, portName: "Umm Qasr Port" },
     { name: "Aqaba Port, JO", persian: "بندر عقبه، اردن", country: "Jordan", code: "AQB", isPort: true, portName: "Port of Aqaba" },
@@ -4493,49 +4666,471 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     { name: "Zokhawthar (Rih Dil Gateway), Mizoram, IN", persian: "زوخاوتر (مرز میانمار)، هند", country: "India", code: "ZKT", locationType: "CUSTOMS_BORDER", state: "Mizoram", district: "Champhai", borderCountry: "Myanmar", isBorder: true, unLocode: "INZKT" },
 
     // 🇮🇳 INDIA — MAJOR SEAPORTS & PREMIER CONTAINER TERMINALS
-    { name: "Jawaharlal Nehru Port (JNPT / Nhava Sheva), MH, IN", persian: "بندر نهاوا شوا (JNPT ممبئی)، هند", country: "India", code: "INNSA", isPort: true, portName: "Jawaharlal Nehru Port (JNPT / Nhava Sheva)", locationType: "SEA_PORT_MAJOR", state: "Maharashtra", district: "Raigad / Navi Mumbai", unLocode: "INNSA", customsCode: "INNSA1", containerEnabled: true, railConnected: true, seaCargo: true },
-    { name: "Mumbai Port Trust (MbPT), Maharashtra, IN", persian: "بندر ممبئی، هند", country: "India", code: "INBOM", isPort: true, portName: "Mumbai Port Trust", locationType: "SEA_PORT_MAJOR", state: "Maharashtra", district: "Mumbai", unLocode: "INBOM", seaCargo: true },
-    { name: "Mundra Port (Adani Ports & SEZ), Gujarat, IN", persian: "بندر موندرا (بزرگترین بندر تجاری گجرات)، هند", country: "India", code: "INMUN", isPort: true, portName: "Mundra Port & SEZ (APSEZ)", locationType: "SEA_PORT_MAJOR", state: "Gujarat", district: "Kutch", unLocode: "INMUN", customsCode: "INMUN1", containerEnabled: true, railConnected: true, seaCargo: true },
-    { name: "Deendayal Port (Kandla), Gujarat, IN", persian: "بندر کاندلا (دیندایال)، هند", country: "India", code: "INIXY", isPort: true, portName: "Deendayal Port (Kandla)", locationType: "SEA_PORT_MAJOR", state: "Gujarat", district: "Kutch", unLocode: "INIXY", customsCode: "INIXY1", seaCargo: true },
-    { name: "Pipavav Port (APM Terminals), Gujarat, IN", persian: "بندر پیپاوائو (گجرات)، هند", country: "India", code: "INPAV", isPort: true, portName: "Port Pipavav (APM Terminals)", locationType: "SEA_PORT_MAJOR", state: "Gujarat", district: "Amreli", unLocode: "INPAV", containerEnabled: true, railConnected: true, seaCargo: true },
-    { name: "Hazira Port (Adani / Essar), Gujarat, IN", persian: "بندر هزیرا (سورت)، هند", country: "India", code: "INHZA", isPort: true, portName: "Hazira Port (Adani Hazira)", locationType: "SEA_PORT_MAJOR", state: "Gujarat", district: "Surat", unLocode: "INHZA", containerEnabled: true, seaCargo: true },
-    { name: "Chennai Port Trust, Tamil Nadu, IN", persian: "بندر چنای (مدراس)، هند", country: "India", code: "INMAA", isPort: true, portName: "Chennai Port Trust", locationType: "SEA_PORT_MAJOR", state: "Tamil Nadu", district: "Chennai", unLocode: "INMAA", customsCode: "INMAA1", containerEnabled: true, railConnected: true, seaCargo: true },
-    { name: "Kamarajar Port (Ennore), Tamil Nadu, IN", persian: "بندر کاماراجار (انور)، هند", country: "India", code: "INENR", isPort: true, portName: "Kamarajar Port (Ennore)", locationType: "SEA_PORT_MAJOR", state: "Tamil Nadu", district: "Chennai", unLocode: "INENR", containerEnabled: true, seaCargo: true },
-    { name: "Kattupalli Port (Adani Kattupalli), Tamil Nadu, IN", persian: "بندر کاتوپالی (چنای)، هند", country: "India", code: "INKAT", isPort: true, portName: "Adani Kattupalli Port", locationType: "SEA_PORT_MAJOR", state: "Tamil Nadu", district: "Tiruvallur", unLocode: "INKAT", containerEnabled: true, seaCargo: true },
-    { name: "V.O. Chidambaranar Port (Tuticorin), Tamil Nadu, IN", persian: "بندر توتیکورین (VOC Port)، هند", country: "India", code: "INTUT", isPort: true, portName: "V.O. Chidambaranar Port (Tuticorin)", locationType: "SEA_PORT_MAJOR", state: "Tamil Nadu", district: "Thoothukudi", unLocode: "INTUT", containerEnabled: true, seaCargo: true },
-    { name: "Cochin Port Trust (Vallarpadam ICTT), Kerala, IN", persian: "بندر کوچین (پایانه بین‌المللی کانتینری والرپادام)، هند", country: "India", code: "INCOK", isPort: true, portName: "Cochin Port (Vallarpadam ICTT)", locationType: "SEA_PORT_MAJOR", state: "Kerala", district: "Ernakulam", unLocode: "INCOK", containerEnabled: true, seaCargo: true },
-    { name: "Vizhinjam International Seaport, Kerala, IN", persian: "بندر بین‌المللی ویژینجام (ترانس‌شیپ‌منت کانتینری)، هند", country: "India", code: "INVIZ", isPort: true, portName: "Vizhinjam International Transshipment Deepwater Port", locationType: "SEA_PORT_MAJOR", state: "Kerala", district: "Thiruvananthapuram", unLocode: "INVIZ", containerEnabled: true, seaCargo: true },
-    { name: "New Mangalore Port, Karnataka, IN", persian: "بندر نیو منگلور، هند", country: "India", code: "INNML", isPort: true, portName: "New Mangalore Port Trust", locationType: "SEA_PORT_MAJOR", state: "Karnataka", district: "Dakshina Kannada", unLocode: "INNML", seaCargo: true },
-    { name: "Mormugao Port Trust, Goa, IN", persian: "بندر مورموگائو (گوا)، هند", country: "India", code: "INMRM", isPort: true, portName: "Mormugao Port Trust", locationType: "SEA_PORT_MAJOR", state: "Goa", district: "South Goa", unLocode: "INMRM", seaCargo: true },
-    { name: "Visakhapatnam Port Trust (Vizag Port), AP, IN", persian: "بندر ویساکاپاتنام (ویزگ)، هند", country: "India", code: "INVTZ", isPort: true, portName: "Visakhapatnam Port Trust", locationType: "SEA_PORT_MAJOR", state: "Andhra Pradesh", district: "Visakhapatnam", unLocode: "INVTZ", containerEnabled: true, railConnected: true, seaCargo: true },
-    { name: "Gangavaram Port (Adani Gangavaram), AP, IN", persian: "بندر گانگااورام (ویزگ)، هند", country: "India", code: "INGGV", isPort: true, portName: "Gangavaram Port", locationType: "SEA_PORT_MAJOR", state: "Andhra Pradesh", district: "Visakhapatnam", unLocode: "INGGV", seaCargo: true },
-    { name: "Krishnapatnam Port (Adani KPCL), AP, IN", persian: "بندر کریشناپاتنام (نلور)، هند", country: "India", code: "INKRI", isPort: true, portName: "Krishnapatnam Port (KPCL)", locationType: "SEA_PORT_MAJOR", state: "Andhra Pradesh", district: "Nellore", unLocode: "INKRI", containerEnabled: true, seaCargo: true },
-    { name: "Paradip Port Trust, Odisha, IN", persian: "بندر پارادیپ (اودیشا)، هند", country: "India", code: "INPRT", isPort: true, portName: "Paradip Port Trust", locationType: "SEA_PORT_MAJOR", state: "Odisha", district: "Jagatsinghpur", unLocode: "INPRT", seaCargo: true },
-    { name: "Dhamra Port (Adani Dhamra), Odisha, IN", persian: "بندر دهامرا (اودیشا)، هند", country: "India", code: "INDHM", isPort: true, portName: "Dhamra Port (DPCL)", locationType: "SEA_PORT_MAJOR", state: "Odisha", district: "Bhadrak", unLocode: "INDHM", seaCargo: true },
-    { name: "Syama Prasad Mookerjee Port (Kolkata Dock), WB, IN", persian: "بندر کلکته (سیااما پراساد)، هند", country: "India", code: "INCCU", isPort: true, portName: "Syama Prasad Mookerjee Port Kolkata", locationType: "SEA_PORT_MAJOR", state: "West Bengal", district: "Kolkata", unLocode: "INCCU", containerEnabled: true, seaCargo: true },
-    { name: "Haldia Dock Complex (HDC), West Bengal, IN", persian: "بندر هالدیا (داک کمپلکس کلکته)، هند", country: "India", code: "INHAL", isPort: true, portName: "Haldia Dock Complex", locationType: "SEA_PORT_MAJOR", state: "West Bengal", district: "Purba Medinipur", unLocode: "INHAL", containerEnabled: true, seaCargo: true },
+    { 
+      name: "Nhava Sheva Port (JNPT / Navi Mumbai), Maharashtra, India", 
+      persian: "بندر نوا شوا (JNPT ممبئی)، هند", 
+      country: "India", 
+      code: "INNSA", 
+      isPort: true, 
+      portName: "Nhava Sheva Port (JNPT / Navi Mumbai)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Maharashtra", 
+      district: "Raigad / Navi Mumbai", 
+      unLocode: "INNSA", 
+      customsCode: "INNSA1", 
+      containerEnabled: true, 
+      railConnected: true, 
+      seaCargo: true,
+      aliases: [
+        "Nhava Sheva",
+        "Nhava Sheva, IN",
+        "Nhava Sheva, India",
+        "Nhava Sheva Port",
+        "JNPT",
+        "Jawaharlal Nehru Port",
+        "JNPT Mumbai",
+        "Navi Mumbai",
+        "Nava Sheva",
+        "Nhava",
+        "Sheva",
+        "INNSA",
+        "INNSA1",
+        "نوا شوا",
+        "نهاوا شوا",
+        "ناوا شوا",
+        "ناوا شیوا",
+        "بندر نوا شوا",
+        "بندر نهاوا شوا",
+        "بندر ناوا شوا",
+        "بندر ناوا شیوا",
+        "ممبئی",
+        "بندر ممبئی",
+        "هند",
+        "هندوستان"
+      ]
+    },
+    { 
+      name: "Nhava Sheva, IN", 
+      persian: "نوا شوا، هند", 
+      country: "India", 
+      code: "INNSA", 
+      isPort: true, 
+      portName: "Nhava Sheva (JNPT)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Maharashtra", 
+      district: "Navi Mumbai", 
+      unLocode: "INNSA", 
+      customsCode: "INNSA1", 
+      containerEnabled: true, 
+      railConnected: true, 
+      seaCargo: true,
+      aliases: [
+        "Nhava Sheva",
+        "Nhava Sheva, India",
+        "Nhava Sheva Port",
+        "JNPT",
+        "Jawaharlal Nehru",
+        "Nava Sheva",
+        "نوا شوا",
+        "نهاوا شوا",
+        "ناوا شیوا",
+        "بندر نوا شوا",
+        "هند"
+      ]
+    },
+    { 
+      name: "Jawaharlal Nehru Port (JNPT / Nhava Sheva), MH, IN", 
+      persian: "بندر نهاوا شوا (JNPT ممبئی)، هند", 
+      country: "India", 
+      code: "INNSA", 
+      isPort: true, 
+      portName: "Jawaharlal Nehru Port (JNPT / Nhava Sheva)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Maharashtra", 
+      district: "Raigad / Navi Mumbai", 
+      unLocode: "INNSA", 
+      customsCode: "INNSA1", 
+      containerEnabled: true, 
+      railConnected: true, 
+      seaCargo: true,
+      aliases: [
+        "Nhava Sheva",
+        "Nhava Sheva Port",
+        "JNPT",
+        "Jawaharlal Nehru Port",
+        "نوا شوا",
+        "نهاوا شوا",
+        "ناوا شوا",
+        "ناوا شیوا"
+      ]
+    },
+    { 
+      name: "Mumbai Port Trust (MbPT), Maharashtra, IN", 
+      persian: "بندر ممبئی، هند", 
+      country: "India", 
+      code: "INBOM", 
+      isPort: true, 
+      portName: "Mumbai Port Trust", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Maharashtra", 
+      district: "Mumbai", 
+      unLocode: "INBOM", 
+      seaCargo: true,
+      aliases: ["Mumbai Port", "Bombay Port", "MbPT", "INBOM", "بندر ممبئی", "ممبئی"]
+    },
+    { 
+      name: "Mundra Port (Adani Ports & SEZ), Gujarat, India", 
+      persian: "بندر موندرا (بزرگترین بندر تجاری گجرات)، هند", 
+      country: "India", 
+      code: "INMUN", 
+      isPort: true, 
+      portName: "Mundra Port & SEZ (APSEZ)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Gujarat", 
+      district: "Kutch", 
+      unLocode: "INMUN", 
+      customsCode: "INMUN1", 
+      containerEnabled: true, 
+      railConnected: true, 
+      seaCargo: true,
+      aliases: ["Mundra", "Mundra Port", "Mundra, IN", "Mundra, India", "Adani Mundra", "APSEZ", "INMUN", "موندرا", "بندر موندرا"]
+    },
+    { 
+      name: "Mundra, IN", 
+      persian: "موندرا، هند", 
+      country: "India", 
+      code: "INMUN", 
+      isPort: true, 
+      portName: "Mundra Port", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Gujarat", 
+      district: "Kutch", 
+      unLocode: "INMUN", 
+      customsCode: "INMUN1", 
+      containerEnabled: true, 
+      railConnected: true, 
+      seaCargo: true,
+      aliases: ["Mundra", "Mundra Port", "Mundra India", "موندرا", "بندر موندرا"]
+    },
+    { 
+      name: "Deendayal Port (Kandla), Gujarat, IN", 
+      persian: "بندر کاندلا (دیندایال)، هند", 
+      country: "India", 
+      code: "INIXY", 
+      isPort: true, 
+      portName: "Deendayal Port (Kandla)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Gujarat", 
+      district: "Kutch", 
+      unLocode: "INIXY", 
+      customsCode: "INIXY1", 
+      containerEnabled: true,
+      railConnected: true,
+      seaCargo: true,
+      aliases: ["Kandla", "Kandla Port", "Deendayal", "Deendayal Port", "INIXY", "کاندلا", "بندر کاندلا", "دیندایال"]
+    },
+    { 
+      name: "Pipavav Port (APM Terminals), Gujarat, IN", 
+      persian: "بندر پیپاوائو (گجرات)، هند", 
+      country: "India", 
+      code: "INPAV", 
+      isPort: true, 
+      portName: "Port Pipavav (APM Terminals)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Gujarat", 
+      district: "Amreli", 
+      unLocode: "INPAV", 
+      containerEnabled: true, 
+      railConnected: true, 
+      seaCargo: true,
+      aliases: ["Pipavav", "Port Pipavav", "APM Terminals Pipavav", "INPAV", "پیپاوائو", "بندر پیپاوائو"]
+    },
+    { 
+      name: "Hazira Port (Adani / Essar), Gujarat, IN", 
+      persian: "بندر هزیرا (سورت)، هند", 
+      country: "India", 
+      code: "INHZA", 
+      isPort: true, 
+      portName: "Hazira Port (Adani Hazira)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Gujarat", 
+      district: "Surat", 
+      unLocode: "INHZA", 
+      containerEnabled: true, 
+      seaCargo: true,
+      aliases: ["Hazira", "Hazira Port", "Adani Hazira", "Surat Port", "INHZA", "هزیرا", "بندر هزیرا"]
+    },
+    { 
+      name: "Chennai Port Trust, Tamil Nadu, IN", 
+      persian: "بندر چنای (مدراس)، هند", 
+      country: "India", 
+      code: "INMAA", 
+      isPort: true, 
+      portName: "Chennai Port Trust", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Tamil Nadu", 
+      district: "Chennai", 
+      unLocode: "INMAA", 
+      customsCode: "INMAA1", 
+      containerEnabled: true, 
+      railConnected: true, 
+      seaCargo: true,
+      aliases: ["Chennai", "Chennai Port", "Madras Port", "INMAA", "چنای", "بندر چنای", "مدراس"]
+    },
+    { 
+      name: "Kamarajar Port (Ennore), Tamil Nadu, IN", 
+      persian: "بندر کاماراجار (انور)، هند", 
+      country: "India", 
+      code: "INENR", 
+      isPort: true, 
+      portName: "Kamarajar Port (Ennore)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Tamil Nadu", 
+      district: "Chennai", 
+      unLocode: "INENR", 
+      containerEnabled: true, 
+      seaCargo: true,
+      aliases: ["Kamarajar", "Ennore", "Kamarajar Port", "Ennore Port", "INENR", "کاماراجار", "بندر انور"]
+    },
+    { 
+      name: "Kattupalli Port (Adani Kattupalli), Tamil Nadu, IN", 
+      persian: "بندر کاتوپالی (چنای)، هند", 
+      country: "India", 
+      code: "INKAT", 
+      isPort: true, 
+      portName: "Adani Kattupalli Port", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Tamil Nadu", 
+      district: "Tiruvallur", 
+      unLocode: "INKAT", 
+      containerEnabled: true, 
+      seaCargo: true,
+      aliases: ["Kattupalli", "Kattupalli Port", "Adani Kattupalli", "INKAT", "کاتوپالی", "بندر کاتوپالی"]
+    },
+    { 
+      name: "V.O. Chidambaranar Port (Tuticorin), Tamil Nadu, IN", 
+      persian: "بندر توتیکورین (VOC Port)، هند", 
+      country: "India", 
+      code: "INTUT", 
+      isPort: true, 
+      portName: "V.O. Chidambaranar Port (Tuticorin)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Tamil Nadu", 
+      district: "Thoothukudi", 
+      unLocode: "INTUT", 
+      containerEnabled: true, 
+      seaCargo: true,
+      aliases: ["Tuticorin", "Tuticorin Port", "VOC Port", "Chidambaranar", "INTUT", "توتیکورین", "بندر توتیکورین"]
+    },
+    { 
+      name: "Cochin Port Trust (Vallarpadam ICTT), Kerala, IN", 
+      persian: "بندر کوچین (پایانه بین‌المللی کانتینری والرپادام)، هند", 
+      country: "India", 
+      code: "INCOK", 
+      isPort: true, 
+      portName: "Cochin Port (Vallarpadam ICTT)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Kerala", 
+      district: "Ernakulam", 
+      unLocode: "INCOK", 
+      containerEnabled: true, 
+      seaCargo: true,
+      aliases: ["Cochin", "Cochin Port", "Kochi Port", "Vallarpadam ICTT", "INCOK", "کوچین", "بندر کوچین"]
+    },
+    { 
+      name: "Vizhinjam International Seaport, Kerala, IN", 
+      persian: "بندر بین‌المللی ویژینجام (ترانس‌شیپ‌منت کانتینری)، هند", 
+      country: "India", 
+      code: "INVIZ", 
+      isPort: true, 
+      portName: "Vizhinjam International Transshipment Deepwater Port", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Kerala", 
+      district: "Thiruvananthapuram", 
+      unLocode: "INVIZ", 
+      containerEnabled: true, 
+      seaCargo: true,
+      aliases: ["Vizhinjam", "Vizhinjam Port", "Trivandrum Seaport", "INVIZ", "ویژینجام", "بندر ویژینجام"]
+    },
+    { 
+      name: "New Mangalore Port, Karnataka, IN", 
+      persian: "بندر نیو منگلور، هند", 
+      country: "India", 
+      code: "INNML", 
+      isPort: true, 
+      portName: "New Mangalore Port Trust", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Karnataka", 
+      district: "Dakshina Kannada", 
+      unLocode: "INNML", 
+      seaCargo: true,
+      aliases: ["New Mangalore", "Mangalore Port", "NMPT", "INNML", "نیو منگلور", "بندر منگلور"]
+    },
+    { 
+      name: "Mormugao Port Trust, Goa, IN", 
+      persian: "بندر مورموگائو (گوا)، هند", 
+      country: "India", 
+      code: "INMRM", 
+      isPort: true, 
+      portName: "Mormugao Port Trust", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Goa", 
+      district: "South Goa", 
+      unLocode: "INMRM", 
+      seaCargo: true,
+      aliases: ["Mormugao", "Mormugao Port", "Goa Port", "MPT", "INMRM", "مورموگائو", "بندر گوا"]
+    },
+    { 
+      name: "Visakhapatnam Port Trust (Vizag Port), AP, IN", 
+      persian: "بندر ویساکاپاتنام (ویزگ)، هند", 
+      country: "India", 
+      code: "INVTZ", 
+      isPort: true, 
+      portName: "Visakhapatnam Port Trust", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Andhra Pradesh", 
+      district: "Visakhapatnam", 
+      unLocode: "INVTZ", 
+      containerEnabled: true, 
+      railConnected: true, 
+      seaCargo: true,
+      aliases: ["Visakhapatnam", "Vizag", "Vizag Port", "VPT", "INVTZ", "ویساکاپاتنام", "ویزگ", "بندر ویزگ"]
+    },
+    { 
+      name: "Gangavaram Port (Adani Gangavaram), AP, IN", 
+      persian: "بندر گانگااورام (ویزگ)، هند", 
+      country: "India", 
+      code: "INGGV", 
+      isPort: true, 
+      portName: "Gangavaram Port", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Andhra Pradesh", 
+      district: "Visakhapatnam", 
+      unLocode: "INGGV", 
+      seaCargo: true,
+      aliases: ["Gangavaram", "Gangavaram Port", "Adani Gangavaram", "INGGV", "گانگااورام", "بندر گانگااورام"]
+    },
+    { 
+      name: "Krishnapatnam Port (Adani KPCL), AP, IN", 
+      persian: "بندر کریشناپاتنام (نلور)، هند", 
+      country: "India", 
+      code: "INKRI", 
+      isPort: true, 
+      portName: "Krishnapatnam Port (KPCL)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Andhra Pradesh", 
+      district: "Nellore", 
+      unLocode: "INKRI", 
+      containerEnabled: true, 
+      seaCargo: true,
+      aliases: ["Krishnapatnam", "Krishnapatnam Port", "KPCL", "INKRI", "کریشناپاتنام", "بندر کریشناپاتنام"]
+    },
+    { 
+      name: "Paradip Port Trust, Odisha, IN", 
+      persian: "بندر پارادیپ (اودیشا)، هند", 
+      country: "India", 
+      code: "INPRT", 
+      isPort: true, 
+      portName: "Paradip Port Trust", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Odisha", 
+      district: "Jagatsinghpur", 
+      unLocode: "INPRT", 
+      seaCargo: true,
+      aliases: ["Paradip", "Paradip Port", "INPRT", "پارادیپ", "بندر پارادیپ"]
+    },
+    { 
+      name: "Dhamra Port (Adani Dhamra), Odisha, IN", 
+      persian: "بندر دهامرا (اودیشا)، هند", 
+      country: "India", 
+      code: "INDHM", 
+      isPort: true, 
+      portName: "Dhamra Port (DPCL)", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "Odisha", 
+      district: "Bhadrak", 
+      unLocode: "INDHM", 
+      seaCargo: true,
+      aliases: ["Dhamra", "Dhamra Port", "Adani Dhamra", "INDHM", "دهامرا", "بندر دهامرا"]
+    },
+    { 
+      name: "Syama Prasad Mookerjee Port (Kolkata Dock), WB, IN", 
+      persian: "بندر کلکته (سیااما پراساد)، هند", 
+      country: "India", 
+      code: "INCCU", 
+      isPort: true, 
+      portName: "Syama Prasad Mookerjee Port Kolkata", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "West Bengal", 
+      district: "Kolkata", 
+      unLocode: "INCCU", 
+      containerEnabled: true, 
+      seaCargo: true,
+      aliases: ["Kolkata Port", "Calcutta Port", "Syama Prasad Mookerjee", "INCCU", "کلکته", "بندر کلکته"]
+    },
+    { 
+      name: "Haldia Dock Complex (HDC), West Bengal, IN", 
+      persian: "بندر هالدیا (داک کمپلکس کلکته)، هند", 
+      country: "India", 
+      code: "INHAL", 
+      isPort: true, 
+      portName: "Haldia Dock Complex", 
+      locationType: "SEA_PORT_MAJOR", 
+      state: "West Bengal", 
+      district: "Purba Medinipur", 
+      unLocode: "INHAL", 
+      containerEnabled: true, 
+      seaCargo: true,
+      aliases: ["Haldia", "Haldia Port", "HDC", "INHAL", "هالدیا", "بندر هالدیا"]
+    },
 
-    // 🇮🇳 INDIA — COMMERCIAL NON-MAJOR CARGO SEAPORTS
-    { name: "Bedi Port, Gujarat, IN", persian: "بندر بدی (جام‌نگر)، هند", country: "India", code: "INBED", isPort: true, portName: "Bedi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INBED" },
-    { name: "Sikka Port (Reliance Terminal), Gujarat, IN", persian: "بندر سیکا (پایانه نفتی ریلاینس)، هند", country: "India", code: "INSIK", isPort: true, portName: "Sikka Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INSIK" },
-    { name: "Dahej Port (Petronet LNG), Gujarat, IN", persian: "بندر داهج (گجرات)، هند", country: "India", code: "INDHJ", isPort: true, portName: "Dahej Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INDHJ" },
-    { name: "Porbandar Port, Gujarat, IN", persian: "بندر پوربندر، هند", country: "India", code: "INPBD-PORT", isPort: true, portName: "Porbandar Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INPBD" },
-    { name: "Okha Port, Gujarat, IN", persian: "بندر اوخا (دوارکا)، هند", country: "India", code: "INOKH", isPort: true, portName: "Okha Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INOKH" },
-    { name: "Navlakhi Port, Gujarat, IN", persian: "بندر ناولاخی (موربی)، هند", country: "India", code: "INNAV", isPort: true, portName: "Navlakhi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INNAV" },
-    { name: "Jaigad Port (JSW Jaigad), Maharashtra, IN", persian: "بندر جایگاد (راتناگیری)، هند", country: "India", code: "INJAI-PORT", isPort: true, portName: "JSW Jaigad Port", locationType: "SEA_PORT_NON_MAJOR", state: "Maharashtra", unLocode: "INJAI" },
-    { name: "Dighi Port (Adani Dighi), Maharashtra, IN", persian: "بندر دیگی (رایگاد)، هند", country: "India", code: "INDGI", isPort: true, portName: "Dighi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Maharashtra", unLocode: "INDGI" },
-    { name: "Dharamtar Port, Maharashtra, IN", persian: "بندر دهارام‌تار (رایگاد)، هند", country: "India", code: "INDMT", isPort: true, portName: "Dharamtar Port", locationType: "SEA_PORT_NON_MAJOR", state: "Maharashtra", unLocode: "INDMT" },
-    { name: "Redi Port, Maharashtra, IN", persian: "بندر ردی (سیندودورگ)، هند", country: "India", code: "INRED", isPort: true, portName: "Redi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Maharashtra", unLocode: "INRED" },
-    { name: "Karwar Port, Karnataka, IN", persian: "بندر کاروار، هند", country: "India", code: "INKRW", isPort: true, portName: "Karwar Port", locationType: "SEA_PORT_NON_MAJOR", state: "Karnataka", unLocode: "INKRW" },
-    { name: "Old Mangalore Port, Karnataka, IN", persian: "بندر قدیم منگلور، هند", country: "India", code: "INMNP", isPort: true, portName: "Old Mangalore Port", locationType: "SEA_PORT_NON_MAJOR", state: "Karnataka", unLocode: "INMNP" },
-    { name: "Beypore Port, Kerala, IN", persian: "بندر بیپور (کوزیکود)، هند", country: "India", code: "INBEY", isPort: true, portName: "Beypore Port", locationType: "SEA_PORT_NON_MAJOR", state: "Kerala", unLocode: "INBEY" },
-    { name: "Azhikkal Port (Kannur), Kerala, IN", persian: "بندر آژیکال (کانور)، هند", country: "India", code: "INAZH", isPort: true, portName: "Azhikkal Port", locationType: "SEA_PORT_NON_MAJOR", state: "Kerala", unLocode: "INAZH" },
-    { name: "Cuddalore Port, Tamil Nadu, IN", persian: "بندر کادالور، هند", country: "India", code: "INCDL", isPort: true, portName: "Cuddalore Port", locationType: "SEA_PORT_NON_MAJOR", state: "Tamil Nadu", unLocode: "INCDL" },
-    { name: "Nagapattinam Port, Tamil Nadu, IN", persian: "بندر ناگاپاتینام، هند", country: "India", code: "INNAG-PORT", isPort: true, portName: "Nagapattinam Port", locationType: "SEA_PORT_NON_MAJOR", state: "Tamil Nadu", unLocode: "INNAG" },
-    { name: "Karaikal Port (Adani Karaikal), Puducherry, IN", persian: "بندر کارایکال، هند", country: "India", code: "INKRK", isPort: true, portName: "Karaikal Port", locationType: "SEA_PORT_NON_MAJOR", state: "Puducherry", unLocode: "INKRK" },
-    { name: "Kakinada Deep Water Port, AP, IN", persian: "بندر کاکینادا، هند", country: "India", code: "INKAK", isPort: true, portName: "Kakinada Deep Water Port", locationType: "SEA_PORT_NON_MAJOR", state: "Andhra Pradesh", unLocode: "INKAK" },
-    { name: "Machilipatnam Port, AP, IN", persian: "بندر ماچیلی‌پاتنام، هند", country: "India", code: "INMTM", isPort: true, portName: "Machilipatnam Port", locationType: "SEA_PORT_NON_MAJOR", state: "Andhra Pradesh", unLocode: "INMTM" },
-    { name: "Gopalpur Port, Odisha, IN", persian: "بندر گوپال‌پور (گانجام)، هند", country: "India", code: "INGPR", isPort: true, portName: "Gopalpur Port", locationType: "SEA_PORT_NON_MAJOR", state: "Odisha", unLocode: "INGPR" },
+    // 🇮🇳 INDIA — COMMERCIAL NON-MAJOR CARGO SEAPORTS & BULK TERMINALS
+    { name: "Bedi Port, Gujarat, IN", persian: "بندر بدی (جام‌نگر)، هند", country: "India", code: "INBED", isPort: true, portName: "Bedi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INBED", seaCargo: true, aliases: ["Bedi", "Bedi Port", "Jamnagar Port", "بدی"] },
+    { name: "Sikka Port (Reliance Terminal), Gujarat, IN", persian: "بندر سیکا (پایانه نفتی ریلاینس)، هند", country: "India", code: "INSIK", isPort: true, portName: "Sikka Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INSIK", seaCargo: true, aliases: ["Sikka", "Sikka Port", "Reliance Sikka", "سیکا"] },
+    { name: "Dahej Port (Petronet LNG), Gujarat, IN", persian: "بندر داهج (گجرات)، هند", country: "India", code: "INDHJ", isPort: true, portName: "Dahej Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INDHJ", seaCargo: true, aliases: ["Dahej", "Dahej Port", "Petronet Dahej", "داهج"] },
+    { name: "Porbandar Port, Gujarat, IN", persian: "بندر پوربندر، هند", country: "India", code: "INPBD-PORT", isPort: true, portName: "Porbandar Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INPBD", seaCargo: true, aliases: ["Porbandar", "Porbandar Port", "پوربندر"] },
+    { name: "Okha Port, Gujarat, IN", persian: "بندر اوخا (دوارکا)، هند", country: "India", code: "INOKH", isPort: true, portName: "Okha Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INOKH", seaCargo: true, aliases: ["Okha", "Okha Port", "Dwarka Port", "اوخا"] },
+    { name: "Navlakhi Port, Gujarat, IN", persian: "بندر ناولاخی (موربی)، هند", country: "India", code: "INNAV", isPort: true, portName: "Navlakhi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INNAV", seaCargo: true, aliases: ["Navlakhi", "Navlakhi Port", "Morbi Port", "ناولاخی"] },
+    { name: "Magdalla Port (Surat), Gujarat, IN", persian: "بندر ماگدالا (سورت)، هند", country: "India", code: "INMAG", isPort: true, portName: "Magdalla Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INMAG", seaCargo: true, aliases: ["Magdalla", "Magdalla Port", "Surat Port", "ماگدالا"] },
+    { name: "Bhavnagar Port, Gujarat, IN", persian: "بندر باوناگار، هند", country: "India", code: "INBHU", isPort: true, portName: "Bhavnagar Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INBHU", seaCargo: true, aliases: ["Bhavnagar", "Bhavnagar Port", "باوناگار"] },
+    { name: "Jafrabad Port, Gujarat, IN", persian: "بندر جعفرآباد، هند", country: "India", code: "INJAF", isPort: true, portName: "Jafrabad Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INJAF", seaCargo: true, aliases: ["Jafrabad", "Jafrabad Port", "جعفرآباد"] },
+    { name: "Mandvi Port (Kutch), Gujarat, IN", persian: "بندر ماندوی (کوچ)، هند", country: "India", code: "INMDA", isPort: true, portName: "Mandvi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INMDA", seaCargo: true, aliases: ["Mandvi", "Mandvi Port", "ماندوی"] },
+    { name: "Rozi Pier (Jamnagar), Gujarat, IN", persian: "پایانه روزی پیر (جام‌نگر)، هند", country: "India", code: "INRZI", isPort: true, portName: "Rozi Pier", locationType: "SEA_PORT_NON_MAJOR", state: "Gujarat", unLocode: "INRZI", seaCargo: true, aliases: ["Rozi Pier", "Rozi Port", "روزی"] },
+    { name: "Jaigad Port (JSW Jaigad), Maharashtra, IN", persian: "بندر جایگاد (راتناگیری)، هند", country: "India", code: "INJAI-PORT", isPort: true, portName: "JSW Jaigad Port", locationType: "SEA_PORT_NON_MAJOR", state: "Maharashtra", unLocode: "INJAI", seaCargo: true, aliases: ["Jaigad", "Jaigad Port", "JSW Jaigad", "جایگاد"] },
+    { name: "Dighi Port (Adani Dighi), Maharashtra, IN", persian: "بندر دیگی (رایگاد)، هند", country: "India", code: "INDGI", isPort: true, portName: "Dighi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Maharashtra", unLocode: "INDGI", seaCargo: true, aliases: ["Dighi", "Dighi Port", "Adani Dighi", "دیگی"] },
+    { name: "Dharamtar Port, Maharashtra, IN", persian: "بندر دهارام‌تار (رایگاد)، هند", country: "India", code: "INDMT", isPort: true, portName: "Dharamtar Port", locationType: "SEA_PORT_NON_MAJOR", state: "Maharashtra", unLocode: "INDMT", seaCargo: true, aliases: ["Dharamtar", "Dharamtar Port", "دهارام‌تار"] },
+    { name: "Redi Port, Maharashtra, IN", persian: "بندر ردی (سیندودورگ)، هند", country: "India", code: "INRED", isPort: true, portName: "Redi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Maharashtra", unLocode: "INRED", seaCargo: true, aliases: ["Redi", "Redi Port", "ردی"] },
+    { name: "Rewas Port, Maharashtra, IN", persian: "بندر رواس (رایگاد)، هند", country: "India", code: "INREW-PORT", isPort: true, portName: "Rewas Port", locationType: "SEA_PORT_NON_MAJOR", state: "Maharashtra", unLocode: "INREW", seaCargo: true, aliases: ["Rewas", "Rewas Port", "رواس"] },
+    { name: "Karwar Port, Karnataka, IN", persian: "بندر کاروار، هند", country: "India", code: "INKRW", isPort: true, portName: "Karwar Port", locationType: "SEA_PORT_NON_MAJOR", state: "Karnataka", unLocode: "INKRW", seaCargo: true, aliases: ["Karwar", "Karwar Port", "کاروار"] },
+    { name: "Old Mangalore Port, Karnataka, IN", persian: "بندر قدیم منگلور، هند", country: "India", code: "INMNP", isPort: true, portName: "Old Mangalore Port", locationType: "SEA_PORT_NON_MAJOR", state: "Karnataka", unLocode: "INMNP", seaCargo: true, aliases: ["Old Mangalore", "Mangalore Bunder", "بندر قدیم منگلور"] },
+    { name: "Malpe Port, Karnataka, IN", persian: "بندر مالپه (اودوپی)، هند", country: "India", code: "INMAL", isPort: true, portName: "Malpe Port", locationType: "SEA_PORT_NON_MAJOR", state: "Karnataka", unLocode: "INMAL", seaCargo: true, aliases: ["Malpe", "Malpe Port", "مالپه"] },
+    { name: "Tadadi Port, Karnataka, IN", persian: "بندر تادادی، هند", country: "India", code: "INTAD", isPort: true, portName: "Tadadi Port", locationType: "SEA_PORT_NON_MAJOR", state: "Karnataka", unLocode: "INTAD", seaCargo: true, aliases: ["Tadadi", "Tadadi Port", "تادادی"] },
+    { name: "Beypore Port, Kerala, IN", persian: "بندر بیپور (کوزیکود)، هند", country: "India", code: "INBEY", isPort: true, portName: "Beypore Port", locationType: "SEA_PORT_NON_MAJOR", state: "Kerala", unLocode: "INBEY", seaCargo: true, aliases: ["Beypore", "Beypore Port", "Calicut Port", "بیپور"] },
+    { name: "Azhikkal Port (Kannur), Kerala, IN", persian: "بندر آژیکال (کانور)، هند", country: "India", code: "INAZH", isPort: true, portName: "Azhikkal Port", locationType: "SEA_PORT_NON_MAJOR", state: "Kerala", unLocode: "INAZH", seaCargo: true, aliases: ["Azhikkal", "Azhikkal Port", "Kannur Port", "آژیکال"] },
+    { name: "Kollam Port, Kerala, IN", persian: "بندر کولام (کویلون)، هند", country: "India", code: "INKLM", isPort: true, portName: "Kollam Port", locationType: "SEA_PORT_NON_MAJOR", state: "Kerala", unLocode: "INKLM", seaCargo: true, aliases: ["Kollam", "Kollam Port", "Quilon Port", "کولام"] },
+    { name: "Neendakara Port, Kerala, IN", persian: "بندر نینداکارا (کولام)، هند", country: "India", code: "INNEE", isPort: true, portName: "Neendakara Port", locationType: "SEA_PORT_NON_MAJOR", state: "Kerala", unLocode: "INNEE", seaCargo: true, aliases: ["Neendakara", "Neendakara Port", "نینداکارا"] },
+    { name: "Ponnani Port, Kerala, IN", persian: "بندر پونانی (مالاپورام)، هند", country: "India", code: "INPON", isPort: true, portName: "Ponnani Port", locationType: "SEA_PORT_NON_MAJOR", state: "Kerala", unLocode: "INPON", seaCargo: true, aliases: ["Ponnani", "Ponnani Port", "پونانی"] },
+    { name: "Cuddalore Port, Tamil Nadu, IN", persian: "بندر کادالور، هند", country: "India", code: "INCDL", isPort: true, portName: "Cuddalore Port", locationType: "SEA_PORT_NON_MAJOR", state: "Tamil Nadu", unLocode: "INCDL", seaCargo: true, aliases: ["Cuddalore", "Cuddalore Port", "کادالور"] },
+    { name: "Nagapattinam Port, Tamil Nadu, IN", persian: "بندر ناگاپاتینام، هند", country: "India", code: "INNAG-PORT", isPort: true, portName: "Nagapattinam Port", locationType: "SEA_PORT_NON_MAJOR", state: "Tamil Nadu", unLocode: "INNAG", seaCargo: true, aliases: ["Nagapattinam", "Nagapattinam Port", "ناگاپاتینام"] },
+    { name: "Colachel Port, Tamil Nadu, IN", persian: "بندر کولاچل (کانیاکوماری)، هند", country: "India", code: "INCOL", isPort: true, portName: "Colachel Port", locationType: "SEA_PORT_NON_MAJOR", state: "Tamil Nadu", unLocode: "INCOL", seaCargo: true, aliases: ["Colachel", "Colachel Port", "کولاچل"] },
+    { name: "Karaikal Port (Adani Karaikal), Puducherry, IN", persian: "بندر کارایکال، هند", country: "India", code: "INKRK", isPort: true, portName: "Karaikal Port", locationType: "SEA_PORT_NON_MAJOR", state: "Puducherry", unLocode: "INKRK", seaCargo: true, aliases: ["Karaikal", "Karaikal Port", "Adani Karaikal", "کارایکال"] },
+    { name: "Kakinada Deep Water Port, AP, IN", persian: "بندر کاکینادا، هند", country: "India", code: "INKAK", isPort: true, portName: "Kakinada Deep Water Port", locationType: "SEA_PORT_NON_MAJOR", state: "Andhra Pradesh", unLocode: "INKAK", seaCargo: true, aliases: ["Kakinada", "Kakinada Port", "کاکینادا"] },
+    { name: "Machilipatnam Port, AP, IN", persian: "بندر ماچیلی‌پاتنام، هند", country: "India", code: "INMTM", isPort: true, portName: "Machilipatnam Port", locationType: "SEA_PORT_NON_MAJOR", state: "Andhra Pradesh", unLocode: "INMTM", seaCargo: true, aliases: ["Machilipatnam", "Machilipatnam Port", "ماچیلی‌پاتنام"] },
+    { name: "Bhavanapadu Port (Mulapeta), AP, IN", persian: "بندر مولاپتا (باواناپادو)، هند", country: "India", code: "INBHP", isPort: true, portName: "Bhavanapadu / Mulapeta Port", locationType: "SEA_PORT_NON_MAJOR", state: "Andhra Pradesh", unLocode: "INBHP", seaCargo: true, aliases: ["Bhavanapadu", "Mulapeta", "مولاپتا"] },
+    { name: "Ramayapatnam Port, AP, IN", persian: "بندر رامایاپاتنام، هند", country: "India", code: "INRAM", isPort: true, portName: "Ramayapatnam Port", locationType: "SEA_PORT_NON_MAJOR", state: "Andhra Pradesh", unLocode: "INRAM", seaCargo: true, aliases: ["Ramayapatnam", "Ramayapatnam Port", "رامایاپاتنام"] },
+    { name: "Gopalpur Port, Odisha, IN", persian: "بندر گوپال‌پور (گانجام)، هند", country: "India", code: "INGPR", isPort: true, portName: "Gopalpur Port", locationType: "SEA_PORT_NON_MAJOR", state: "Odisha", unLocode: "INGPR", seaCargo: true, aliases: ["Gopalpur", "Gopalpur Port", "گوپال‌پور"] },
+    { name: "Astaranga Port, Odisha, IN", persian: "بندر آستارانگا (پوری)، هند", country: "India", code: "INAST", isPort: true, portName: "Astaranga Port", locationType: "SEA_PORT_NON_MAJOR", state: "Odisha", unLocode: "INAST", seaCargo: true, aliases: ["Astaranga", "Astaranga Port", "آستارانگا"] },
+    { name: "Subarnarekha Port (Kirtania), Odisha, IN", persian: "بندر سوبارنارکا (کیرتانیا)، هند", country: "India", code: "INSUB", isPort: true, portName: "Subarnarekha Port", locationType: "SEA_PORT_NON_MAJOR", state: "Odisha", unLocode: "INSUB", seaCargo: true, aliases: ["Subarnarekha", "Kirtania Port", "سوبارنارکا"] },
+    { name: "Kulpi Port, West Bengal, IN", persian: "بندر کولپی، هند", country: "India", code: "INKLP", isPort: true, portName: "Kulpi Port", locationType: "SEA_PORT_NON_MAJOR", state: "West Bengal", unLocode: "INKLP", seaCargo: true, aliases: ["Kulpi", "Kulpi Port", "کولپی"] },
+    { name: "Port Blair Port (Haddo Wharf), Andaman & Nicobar, IN", persian: "بندر پورت بلیر (جزایر آندامان)، هند", country: "India", code: "INIXZ-PORT", isPort: true, portName: "Port Blair Port", locationType: "SEA_PORT_NON_MAJOR", state: "Andaman and Nicobar", unLocode: "INIXZ", seaCargo: true, aliases: ["Port Blair Port", "Haddo Wharf", "Andaman Port", "پورت بلیر"] },
+
+    // 🇮🇳 INDIA — INLAND WATERWAY MULTIMODAL TERMINALS (NW-1 & NW-2)
+    { name: "NW-1 Varanasi Multimodal Inland Terminal, UP, IN", persian: "پایانه چندوجهی آبراه ملی ۱ واراناسی، هند", country: "India", code: "INVNS-IW", isPort: true, portName: "Varanasi Inland Multimodal Terminal", locationType: "INLAND_WATERWAY", state: "Uttar Pradesh", unLocode: "INVNS", seaCargo: true, inlandWaterway: true, containerEnabled: true, railConnected: true, aliases: ["Varanasi Inland Port", "NW-1 Varanasi", "واراناسی آبراه"] },
+    { name: "NW-1 Sahibganj Multimodal Inland Terminal, Jharkhand, IN", persian: "پایانه چندوجهی آبراه ملی ۱ صاحب‌گنج، هند", country: "India", code: "INSBI-IW", isPort: true, portName: "Sahibganj Inland Multimodal Terminal", locationType: "INLAND_WATERWAY", state: "Jharkhand", seaCargo: true, inlandWaterway: true, containerEnabled: true, aliases: ["Sahibganj Inland Port", "NW-1 Sahibganj", "صاحب‌گنج آبراه"] },
+    { name: "NW-1 Haldia Multimodal Inland Terminal, WB, IN", persian: "پایانه چندوجهی آبراه ملی ۱ هالدیا، هند", country: "India", code: "INHAL-IW", isPort: true, portName: "Haldia Inland Multimodal Terminal", locationType: "INLAND_WATERWAY", state: "West Bengal", unLocode: "INHAL", seaCargo: true, inlandWaterway: true, containerEnabled: true, aliases: ["Haldia Inland Terminal", "NW-1 Haldia", "هالدیا آبراه"] },
+    { name: "NW-1 Kalughat Container Terminal (Patna), Bihar, IN", persian: "پایانه کانتینری کالوگهات پتنه (آبراه ملی ۱)، هند", country: "India", code: "INPAT-IW", isPort: true, portName: "Kalughat Container Terminal Patna", locationType: "INLAND_WATERWAY", state: "Bihar", unLocode: "INPAT", seaCargo: true, inlandWaterway: true, containerEnabled: true, aliases: ["Kalughat Patna", "NW-1 Kalughat", "پتنه آبراه"] },
+    { name: "NW-2 Pandu Inland River Port (Guwahati), Assam, IN", persian: "بندر رودخانه‌ای پاندو گواتی (آبراه ملی ۲)، هند", country: "India", code: "INGAU-IW", isPort: true, portName: "Pandu River Port Guwahati", locationType: "INLAND_WATERWAY", state: "Assam", unLocode: "INGAU", seaCargo: true, inlandWaterway: true, containerEnabled: true, aliases: ["Pandu Port", "NW-2 Pandu", "پاندو آبراه"] },
+    { name: "NW-2 Dhubri Inland River Port, Assam, IN", persian: "بندر رودخانه‌ای دوبری (آبراه ملی ۲)، هند", country: "India", code: "INDHB-IW", isPort: true, portName: "Dhubri River Port", locationType: "INLAND_WATERWAY", state: "Assam", seaCargo: true, inlandWaterway: true, aliases: ["Dhubri Port", "NW-2 Dhubri", "دوبری آبراه"] },
 
     // 🇮🇳 INDIA — INTERNATIONAL & CUSTOMS AIRPORTS (AIR CARGO)
     { name: "New Delhi — Indira Gandhi Intl Airport (DEL / IGI / INDEL), IN", persian: "میدان هوایی بین‌المللی دهلی نو (IGI / دهلی)، هند", country: "India", code: "DEL", locationType: "AIRPORT_INTERNATIONAL", state: "Delhi", district: "New Delhi", iataCode: "DEL", unLocode: "INDEL", customsCode: "INDEL4", airCargo: true, cargoEnabled: true, aliases: "New Delhi, New Delhi Airport, Delhi Airport, IGI, IGI Airport, Indira Gandhi, Cargo Terminal Delhi, INDEL" },
@@ -4774,11 +5369,17 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     })
   }
 
-  const activeInputLocation = showLocationDropdown !== null && activeRouteIndex !== null ? (formData.routes[activeRouteIndex]?.location || "") : ""
+  const activeInputLocationEn = showLocationDropdown !== null && activeRouteIndex !== null ? (formData.routes[activeRouteIndex]?.location || "") : ""
+  const activeInputLocationFa = showLocationDropdown !== null && activeRouteIndex !== null ? (formData.routes[activeRouteIndex]?.locationPersian || "") : ""
+  const activeInputLocation = `${activeInputLocationEn} ${activeInputLocationFa}`.trim()
   const activeStopTransportMode = showLocationDropdown !== null && activeRouteIndex !== null ? (formData.routes[activeRouteIndex]?.transportMode || "truck") : null
-  const quickLocationQuery = (routeLocationSearch || activeInputLocation).trim().toLowerCase()
+  const rawLocationQuery = (routeLocationSearch || (filterByRouteInput ? activeInputLocation : "")).trim().toLowerCase()
+  const quickLocationQuery = rawLocationQuery
+    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\u0640]/g, "-")
+    .replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, " ")
   const queryTokens = quickLocationQuery
-    .split(/[\s,./\-_()]+/)
+    .split(/[\s,./\-_()–—ـ\u00A0\u200C]+/)
+    .map((t) => t.replace(/^-+|-+$/g, ""))
     .filter((t) => t.length > 0)
 
   const isAirportLocation = (loc: (typeof predefinedLocations)[0]) => {
@@ -4874,6 +5475,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     ]
       .join(" ")
       .toLowerCase()
+      .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\u0640]/g, "-")
+      .replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, " ")
 
     let matchesQuery = !quickLocationQuery || searchableText.includes(quickLocationQuery)
 
@@ -4886,6 +5489,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
         return searchableText.includes(token)
       })
       if (allTokensMatch) matchesQuery = true
+    }
+
+    // Special prefix matching for Jask (e.g. "jask", "jask port", "jask - i", "جاسک")
+    if (!matchesQuery && (quickLocationQuery.includes("jask") || quickLocationQuery.includes("جاسک"))) {
+      if (
+        loc.code === "JSK" ||
+        loc.unLocode === "IRJSK" ||
+        searchableText.includes("jask") ||
+        searchableText.includes("جاسک")
+      ) {
+        matchesQuery = true
+      }
     }
 
     // Special prefix matching (e.g. "new del", "new delhi", "delhi air", "igi")
@@ -5142,6 +5757,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           window.localStorage.removeItem("skybol:active-form-draft")
           window.localStorage.removeItem(`skybol:draft:${cleanBolNumber(savedBolNumber)}`)
           window.localStorage.removeItem(`skybol:draft:${cleanBolNumber(validEditId)}`)
+          try { window.sessionStorage.removeItem("skybol:active-form-draft:backup") } catch (_) {}
+          void deleteVaultItem("bol_drafts", "skybol:active-form-draft").catch(() => {})
+          if (savedBolNumber) void deleteVaultItem("bol_drafts", `skybol:draft:${cleanBolNumber(savedBolNumber)}`).catch(() => {})
+          if (validEditId) void deleteVaultItem("bol_drafts", `skybol:draft:${cleanBolNumber(validEditId)}`).catch(() => {})
           window.localStorage.setItem("skybol:last-active-document-id", savedBolNumber)
           const savedSeq = parseBolSeq(savedBolNumber)
           if (savedSeq > 0) {
@@ -5216,6 +5835,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       try {
         window.localStorage.removeItem("sky-bol-live-draft")
         window.localStorage.removeItem("skybol:active-form-draft")
+        try { window.sessionStorage.removeItem("skybol:active-form-draft:backup") } catch (_) {}
+        void deleteVaultItem("bol_drafts", "skybol:active-form-draft").catch(() => {})
         window.localStorage.setItem("skybol:last-active-document-id", "__NEW__")
         window.localStorage.setItem("skybol:highest-allocated-bol", String(nextNewSeq))
         fetch(`/api/bol?action=set-sequence&sequence=${nextNewSeq + 1}`).catch(() => {})
@@ -5362,6 +5983,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       const pdfBlob = await generateBOLPDFBlob({
         fileName,
         previewElement,
+        useElectronVectorPdf: true,
         modern: {
           bolNumber: bolNumber || "BOL",
           issueDate,
@@ -5455,7 +6077,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       setTimeout(() => {
         window.print()
         setTimeout(cleanup, 2500)
-      }, 50)
+      }, 150)
     }
   }
 
@@ -5528,6 +6150,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       const pdfBlob = await generateBOLPDFBlob({
         fileName,
         previewElement,
+        useElectronVectorPdf: true,
         modern: {
           bolNumber: bolNumber || "BOL",
           issueDate,
@@ -5619,6 +6242,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       companyLicence,
       stickerQuantity,
       stickerLayout,
+      useElectronVectorPdf: true,
       onProgress,
     })
   }
@@ -5638,7 +6262,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     setIsSaving(true)
     setIsShippingExporting(true)
     setIsExportingPDF(true)
-    await new Promise((resolve) => setTimeout(resolve, 80))
+    await new Promise((resolve) => setTimeout(resolve, 150))
     const fileName = buildShippingDocumentFileName(kind, shippingDocumentData)
     const toastId = toast.loading("Building shipping documents...", {
       description: kind === "all" ? "Combining BOL, packing list and sticker labels" : `Preparing ${fileName}`,
@@ -5689,7 +6313,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
     setIsShippingExporting(true)
     setIsExportingPDF(true)
-    await new Promise((resolve) => setTimeout(resolve, 80))
+    await new Promise((resolve) => setTimeout(resolve, 150))
     const toastId = toast.loading("Preparing print-ready PDF...", { description: fileName })
     try {
       const pdfBlob = await createShippingDocuments(
@@ -5775,13 +6399,15 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }, [])
 
   useEffect(() => {
-    if (typeof document !== "undefined") {
+    if (typeof document === "undefined") return
+    const timer = setTimeout(() => {
       const smartTitle = buildBolSmartFileName(formData, bolNumber, "")
-      if (smartTitle) {
+      if (smartTitle && document.title !== smartTitle) {
         document.title = smartTitle
       }
-    }
-  }, [formData, bolNumber])
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [formData.shipper_name, formData.cargo_description, bolNumber])
 
   const handleBeforePrint = useEffectEvent(() => {
       if (typeof document !== "undefined") {
@@ -5879,15 +6505,36 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   <AlertCircle className="h-2.5 w-2.5 text-rose-600 shrink-0" />
                   <span>Save Failed</span>
                 </div>
+              ) : autoSaveStatus === "saved" ? (
+                <div
+                  className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10.5px] font-bold text-emerald-800 shadow-2xs cursor-pointer hover:bg-emerald-100/80 transition-colors"
+                  title={`Draft autosaved at ${lastAutoSaveTime || lastAutoSavedTime || "just now"}. Click or press Ctrl+S to save official document.`}
+                  onClick={handleSave}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-emerald-600" />
+                  <span>Autosaved ✓</span>
+                  {(lastAutoSaveTime || lastAutoSavedTime) && (
+                    <span className="hidden xl:inline font-mono text-[10px] font-medium opacity-85">
+                      ({lastAutoSaveTime || lastAutoSavedTime})
+                    </span>
+                  )}
+                </div>
+              ) : autoSaveStatus === "local" ? (
+                <div className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10.5px] font-bold text-blue-800 shadow-2xs" title="Draft saved locally">
+                  <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-blue-600" />
+                  <span>Local Draft ✓</span>
+                </div>
               ) : hasUnsavedChanges ? (
                 <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold text-amber-900 shadow-2xs">
                   <AlertCircle className="h-2.5 w-2.5 text-amber-600 shrink-0" />
                   <span>Unsaved Changes</span>
                 </div>
               ) : (
-                <div className={`flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10.5px] font-bold shadow-2xs ${autoSaveStatus === "saved" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
-                  {autoSaveStatus === "saved" ? <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-emerald-600" /> : <AlertCircle className="h-2.5 w-2.5 shrink-0 text-slate-500" />}
-                  <span>{hasRecoverableDraft ? "Restore or discard the previous draft" : checkingDraft ? "Checking draft…" : autoSaveStatus === "saved" ? "Saved ✓" : "Autosave ready"}</span>
+                <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10.5px] font-bold text-slate-700 shadow-2xs">
+                  <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-slate-500" />
+                  <span>{hasRecoverableDraft ? "Restore or discard the previous draft" : checkingDraft ? "Checking draft…" : "Autosave ready"}</span>
                 </div>
               )}
               </div>
@@ -6026,6 +6673,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               </DropdownMenu>
             </div>
 
+            {/* Copy WhatsApp Button */}
+            <CopyWhatsAppButton
+              bol={{ ...formData, bol_number: bolNumber, issue_date: issueDate }}
+            />
+
             <Button 
               size="sm" 
               variant="outline" 
@@ -6120,7 +6772,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
       <div className={`w-full ${activeTab === "preview" ? "flex-1 flex flex-col min-h-0 h-full p-0 max-w-none" : "max-w-[1780px] mx-auto px-2 sm:px-4 lg:px-6 py-1.5 md:py-2"} print:max-w-none print:p-0 print:m-0`}>
         <Tabs activationMode="manual" value={activeTab} onValueChange={handleTabChange} className={`print:hidden w-full ${activeTab === "preview" ? "flex-1 flex flex-col min-h-0 h-full" : ""}`}>
-          <TabsList className={`bol-navigation ${activeTab === "preview" ? "hidden" : "mb-1.5"} flex sm:grid overflow-x-auto sm:overflow-visible no-scrollbar w-full sm:grid-cols-6 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-100/85 dark:bg-slate-900/90 p-0.5 shadow-2xs backdrop-blur-xl h-auto sm:h-9 gap-1 sm:gap-0 shrink-0`}>
+          <TabsList className={`bol-navigation ${activeTab === "preview" ? "hidden" : "mb-1.5"} flex sm:grid overflow-x-auto sm:overflow-visible no-scrollbar w-full sm:grid-cols-8 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-100/85 dark:bg-slate-900/90 p-0.5 shadow-2xs backdrop-blur-xl h-auto sm:h-9 gap-1 sm:gap-0 shrink-0`}>
             <TabsTrigger
               value="form"
               data-tab="form"
@@ -6174,6 +6826,42 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               <Layers className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
               <span className="hidden sm:inline">Saved BOLs</span>
               <span className="sm:hidden">Saved</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="packing-list"
+              data-tab="packing-list"
+              data-state={(pendingTab || activeTab) === "packing-list" ? "active" : "inactive"}
+              aria-selected={(pendingTab || activeTab) === "packing-list"}
+              onPointerDown={(e) => {
+                if (activeTab === "packing-list" || pendingTab === "packing-list") {
+                  e.preventDefault()
+                } else {
+                  setPendingTab("packing-list")
+                }
+              }}
+              className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+            >
+              <Package className="h-3.5 w-3.5 shrink-0 text-amber-500 dark:text-amber-400" />
+              <span className="hidden sm:inline">Packing List</span>
+              <span className="sm:hidden">Packing</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="invoice"
+              data-tab="invoice"
+              data-state={(pendingTab || activeTab) === "invoice" ? "active" : "inactive"}
+              aria-selected={(pendingTab || activeTab) === "invoice"}
+              onPointerDown={(e) => {
+                if (activeTab === "invoice" || pendingTab === "invoice") {
+                  e.preventDefault()
+                } else {
+                  setPendingTab("invoice")
+                }
+              }}
+              className="overflow-hidden shrink-0 min-w-[70px] sm:min-w-0 sm:shrink gap-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold flex-1 justify-center px-2 py-1 data-[state=active]:bg-white data-[state=active]:text-blue-950 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white dark:text-slate-400 dark:hover:text-slate-200 data-[state=active]:shadow-sm transition-colors cursor-pointer [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+            >
+              <Receipt className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+              <span className="hidden sm:inline">Invoice</span>
+              <span className="sm:hidden">Invoice</span>
             </TabsTrigger>
             <TabsTrigger
               value="attachments"
@@ -6331,8 +7019,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   { id: "section-shipper", label: "02 Shipper", icon: User },
                   { id: "section-consignee", label: "03 Consignee", icon: User },
                   { id: "section-notify", label: "04 Notify", icon: Bell },
-                  { id: "section-routes", label: "05 Routes", icon: MapPin },
-                  { id: "section-cargo", label: "06 Cargo", icon: Package },
+                  { id: "section-shipment-intelligence", label: "05 Cargo", icon: Package },
+                  { id: "section-routes", label: "06 Routes", icon: MapPin },
                   { id: "section-freight", label: "07 Freight", icon: Receipt },
                   { id: "section-remarks", label: "08 Remarks", icon: FileText },
                   { id: "section-container", label: "09 Container", icon: Box },
@@ -6561,6 +7249,17 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           className="h-6.5 rounded-lg border border-indigo-300/80 bg-indigo-50/80 dark:bg-indigo-950/40 text-[10px] font-extrabold text-indigo-950 dark:text-indigo-200 shadow-2xs hover:bg-indigo-100 cursor-pointer transition-all"
                         >
                           <span>PK Kandahar ➔ Karachi ➔ Dubai</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={applyJaskSuwaiqSoharCorridorPreset}
+                          className="h-6.5 rounded-lg border border-teal-300/80 bg-teal-50/80 dark:bg-teal-950/40 text-[10px] font-extrabold text-teal-950 dark:text-teal-200 shadow-2xs hover:bg-teal-100 cursor-pointer transition-all"
+                        >
+                          <Ship className="h-3 w-3 mr-1 text-teal-700" />
+                          <span>OM/IR جاسک ➔ السویق ➔ صحار</span>
                         </Button>
                       </div>
                     </div>
@@ -7797,51 +8496,51 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             {/* 02 Shipper, 03 Consignee & 04 Notify Party — 3-Column Side-by-Side Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
               {/* 02 Shipper Card */}
-              <Card id="section-shipper" className="bg-white/85 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all flex flex-col justify-between">
+              <Card id="section-shipper" className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-blue-200/90 dark:border-blue-900/50 shadow-md shadow-blue-500/5 dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all flex flex-col justify-between">
                 <div>
-                  <CardHeader className="pb-3 pt-4 px-4 sm:px-5 border-b border-slate-100 dark:border-slate-800 bg-linear-to-r from-blue-50/80 via-indigo-50/40 to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
-                    <CardTitle className="text-sm sm:text-base flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-600 text-white text-[11px] font-black shadow-xs">
+                  <CardHeader className="pb-2 pt-3 px-3 sm:px-3.5 xl:px-4 border-b border-slate-100 dark:border-slate-800 bg-linear-to-r from-blue-50/80 via-indigo-50/40 to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
+                    <CardTitle className="text-sm sm:text-base flex items-center justify-between gap-1 sm:gap-1.5 flex-nowrap min-w-0 w-full">
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-600 text-white text-[10.5px] font-black shadow-xs shrink-0">
                           02
                         </span>
-                        <div className="p-1.5 rounded-xl bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs">
-                          <User className="h-4 w-4" />
+                        <div className="p-1 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs shrink-0">
+                          <User className="h-3.5 w-3.5" />
                         </div>
-                        <div>
-                          <span className="font-extrabold text-slate-950 dark:text-slate-100 text-sm sm:text-base tracking-tight select-none">Shipper / Exporter</span>
-                          <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold block font-[vazirmatn]">فرستنده / صادرکننده</span>
+                        <div className="min-w-0 shrink">
+                          <span className="font-extrabold text-slate-950 dark:text-slate-100 text-xs sm:text-[13px] tracking-tight select-none truncate block">Shipper<span className="hidden xl:inline"> / Exporter</span></span>
+                          <span className="text-[9.5px] sm:text-[10px] text-blue-700 dark:text-blue-400 font-bold block font-[vazirmatn] truncate">فرستنده<span className="hidden xl:inline"> / صادرکننده</span></span>
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-1">
+                      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 flex-nowrap ml-auto">
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={handleSwapShipperConsignee}
-                          className="h-7 px-1.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 text-[10px] font-bold cursor-pointer"
+                          className="h-7 px-1.5 sm:px-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/80 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 text-[10px] sm:text-[11px] font-bold cursor-pointer shrink-0 gap-1"
                           title="Swap Shipper with Consignee"
                         >
-                          <ArrowLeftRight className="h-3 w-3 mr-0.5 text-blue-600 dark:text-blue-400" />
-                          Swap
+                          <ArrowLeftRight className="h-3 w-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <span>Swap</span>
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={handleCopyShipperToNotify}
-                          className="h-7 px-1.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold cursor-pointer"
+                          className="h-7 px-1.5 sm:px-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[10px] sm:text-[11px] font-bold cursor-pointer shrink-0 gap-1"
                           title="Copy Shipper to Notify Party"
                         >
-                          <Copy className="h-3 w-3 mr-0.5 text-amber-600 dark:text-amber-400" />
-                          ➔ Notify
+                          <Copy className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>Notify</span>
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={clearShipperFields}
-                          className="h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold cursor-pointer"
+                          className="h-7 w-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold cursor-pointer flex items-center justify-center p-0 shrink-0"
                           title="Clear all Shipper fields"
                         >
                           ✕
@@ -7941,57 +8640,52 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         </SelectContent>
                       </Select>
 
-                      {/* Bottom Action Buttons */}
-                      <div className="flex items-center justify-between gap-1.5 pt-0.5 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setIsBrowseShipperModalOpen(true)}
-                            className="h-8 text-xs font-bold border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-blue-900 dark:text-blue-300 rounded-xl shadow-2xs cursor-pointer flex items-center gap-1"
-                          >
-                            <Building2 className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
-                            <span>Full Directory</span>
-                          </Button>
-                          {isShipperSelected && (
-                            <Button
+                      {/* Bottom Action Footer */}
+                      <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                        <div>
+                          {isShipperSelected ? (
+                            <button
                               type="button"
-                              size="sm"
-                              variant="ghost"
                               onClick={() => setSelectedShipperId("")}
-                              className="h-8 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
-                              title="Deselect from directory without deleting"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-100/90 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-xs font-bold text-blue-900 dark:text-blue-300 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition cursor-pointer shadow-2xs"
+                              title="Clear directory selection without deleting record"
                             >
-                              Clear
-                            </Button>
+                              <Check className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Linked</span>
+                              <span className="text-slate-400 hover:text-red-600 ml-0.5">✕</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                              {formData.shipper_name ? (isShipperExisting ? "Matches directory" : "Unsaved company") : "Select or type below"}
+                            </span>
                           )}
                         </div>
 
                         <div className="flex items-center gap-1.5">
                           <Button
                             type="button"
-                            variant="outline"
+                            size="sm"
                             onClick={saveCurrentShipper}
-                            className={`h-8 font-black text-xs rounded-xl shadow-2xs cursor-pointer transition-all ${
+                            className={`h-7.5 px-3 text-xs font-black rounded-lg shadow-xs cursor-pointer transition-all ${
                               isShipperExisting
-                                ? "border-blue-400 bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
-                                : "border-emerald-400 bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
+                                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
                             }`}
                             title={isShipperExisting ? "Update existing shipper in directory" : "Save as new shipper in directory"}
                           >
-                            <Save className="h-3 w-3 mr-1" />
+                            <Save className="h-3.5 w-3.5 mr-1" />
                             {isShipperExisting ? "Update" : "Save New"}
                           </Button>
                           {isShipperSelected && (
                             <Button
                               type="button"
                               variant="outline"
+                              size="sm"
                               onClick={deleteSavedShipper}
-                              className="h-8 border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl shadow-2xs cursor-pointer"
+                              className="h-7.5 w-7.5 p-0 border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg shadow-xs cursor-pointer flex items-center justify-center"
                               title="Delete selected saved shipper from directory"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
                         </div>
@@ -7999,7 +8693,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     </div>
 
                     {/* Quick Shipper Preset Chips */}
-                    <div className="flex flex-wrap items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 mr-0.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                        Presets:
+                      </span>
                       <button
                         type="button"
                         onClick={() => {
@@ -8012,7 +8710,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           }))
                           toast.success("Loaded Afghan Exporter preset")
                         }}
-                        className="rounded-lg border border-blue-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 text-[9.5px] font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white transition cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg border border-blue-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white transition shadow-2xs cursor-pointer"
                       >
                         🇦🇫 Kabul
                       </button>
@@ -8028,7 +8726,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           }))
                           toast.success("Loaded Dubai Shipper preset")
                         }}
-                        className="rounded-lg border border-blue-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 text-[9.5px] font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white transition cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg border border-blue-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white transition shadow-2xs cursor-pointer"
                       >
                         🇦🇪 Dubai
                       </button>
@@ -8044,7 +8742,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           }))
                           toast.success("Loaded Iran Exporter preset")
                         }}
-                        className="rounded-lg border border-blue-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 text-[9.5px] font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white transition cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg border border-blue-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white transition shadow-2xs cursor-pointer"
                       >
                         🇮🇷 Iran
                       </button>
@@ -8076,7 +8774,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             setShipperSearchQuery(value)
                           }}
                           placeholder="Type or search shipper..."
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-all"
+                          className="pl-10 rounded-xl h-11 text-sm sm:text-base font-black text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-all"
                         />
                       </div>
 
@@ -8135,7 +8833,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         onChange={handleInputChange}
                         placeholder="Enter shipper complete address..."
                         rows={3}
-                        className="rounded-xl p-2.5 text-xs sm:text-sm font-medium text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-2xs min-h-[72px] transition-all"
+                        className="rounded-xl p-3 text-xs sm:text-sm font-semibold leading-relaxed text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-2xs min-h-[84px] transition-all"
                       />
                       <div className="flex flex-wrap items-center gap-1 mt-1">
                         {["Kabul, AF", "Dubai, UAE", "Bandar Abbas, IR", "Mumbai, IN"].map((city, cIdx) => (
@@ -8148,7 +8846,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                 shipper_address: prev.shipper_address ? `${prev.shipper_address.trim()}, ${city}` : city,
                               }))
                             }}
-                            className="text-[9px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-blue-800 text-slate-600 dark:bg-slate-800 dark:hover:bg-blue-900/50 dark:hover:text-blue-300 dark:text-slate-300 rounded px-1.5 py-0.5 transition cursor-pointer"
+                            className="text-[11px] font-bold bg-slate-100 hover:bg-blue-100 hover:text-blue-800 text-slate-700 dark:bg-slate-800 dark:hover:bg-blue-900/50 dark:hover:text-blue-300 dark:text-slate-300 rounded-lg px-2 py-0.5 transition cursor-pointer shadow-2xs"
                           >
                             + {city}
                           </button>
@@ -8157,34 +8855,40 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     </div>
 
                     {/* Phone & Email */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
-                        <label className="text-[11px] font-black text-slate-800 dark:text-slate-200 mb-1 flex items-center justify-between">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 flex items-center justify-between">
                           <span>Phone</span>
-                          <span className="font-[vazirmatn] text-blue-900 dark:text-blue-400 font-bold text-[10px]">تلفن</span>
+                          <span className="font-[vazirmatn] text-blue-900 dark:text-blue-400 font-bold text-xs">تلفن</span>
                         </label>
-                        <Input
-                          name="shipper_contact"
-                          value={formData.shipper_contact || ""}
-                          onChange={handleInputChange}
-                          placeholder="+93 700 123 456"
-                          type="tel"
-                          className="rounded-xl h-9 text-xs font-bold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner"
-                        />
+                        <div className="relative flex items-center">
+                          <Phone className="w-4 h-4 absolute left-3 text-blue-600 dark:text-blue-400 pointer-events-none" />
+                          <Input
+                            name="shipper_contact"
+                            value={formData.shipper_contact || ""}
+                            onChange={handleInputChange}
+                            placeholder="+93 700 123 456"
+                            type="tel"
+                            className="pl-9 rounded-xl h-10 text-xs sm:text-[13px] font-bold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
+                          />
+                        </div>
                       </div>
                       <div>
-                        <label className="text-[11px] font-black text-slate-800 dark:text-slate-200 mb-1 flex items-center justify-between">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 flex items-center justify-between">
                           <span>Email</span>
-                          <span className="font-[vazirmatn] text-blue-900 dark:text-blue-400 font-bold text-[10px]">ایمیل</span>
+                          <span className="font-[vazirmatn] text-blue-900 dark:text-blue-400 font-bold text-xs">ایمیل</span>
                         </label>
-                        <Input
-                          name="shipper_email"
-                          value={formData.shipper_email || ""}
-                          onChange={handleInputChange}
-                          placeholder="info@company.com"
-                          type="email"
-                          className="rounded-xl h-9 text-xs font-bold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner"
-                        />
+                        <div className="relative flex items-center">
+                          <Mail className="w-4 h-4 absolute left-3 text-blue-600 dark:text-blue-400 pointer-events-none" />
+                          <Input
+                            name="shipper_email"
+                            value={formData.shipper_email || ""}
+                            onChange={handleInputChange}
+                            placeholder="info@company.com"
+                            type="email"
+                            className="pl-9 rounded-xl h-10 text-xs sm:text-[13px] font-bold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
+                          />
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -8192,61 +8896,62 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               </Card>
 
               {/* 03 Consignee Card */}
-              <Card id="section-consignee" className="bg-white/85 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all flex flex-col justify-between">
+              <Card id="section-consignee" className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-emerald-200/90 dark:border-emerald-900/50 shadow-md shadow-emerald-500/5 dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all flex flex-col justify-between">
                 <div>
-                  <CardHeader className="pb-3 pt-4 px-4 sm:px-5 border-b border-slate-100 dark:border-slate-800 bg-linear-to-r from-emerald-50/80 via-teal-50/40 to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
-                    <CardTitle className="text-sm sm:text-base flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-600 text-white text-[11px] font-black shadow-xs">
+                  <CardHeader className="pb-2 pt-3 px-3 sm:px-3.5 xl:px-4 border-b border-slate-100 dark:border-slate-800 bg-linear-to-r from-emerald-50/80 via-teal-50/40 to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
+                    <CardTitle className="text-sm sm:text-base flex items-center justify-between gap-1 sm:gap-1.5 flex-nowrap min-w-0 w-full">
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-600 text-white text-[10.5px] font-black shadow-xs shrink-0">
                           03
                         </span>
-                        <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
-                          <User className="h-4 w-4" />
+                        <div className="p-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs shrink-0">
+                          <User className="h-3.5 w-3.5" />
                         </div>
-                        <div>
-                          <span className="font-extrabold text-slate-950 dark:text-slate-100 text-sm sm:text-base tracking-tight select-none">Consignee / Importer</span>
-                          <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block font-[vazirmatn]">گیرنده / واردکننده</span>
+                        <div className="min-w-0 shrink">
+                          <span className="font-extrabold text-slate-950 dark:text-slate-100 text-xs sm:text-[13px] tracking-tight select-none truncate block">Consignee<span className="hidden xl:inline"> / Importer</span></span>
+                          <span className="text-[9.5px] sm:text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block font-[vazirmatn] truncate">گیرنده<span className="hidden xl:inline"> / واردکننده</span></span>
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-1">
+                      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 flex-nowrap ml-auto">
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={handleSwapShipperConsignee}
-                          className="h-7 px-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold cursor-pointer"
+                          className="h-7 px-1.5 sm:px-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[10px] sm:text-[11px] font-bold cursor-pointer shrink-0 gap-1"
                           title="Swap Consignee with Shipper"
                         >
-                          <ArrowLeftRight className="h-3 w-3 mr-0.5 text-emerald-600 dark:text-emerald-400" />
-                          Swap
+                          <ArrowLeftRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>Swap</span>
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={handleCopyConsigneeToNotify}
-                          className="h-7 px-1.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold cursor-pointer"
+                          className="h-7 px-1.5 sm:px-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[10px] sm:text-[11px] font-bold cursor-pointer shrink-0 gap-1"
                           title="Copy Consignee to Notify Party"
                         >
-                          <Copy className="h-3 w-3 mr-0.5 text-amber-600 dark:text-amber-400" />
-                          ➔ Notify
+                          <Copy className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>Notify</span>
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={handleSetConsigneeToOrder}
-                          className="h-7 px-1.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/70 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-[10px] font-black cursor-pointer"
+                          className="h-7 px-1.5 sm:px-2 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/80 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-[10px] sm:text-[11px] font-black cursor-pointer shrink-0 gap-1"
                           title="Set Consignee to 'TO ORDER OF SHIPPER' (Negotiable BOL)"
                         >
-                          📜 Order
+                          <span className="shrink-0 text-[11px] leading-none">📜</span>
+                          <span className="hidden sm:inline lg:hidden xl:inline">Order</span>
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={clearConsigneeFields}
-                          className="h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold cursor-pointer"
+                          className="h-7 w-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold cursor-pointer flex items-center justify-center p-0 shrink-0"
                           title="Clear all Consignee fields"
                         >
                           ✕
@@ -8346,57 +9051,52 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         </SelectContent>
                       </Select>
 
-                      {/* Bottom Action Buttons */}
-                      <div className="flex items-center justify-between gap-1.5 pt-0.5 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setIsBrowseConsigneeModalOpen(true)}
-                            className="h-8 text-xs font-bold border-emerald-300 dark:border-emerald-800 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 text-emerald-900 dark:text-emerald-300 rounded-xl shadow-2xs cursor-pointer flex items-center gap-1"
-                          >
-                            <Building2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-                            <span>Full Directory</span>
-                          </Button>
-                          {isConsigneeSelected && (
-                            <Button
+                      {/* Bottom Action Footer */}
+                      <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                        <div>
+                          {isConsigneeSelected ? (
+                            <button
                               type="button"
-                              size="sm"
-                              variant="ghost"
                               onClick={() => setSelectedConsigneeId("")}
-                              className="h-8 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
-                              title="Deselect from directory without deleting"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100/90 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-900 dark:text-emerald-300 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition cursor-pointer shadow-2xs"
+                              title="Clear directory selection without deleting record"
                             >
-                              Clear
-                            </Button>
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Linked</span>
+                              <span className="text-slate-400 hover:text-red-600 ml-0.5">✕</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                              {formData.consignee_name ? (isConsigneeExisting ? "Matches directory" : "Unsaved company") : "Select or type below"}
+                            </span>
                           )}
                         </div>
 
                         <div className="flex items-center gap-1.5">
                           <Button
                             type="button"
-                            variant="outline"
+                            size="sm"
                             onClick={saveCurrentConsignee}
-                            className={`h-8 font-black text-xs rounded-xl shadow-2xs cursor-pointer transition-all ${
+                            className={`h-7.5 px-3 text-xs font-black rounded-lg shadow-xs cursor-pointer transition-all ${
                               isConsigneeExisting
-                                ? "border-emerald-400 bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
-                                : "border-emerald-400 bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
                             }`}
                             title={isConsigneeExisting ? "Update existing consignee in directory" : "Save as new consignee in directory"}
                           >
-                            <Save className="h-3 w-3 mr-1" />
+                            <Save className="h-3.5 w-3.5 mr-1" />
                             {isConsigneeExisting ? "Update" : "Save New"}
                           </Button>
                           {isConsigneeSelected && (
                             <Button
                               type="button"
                               variant="outline"
+                              size="sm"
                               onClick={deleteSavedConsignee}
-                              className="h-8 border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl shadow-2xs cursor-pointer"
+                              className="h-7.5 w-7.5 p-0 border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg shadow-xs cursor-pointer flex items-center justify-center"
                               title="Delete selected saved consignee"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
                         </div>
@@ -8404,11 +9104,15 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     </div>
 
                     {/* Quick Consignee Preset Chips */}
-                    <div className="flex flex-wrap items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 mr-0.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                        Presets:
+                      </span>
                       <button
                         type="button"
                         onClick={handleSetConsigneeToOrder}
-                        className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/70 px-1.5 py-0.5 text-[9.5px] font-black text-purple-900 dark:text-purple-300 hover:bg-purple-600 hover:text-white transition cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg border border-purple-300 dark:border-purple-800 bg-purple-100 dark:bg-purple-950/70 text-xs font-black text-purple-950 dark:text-purple-200 hover:bg-purple-600 hover:text-white transition shadow-2xs cursor-pointer"
                       >
                         📜 TO ORDER OF SHIPPER
                       </button>
@@ -8424,9 +9128,73 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           }))
                           toast.success("Loaded Yaaqoub Hamdan (Dubai) Consignee preset")
                         }}
-                        className="rounded-lg border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 text-[9.5px] font-bold text-slate-800 dark:text-slate-200 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs cursor-pointer flex items-center gap-1"
                       >
-                        🇦🇪 Dubai
+                        <span>🇦🇪 Dubai</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            consignee_name: "M/S SKY OVERSEAS IMPEX PVT LTD",
+                            consignee_address: "Plot No. 45/A, Sector 19, Vashi, Navi Mumbai, Nhava Sheva Port, Maharashtra 400705, India",
+                            consignee_contact: "+91 22 2789 4455",
+                            consignee_email: "imports@skyoverseas.in",
+                          }))
+                          toast.success("Loaded Nhava Sheva (India) Consignee preset")
+                        }}
+                        className="h-7 px-2.5 rounded-lg border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs cursor-pointer flex items-center gap-1"
+                      >
+                        <span>🇮🇳 Nhava Sheva</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            consignee_name: "MERSIN GLOBAL TRANS LOJISTIK VE TICARET A.S.",
+                            consignee_address: "Akdeniz Mah., Ismet Inonu Bulvari, No: 42, Mersin Port Free Zone, 33060 Mersin, Turkey",
+                            consignee_contact: "+90 324 238 9012",
+                            consignee_email: "info@mersinlojistik.com.tr",
+                          }))
+                          toast.success("Loaded Mersin (Turkey) Consignee preset")
+                        }}
+                        className="h-7 px-2.5 rounded-lg border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs cursor-pointer flex items-center gap-1"
+                      >
+                        <span>🇹🇷 Mersin</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            consignee_name: "GULF STAR FREIGHT & LOGISTICS FZE",
+                            consignee_address: "Hamriyah Free Zone, Phase 1, Warehouse P1-08, Sharjah, United Arab Emirates",
+                            consignee_contact: "+971 6 526 1122",
+                            consignee_email: "operations@gulfstarfze.ae",
+                          }))
+                          toast.success("Loaded Hamriyah (Sharjah) Consignee preset")
+                        }}
+                        className="h-7 px-2.5 rounded-lg border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs cursor-pointer flex items-center gap-1"
+                      >
+                        <span>🇦🇪 Hamriyah</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            consignee_name: "AL MADINA LOGISTICS SERVICES CO SAOC",
+                            consignee_address: "Sohar Port & Freezone, Plot 44-B, P.O. Box 112, Sohar 322, Sultanate of Oman",
+                            consignee_contact: "+968 2685 0200",
+                            consignee_email: "sohar@almadinalogistics.om",
+                          }))
+                          toast.success("Loaded Sohar (Oman) Consignee preset")
+                        }}
+                        className="h-7 px-2.5 rounded-lg border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs cursor-pointer flex items-center gap-1"
+                      >
+                        <span>🇴🇲 Sohar</span>
                       </button>
                       <button
                         type="button"
@@ -8440,9 +9208,9 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           }))
                           toast.success("Loaded Abidjan Consignee preset")
                         }}
-                        className="rounded-lg border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 text-[9.5px] font-bold text-slate-800 dark:text-slate-200 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs cursor-pointer flex items-center gap-1"
                       >
-                        🇨🇮 Ivory Coast
+                        <span>🇨🇮 Ivory Coast</span>
                       </button>
                     </div>
 
@@ -8471,7 +9239,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             setConsigneeSearchQuery(e.target.value)
                           }}
                           placeholder="Type or search consignee..."
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
+                          className="pl-10 rounded-xl h-11 text-sm sm:text-base font-black text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
                           dir="auto"
                         />
                       </div>
@@ -8531,10 +9299,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         onChange={handleInputChange}
                         placeholder="Enter consignee complete destination address..."
                         rows={3}
-                        className="rounded-xl p-2.5 text-xs sm:text-sm font-medium text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs min-h-[72px] transition-all"
+                        className="rounded-xl p-3 text-xs sm:text-sm font-semibold leading-relaxed text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs min-h-[84px] transition-all"
                       />
                       <div className="flex flex-wrap items-center gap-1 mt-1">
-                        {["Abidjan, Ivory Coast", "Dubai, UAE", "Nhava Sheva, India", "Rotterdam, Netherlands"].map((city, cIdx) => (
+                        {["Nhava Sheva, India", "Mersin, Turkey", "Hamriyah, Sharjah UAE", "Sohar, Oman", "Dubai, UAE", "Abidjan, Ivory Coast", "Rotterdam, Netherlands"].map((city, cIdx) => (
                           <button
                             key={`consignee-city-${city}-${cIdx}`}
                             type="button"
@@ -8544,7 +9312,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                 consignee_address: prev.consignee_address ? `${prev.consignee_address.trim()}, ${city}` : city,
                               }))
                             }}
-                            className="text-[9px] font-semibold bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 dark:bg-slate-800 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-300 dark:text-slate-300 rounded px-1.5 py-0.5 transition cursor-pointer"
+                            className="text-[11px] font-bold bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 dark:bg-slate-800 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-300 dark:text-slate-300 rounded-lg px-2 py-0.5 transition cursor-pointer shadow-2xs"
                           >
                             + {city}
                           </button>
@@ -8553,34 +9321,40 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     </div>
 
                     {/* Phone & Email */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
-                        <label className="text-[11px] font-black text-slate-800 dark:text-slate-200 mb-1 flex items-center justify-between">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 flex items-center justify-between">
                           <span>Phone</span>
-                          <span className="font-[vazirmatn] text-emerald-900 dark:text-emerald-400 font-bold text-[10px]">تلفن</span>
+                          <span className="font-[vazirmatn] text-emerald-900 dark:text-emerald-400 font-bold text-xs">تلفن</span>
                         </label>
-                        <Input
-                          name="consignee_contact"
-                          value={formData.consignee_contact || ""}
-                          onChange={handleInputChange}
-                          placeholder="+971 4 123 4567"
-                          type="tel"
-                          className="rounded-xl h-9 text-xs font-bold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner"
-                        />
+                        <div className="relative flex items-center">
+                          <Phone className="w-4 h-4 absolute left-3 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
+                          <Input
+                            name="consignee_contact"
+                            value={formData.consignee_contact || ""}
+                            onChange={handleInputChange}
+                            placeholder="+971 4 123 4567"
+                            type="tel"
+                            className="pl-9 rounded-xl h-10 text-xs sm:text-[13px] font-bold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                          />
+                        </div>
                       </div>
                       <div>
-                        <label className="text-[11px] font-black text-slate-800 dark:text-slate-200 mb-1 flex items-center justify-between">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 flex items-center justify-between">
                           <span>Email</span>
-                          <span className="font-[vazirmatn] text-emerald-900 dark:text-emerald-400 font-bold text-[10px]">ایمیل</span>
+                          <span className="font-[vazirmatn] text-emerald-900 dark:text-emerald-400 font-bold text-xs">ایمیل</span>
                         </label>
-                        <Input
-                          name="consignee_email"
-                          value={formData.consignee_email || ""}
-                          onChange={handleInputChange}
-                          placeholder="import@buyer.com"
-                          type="email"
-                          className="rounded-xl h-9 text-xs font-bold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner"
-                        />
+                        <div className="relative flex items-center">
+                          <Mail className="w-4 h-4 absolute left-3 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
+                          <Input
+                            name="consignee_email"
+                            value={formData.consignee_email || ""}
+                            onChange={handleInputChange}
+                            placeholder="import@buyer.com"
+                            type="email"
+                            className="pl-9 rounded-xl h-10 text-xs sm:text-[13px] font-bold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                          />
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -8588,50 +9362,51 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               </Card>
 
               {/* 04 Notify Party Card */}
-              <Card id="section-notify" className="bg-white/85 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-white dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all flex flex-col justify-between">
+              <Card id="section-notify" className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[32px] border border-amber-200/90 dark:border-amber-900/50 shadow-md shadow-amber-500/5 dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all flex flex-col justify-between">
                 <div>
-                  <CardHeader className="pb-3 pt-4 px-4 sm:px-5 border-b border-slate-100 dark:border-slate-800 bg-linear-to-r from-amber-50/80 via-orange-50/40 to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
-                    <CardTitle className="text-sm sm:text-base flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-amber-600 text-white text-[11px] font-black shadow-xs">
+                  <CardHeader className="pb-2 pt-3 px-3 sm:px-3.5 xl:px-4 border-b border-slate-100 dark:border-slate-800 bg-linear-to-r from-amber-50/80 via-orange-50/40 to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
+                    <CardTitle className="text-sm sm:text-base flex items-center justify-between gap-1 sm:gap-1.5 flex-nowrap min-w-0 w-full">
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-amber-600 text-white text-[10.5px] font-black shadow-xs shrink-0">
                           04
                         </span>
-                        <div className="p-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-2xs">
-                          <Bell className="h-4 w-4" />
+                        <div className="p-1 rounded-lg bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-2xs shrink-0">
+                          <Bell className="h-3.5 w-3.5" />
                         </div>
-                        <div>
-                          <span className="font-extrabold text-slate-950 dark:text-slate-100 text-sm sm:text-base tracking-tight select-none">Notify Party</span>
-                          <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold block font-[vazirmatn]">طرف اطلاع / نماینده دوم</span>
+                        <div className="min-w-0 shrink">
+                          <span className="font-extrabold text-slate-950 dark:text-slate-100 text-xs sm:text-[13px] tracking-tight select-none truncate block">Notify Party</span>
+                          <span className="text-[9.5px] sm:text-[10px] text-amber-700 dark:text-amber-400 font-bold block font-[vazirmatn] truncate">طرف اطلاع<span className="hidden xl:inline"> / نماینده دوم</span></span>
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-1">
+                      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 flex-nowrap ml-auto">
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={handleSetNotifySameAsConsignee}
-                          className="h-7 px-1.5 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-100/70 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/60 text-amber-950 dark:text-amber-300 text-[10px] font-black cursor-pointer"
+                          className="h-7 px-1.5 sm:px-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-100/80 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/60 text-amber-950 dark:text-amber-300 text-[10px] sm:text-[11px] font-black cursor-pointer shrink-0 gap-1"
                           title="Set Notify Party to 'SAME AS CONSIGNEE'"
                         >
-                          📋 Same
+                          <span className="shrink-0 text-[11px] leading-none">📋</span>
+                          <span className="hidden sm:inline lg:hidden xl:inline">Same</span>
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={handleCopyConsigneeToNotify}
-                          className="h-7 px-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold cursor-pointer"
+                          className="h-7 px-1.5 sm:px-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[10px] sm:text-[11px] font-bold cursor-pointer shrink-0 gap-1"
                           title="Copy full Consignee details into Notify Party"
                         >
-                          <Copy className="h-3 w-3 mr-0.5 text-emerald-600 dark:text-emerald-400" />
-                          Consignee
+                          <Copy className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>Consignee</span>
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={clearNotifyPartyFields}
-                          className="h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold cursor-pointer"
+                          className="h-7 w-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold cursor-pointer flex items-center justify-center p-0 shrink-0"
                           title="Clear all Notify Party fields"
                         >
                           ✕
@@ -8731,57 +9506,52 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         </SelectContent>
                       </Select>
 
-                      {/* Bottom Action Buttons */}
-                      <div className="flex items-center justify-between gap-1.5 pt-0.5 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setIsBrowseNotifyModalOpen(true)}
-                            className="h-8 text-xs font-bold border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-slate-700 text-amber-900 dark:text-amber-300 rounded-xl shadow-2xs cursor-pointer flex items-center gap-1"
-                          >
-                            <Building2 className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                            <span>Full Directory</span>
-                          </Button>
-                          {isNotifyPartySelected && (
-                            <Button
+                      {/* Bottom Action Footer */}
+                      <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                        <div>
+                          {isNotifyPartySelected ? (
+                            <button
                               type="button"
-                              size="sm"
-                              variant="ghost"
                               onClick={() => setSelectedNotifyPartyId("")}
-                              className="h-8 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
-                              title="Deselect from directory without deleting"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100/90 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800 text-xs font-bold text-amber-900 dark:text-amber-300 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition cursor-pointer shadow-2xs"
+                              title="Clear directory selection without deleting record"
                             >
-                              Clear
-                            </Button>
+                              <Check className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Linked</span>
+                              <span className="text-slate-400 hover:text-red-600 ml-0.5">✕</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                              {formData.notify_party ? (isNotifyPartyExisting ? "Matches directory" : "Unsaved company") : "Select or type below"}
+                            </span>
                           )}
                         </div>
 
                         <div className="flex items-center gap-1.5">
                           <Button
                             type="button"
-                            variant="outline"
+                            size="sm"
                             onClick={saveCurrentNotifyParty}
-                            className={`h-8 font-black text-xs rounded-xl shadow-2xs cursor-pointer transition-all ${
+                            className={`h-7.5 px-3 text-xs font-black rounded-lg shadow-xs cursor-pointer transition-all ${
                               isNotifyPartyExisting
-                                ? "border-amber-400 bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/20"
-                                : "border-amber-400 bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/20"
+                                ? "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/20"
+                                : "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/20"
                             }`}
                             title={isNotifyPartyExisting ? "Update existing notify party in directory" : "Save as new notify party in directory"}
                           >
-                            <Save className="h-3 w-3 mr-1" />
+                            <Save className="h-3.5 w-3.5 mr-1" />
                             {isNotifyPartyExisting ? "Update" : "Save New"}
                           </Button>
                           {isNotifyPartySelected && (
                             <Button
                               type="button"
                               variant="outline"
+                              size="sm"
                               onClick={deleteSavedNotifyParty}
-                              className="h-8 border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl shadow-2xs cursor-pointer"
+                              className="h-7.5 w-7.5 p-0 border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg shadow-xs cursor-pointer flex items-center justify-center"
                               title="Delete selected saved notify party from directory"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
                         </div>
@@ -8789,7 +9559,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     </div>
 
                     {/* Quick Notify Preset Chips */}
-                    <div className="flex flex-wrap items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 mr-0.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                        Presets:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleSetNotifySameAsConsignee}
+                        className="h-7 px-2.5 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-100 dark:bg-amber-950/70 text-xs font-black text-amber-950 dark:text-amber-200 hover:bg-amber-600 hover:text-white transition shadow-2xs cursor-pointer"
+                      >
+                        📋 SAME AS CONSIGNEE
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -8800,7 +9581,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           }))
                           toast.success("Loaded Yaaqoub Hamdan (Dubai) Notify preset")
                         }}
-                        className="rounded-lg border border-amber-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 text-[9.5px] font-bold text-slate-800 dark:text-slate-200 hover:bg-amber-600 dark:hover:bg-amber-600 hover:text-white dark:hover:text-white transition cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg border border-amber-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-amber-600 dark:hover:bg-amber-600 hover:text-white dark:hover:text-white transition shadow-2xs cursor-pointer"
                       >
                         🇦🇪 Dubai
                       </button>
@@ -8814,16 +9595,9 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                           }))
                           toast.success("Loaded Abidjan Clearance Agent Notify preset")
                         }}
-                        className="rounded-lg border border-amber-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 text-[9.5px] font-bold text-slate-800 dark:text-slate-200 hover:bg-amber-600 dark:hover:bg-amber-600 hover:text-white dark:hover:text-white transition cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg border border-amber-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-amber-600 dark:hover:bg-amber-600 hover:text-white dark:hover:text-white transition shadow-2xs cursor-pointer"
                       >
                         🇨🇮 Abidjan
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSetNotifySameAsConsignee}
-                        className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/70 px-1.5 py-0.5 text-[9.5px] font-black text-amber-900 dark:text-amber-300 hover:bg-amber-600 hover:text-white transition cursor-pointer"
-                      >
-                        📋 SAME AS CONSIGNEE
                       </button>
                     </div>
 
@@ -8852,7 +9626,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             setNotifyPartySearchQuery(e.target.value)
                           }}
                           placeholder="Type or search notify party..."
-                          className="pl-9 rounded-xl h-10 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs transition-all"
+                          className="pl-10 rounded-xl h-11 text-sm sm:text-base font-black text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs transition-all"
                           dir="auto"
                         />
                       </div>
@@ -8912,7 +9686,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         onChange={handleInputChange}
                         placeholder="Enter notify party complete address, phone..."
                         rows={3}
-                        className="rounded-xl p-2.5 text-xs sm:text-sm font-medium text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs min-h-[72px] transition-all"
+                        className="rounded-xl p-3 text-xs sm:text-sm font-semibold leading-relaxed text-slate-950 dark:text-slate-100 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 shadow-inner focus:bg-white dark:focus:bg-slate-950 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs min-h-[84px] transition-all"
                       />
                       <div className="flex flex-wrap items-center gap-1 mt-1">
                         {["Deira, Dubai, UAE", "Abidjan, Ivory Coast", "Bandar Abbas, Iran", "Kabul, AF"].map((city, cIdx) => (
@@ -8925,12 +9699,39 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                 notify_party_address: prev.notify_party_address ? `${prev.notify_party_address.trim()}, ${city}` : city,
                               }))
                             }}
-                            className="text-[9px] font-semibold bg-slate-100 hover:bg-amber-100 hover:text-amber-900 text-slate-600 dark:bg-slate-800 dark:hover:bg-amber-900/50 dark:hover:text-amber-300 dark:text-slate-300 rounded px-1.5 py-0.5 transition cursor-pointer"
+                            className="text-[11px] font-bold bg-slate-100 hover:bg-amber-100 hover:text-amber-900 text-slate-700 dark:bg-slate-800 dark:hover:bg-amber-900/50 dark:hover:text-amber-300 dark:text-slate-300 rounded-lg px-2 py-0.5 transition cursor-pointer shadow-2xs"
                           >
                             + {city}
                           </button>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Arrival Notice Dispatch Info Banner (Balances height with Phone/Email columns) */}
+                    <div className="mt-1 rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-linear-to-r from-amber-50/70 via-orange-50/40 to-amber-50/50 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-slate-900/50 p-2.5 shadow-2xs flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="p-1 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shrink-0">
+                          <Bell className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10.5px] font-bold text-amber-950 dark:text-amber-200 truncate leading-tight">
+                            Arrival Notice & Discharge Port Broker
+                          </p>
+                          <p className="text-[9.5px] text-amber-700/80 dark:text-amber-400/80 truncate leading-tight font-medium">
+                            Cargo release notifications & destination clearing
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSetNotifySameAsConsignee}
+                        className="h-6 px-2 text-[10px] font-bold text-amber-900 dark:text-amber-200 bg-amber-100/80 dark:bg-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-800 rounded-md shrink-0 cursor-pointer"
+                        title="Copy Consignee to Notify Party"
+                      >
+                        Sync Consignee
+                      </Button>
                     </div>
                   </CardContent>
                 </div>
@@ -8939,1348 +9740,53 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
                         {/* Side-by-Side Route & Cargo Dashboard */}
             <div className="route-cargo-dashboard w-full">
-              {/* Left Column — Route Stops & Transit Pathway */}
-              <div className="route-section w-full min-w-0">
-                <Card id="section-routes" className="bg-white/85 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-blue-100/80 dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_600px]">
-              <CardHeader className="pb-4 border-b border-slate-100/80 dark:border-slate-800 bg-linear-to-r from-blue-50/50 via-indigo-50/30 to-slate-50/50 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-600 text-white text-[11px] font-black shadow-xs shrink-0">
-                        05
-                      </span>
-                      <div className="p-3 rounded-2xl bg-linear-to-br from-blue-600 via-indigo-600 to-cyan-500 shadow-lg shadow-blue-500/25 text-white">
-                        <MapPin className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-blue-950 dark:text-slate-100 text-lg tracking-tight">Route Stops &amp; Transit Pathway</span>
-                          <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-[vazirmatn]">
-                            مسیر حمل و نقل و توقفگاه‌ها
-                          </span>
+              {/* First Column — Live Shipment Intelligence & Rates Studio (Promoted Above Route Stops) */}
+              <div className="intelligence-section w-full min-w-0">
+                <span id="section-cargo-anchor" className="sr-only" />
+                <Card id="section-shipment-intelligence" className="overflow-hidden rounded-[28px] sm:rounded-[32px] w-full border border-purple-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-[0_20px_55px_-24px_rgba(88,28,135,0.28)] dark:shadow-[0_20px_55px_-24px_rgba(0,0,0,0.6)] backdrop-blur-2xl [content-visibility:auto] [contain-intrinsic-size:1px_600px]">
+                  <CardHeader className="border-b border-purple-100 dark:border-slate-800 bg-linear-to-r from-purple-50/90 via-white to-indigo-50/60 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 px-4 py-4 sm:px-5">
+                    <CardTitle className="flex flex-wrap items-center justify-between gap-3 text-base">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-purple-600 text-white text-[11px] font-black shadow-xs shrink-0">
+                          05
+                        </span>
+                        <span className="flex items-center justify-center w-7 h-7 rounded-xl bg-purple-600 text-white text-xs font-black shadow-xs shrink-0">
+                          <Zap className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-slate-950 dark:text-slate-100 text-base tracking-tight select-none">Live Shipment Intelligence</span>
+                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${
+                              (liveCargoCalc.totalPackages > 0 && liveCargoCalc.items.some((item) => item.netPerCarton > 0 || item.grossPerCarton > 0))
+                                ? "border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+                                : "border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300"
+                            }`}
+                            >
+                              <span className={`h-1.5 w-1.5 rounded-full ${(liveCargoCalc.totalPackages > 0 && liveCargoCalc.items.some((item) => item.netPerCarton > 0 || item.grossPerCarton > 0)) ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+                              {(liveCargoCalc.totalPackages > 0 && liveCargoCalc.items.some((item) => item.netPerCarton > 0 || item.grossPerCarton > 0)) ? "⚡ Auto-Calculation Synced" : "Enter Packages + Carton Weight"}
+                            </span>
+                          </div>
+                          <p className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Real-time carton multiplication, payload tare analysis, and freight valuation</p>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                          Define multi-stop transit route, border customs points, vehicle plates, and transport modes
-                        </p>
                       </div>
-                    </div>
-
-                    {/* Top Action Buttons */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={openSaveRouteModal}
-                        className="h-9 rounded-xl border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3 text-xs font-black shadow-md shadow-emerald-600/20 cursor-pointer transition-all gap-1.5"
-                        title="Save current route path into Quick Presets list for one-click reuse"
-                      >
-                        <BookmarkPlus className="h-4 w-4 text-white" />
-                        Save to Presets / ذخیره مسیر
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={syncRoutesWithBOLPorts}
-                        className="h-9 rounded-xl border-blue-200 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/60 px-3 text-xs font-extrabold text-blue-900 dark:text-blue-300 shadow-xs hover:bg-blue-100 dark:hover:bg-blue-900/60 cursor-pointer transition-all"
-                        title="Synchronize Stop 1 with Port of Loading and Last Stop with Port of Discharge"
-                      >
-                        <ArrowLeftRight className="h-3.5 w-3.5 mr-1.5 text-blue-700 dark:text-blue-400" />
-                        Sync with B/L / همگام‌سازی
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={reverseRoutes}
-                        className="h-9 rounded-xl border-purple-200 dark:border-purple-800 bg-purple-50/90 dark:bg-purple-950/60 px-3 text-xs font-extrabold text-purple-900 dark:text-purple-300 shadow-xs hover:bg-purple-100 dark:hover:bg-purple-900/60 cursor-pointer transition-all"
-                        title="Reverse the entire route sequence (e.g. Export return trip)"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5 mr-1.5 text-purple-700 dark:text-purple-400" />
-                        Reverse / معکوس مسیر
-                      </Button>
-
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={addRouteStop}
-                        className="h-9 rounded-xl bg-linear-to-r from-amber-500 to-orange-500 text-white px-3.5 text-xs font-extrabold shadow-md shadow-amber-500/20 hover:from-amber-600 hover:to-orange-600 cursor-pointer transition-all"
-                      >
-                        <Plus className="h-4 w-4 mr-1 text-white" />
-                        Add Stop / افزودن توقفگاه
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Route Presets Strip */}
-                  <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mr-1 flex items-center gap-1">
-                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                      Quick Presets:
-                    </span>
-
-                    {/* Custom User Saved Presets */}
-                    {savedRoutePresets.map((preset, pIdx) => (
-                      <div key={preset.id ? `${preset.id}-${pIdx}` : `preset-${pIdx}`} className="relative group inline-flex items-center">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <Button
                           type="button"
-                          variant="ghost"
                           size="sm"
-                          onClick={() => applyCustomRoutePreset(preset)}
-                          className="h-7.5 rounded-lg border border-amber-300 bg-linear-to-r from-amber-50 to-orange-50/80 pr-6 pl-2.5 text-[11px] font-black text-amber-950 shadow-2xs hover:border-amber-400 hover:from-amber-100 hover:to-orange-100 cursor-pointer transition-all gap-1.5"
-                          title={`Click to apply ${preset.title} (${preset.routes.length} stops)`}
+                          onClick={handleAutoCalculateWeights}
+                          className="h-9 rounded-xl bg-linear-to-r from-purple-600 to-indigo-600 px-3.5 text-xs font-black text-white shadow-md shadow-purple-500/20 transition-all hover:from-purple-700 hover:to-indigo-700 active:scale-95 cursor-pointer"
+                          title="Calculate Net Weight, Gross Weight and Goods Value"
                         >
-                          <span className="pointer-events-none">{preset.icon || "⭐"}</span>
-                          <span className="max-w-[150px] truncate pointer-events-none">{preset.title}</span>
-                          <span className="rounded-full bg-amber-200/90 px-1.5 py-0.2 text-[9px] font-black text-amber-900 pointer-events-none">
-                            {preset.routes.length}
-                          </span>
+                          <Calculator className="h-3.5 w-3.5 mr-1" />
+                          Recalculate
                         </Button>
-                        <button
-                          type="button"
-                          onClick={(e) => handleDeleteRoutePreset(preset.id, e)}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-0.5 rounded-full hover:bg-red-200 text-red-600 transition-all cursor-pointer"
-                          title="Delete this saved preset"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                    
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyDogharonToMersinReeferExportPreset}
-                      className="h-7.5 rounded-lg border border-cyan-300 bg-cyan-50/90 px-2.5 text-[11px] font-black text-cyan-950 shadow-2xs hover:bg-cyan-100 cursor-pointer transition-all"
-                      title="Route 3: Dogharon → Bazargan → Mersin Reefer (40RF with Escort & Plugging - $14,494.12 USD)"
-                    >
-                      <Ship className="h-3.5 w-3.5 mr-1 text-cyan-700" />
-                      ❄️ Route 3: Dogharon ➡️ Mersin Reefer ($14,494)
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyDougharounToMersinExportPreset}
-                      className="h-7.5 rounded-lg border border-purple-300 bg-purple-50/90 px-2.5 text-[11px] font-black text-purple-950 shadow-2xs hover:bg-purple-100 cursor-pointer transition-all"
-                      title="Route 1: Dougharoun → Bazargan → Mersin (Afghan Export via Turkey - $3,100 USD)"
-                    >
-                      <Truck className="h-3.5 w-3.5 mr-1 text-purple-700" />
-                      🇹🇷 Route 1: Dougharoun ➡️ Mersin ($3,100)
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyNimrozToBandarAbbasExportPreset}
-                      className="h-7.5 rounded-lg border border-amber-300 bg-amber-50/90 px-2.5 text-[11px] font-black text-amber-950 shadow-2xs hover:bg-amber-100 cursor-pointer transition-all"
-                      title="Route 2: Nimroz → Milak → Bandar Abbas (Afghan Export via South Iran - $1,550 USD)"
-                    >
-                      <Ship className="h-3.5 w-3.5 mr-1 text-amber-700" />
-                      🇮🇷 Route 2: Nimroz ➡️ Bandar Abbas ($1,550)
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyNimrozFullReeferSwitchPreset}
-                      className="h-7.5 rounded-lg border border-purple-300 dark:border-purple-800 bg-purple-50/90 dark:bg-purple-950/60 px-2.5 text-[11px] font-black text-purple-950 dark:text-purple-200 shadow-2xs hover:bg-purple-100 dark:hover:bg-purple-900/60 cursor-pointer transition-all"
-                      title="Nimroz → Bandar Abbas (Switch B/L) → Dubai (Full Way Reefer - $2,850 USD)"
-                    >
-                      <Snowflake className="h-3.5 w-3.5 mr-1 text-cyan-600 shrink-0" />
-                      <span>❄️ 🔄 نیمروز ریفر + سوییچ BL ($2,850)</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyKandaharNimrozBandarAbbasDubaiIndiaPreset}
-                      className="h-7.5 rounded-lg border border-emerald-200 bg-emerald-50/80 px-2.5 text-[11px] font-extrabold text-emerald-900 shadow-2xs hover:bg-emerald-100 cursor-pointer transition-all"
-                      title="Kandahar → Nimroz → Bandar Abbas → Dubai → Nhava Sheva (India)"
-                    >
-                      <Ship className="h-3.5 w-3.5 mr-1 text-emerald-700" />
-                      🇦🇫 ➡️ 🇮🇷 ➡️ 🇦🇪 ➡️ 🇮🇳 Kandahar to India
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyHeratIslamQalaDougharounPreset}
-                      className="h-7.5 rounded-lg border border-blue-200 bg-blue-50/80 px-2.5 text-[11px] font-extrabold text-blue-900 shadow-2xs hover:bg-blue-100 cursor-pointer transition-all"
-                      title="Herat → Islam Qala → Dougharoun (Afghanistan to Iran)"
-                    >
-                      <Truck className="h-3.5 w-3.5 mr-1 text-blue-700" />
-                      🚛 Herat ➡️ Dougharoun
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyNimrozChabaharIndiaPreset}
-                      className="h-7.5 rounded-lg border border-cyan-200 bg-cyan-50/80 px-2.5 text-[11px] font-extrabold text-cyan-900 shadow-2xs hover:bg-cyan-100 cursor-pointer transition-all"
-                      title="Nimroz → Milak Border → Chabahar Port → Mundra (India)"
-                    >
-                      <Ship className="h-3.5 w-3.5 mr-1 text-cyan-700" />
-                      🇮🇷 Nimroz ➡️ Chabahar ➡️ India
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyKandaharChamanKarachiDubaiPreset}
-                      className="h-7.5 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[11px] font-extrabold text-indigo-900 shadow-2xs hover:bg-indigo-100 cursor-pointer transition-all"
-                      title="Kandahar → Chaman → Karachi → Dubai"
-                    >
-                      <Truck className="h-3.5 w-3.5 mr-1 text-indigo-700" />
-                      🇵🇰 Kandahar ➡️ Karachi ➡️ Dubai
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyMazarHairatanTashkentPreset}
-                      className="h-7.5 rounded-lg border border-amber-200 bg-amber-50/80 px-2.5 text-[11px] font-extrabold text-amber-900 shadow-2xs hover:bg-amber-100 cursor-pointer transition-all"
-                      title="Mazar-i-Sharif → Hairatan Border → Termez → Tashkent (Rail)"
-                    >
-                      <Train className="h-3.5 w-3.5 mr-1 text-amber-700" />
-                      🇺🇿 Mazar ➡️ Hairatan ➡️ Tashkent
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={applyKabulDubaiAirPreset}
-                      className="h-7.5 rounded-lg border border-sky-200 bg-sky-50/80 px-2.5 text-[11px] font-extrabold text-sky-900 shadow-2xs hover:bg-sky-100 cursor-pointer transition-all"
-                      title="Kabul Airport → Dubai Airport (Air Cargo)"
-                    >
-                      <Plane className="h-3.5 w-3.5 mr-1 text-sky-700" />
-                      ✈️ Kabul ➡️ Dubai (Air)
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-6 pt-5 pb-6">
-                {formData.routes.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-blue-200 dark:border-slate-800 bg-white/55 dark:bg-slate-900/60 p-6 text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 mx-auto mb-3 shadow-inner">
-                      <MapPin className="h-6 w-6" />
-                    </div>
-                    <p className="text-sm font-extrabold text-blue-950 dark:text-blue-200">No transit route stops configured</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-[vazirmatn] mt-1" dir="rtl">
-                      برای شروع یک توقفگاه اضافه نمایید یا از پیش‌فرض‌های سریع بالا انتخاب کنید
-                    </p>
-                    <Button
-                      type="button"
-                      onClick={addRouteStop}
-                      className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-linear-to-r from-amber-500 to-orange-500 text-white px-4 py-2 text-xs font-black shadow-md shadow-amber-500/20 hover:from-amber-600 hover:to-orange-600 cursor-pointer transition-all"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add First Stop / افزودن اولین توقفگاه
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                {/* Visual Route Pathway Stepper Timeline */}
-                <div className="rounded-2xl border border-blue-200/80 bg-linear-to-r from-blue-50/90 via-indigo-50/50 to-cyan-50/90 p-4 shadow-inner overflow-hidden">
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-blue-100">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black uppercase tracking-wider text-blue-950">
-                        Transit Stepper Pathway / نقشه مسیر
-                      </span>
-                      <span className="rounded-full bg-blue-200/70 px-2 py-0.5 text-[10px] font-black text-blue-900">
-                        {formData.routes.length} Stops Total
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-500 font-[vazirmatn]" dir="rtl">
-                      برای انتخاب یا ویرایش روی هر توقفگاه کلیک کنید
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 overflow-x-auto pb-2 pt-1 scrollbar-thin">
-                    {formData.routes.map((route, index) => {
-                      const isOrigin = index === 0
-                      const isDest = index === formData.routes.length - 1
-                      const stopName = route.location || `Stop #${index + 1}`
-                      const isSelected = activeRouteIndex === index
-                      
-                      return (
-                        <div key={route.id ? `route-chip-${route.id}-${index}` : `route-chip-${index}`} className="flex items-center gap-2.5 shrink-0">
-                          <div
-                            onClick={() => setActiveRouteIndex(index)}
-                            className={`group relative flex items-center gap-3 rounded-2xl border p-3 text-left transition-all duration-300 cursor-pointer ${
-                              isSelected
-                                ? "border-2 border-blue-600 bg-white shadow-xl shadow-blue-500/15 ring-4 ring-blue-500/15 scale-102"
-                                : "border-slate-200/90 bg-white/95 hover:border-blue-300 hover:bg-white hover:shadow-md"
-                            }`}
-                          >
-                            {/* Reorder & Action Mini Toolbar (Hover) */}
-                            <div className="absolute -top-3.5 right-2 hidden group-hover:flex items-center gap-0.5 bg-white p-0.5 rounded-lg shadow-md border border-slate-200 z-10">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  moveRouteStop(index, 'up')
-                                }}
-                                disabled={index === 0}
-                                className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded cursor-pointer disabled:opacity-30"
-                                title="Move Earlier (▲)"
-                              >
-                                <ChevronUp className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  moveRouteStop(index, 'down')
-                                }}
-                                disabled={index === formData.routes.length - 1}
-                                className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded cursor-pointer disabled:opacity-30"
-                                title="Move Later (▼)"
-                              >
-                                <ChevronDown className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  duplicateRouteStop(index)
-                                }}
-                                className="p-1 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"
-                                title="Duplicate Stop"
-                              >
-                                <Copy className="h-3 w-3" />
-                              </button>
-                              {formData.routes.length > 2 && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    removeRouteStop(index)
-                                  }}
-                                  className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
-                                  title="Delete Stop"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              )}
-                            </div>
-
-                            {/* Stop Index Badge */}
-                            <div
-                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-white text-sm shadow-md ${
-                                isOrigin
-                                  ? "bg-linear-to-br from-emerald-500 to-teal-700 shadow-emerald-500/25"
-                                  : isDest
-                                  ? "bg-linear-to-br from-indigo-600 to-purple-700 shadow-indigo-500/25"
-                                  : "bg-linear-to-br from-blue-600 to-cyan-600 shadow-blue-500/25"
-                              }`}
-                            >
-                              {index + 1}
-                            </div>
-
-                            <div className="min-w-[140px] max-w-[260px]">
-                              <div className="flex items-center gap-1.5">
-                                {getTransportIcon(route.transportMode)}
-                                <span className={`text-[10px] font-black uppercase tracking-wider ${
-                                  isOrigin ? "text-emerald-700" : isDest ? "text-indigo-700" : "text-blue-700"
-                                }`}>
-                                  {isOrigin ? "Origin (مبدأ)" : isDest ? "Destination (مقصد)" : `Stop #${index + 1}`}
-                                </span>
-                              </div>
-                              <p className="mt-0.5 text-xs font-black text-blue-950 leading-snug break-words line-clamp-2">{stopName}</p>
-                              {route.locationPersian && (
-                                <p className="text-[10px] font-bold text-slate-500 font-[vazirmatn] leading-tight break-words line-clamp-2 mt-0.5" dir="rtl">{route.locationPersian}</p>
-                              )}
-
-                              {/* Truck / Seal details badge */}
-                              {route.plateNumber && (
-                                <span className="mt-1 inline-block rounded bg-blue-100 px-1 py-0.2 text-[9px] font-extrabold text-blue-900 border border-blue-200">
-                                  Plate: {route.plateNumber}
-                                </span>
-                              )}
-                              {route.customsSealRequired && (
-                                <span className="mt-1 ml-1 inline-block rounded bg-amber-100 px-1 py-0.2 text-[9px] font-extrabold text-amber-900 border border-amber-200" dir="rtl">
-                                  📍 سیل ګمرک
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Connecting arrow */}
-                          {index < formData.routes.length - 1 && (
-                            <div className="flex items-center gap-1 px-0.5 text-blue-500 shrink-0">
-                              <span className="h-0.5 w-4 bg-linear-to-r from-blue-400 to-indigo-400 rounded-full" />
-                              <ArrowRight className="h-4 w-4 text-blue-600" />
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Stop Cards List */}
-                <div className="space-y-4">
-                  {formData.routes.map((route, index) => {
-                    const isOrigin = index === 0
-                    const isDest = index === formData.routes.length - 1
-                    const isSelected = activeRouteIndex === index
-
-                    return (
-                      <div
-                        key={route.id ? `route-card-${route.id}-${index}` : `route-card-${index}`}
-                        className={`rounded-2xl border transition-all ${
-                          isSelected
-                            ? "border-2 border-blue-500 bg-white shadow-xl shadow-blue-500/10 ring-4 ring-blue-500/10"
-                            : "border-slate-200/90 bg-white/95 hover:border-slate-300"
-                        } p-4.5`}
-                      >
-                        {/* Stop Card Header */}
-                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black text-white shadow-md ${
-                              isOrigin
-                                ? "bg-linear-to-br from-emerald-500 to-teal-700"
-                                : isDest
-                                ? "bg-linear-to-br from-indigo-600 to-purple-700"
-                                : "bg-linear-to-br from-blue-600 to-cyan-600"
-                            }`}>
-                              {index + 1}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-base font-extrabold text-blue-950">
-                                  {isOrigin ? "Origin Point (نقطه مبدأ)" : isDest ? "Final Destination (مقصد نهایی)" : `Stop #${index + 1} - Transit Stop (توقفگاه)`}
-                                </span>
-                                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
-                                  isOrigin ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : isDest ? "bg-indigo-100 text-indigo-800 border border-indigo-200" : "bg-blue-100 text-blue-800 border border-blue-200"
-                                }`}>
-                                  {isOrigin ? "Port of Loading" : isDest ? "Port of Discharge" : `Transit Stop`}
-                                </span>
-                              </div>
-                              <p className="text-xs font-bold text-slate-500 font-[vazirmatn] mt-0.5" dir="rtl">
-                                {route.locationPersian || (isOrigin ? "محل بارگیری" : isDest ? "محل تخلیه نهایی" : "ایستگاه و مرز ترانزیتی")}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Action Toolbar on Card */}
-                          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                            {/* Move Up */}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={index === 0}
-                              onClick={() => moveRouteStop(index, 'up')}
-                              className="h-8 rounded-lg border-slate-200 px-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-30"
-                              title="Move Stop Earlier (▲)"
-                            >
-                              <ChevronUp className="h-3.5 w-3.5 mr-0.5" />
-                              Move Up
-                            </Button>
-
-                            {/* Move Down */}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={index === formData.routes.length - 1}
-                              onClick={() => moveRouteStop(index, 'down')}
-                              className="h-8 rounded-lg border-slate-200 px-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-30"
-                              title="Move Stop Later (▼)"
-                            >
-                              <ChevronDown className="h-3.5 w-3.5 mr-0.5" />
-                              Move Down
-                            </Button>
-
-                            {/* Duplicate */}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => duplicateRouteStop(index)}
-                              className="h-8 rounded-lg border-emerald-200 bg-emerald-50/50 px-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
-                              title="Duplicate this stop"
-                            >
-                              <Copy className="h-3.5 w-3.5 mr-0.5" />
-                              Duplicate
-                            </Button>
-
-                            {/* Delete */}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 rounded-lg border border-red-200 bg-red-50/50 px-2.5 text-xs font-bold text-red-600 hover:bg-red-100 hover:text-red-700 disabled:opacity-30"
-                              onClick={() => removeRouteStop(index)}
-                              title="Remove this route stop"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 mr-1" />
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Location and Transport Inputs */}
-                        <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-[1fr_1fr_1.35fr]">
-                          {/* English Location */}
-                          <div className="relative">
-                            <label className="text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
-                              <span>Location (English) / {isOrigin ? "Origin" : isDest ? "Destination" : `Stop #${index + 1}`}</span>
-                              {route.location && (
-                                <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Selected</span>
-                              )}
-                            </label>
-                            <Input
-                              value={route.location}
-                              onFocus={() => {
-                                setActiveRouteIndex(index)
-                                setShowLocationDropdown(index)
-                              }}
-                              onChange={(e) => {
-                                setActiveRouteIndex(index)
-                                setShowLocationDropdown(index)
-                                handleRouteChange(index, "location", e.target.value)
-                              }}
-                              placeholder={`e.g. ${isOrigin ? "Kandahar, AF" : isDest ? "Nhava Sheva, IN" : "Bandar Abbas, IR"}`}
-                              className="h-10.5 rounded-xl border-slate-200 bg-white font-semibold text-slate-900 focus:border-amber-400 focus:ring-amber-200"
-                            />
-
-                            {/* Inline Recommendation Popover */}
-                            {showLocationDropdown === index && (
-                              <div className="absolute left-0 right-0 top-full z-40 mt-1.5 max-h-96 overflow-y-auto rounded-2xl border border-amber-300/90 bg-white p-3 shadow-2xl shadow-slate-900/25 backdrop-blur-xl">
-                                <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2 mb-2 gap-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-black text-amber-900">Suggested Locations</span>
-                                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800">
-                                      {quickLocationMatches.length}
-                                    </span>
-                                    {route.transportMode === "airplane" && !disableModeFilter && (
-                                      <span className="rounded-full bg-sky-100 text-sky-800 px-2 py-0.5 text-[9px] font-black border border-sky-200">
-                                        ✈️ Airports Only
-                                      </span>
-                                    )}
-                                    {route.transportMode === "vessel" && !disableModeFilter && (
-                                      <span className="rounded-full bg-cyan-100 text-cyan-800 px-2 py-0.5 text-[9px] font-black border border-cyan-200">
-                                        🚢 Ports Only
-                                      </span>
-                                    )}
-                                    {route.transportMode === "train" && !disableModeFilter && (
-                                      <span className="rounded-full bg-purple-100 text-purple-800 px-2 py-0.5 text-[9px] font-black border border-purple-200">
-                                        🚆 Rail Only
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
-                                    <Input
-                                      value={routeLocationSearch}
-                                      onChange={(e) => setRouteLocationSearch(e.target.value)}
-                                      placeholder="Filter..."
-                                      className="h-7 text-xs rounded-lg bg-slate-50 border-slate-200"
-                                      autoFocus={false}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => setShowLocationDropdown(null)}
-                                      className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition cursor-pointer"
-                                    >
-                                      ✕ Close
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Mode-Specific Filtering Alert & Toggle */}
-                                {route.transportMode === "airplane" && (
-                                  <div className="flex flex-wrap items-center justify-between bg-sky-50 border border-sky-200 rounded-xl px-2.5 py-1.5 mb-2 gap-1.5 shadow-2xs">
-                                    <div className="flex items-center gap-1.5 text-sky-950 font-black text-[11px]">
-                                      <Plane className="h-3.5 w-3.5 text-sky-600" />
-                                      <span>AIR MODE: Showing Airports Only (میدان‌های هوایی)</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => setDisableModeFilter(!disableModeFilter)}
-                                      className="text-[9px] font-extrabold px-2 py-0.5 rounded-lg border border-sky-300 bg-white text-sky-800 hover:bg-sky-100 transition cursor-pointer shadow-2xs"
-                                    >
-                                      {disableModeFilter ? "✈️ Filter Airports Only" : "🌐 Show All Locations"}
-                                    </button>
-                                  </div>
-                                )}
-
-                                {route.transportMode === "vessel" && (
-                                  <div className="flex flex-wrap items-center justify-between bg-cyan-50 border border-cyan-200 rounded-xl px-2.5 py-1.5 mb-2 gap-1.5 shadow-2xs">
-                                    <div className="flex items-center gap-1.5 text-cyan-950 font-black text-[11px]">
-                                      <Ship className="h-3.5 w-3.5 text-cyan-600" />
-                                      <span>SEA MODE: Showing Ports Only (بنادر دریایی)</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => setDisableModeFilter(!disableModeFilter)}
-                                      className="text-[9px] font-extrabold px-2 py-0.5 rounded-lg border border-cyan-300 bg-white text-cyan-800 hover:bg-cyan-100 transition cursor-pointer shadow-2xs"
-                                    >
-                                      {disableModeFilter ? "⚓ Filter Ports Only" : "🌐 Show All Locations"}
-                                    </button>
-                                  </div>
-                                )}
-
-                                {route.transportMode === "train" && (
-                                  <div className="flex flex-wrap items-center justify-between bg-purple-50 border border-purple-200 rounded-xl px-2.5 py-1.5 mb-2 gap-1.5 shadow-2xs">
-                                    <div className="flex items-center gap-1.5 text-purple-950 font-black text-[11px]">
-                                      <Train className="h-3.5 w-3.5 text-purple-600" />
-                                      <span>RAIL MODE: Showing Rail & ICD Hubs (ایستگاه‌های ریل)</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => setDisableModeFilter(!disableModeFilter)}
-                                      className="text-[9px] font-extrabold px-2 py-0.5 rounded-lg border border-purple-300 bg-white text-purple-800 hover:bg-purple-100 transition cursor-pointer shadow-2xs"
-                                    >
-                                      {disableModeFilter ? "🚆 Filter Rail Only" : "🌐 Show All Locations"}
-                                    </button>
-                                  </div>
-                                )}
-
-                                {/* Quick Country Filter Chips */}
-                                <div className="flex flex-wrap gap-1 mb-2.5 pb-1.5 border-b border-slate-100">
-                                  {[
-                                    { label: "🌍 All", value: "ALL" },
-                                    { label: "⚓ Ports", value: "PORTS" },
-                                    { label: "🇦🇪 UAE / Dubai", value: "UAE" },
-                                    { label: "🇨🇮 Ivory Coast / Africa", value: "AFRICA" },
-                                    { label: "🇦🇫 Afghanistan", value: "Afghanistan" },
-                                    { label: "🇺🇿 Uzbekistan", value: "Uzbekistan" },
-                                    { label: "🇮🇷 Iran", value: "Iran" },
-                                    { label: "🇮🇳 India", value: "India" },
-                                    { label: "🇵🇰 Pakistan", value: "Pakistan" },
-                                    { label: "🇸🇦 Gulf", value: "GULF" },
-                                    { label: "🇹🇷 Turkey", value: "Turkey" },
-                                    { label: "🇨🇳 China", value: "China" },
-                                    { label: "🇪🇺 Europe / US", value: "EUROPE_AMERICAS" },
-                                    { label: "🌐 Central Asia", value: "CENTRAL_ASIA" },
-                                  ].map((tab) => (
-                                    <button
-                                      key={tab.value}
-                                      type="button"
-                                      onClick={() => setSelectedCountryFilter(tab.value)}
-                                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
-                                        selectedCountryFilter === tab.value
-                                          ? "bg-amber-600 text-white shadow-xs ring-1 ring-amber-400"
-                                          : "bg-slate-100 text-slate-700 hover:bg-amber-100 hover:text-amber-900"
-                                      }`}
-                                    >
-                                      {tab.label}
-                                    </button>
-                                  ))}
-                                </div>
-
-                                {/* Secondary category filter for India inside popover */}
-                                {selectedCountryFilter === "India" && (
-                                  <div className="flex flex-wrap items-center gap-1 mb-2.5 pb-1.5 border-b border-amber-200/80 bg-amber-50/60 p-1.5 rounded-xl">
-                                    <span className="text-[9px] font-black text-amber-950 self-center mr-1">🇮🇳 Filter:</span>
-                                    {[
-                                      { label: "ALL", value: "ALL" },
-                                      { label: "✈️ AIRPORTS", value: "AIRPORTS" },
-                                      { label: "⚓ SEAPORTS", value: "SEAPORTS" },
-                                      { label: "🚚 LAND PORTS", value: "LAND_PORTS" },
-                                      { label: "📦 ICD", value: "ICD" },
-                                      { label: "🏢 CFS", value: "CFS" },
-                                      { label: "🚢 TERMINALS", value: "TERMINALS" },
-                                      { label: "🌐 LOGISTICS", value: "LOGISTICS" },
-                                    ].map((cat) => (
-                                      <button
-                                        key={cat.value}
-                                        type="button"
-                                        onClick={() => setSelectedIndiaCategoryFilter(cat.value)}
-                                        className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold transition cursor-pointer ${
-                                          selectedIndiaCategoryFilter === cat.value
-                                            ? "bg-amber-600 text-white shadow-xs"
-                                            : "bg-white text-slate-700 hover:bg-amber-100 hover:text-amber-900 border border-slate-200"
-                                        }`}
-                                      >
-                                        {cat.label}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-                                  {quickLocationMatches.map((loc, locIndex) => (
-                                    <div
-                                      key={`quick-loc-popover-${loc.name}-${loc.code || locIndex}-${locIndex}`}
-                                      className="flex flex-col justify-between rounded-xl p-2.5 text-left transition bg-slate-50/80 hover:bg-amber-50/70 border border-slate-200/90 hover:border-amber-400 group shadow-2xs"
-                                    >
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          handleQuickLocationSelect(loc)
-                                          setShowLocationDropdown(null)
-                                        }}
-                                        className="flex items-start justify-between w-full cursor-pointer text-left gap-1.5"
-                                      >
-                                        <div className="flex items-start gap-2 min-w-0 flex-1">
-                                          <span className="text-lg shrink-0 mt-0.5">{countryFlags[loc.country] || "🌍"}</span>
-                                          <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-black text-slate-900 group-hover:text-amber-950 leading-snug break-words">{loc.name}</p>
-                                            <div className="flex flex-wrap items-center gap-1 mt-1">
-                                              {loc.borderCountry && (
-                                                <span className="text-[8px] font-extrabold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200/60 shrink-0">
-                                                  ⇄ {loc.borderCountry}
-                                                </span>
-                                              )}
-                                              {loc.locationType && (
-                                                <span className="text-[8px] font-black text-amber-900 bg-amber-100/90 px-1.5 py-0.2 rounded shrink-0">
-                                                  {loc.locationType.replace(/_/g, " ")}
-                                                </span>
-                                              )}
-                                              {loc.state && (
-                                                <span className="text-[8px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded shrink-0">
-                                                  {loc.state}
-                                                </span>
-                                              )}
-                                            </div>
-                                            <p className="text-[10px] font-bold text-slate-600 font-[vazirmatn] leading-snug break-words mt-1" dir="rtl">{loc.persian}</p>
-                                          </div>
-                                        </div>
-                                        <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[9px] font-black text-amber-900 shrink-0 self-start">{loc.code}</span>
-                                      </button>
-
-                                      <div className="mt-1.5 pt-1 border-t border-slate-100 flex flex-wrap items-center gap-1">
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            handleQuickLocationSelect(loc)
-                                            setShowLocationDropdown(null)
-                                          }}
-                                          className="text-[9px] font-bold bg-amber-500 text-white rounded px-1.5 py-0.5 hover:bg-amber-600 transition cursor-pointer"
-                                        >
-                                          + Stop #{index + 1}
-                                        </button>
-                                        {loc.isPort && (
-                                          <>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleQuickSetDischarge(loc.portName || loc.name)}
-                                              className="text-[9px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded px-1.5 py-0.5 transition cursor-pointer"
-                                            >
-                                              🚢 POD
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleQuickSetLoading(loc.portName || loc.name)}
-                                              className="text-[9px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded px-1.5 py-0.5 transition cursor-pointer"
-                                            >
-                                              ⚓ POL
-                                            </button>
-                                          </>
-                                        )}
-                                        <button
-                                          type="button"
-                                          onClick={() => handleQuickSetDelivery(loc.country === "Ivory Coast" ? "Ivory Coast, West Africa" : loc.name)}
-                                          className="text-[9px] font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white rounded px-1.5 py-0.5 transition cursor-pointer"
-                                        >
-                                          📍 Delivery
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                  {quickLocationMatches.length === 0 && (
-                                    <div className="col-span-2 p-4 text-center text-xs font-bold text-slate-400 bg-slate-50 rounded-xl">
-                                      No locations found. Type to search or add custom location...
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Persian Location */}
-                          <div className="relative">
-                            <label className="text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5 block">
-                              Location (Persian / Pashto) / موقعیت فارسی یا پښتو
-                            </label>
-                            <Input
-                              value={route.locationPersian}
-                              onFocus={() => {
-                                setActiveRouteIndex(index)
-                                setShowLocationDropdown(index)
-                              }}
-                              onChange={(e) => {
-                                setActiveRouteIndex(index)
-                                handleRouteChange(index, "locationPersian", e.target.value)
-                              }}
-                              placeholder="نام محل، بندر یا گمرک"
-                              dir="rtl"
-                              className="h-10.5 rounded-xl border-slate-200 bg-white font-semibold text-slate-900 font-[vazirmatn] focus:border-amber-400 focus:ring-amber-200"
-                            />
-                          </div>
-
-                          {/* Transport Mode Selector */}
-                          <div className="sm:col-span-2 2xl:col-span-1">
-                            <label className="text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5 block">
-                              Transport Mode / حالت حمل و نقل
-                            </label>
-                            
-                            <div className="grid grid-cols-4 gap-1.5">
-                              {/* Option: Truck/Road */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleRouteChange(index, "transportMode", "truck")
-                                  setDisableModeFilter(false)
-                                }}
-                                className={`flex flex-col items-center justify-center gap-1 h-14 rounded-xl border transition-all cursor-pointer ${
-                                  route.transportMode === "truck" || route.transportMode === "road" || !route.transportMode
-                                    ? "border-blue-500 bg-blue-50 text-blue-900 shadow-sm ring-2 ring-blue-500/20 font-black"
-                                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-slate-50 font-bold"
-                                }`}
-                              >
-                                <Truck className={`h-5 w-5 ${route.transportMode === "truck" || route.transportMode === "road" || !route.transportMode ? "text-blue-600" : "text-slate-400"}`} />
-                                <span className="text-[10px] uppercase">Truck</span>
-                              </button>
-
-                              {/* Option: Vessel/Sea */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleRouteChange(index, "transportMode", "vessel")
-                                  setDisableModeFilter(false)
-                                }}
-                                className={`flex flex-col items-center justify-center gap-1 h-14 rounded-xl border transition-all cursor-pointer ${
-                                  route.transportMode === "vessel"
-                                    ? "border-cyan-500 bg-cyan-50 text-cyan-900 shadow-sm ring-2 ring-cyan-500/20 font-black"
-                                    : "border-slate-200 bg-white text-slate-600 hover:border-cyan-300 hover:bg-slate-50 font-bold"
-                                }`}
-                              >
-                                <Ship className={`h-5 w-5 ${route.transportMode === "vessel" ? "text-cyan-600" : "text-slate-400"}`} />
-                                <span className="text-[10px] uppercase">Sea</span>
-                              </button>
-
-                              {/* Option: Plane/Air */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleRouteChange(index, "transportMode", "airplane")
-                                  setDisableModeFilter(false)
-                                }}
-                                className={`flex flex-col items-center justify-center gap-1 h-14 rounded-xl border transition-all cursor-pointer ${
-                                  route.transportMode === "airplane"
-                                    ? "border-sky-500 bg-sky-50 text-sky-900 shadow-sm ring-2 ring-sky-500/20 font-black"
-                                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:bg-slate-50 font-bold"
-                                }`}
-                              >
-                                <Plane className={`h-5 w-5 ${route.transportMode === "airplane" ? "text-sky-600" : "text-slate-400"}`} />
-                                <span className="text-[10px] uppercase">Air</span>
-                              </button>
-
-                              {/* Option: Train/Rail */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleRouteChange(index, "transportMode", "train")
-                                  setDisableModeFilter(false)
-                                }}
-                                className={`flex flex-col items-center justify-center gap-1 h-14 rounded-xl border transition-all cursor-pointer ${
-                                  route.transportMode === "train"
-                                    ? "border-purple-500 bg-purple-50 text-purple-900 shadow-sm ring-2 ring-purple-500/20 font-black"
-                                    : "border-slate-200 bg-white text-slate-600 hover:border-purple-300 hover:bg-slate-50 font-bold"
-                                }`}
-                              >
-                                <Train className={`h-5 w-5 ${route.transportMode === "train" ? "text-purple-600" : "text-slate-400"}`} />
-                                <span className="text-[10px] uppercase">Rail</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Dedicated Specifications Panel based on Transport Mode */}
-                        {(route.transportMode === "truck" || route.transportMode === "road" || !route.transportMode) && (
-                          <div className="mt-3.5 rounded-2xl border border-blue-100 bg-linear-to-br from-blue-50/70 via-indigo-50/30 to-amber-50/30 p-3.5 shadow-2xs space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-200/60 pb-2">
-                              <div className="flex items-center gap-2">
-                                <div className="p-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
-                                  <Truck className="h-3.5 w-3.5" />
-                                </div>
-                                <span className="text-xs font-black uppercase tracking-wider text-blue-950">
-                                  Truck Specifications &amp; Customs Seal / مشخصات موتر و ګمرک
-                                </span>
-                              </div>
-                              <span className="text-[11px] font-bold text-blue-800 font-[vazirmatn]" dir="rtl">
-                                جزئیات پلیټ، شاسی و ټیلر مان
-                              </span>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-3">
-                              {/* Plate Number */}
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
-                                  Plate No. / پلیټ نمبر / ليټ نمبر
-                                </label>
-                                <Input
-                                  value={route.plateNumber || ""}
-                                  onChange={(e) => handleRouteChange(index, "plateNumber", e.target.value)}
-                                  placeholder="مثلا: KBL-7842"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs focus:border-amber-400 focus:ring-amber-200"
-                                />
-                              </div>
-
-                              {/* Chassis Number */}
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
-                                  Chassis No. / شاسی نمبر
-                                </label>
-                                <Input
-                                  value={route.chassisNumber || ""}
-                                  onChange={(e) => handleRouteChange(index, "chassisNumber", e.target.value)}
-                                  placeholder="CH-908712"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs focus:border-amber-400 focus:ring-amber-200"
-                                />
-                              </div>
-
-                              {/* Driver / Trailer Man */}
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1 font-[vazirmatn]">
-                                  Trailer Man / ټیلر مان / ډریور
-                                </label>
-                                <Input
-                                  value={route.trailerMan || ""}
-                                  onChange={(e) => handleRouteChange(index, "trailerMan", e.target.value)}
-                                  placeholder="نام دریور / ټیلر مان"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs font-[vazirmatn] focus:border-amber-400 focus:ring-amber-200"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Customs Seal Requirement */}
-                            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-blue-200/50">
-                              <label className="flex items-center gap-2 cursor-pointer select-none">
-                                <input
-                                  type="checkbox"
-                                  checked={Boolean(route.customsSealRequired)}
-                                  onChange={(e) => handleRouteChange(index, "customsSealRequired", e.target.checked)}
-                                  className="h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-400 cursor-pointer"
-                                />
-                                <span className="text-xs font-black text-slate-900 font-[vazirmatn]" dir="rtl">
-                                  📍 په ګمرک کې سیل غواړي (Customs Seal Required)
-                                </span>
-                              </label>
-                              {route.customsSealRequired && (
-                                <Input
-                                  value={route.customsSealNote || ""}
-                                  onChange={(e) => handleRouteChange(index, "customsSealNote", e.target.value)}
-                                  placeholder="Customs seal details / جزئیات سیل ګمرک"
-                                  className="h-8.5 w-full sm:w-72 rounded-lg border-amber-400 bg-white text-xs font-bold text-slate-900 font-[vazirmatn] focus:border-amber-500"
-                                />
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Sea / Vessel Mode Panel */}
-                        {route.transportMode === "vessel" && (
-                          <div className="mt-3.5 rounded-2xl border border-cyan-100 bg-linear-to-br from-cyan-50/70 via-blue-50/30 to-slate-50/30 p-3.5 shadow-2xs space-y-3">
-                            <div className="flex items-center gap-2 border-b border-cyan-200/60 pb-2">
-                              <div className="p-1.5 rounded-lg bg-cyan-600 text-white shadow-xs">
-                                <Ship className="h-3.5 w-3.5" />
-                              </div>
-                              <span className="text-xs font-black uppercase tracking-wider text-cyan-950">
-                                Sea Port &amp; Vessel Details / مشخصات کشتی و بندر بحری
-                              </span>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-3">
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
-                                  Vessel Name / نام کشتی
-                                </label>
-                                <Input
-                                  value={route.notes || ""}
-                                  onChange={(e) => handleRouteChange(index, "notes", e.target.value)}
-                                  placeholder="e.g. WAN HAI 512"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
-                                  Port Terminal / ترمینل بندر
-                                </label>
-                                <Input
-                                  value={route.customsSealNote || ""}
-                                  onChange={(e) => handleRouteChange(index, "customsSealNote", e.target.value)}
-                                  placeholder="Terminal 1 / Berthing Quay"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
-                                  Container No. / کانتینر
-                                </label>
-                                <Input
-                                  value={route.plateNumber || ""}
-                                  onChange={(e) => handleRouteChange(index, "plateNumber", e.target.value)}
-                                  placeholder="MSCU-1234567"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs font-mono"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Air Cargo Panel */}
-                        {route.transportMode === "airplane" && (
-                          <div className="mt-3.5 rounded-2xl border border-sky-100 bg-linear-to-br from-sky-50/70 via-blue-50/30 to-slate-50/30 p-3.5 shadow-2xs space-y-3">
-                            <div className="flex items-center gap-2 border-b border-sky-200/60 pb-2">
-                              <div className="p-1.5 rounded-lg bg-sky-600 text-white shadow-xs">
-                                <Plane className="h-3.5 w-3.5" />
-                              </div>
-                              <span className="text-xs font-black uppercase tracking-wider text-sky-950">
-                                Air Freight &amp; Flight Information / پرواز و بارنامه هوایی
-                              </span>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
-                                  Flight No. / شماره پرواز
-                                </label>
-                                <Input
-                                  value={route.notes || ""}
-                                  onChange={(e) => handleRouteChange(index, "notes", e.target.value)}
-                                  placeholder="e.g. FG-311 / EK-205"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs font-mono"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
-                                  Air Waybill (AWB) / شماره AWB
-                                </label>
-                                <Input
-                                  value={route.plateNumber || ""}
-                                  onChange={(e) => handleRouteChange(index, "plateNumber", e.target.value)}
-                                  placeholder="AWB-9087612"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs font-mono"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Rail Freight Panel */}
-                        {route.transportMode === "train" && (
-                          <div className="mt-3.5 rounded-2xl border border-amber-100 bg-linear-to-br from-amber-50/70 via-orange-50/30 to-slate-50/30 p-3.5 shadow-2xs space-y-3">
-                            <div className="flex items-center gap-2 border-b border-amber-200/60 pb-2">
-                              <div className="p-1.5 rounded-lg bg-amber-600 text-white shadow-xs">
-                                <Train className="h-3.5 w-3.5" />
-                              </div>
-                              <span className="text-xs font-black uppercase tracking-wider text-amber-950">
-                                Railway Freight Information / معلومات خط آهن و واگن
-                              </span>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
-                                  Wagon / Train No. / شماره واگن
-                                </label>
-                                <Input
-                                  value={route.plateNumber || ""}
-                                  onChange={(e) => handleRouteChange(index, "plateNumber", e.target.value)}
-                                  placeholder="WGN-54210"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs font-mono"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
-                                  Railway Station / ایستگاه ریل
-                                </label>
-                                <Input
-                                  value={route.notes || ""}
-                                  onChange={(e) => handleRouteChange(index, "notes", e.target.value)}
-                                  placeholder="Hairatan Railway Terminal"
-                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Quick Select Locations Bar with Live Search */}
-                <div className="pt-4 border-t border-slate-200/80">
-                  <div className="flex flex-col gap-3 mb-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-wider text-slate-800">
-                          Quick Location Selector / انتخاب سریع محل:
-                        </p>
-                        {activeRouteIndex !== null && (
-                          <p className="text-xs font-bold text-amber-700">
-                            Targeting: <span className="font-black text-blue-950">{getRouteStopLabel(activeRouteIndex, formData.routes.length)} (Stop #{activeRouteIndex + 1})</span>
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Live Search Input for Locations */}
-                      <div className="w-full sm:w-64">
-                        <Input
-                          value={routeLocationSearch}
-                          onChange={(e) => setRouteLocationSearch(e.target.value)}
-                          placeholder="Search city, port, or country..."
-                          className="h-8.5 text-xs rounded-xl bg-white border-slate-200"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Regional Country Tabs */}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {[
-                        { label: "ALL", country: "ALL" },
-                        { label: "⚓ ALL SEAPORTS", country: "PORTS" },
-                        { label: "🇦🇪 DUBAI & UAE PORTS", country: "UAE" },
-                        { label: "🇨🇮 IVORY COAST & AFRICA", country: "AFRICA" },
-                        { label: "🇦🇫 AFGHANISTAN", country: "Afghanistan" },
-                        { label: "🇺🇿 UZBEKISTAN", country: "Uzbekistan" },
-                        { label: "🇮🇷 IRAN", country: "Iran" },
-                        { label: "🇮🇳 INDIA", country: "India" },
-                        { label: "🇵🇰 PAKISTAN", country: "Pakistan" },
-                        { label: "🇸🇦 🇶🇦 GULF STATES", country: "GULF" },
-                        { label: "🇹🇷 TURKEY", country: "Turkey" },
-                        { label: "🇨🇳 CHINA & ASIA", country: "China" },
-                        { label: "🇪🇺 EUROPE & AMERICAS", country: "EUROPE_AMERICAS" },
-                        { label: "🌐 CENTRAL ASIA", country: "CENTRAL_ASIA" },
-                      ].map((tab) => (
-                        <button
-                          key={tab.country}
-                          type="button"
-                          onClick={() => setSelectedCountryFilter(tab.country)}
-                          className={`rounded-xl px-2.5 py-1 text-[11px] font-black transition-all cursor-pointer ${
-                            selectedCountryFilter === tab.country
-                              ? "bg-amber-500 text-slate-950 shadow-xs ring-2 ring-amber-300"
-                              : "bg-slate-100 text-slate-700 hover:bg-amber-100 hover:text-amber-900"
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Secondary Category Filter Pill Bar for INDIA */}
-                    {selectedCountryFilter === "India" && (
-                      <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-2xl bg-linear-to-r from-amber-50/90 via-orange-50/50 to-white border border-amber-200/80 shadow-2xs">
-                        <span className="text-[10px] font-black text-amber-950 uppercase tracking-wider mr-1 flex items-center gap-1">
-                          <span>🇮🇳</span>
-                          <span>India Category:</span>
+                        <span className="rounded-full border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/60 px-3 py-1 text-xs font-extrabold text-purple-900 dark:text-purple-300 font-[vazirmatn]" dir="rtl">
+                          محاسبه هوشمند محموله
                         </span>
-                        {[
-                          { label: "ALL", value: "ALL" },
-                          { label: "✈️ AIRPORTS", value: "AIRPORTS" },
-                          { label: "⚓ SEAPORTS", value: "SEAPORTS" },
-                          { label: "🚚 LAND PORTS", value: "LAND_PORTS" },
-                          { label: "📦 ICD", value: "ICD" },
-                          { label: "🏢 CFS", value: "CFS" },
-                          { label: "🚢 WATERWAY TERMINALS", value: "TERMINALS" },
-                          { label: "🌐 LOGISTICS HUBS", value: "LOGISTICS" },
-                        ].map((cat) => (
-                          <button
-                            key={cat.value}
-                            type="button"
-                            onClick={() => setSelectedIndiaCategoryFilter(cat.value)}
-                            className={`rounded-xl px-2.5 py-1 text-[10px] font-black transition-all cursor-pointer ${
-                              selectedIndiaCategoryFilter === cat.value
-                                ? "bg-amber-600 text-white shadow-xs ring-2 ring-amber-300"
-                                : "bg-white text-slate-700 hover:bg-amber-100 hover:text-amber-900 border border-slate-200"
-                            }`}
-                          >
-                            {cat.label}
-                          </button>
-                        ))}
                       </div>
-                    )}
-                  </div>
-
-                  <div className="grid max-h-96 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-2.5 overflow-y-auto pr-1">
-                    {quickLocationMatches.map((loc, locIndex) => (
-                      <div
-                        key={`quick-loc-catalog-${loc.name}-${loc.code || locIndex}-${locIndex}`}
-                        className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white/95 p-3 transition-all hover:border-amber-400 hover:bg-amber-50/40 hover:shadow-md shadow-2xs"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => handleQuickLocationSelect(loc)}
-                          className="flex flex-col items-start w-full text-left cursor-pointer"
-                          title={`Add to Route Stop: ${loc.name}${loc.borderCountry ? ` (Border: ${loc.borderCountry})` : ""}`}
-                        >
-                          <div className="flex items-start justify-between gap-1.5 w-full">
-                            <div className="flex items-start gap-1.5 flex-1 min-w-0">
-                              <span className="text-base shrink-0 mt-0.5">{countryFlags[loc.country] || "🌍"}</span>
-                              <span className="font-black text-slate-900 text-xs leading-snug break-words">{loc.name}</span>
-                            </div>
-                            <span className="text-[9px] font-black bg-amber-100 text-amber-900 rounded px-1.5 py-0.5 shrink-0 self-start">{loc.code}</span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-1 w-full mt-1.5">
-                            {loc.borderCountry && (
-                              <span className="text-[8px] font-extrabold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200/60 shrink-0">
-                                ⇄ {loc.borderCountry}
-                              </span>
-                            )}
-                            {loc.locationType && (
-                              <span className="text-[8px] font-black text-amber-900 bg-amber-100/80 px-1.5 py-0.2 rounded shrink-0">
-                                {loc.locationType.replace(/_/g, " ")}
-                              </span>
-                            )}
-                            {loc.state && (
-                              <span className="text-[8px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded shrink-0">
-                                {loc.state}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-slate-600 font-[vazirmatn] text-[10.5px] font-bold break-words w-full text-right mt-1.5 leading-snug" dir="rtl">{loc.persian}</span>
-                        </button>
-
-                        {/* Quick 1-Click Set Actions */}
-                        <div className="mt-2 pt-1.5 border-t border-slate-100 flex flex-wrap items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleQuickLocationSelect(loc)}
-                            className="text-[9px] font-extrabold bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 rounded px-1.5 py-0.5 transition-colors cursor-pointer"
-                            title="Add to Route Stops"
-                          >
-                            + Route
-                          </button>
-                          {loc.isPort && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleQuickSetDischarge(loc.portName || loc.name)}
-                                className="text-[9px] font-black bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 rounded px-1.5 py-0.5 transition-colors cursor-pointer"
-                                title="Set as Port of Discharge (بندر تخلیه)"
-                              >
-                                🚢 POD
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleQuickSetLoading(loc.portName || loc.name)}
-                                className="text-[9px] font-black bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 rounded px-1.5 py-0.5 transition-colors cursor-pointer"
-                                title="Set as Port of Loading (بندر بارگیری)"
-                              >
-                                ⚓ POL
-                              </button>
-                            </>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleQuickSetDelivery(loc.country === "Ivory Coast" ? "Ivory Coast, West Africa" : loc.name)}
-                            className="text-[9px] font-black bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 rounded px-1.5 py-0.5 transition-colors cursor-pointer"
-                            title="Set as Place of Delivery (محل تحویل)"
-                          >
-                            📍 Delivery
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {quickLocationMatches.length === 0 && (
-                      <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-white/40 backdrop-blur-md px-3 py-5 text-center text-xs font-bold text-slate-500">
-                        No matching locations / نتیجه‌ای یافت نشد
-                      </div>
-                    )}
-                  </div>
-                </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-              </div>
-
-              {/* Right Column — Cargo Details & Specifications */}
-              <div className="cargo-section w-full min-w-0">
-                <Card id="section-cargo" className="overflow-hidden rounded-[28px] sm:rounded-[32px] w-full border border-purple-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-[0_20px_55px_-24px_rgba(88,28,135,0.28)] dark:shadow-[0_20px_55px_-24px_rgba(0,0,0,0.6)] backdrop-blur-2xl [content-visibility:auto] [contain-intrinsic-size:1px_600px]">
-              <CardHeader className="border-b border-purple-100 dark:border-slate-800 bg-linear-to-r from-purple-50/90 via-white to-indigo-50/60 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 px-4 py-4 sm:px-5">
-                <CardTitle className="flex flex-wrap items-center justify-between gap-3 text-base">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-purple-600 text-white text-[11px] font-black shadow-xs">
-                      06
-                    </span>
-                    <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
-                      <Package className="h-4.5 w-4.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-extrabold text-slate-950 dark:text-slate-100 text-base tracking-tight select-none">Cargo Details & Specifications</span>
-                      <span className="mt-0.5 block text-[11px] font-semibold text-purple-700 dark:text-purple-300">Packages, weights, rates and printable cargo description</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleAutoCalculateWeights}
-                      className="h-9 rounded-xl bg-linear-to-r from-purple-600 to-indigo-600 px-3.5 text-xs font-black text-white shadow-md shadow-purple-500/20 transition-all hover:from-purple-700 hover:to-indigo-700 active:scale-95 cursor-pointer"
-                      title="Calculate Net Weight, Gross Weight and Goods Value"
-                    >
-                      <Calculator className="h-3.5 w-3.5 mr-1" />
-                      Calculate totals
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearAllCargoFields}
-                      className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-[10.5px] font-bold text-slate-600 dark:text-slate-300 shadow-2xs hover:border-red-200 dark:hover:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-400"
-                      title="Clear all Cargo fields"
-                    >
-                      ✕ Clear All
-                    </Button>
-                    <span className="rounded-full border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/60 px-3 py-1 text-xs font-extrabold text-purple-900 dark:text-purple-300 font-[vazirmatn]" dir="rtl">
-                      مشخصات کالا و محموله
-                    </span>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 px-4 pb-5 pt-4 sm:px-5">
-                <RoutePresetSelector
-                  value={formData.cargo_route_note}
-                  onChange={(val) => setFormData((prev) => ({ ...prev, cargo_route_note: val }))}
-                />
-                {/* Quick Cargo Preset Selector Strip */}
-                <div className="rounded-2xl border border-purple-200/80 dark:border-purple-900/60 bg-linear-to-r from-purple-50/90 via-indigo-50/50 to-purple-50/80 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 p-3 shadow-2xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-purple-950 dark:text-purple-200 flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                      1-Click Cargo Commodity Presets
-                    </span>
-                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
-                      بارگذاری پیش‌فرض‌های آماده کالا
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {CARGO_PRESETS.map((preset, pIdx) => (
-                      <button
-                        key={`main-cargo-preset-${preset.name}-${pIdx}`}
-                        type="button"
-                        onClick={() => handleApplyCargoPreset(preset)}
-                        className="rounded-xl border border-purple-200 dark:border-purple-800/80 bg-white dark:bg-slate-900 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-purple-500 text-slate-800 dark:text-slate-200 px-2.5 py-1 text-[11px] font-black whitespace-nowrap transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 flex items-center gap-1 [&_*]:pointer-events-none"
-                        title={`Apply ${preset.name} (${preset.packages}, ${preset.kgsPerCarton} kg/ctn, ${preset.rate}/kg)`}
-                      >
-                        <span className="pointer-events-none">{preset.name}</span>
-                        <span className="text-[9.5px] opacity-75 font-mono pointer-events-none">({preset.packages})</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 px-4 pb-5 pt-4 sm:px-5">
 
                 {/* Live Weights & Calculation Metrics KPI Cards */}
                 {(() => {
@@ -11104,7 +10610,1634 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               </CardContent>
             </Card>
               </div>
-            </div>
+
+              {/* Second Column — Cargo Presets & Specifications */}
+              <div className="cargo-section w-full min-w-0">
+                <Card id="section-cargo" className="overflow-hidden rounded-[28px] sm:rounded-[32px] w-full border border-purple-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-[0_20px_55px_-24px_rgba(88,28,135,0.28)] dark:shadow-[0_20px_55px_-24px_rgba(0,0,0,0.6)] backdrop-blur-2xl [content-visibility:auto] [contain-intrinsic-size:1px_600px]">
+              <CardHeader className="border-b border-purple-100 dark:border-slate-800 bg-linear-to-r from-purple-50/90 via-white to-indigo-50/60 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 px-4 py-4 sm:px-5">
+                <CardTitle className="flex flex-wrap items-center justify-between gap-3 text-base">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex items-center justify-center px-1.5 h-6 rounded-lg bg-purple-600 text-white text-[10px] font-black shadow-xs">
+                      Presets
+                    </span>
+                    <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
+                      <Package className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-extrabold text-slate-950 dark:text-slate-100 text-base tracking-tight select-none">Cargo Details & Specifications</span>
+                      <span className="mt-0.5 block text-[11px] font-semibold text-purple-700 dark:text-purple-300">Packages, weights, rates and printable cargo description</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleAutoCalculateWeights}
+                      className="h-9 rounded-xl bg-linear-to-r from-purple-600 to-indigo-600 px-3.5 text-xs font-black text-white shadow-md shadow-purple-500/20 transition-all hover:from-purple-700 hover:to-indigo-700 active:scale-95 cursor-pointer"
+                      title="Calculate Net Weight, Gross Weight and Goods Value"
+                    >
+                      <Calculator className="h-3.5 w-3.5 mr-1" />
+                      Calculate totals
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAllCargoFields}
+                      className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-[10.5px] font-bold text-slate-600 dark:text-slate-300 shadow-2xs hover:border-red-200 dark:hover:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-400"
+                      title="Clear all Cargo fields"
+                    >
+                      ✕ Clear All
+                    </Button>
+                    <span className="rounded-full border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/60 px-3 py-1 text-xs font-extrabold text-purple-900 dark:text-purple-300 font-[vazirmatn]" dir="rtl">
+                      مشخصات کالا و محموله
+                    </span>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 px-4 pb-5 pt-4 sm:px-5">
+                <RoutePresetSelector
+                  value={formData.cargo_route_note}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, cargo_route_note: val }))}
+                />
+                {/* Quick Cargo Preset Selector Strip */}
+                <div className="rounded-2xl border border-purple-200/80 dark:border-purple-900/60 bg-linear-to-r from-purple-50/90 via-indigo-50/50 to-purple-50/80 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 p-3.5 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-purple-950 dark:text-purple-200 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      1-Click Cargo Commodity Presets
+                    </span>
+                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-white/80 dark:bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 font-[vazirmatn]" dir="rtl">
+                      بارگذاری پیش‌فرض‌های آماده کالا
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {CARGO_PRESETS.map((preset, pIdx) => {
+                      const match = preset.name.match(/^(.*?)\s*\((.*?)\)$/)
+                      const englishName = match ? match[1].trim() : preset.name
+                      const persianName = match ? match[2].trim() : ""
+
+                      const iconMap: Record<string, string> = {
+                        "Dried Figs": "🍯",
+                        "Green Raisins": "🍇",
+                        "Mamra Almonds": "🥜",
+                        "Pomegranate Juice": "🥤",
+                        "Textiles / Fabrics": "🧵",
+                        "General Transit Goods": "📦",
+                      }
+                      const icon = iconMap[englishName] || "📦"
+
+                      return (
+                        <button
+                          key={`main-cargo-preset-${preset.name}-${pIdx}`}
+                          type="button"
+                          onClick={() => handleApplyCargoPreset(preset)}
+                          className="group/preset rounded-xl border border-purple-200/90 dark:border-purple-800/80 bg-white dark:bg-slate-900 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white hover:border-purple-600 dark:hover:border-purple-500 text-slate-800 dark:text-slate-200 p-2.5 transition-all cursor-pointer shadow-2xs hover:shadow-md active:scale-98 flex flex-col justify-between gap-1.5 text-left [&_*]:pointer-events-none"
+                          title={`Apply ${preset.name} (${preset.packages}, ${preset.kgsPerCarton} kg/ctn, $${preset.rate}/kg)`}
+                        >
+                          <div className="flex items-center justify-between gap-1 w-full min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-sm shrink-0">{icon}</span>
+                              <span className="text-xs font-black truncate">{englishName}</span>
+                            </div>
+                            <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-purple-100 group-hover/preset:bg-white/20 text-purple-900 group-hover/preset:text-white dark:bg-purple-900/60 dark:text-purple-200 shrink-0 border border-purple-200/60 group-hover/preset:border-white/30">
+                              {preset.packages}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-1 w-full text-[10.5px] opacity-75 group-hover/preset:opacity-90">
+                            {persianName ? (
+                              <span className="font-[vazirmatn] font-bold text-slate-500 group-hover/preset:text-white truncate" dir="rtl">
+                                {persianName}
+                              </span>
+                            ) : <span />}
+                            <span className="font-mono text-[9px] text-slate-400 group-hover/preset:text-white/80 shrink-0">
+                              {preset.kgsPerCarton}kg • ${preset.rate}/kg
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+              </div>
+
+
+              {/* Third Column — Route Stops & Transit Pathway */}
+              <div className="route-section w-full min-w-0">
+                <Card id="section-routes" data-smart-ignore="true" data-transit-stops-container="true" className="bg-white/85 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-blue-100/80 dark:border-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden [content-visibility:auto] [contain-intrinsic-size:1px_600px]">
+              <CardHeader className="pb-4 border-b border-slate-100/80 dark:border-slate-800 bg-linear-to-r from-blue-50/50 via-indigo-50/30 to-slate-50/50 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-600 text-white text-[11px] font-black shadow-xs shrink-0">
+                        06
+                      </span>
+                      <div className="p-3 rounded-2xl bg-linear-to-br from-blue-600 via-indigo-600 to-cyan-500 shadow-lg shadow-blue-500/25 text-white">
+                        <MapPin className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-blue-950 dark:text-slate-100 text-lg tracking-tight">Route Stops &amp; Transit Pathway</span>
+                          <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-[vazirmatn]">
+                            مسیر حمل و نقل و توقفگاه‌ها
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                          Define multi-stop transit route, border customs points, vehicle plates, and transport modes
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Top Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={openSaveRouteModal}
+                        className="h-9 rounded-xl border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3 text-xs font-black shadow-md shadow-emerald-600/20 cursor-pointer transition-all gap-1.5"
+                        title="Save current route path into Quick Presets list for one-click reuse"
+                      >
+                        <BookmarkPlus className="h-4 w-4 text-white" />
+                        Save to Presets / ذخیره مسیر
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={syncRoutesWithBOLPorts}
+                        className="h-9 rounded-xl border-blue-200 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/60 px-3 text-xs font-extrabold text-blue-900 dark:text-blue-300 shadow-xs hover:bg-blue-100 dark:hover:bg-blue-900/60 cursor-pointer transition-all"
+                        title="Synchronize Stop 1 with Port of Loading and Last Stop with Port of Discharge"
+                      >
+                        <ArrowLeftRight className="h-3.5 w-3.5 mr-1.5 text-blue-700 dark:text-blue-400" />
+                        Sync with B/L / همگام‌سازی
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={reverseRoutes}
+                        className="h-9 rounded-xl border-purple-200 dark:border-purple-800 bg-purple-50/90 dark:bg-purple-950/60 px-3 text-xs font-extrabold text-purple-900 dark:text-purple-300 shadow-xs hover:bg-purple-100 dark:hover:bg-purple-900/60 cursor-pointer transition-all"
+                        title="Reverse the entire route sequence (e.g. Export return trip)"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 mr-1.5 text-purple-700 dark:text-purple-400" />
+                        Reverse / معکوس مسیر
+                      </Button>
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={addRouteStop}
+                        className="h-9 rounded-xl bg-linear-to-r from-amber-500 to-orange-500 text-white px-3.5 text-xs font-extrabold shadow-md shadow-amber-500/20 hover:from-amber-600 hover:to-orange-600 cursor-pointer transition-all"
+                      >
+                        <Plus className="h-4 w-4 mr-1 text-white" />
+                        Add Stop / افزودن توقفگاه
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Route Presets Strip */}
+                  <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mr-1 flex items-center gap-1">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      Quick Presets:
+                    </span>
+
+                    {/* Custom User Saved Presets */}
+                    {savedRoutePresets.map((preset, pIdx) => (
+                      <div key={preset.id ? `${preset.id}-${pIdx}` : `preset-${pIdx}`} className="relative group inline-flex items-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => applyCustomRoutePreset(preset)}
+                          className="h-7.5 rounded-lg border border-amber-300 bg-linear-to-r from-amber-50 to-orange-50/80 pr-6 pl-2.5 text-[11px] font-black text-amber-950 shadow-2xs hover:border-amber-400 hover:from-amber-100 hover:to-orange-100 cursor-pointer transition-all gap-1.5"
+                          title={`Click to apply ${preset.title} (${preset.routes.length} stops)`}
+                        >
+                          <span className="pointer-events-none">{preset.icon || "⭐"}</span>
+                          <span className="max-w-[150px] truncate pointer-events-none">{preset.title}</span>
+                          <span className="rounded-full bg-amber-200/90 px-1.5 py-0.2 text-[9px] font-black text-amber-900 pointer-events-none">
+                            {preset.routes.length}
+                          </span>
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteRoutePreset(preset.id, e)}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-0.5 rounded-full hover:bg-red-200 text-red-600 transition-all cursor-pointer"
+                          title="Delete this saved preset"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyDogharonToMersinReeferExportPreset}
+                      className="h-7.5 rounded-lg border border-cyan-300 bg-cyan-50/90 px-2.5 text-[11px] font-black text-cyan-950 shadow-2xs hover:bg-cyan-100 cursor-pointer transition-all"
+                      title="Route 3: Dogharon → Bazargan → Mersin Reefer (40RF with Escort & Plugging - $14,494.12 USD)"
+                    >
+                      <Ship className="h-3.5 w-3.5 mr-1 text-cyan-700" />
+                      ❄️ Route 3: Dogharon ➡️ Mersin Reefer ($14,494)
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyDougharounToMersinExportPreset}
+                      className="h-7.5 rounded-lg border border-purple-300 bg-purple-50/90 px-2.5 text-[11px] font-black text-purple-950 shadow-2xs hover:bg-purple-100 cursor-pointer transition-all"
+                      title="Route 1: Dougharoun → Bazargan → Mersin (Afghan Export via Turkey - $3,100 USD)"
+                    >
+                      <Truck className="h-3.5 w-3.5 mr-1 text-purple-700" />
+                      🇹🇷 Route 1: Dougharoun ➡️ Mersin ($3,100)
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyNimrozToBandarAbbasExportPreset}
+                      className="h-7.5 rounded-lg border border-amber-300 bg-amber-50/90 px-2.5 text-[11px] font-black text-amber-950 shadow-2xs hover:bg-amber-100 cursor-pointer transition-all"
+                      title="Route 2: Nimroz → Milak → Bandar Abbas (Afghan Export via South Iran - $1,550 USD)"
+                    >
+                      <Ship className="h-3.5 w-3.5 mr-1 text-amber-700" />
+                      🇮🇷 Route 2: Nimroz ➡️ Bandar Abbas ($1,550)
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyNimrozFullReeferSwitchPreset}
+                      className="h-7.5 rounded-lg border border-purple-300 dark:border-purple-800 bg-purple-50/90 dark:bg-purple-950/60 px-2.5 text-[11px] font-black text-purple-950 dark:text-purple-200 shadow-2xs hover:bg-purple-100 dark:hover:bg-purple-900/60 cursor-pointer transition-all"
+                      title="Nimroz → Bandar Abbas (Switch B/L) → Dubai (Full Way Reefer - $2,850 USD)"
+                    >
+                      <Snowflake className="h-3.5 w-3.5 mr-1 text-cyan-600 shrink-0" />
+                      <span>❄️ 🔄 نیمروز ریفر + سوییچ BL ($2,850)</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyKandaharNimrozBandarAbbasDubaiIndiaPreset}
+                      className="h-7.5 rounded-lg border border-emerald-200 bg-emerald-50/80 px-2.5 text-[11px] font-extrabold text-emerald-900 shadow-2xs hover:bg-emerald-100 cursor-pointer transition-all"
+                      title="Kandahar → Nimroz → Bandar Abbas → Dubai → Nhava Sheva (India)"
+                    >
+                      <Ship className="h-3.5 w-3.5 mr-1 text-emerald-700" />
+                      🇦🇫 ➡️ 🇮🇷 ➡️ 🇦🇪 ➡️ 🇮🇳 Kandahar to India
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyHeratIslamQalaDougharounPreset}
+                      className="h-7.5 rounded-lg border border-blue-200 bg-blue-50/80 px-2.5 text-[11px] font-extrabold text-blue-900 shadow-2xs hover:bg-blue-100 cursor-pointer transition-all"
+                      title="Herat → Islam Qala → Dougharoun (Afghanistan to Iran)"
+                    >
+                      <Truck className="h-3.5 w-3.5 mr-1 text-blue-700" />
+                      🚛 Herat ➡️ Dougharoun
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyNimrozChabaharIndiaPreset}
+                      className="h-7.5 rounded-lg border border-cyan-200 bg-cyan-50/80 px-2.5 text-[11px] font-extrabold text-cyan-900 shadow-2xs hover:bg-cyan-100 cursor-pointer transition-all"
+                      title="Nimroz → Milak Border → Chabahar Port → Mundra (India)"
+                    >
+                      <Ship className="h-3.5 w-3.5 mr-1 text-cyan-700" />
+                      🇮🇷 Nimroz ➡️ Chabahar ➡️ India
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyKandaharChamanKarachiDubaiPreset}
+                      className="h-7.5 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[11px] font-extrabold text-indigo-900 shadow-2xs hover:bg-indigo-100 cursor-pointer transition-all"
+                      title="Kandahar → Chaman → Karachi → Dubai"
+                    >
+                      <Truck className="h-3.5 w-3.5 mr-1 text-indigo-700" />
+                      🇵🇰 Kandahar ➡️ Karachi ➡️ Dubai
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyMazarHairatanTashkentPreset}
+                      className="h-7.5 rounded-lg border border-amber-200 bg-amber-50/80 px-2.5 text-[11px] font-extrabold text-amber-900 shadow-2xs hover:bg-amber-100 cursor-pointer transition-all"
+                      title="Mazar-i-Sharif → Hairatan Border → Termez → Tashkent (Rail)"
+                    >
+                      <Train className="h-3.5 w-3.5 mr-1 text-amber-700" />
+                      🇺🇿 Mazar ➡️ Hairatan ➡️ Tashkent
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyKabulDubaiAirPreset}
+                      className="h-7.5 rounded-lg border border-sky-200 bg-sky-50/80 px-2.5 text-[11px] font-extrabold text-sky-900 shadow-2xs hover:bg-sky-100 cursor-pointer transition-all"
+                      title="Kabul Airport → Dubai Airport (Air Cargo)"
+                    >
+                      <Plane className="h-3.5 w-3.5 mr-1 text-sky-700" />
+                      ✈️ Kabul ➡️ Dubai (Air)
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyJaskSuwaiqSoharCorridorPreset}
+                      className="h-7.5 rounded-lg border border-teal-300 dark:border-teal-800 bg-teal-50/90 dark:bg-teal-950/60 px-2.5 text-[11px] font-black text-teal-950 dark:text-teal-200 shadow-2xs hover:bg-teal-100 dark:hover:bg-teal-900/60 cursor-pointer transition-all"
+                      title="Nimroz → Jask Port (Iran) → Suwaiq Port (Oman) → Sohar Port (Oman)"
+                    >
+                      <Ship className="h-3.5 w-3.5 mr-1 text-teal-700 dark:text-teal-400" />
+                      <span>🇮🇷 ➡️ 🇴🇲 جاسک ➔ السویق ➔ صحار</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-6 pt-5 pb-6">
+                {formData.routes.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-blue-200 dark:border-slate-800 bg-white/55 dark:bg-slate-900/60 p-6 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 mx-auto mb-3 shadow-inner">
+                      <MapPin className="h-6 w-6" />
+                    </div>
+                    <p className="text-sm font-extrabold text-blue-950 dark:text-blue-200">No transit route stops configured</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-[vazirmatn] mt-1" dir="rtl">
+                      برای شروع یک توقفگاه اضافه نمایید یا از پیش‌فرض‌های سریع بالا انتخاب کنید
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={addRouteStop}
+                      className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-linear-to-r from-amber-500 to-orange-500 text-white px-4 py-2 text-xs font-black shadow-md shadow-amber-500/20 hover:from-amber-600 hover:to-orange-600 cursor-pointer transition-all"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add First Stop / افزودن اولین توقفگاه
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                {/* Visual Route Pathway Stepper Timeline */}
+                <div className="rounded-2xl border border-blue-200/80 bg-linear-to-r from-blue-50/90 via-indigo-50/50 to-cyan-50/90 p-4 shadow-inner overflow-hidden">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-blue-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-blue-950">
+                        Transit Stepper Pathway / نقشه مسیر
+                      </span>
+                      <span className="rounded-full bg-blue-200/70 px-2 py-0.5 text-[10px] font-black text-blue-900">
+                        {formData.routes.length} Stops Total
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500 font-[vazirmatn]" dir="rtl">
+                      برای انتخاب یا ویرایش روی هر توقفگاه کلیک کنید
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 overflow-x-auto pb-2 pt-1 scrollbar-thin">
+                    {formData.routes.map((route, index) => {
+                      const isOrigin = index === 0
+                      const isDest = index === formData.routes.length - 1
+                      const stopName = route.location || `Stop #${index + 1}`
+                      const isSelected = activeRouteIndex === index
+                      
+                      return (
+                        <div key={route.id ? `route-chip-${route.id}-${index}` : `route-chip-${index}`} className="flex items-center gap-2.5 shrink-0">
+                          <div
+                            onClick={() => setActiveRouteIndex(index)}
+                            className={`group relative flex items-center gap-3 rounded-2xl border p-3 text-left transition-all duration-300 cursor-pointer ${
+                              isSelected
+                                ? "border-2 border-blue-600 bg-white shadow-xl shadow-blue-500/15 ring-4 ring-blue-500/15 scale-102"
+                                : "border-slate-200/90 bg-white/95 hover:border-blue-300 hover:bg-white hover:shadow-md"
+                            }`}
+                          >
+                            {/* Reorder & Action Mini Toolbar (Hover) */}
+                            <div className="absolute -top-3.5 right-2 hidden group-hover:flex items-center gap-0.5 bg-white p-0.5 rounded-lg shadow-md border border-slate-200 z-10">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  moveRouteStop(index, 'up')
+                                }}
+                                disabled={index === 0}
+                                className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded cursor-pointer disabled:opacity-30"
+                                title="Move Earlier (▲)"
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  moveRouteStop(index, 'down')
+                                }}
+                                disabled={index === formData.routes.length - 1}
+                                className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded cursor-pointer disabled:opacity-30"
+                                title="Move Later (▼)"
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  duplicateRouteStop(index)
+                                }}
+                                className="p-1 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"
+                                title="Duplicate Stop"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </button>
+                              {formData.routes.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    removeRouteStop(index)
+                                  }}
+                                  className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                                  title="Delete Stop"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Stop Index Badge */}
+                            <div
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-white text-sm shadow-md ${
+                                isOrigin
+                                  ? "bg-linear-to-br from-emerald-500 to-teal-700 shadow-emerald-500/25"
+                                  : isDest
+                                  ? "bg-linear-to-br from-indigo-600 to-purple-700 shadow-indigo-500/25"
+                                  : "bg-linear-to-br from-blue-600 to-cyan-600 shadow-blue-500/25"
+                              }`}
+                            >
+                              {index + 1}
+                            </div>
+
+                            <div className="min-w-[140px] max-w-[260px]">
+                              <div className="flex items-center gap-1.5">
+                                {getTransportIcon(route.transportMode)}
+                                <span className={`text-[10px] font-black uppercase tracking-wider ${
+                                  isOrigin ? "text-emerald-700" : isDest ? "text-indigo-700" : "text-blue-700"
+                                }`}>
+                                  {isOrigin ? "Origin (مبدأ)" : isDest ? "Destination (مقصد)" : `Stop #${index + 1}`}
+                                </span>
+                              </div>
+                              <p className="mt-0.5 text-xs font-black text-blue-950 leading-snug break-words line-clamp-2">{stopName}</p>
+                              {route.locationPersian && (
+                                <p className="text-[10px] font-bold text-slate-500 font-[vazirmatn] leading-tight break-words line-clamp-2 mt-0.5" dir="rtl">{route.locationPersian}</p>
+                              )}
+
+                              {/* Truck / Seal details badge */}
+                              {route.plateNumber && (
+                                <span className="mt-1 inline-block rounded bg-blue-100 px-1 py-0.2 text-[9px] font-extrabold text-blue-900 border border-blue-200">
+                                  Plate: {route.plateNumber}
+                                </span>
+                              )}
+                              {route.customsSealRequired && (
+                                <span className="mt-1 ml-1 inline-block rounded bg-amber-100 px-1 py-0.2 text-[9px] font-extrabold text-amber-900 border border-amber-200" dir="rtl">
+                                  📍 سیل ګمرک
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Connecting arrow */}
+                          {index < formData.routes.length - 1 && (
+                            <div className="flex items-center gap-1 px-0.5 text-blue-500 shrink-0">
+                              <span className="h-0.5 w-4 bg-linear-to-r from-blue-400 to-indigo-400 rounded-full" />
+                              <ArrowRight className="h-4 w-4 text-blue-600" />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Stop Cards List */}
+                <div className="space-y-4">
+                  {formData.routes.map((route, index) => {
+                    const isOrigin = index === 0
+                    const isDest = index === formData.routes.length - 1
+                    const isSelected = activeRouteIndex === index
+
+                    return (
+                      <div
+                        key={route.id ? `route-card-${route.id}-${index}` : `route-card-${index}`}
+                        className={`rounded-2xl border transition-all ${
+                          isSelected
+                            ? "border-2 border-blue-500 bg-white shadow-xl shadow-blue-500/10 ring-4 ring-blue-500/10"
+                            : "border-slate-200/90 bg-white/95 hover:border-slate-300"
+                        } p-4.5`}
+                      >
+                        {/* Stop Card Header */}
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black text-white shadow-sm ${
+                              isOrigin
+                                ? "bg-linear-to-br from-emerald-500 to-teal-700"
+                                : isDest
+                                ? "bg-linear-to-br from-indigo-600 to-purple-700"
+                                : "bg-linear-to-br from-blue-600 to-cyan-600"
+                            }`}>
+                              {index + 1}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-sm font-black text-blue-950 dark:text-slate-100">
+                                  {isOrigin ? "Origin Point (نقطه مبدأ)" : isDest ? "Final Destination (مقصد نهایی)" : `Stop #${index + 1} - Transit Stop (توقفگاه)`}
+                                </span>
+                                <span className={`rounded-full px-2 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wider shrink-0 ${
+                                  isOrigin ? "bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800" : isDest ? "bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800" : "bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
+                                }`}>
+                                  {isOrigin ? "Port of Loading" : isDest ? "Port of Discharge" : `Transit Stop`}
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 font-[vazirmatn] mt-0.5" dir="rtl">
+                                {route.locationPersian || (isOrigin ? "محل بارگیری" : isDest ? "محل تخلیه نهایی" : "ایستگاه و مرز ترانزیتی")}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Action Toolbar on Card (Sleek Single-Line Fit) */}
+                          <div className="flex items-center gap-1 shrink-0 ml-auto">
+                            {/* Move Up */}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={index === 0}
+                              onClick={() => moveRouteStop(index, 'up')}
+                              className="h-7.5 w-7.5 p-0 rounded-lg border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950 hover:text-blue-700 disabled:opacity-30 cursor-pointer"
+                              title="Move Stop Earlier (▲)"
+                              aria-label="Move Stop Earlier"
+                            >
+                              <ChevronUp className="h-3.5 w-3.5" />
+                              <span className="sr-only">Move Up</span>
+                            </Button>
+
+                            {/* Move Down */}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={index === formData.routes.length - 1}
+                              onClick={() => moveRouteStop(index, 'down')}
+                              className="h-7.5 w-7.5 p-0 rounded-lg border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950 hover:text-blue-700 disabled:opacity-30 cursor-pointer"
+                              title="Move Stop Later (▼)"
+                              aria-label="Move Stop Later"
+                            >
+                              <ChevronDown className="h-3.5 w-3.5" />
+                              <span className="sr-only">Move Down</span>
+                            </Button>
+
+                            {/* Duplicate */}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => duplicateRouteStop(index)}
+                              className="h-7.5 rounded-lg border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/40 px-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 cursor-pointer flex items-center gap-1"
+                              title="Duplicate this stop"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              <span>Duplicate</span>
+                            </Button>
+
+                            {/* Delete */}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7.5 rounded-lg border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/40 px-2 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-100 hover:text-red-700 disabled:opacity-30 cursor-pointer flex items-center gap-1"
+                              onClick={() => removeRouteStop(index)}
+                              title="Remove this route stop"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Delete</span>
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Location and Transport Inputs (Clean 2-Column + Full-Width Mode Selector) */}
+                        <div className="space-y-3">
+                          {/* Relative container spanning both English and Persian inputs so the recommendation popover spans the full route stop card */}
+                          <div className="relative">
+                            <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2">
+                              {/* English Location */}
+                              <div>
+                                <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between h-5">
+                                  <span className="truncate">Location (EN) / {isOrigin ? "Origin" : isDest ? "Dest." : `#${index + 1}`}</span>
+                                  {route.location && (
+                                    <span className="text-[9px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-200 dark:border-emerald-800 shrink-0">Selected</span>
+                                  )}
+                                </label>
+                                <Input
+                                  value={route.location}
+                                  data-smart-disable="true"
+                                  data-transit-stop="true"
+                                  onFocus={() => {
+                                    setActiveRouteIndex(index)
+                                    setFilterByRouteInput(false)
+                                    setShowLocationDropdown(index)
+                                  }}
+                                  onChange={(e) => {
+                                    setActiveRouteIndex(index)
+                                    setFilterByRouteInput(true)
+                                    setShowLocationDropdown(index)
+                                    handleRouteChange(index, "location", e.target.value)
+                                  }}
+                                  placeholder={`e.g. ${isOrigin ? "Kandahar, AF" : isDest ? "Nhava Sheva, IN" : "Bandar Abbas, IR"}`}
+                                  className="h-10.5 rounded-xl border-slate-200 bg-white font-semibold text-slate-900 focus:border-amber-400 focus:ring-amber-200"
+                                />
+                              </div>
+
+                              {/* Persian Location */}
+                              <div>
+                                <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between h-5" dir="rtl">
+                                  <span className="font-[vazirmatn] truncate">موقعیت (فارسی / پښتو)</span>
+                                  <span className="text-[9px] font-extrabold text-slate-400 font-sans uppercase direction-ltr">FA / PS</span>
+                                </label>
+                                <Input
+                                  value={route.locationPersian}
+                                  data-smart-disable="true"
+                                  data-transit-stop="true"
+                                  onFocus={() => {
+                                    setActiveRouteIndex(index)
+                                    setFilterByRouteInput(false)
+                                    setShowLocationDropdown(index)
+                                  }}
+                                  onChange={(e) => {
+                                    setActiveRouteIndex(index)
+                                    setFilterByRouteInput(true)
+                                    setShowLocationDropdown(index)
+                                    handleRouteChange(index, "locationPersian", e.target.value)
+                                  }}
+                                  placeholder="نام محل، بندر یا گمرک"
+                                  dir="rtl"
+                                  className="h-10.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-slate-900 dark:text-slate-100 text-xs font-[vazirmatn] focus:border-amber-400 focus:ring-amber-200"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Inline Recommendation Popover (Full Stop Card Width + Responsive 2-Col Layout) */}
+                            {showLocationDropdown === index && (
+                              <>
+                                {/* Backdrop to dismiss popover when clicking anywhere outside */}
+                                <div
+                                  className="fixed inset-0 z-40 bg-slate-900/10 backdrop-blur-[1px]"
+                                  onClick={() => setShowLocationDropdown(null)}
+                                  aria-hidden="true"
+                                />
+                                <div className="absolute inset-x-0 top-full z-50 mt-1.5 w-full max-h-[70vh] sm:max-h-[30rem] flex flex-col rounded-2xl border-2 border-amber-400 bg-white dark:bg-slate-900 shadow-2xl shadow-slate-950/35 backdrop-blur-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+                                  {/* Popover Header (Fixed Top) */}
+                                  <div className="shrink-0 p-3 sm:p-3.5 pb-2.5 border-b border-slate-100 dark:border-slate-800 space-y-2.5 bg-slate-50/70 dark:bg-slate-900/70">
+                                    {/* Header Row 1: Title + Badges + Close Button */}
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                        <span className="text-xs font-black text-amber-950 dark:text-amber-300 flex items-center gap-1">
+                                          <MapPin className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                          <span>Suggested Locations</span>
+                                        </span>
+                                        <span className="rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 px-2 py-0.5 text-[10px] font-black border border-amber-300/40 shrink-0">
+                                          {quickLocationMatches.length}
+                                        </span>
+                                        {selectedCountryFilter !== "ALL" && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedCountryFilter("ALL")
+                                              setFilterByRouteInput(false)
+                                            }}
+                                            className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-900 dark:text-amber-200 px-2 py-0.5 text-[9.5px] font-black border border-amber-400/40 hover:bg-amber-500/25 transition cursor-pointer shrink-0"
+                                            title="Click to reset country filter"
+                                          >
+                                            <span>{selectedCountryFilter}</span>
+                                            <span className="text-amber-700 dark:text-amber-300 font-normal">✕</span>
+                                          </button>
+                                        )}
+                                        {route.transportMode === "airplane" && !disableModeFilter && (
+                                          <span className="rounded-full bg-sky-100 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 px-2 py-0.5 text-[9px] font-black border border-sky-200 dark:border-sky-800 shrink-0">
+                                            ✈️ Airports Only
+                                          </span>
+                                        )}
+                                        {route.transportMode === "vessel" && !disableModeFilter && (
+                                          <span className="rounded-full bg-cyan-100 dark:bg-cyan-950/70 text-cyan-800 dark:text-cyan-300 px-2 py-0.5 text-[9px] font-black border border-cyan-200 dark:border-cyan-800 shrink-0">
+                                            🚢 Ports Only
+                                          </span>
+                                        )}
+                                        {route.transportMode === "train" && !disableModeFilter && (
+                                          <span className="rounded-full bg-purple-100 dark:bg-purple-950/70 text-purple-800 dark:text-purple-300 px-2 py-0.5 text-[9px] font-black border border-purple-200 dark:border-purple-800 shrink-0">
+                                            🚆 Rail Only
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowLocationDropdown(null)}
+                                        className="text-xs font-black text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-xl transition cursor-pointer shrink-0 shadow-2xs flex items-center gap-1"
+                                        title="Close suggested locations (Esc)"
+                                      >
+                                        <span>✕</span>
+                                        <span>Close</span>
+                                      </button>
+                                    </div>
+
+                                    {/* Header Row 2: Full-Width Search Input with Clear Button */}
+                                    <div className="relative w-full">
+                                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                                      <Input
+                                        value={routeLocationSearch}
+                                        onChange={(e) => {
+                                          setRouteLocationSearch(e.target.value)
+                                          setFilterByRouteInput(false)
+                                        }}
+                                        placeholder={
+                                          filterByRouteInput && activeInputLocation
+                                            ? `Filtering by stop: "${activeInputLocation}"... (click ✕ to clear)`
+                                            : "Filter locations, ports, codes (e.g. Jask, Sohar, DXB)..."
+                                        }
+                                        className="h-8.5 text-xs rounded-xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 pl-8 pr-8 focus:border-amber-400 focus:ring-amber-200 w-full font-medium shadow-2xs"
+                                        autoFocus={false}
+                                      />
+                                      {(routeLocationSearch || (filterByRouteInput && activeInputLocation)) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setRouteLocationSearch("")
+                                            setFilterByRouteInput(false)
+                                          }}
+                                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs cursor-pointer p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                                          title="Clear search and show all"
+                                        >
+                                          ✕
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {/* Mode-Specific Filtering Alert & Toggle */}
+                                    {route.transportMode === "airplane" && (
+                                      <div className="flex items-center justify-between bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 rounded-xl px-3 py-1.5 gap-2 shadow-2xs">
+                                        <div className="flex items-center gap-1.5 text-sky-950 dark:text-sky-200 font-black text-[11px] truncate">
+                                          <Plane className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                                          <span className="truncate">AIR MODE: Showing Airports Only (میدان‌های هوایی)</span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setDisableModeFilter(!disableModeFilter)}
+                                          className="text-[9.5px] font-black px-2 py-0.5 rounded-lg border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-800 text-sky-800 dark:text-sky-200 hover:bg-sky-100 transition cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
+                                        >
+                                          {disableModeFilter ? "✈️ Filter Airports Only" : "🌐 Show All Locations"}
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {route.transportMode === "vessel" && (
+                                      <div className="flex items-center justify-between bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200 dark:border-cyan-800 rounded-xl px-3 py-1.5 gap-2 shadow-2xs">
+                                        <div className="flex items-center gap-1.5 text-cyan-950 dark:text-cyan-200 font-black text-[11px] truncate">
+                                          <Ship className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                                          <span className="truncate">SEA MODE: Showing Ports Only (بنادر دریایی)</span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setDisableModeFilter(!disableModeFilter)}
+                                          className="text-[9.5px] font-black px-2 py-0.5 rounded-lg border border-cyan-300 dark:border-cyan-700 bg-white dark:bg-slate-800 text-cyan-800 dark:text-cyan-200 hover:bg-cyan-100 transition cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
+                                        >
+                                          {disableModeFilter ? "⚓ Filter Ports Only" : "🌐 Show All Locations"}
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {route.transportMode === "train" && (
+                                      <div className="flex items-center justify-between bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded-xl px-3 py-1.5 gap-2 shadow-2xs">
+                                        <div className="flex items-center gap-1.5 text-purple-950 dark:text-purple-200 font-black text-[11px] truncate">
+                                          <Train className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                                          <span className="truncate">RAIL MODE: Showing Rail & ICD Hubs (ایستگاه‌های ریل)</span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setDisableModeFilter(!disableModeFilter)}
+                                          className="text-[9.5px] font-black px-2 py-0.5 rounded-lg border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-800 text-purple-800 dark:text-purple-200 hover:bg-purple-100 transition cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
+                                        >
+                                          {disableModeFilter ? "🚆 Filter Rail Only" : "🌐 Show All Locations"}
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {/* Quick Country Filter Chips — Single-Row Smooth Horizontal Scroll with Navigation Chevrons */}
+                                    <div className="relative flex items-center group/pills w-full min-w-0">
+                                      {/* Scroll Left Button */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          const container = e.currentTarget.parentElement?.querySelector('.pills-scroll-track') as HTMLDivElement | null
+                                          if (container) container.scrollBy({ left: -140, behavior: 'smooth' })
+                                        }}
+                                        className="hidden sm:flex shrink-0 items-center justify-center h-6 w-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-slate-600 dark:text-slate-300 hover:bg-amber-100 hover:text-amber-900 transition mr-1 cursor-pointer"
+                                        title="Scroll filter chips left"
+                                        aria-label="Scroll left"
+                                      >
+                                        <ChevronLeft className="h-3.5 w-3.5" />
+                                      </button>
+
+                                      {/* Scroll Track with Wheel Support */}
+                                      <div
+                                        onWheel={(e) => {
+                                          if (e.deltaY !== 0) {
+                                            e.currentTarget.scrollLeft += e.deltaY
+                                          }
+                                        }}
+                                        className="pills-scroll-track flex items-center gap-1.5 overflow-x-auto pb-1 scroll-smooth no-scrollbar scrollbar-none w-full min-w-0"
+                                      >
+                                        {[
+                                          { label: "🌍 All", value: "ALL" },
+                                          { label: "⚓ Ports", value: "PORTS" },
+                                          { label: "🇦🇪 UAE / Dubai", value: "UAE" },
+                                          { label: "🇴🇲 Oman", value: "Oman" },
+                                          { label: "🇮🇷 Iran", value: "Iran" },
+                                          { label: "🇨🇮 Ivory Coast / Africa", value: "AFRICA" },
+                                          { label: "🇦🇫 Afghanistan", value: "Afghanistan" },
+                                          { label: "🇺🇿 Uzbekistan", value: "Uzbekistan" },
+                                          { label: "🇮🇳 India", value: "India" },
+                                          { label: "🇵🇰 Pakistan", value: "Pakistan" },
+                                          { label: "🇸🇦 Gulf", value: "GULF" },
+                                          { label: "🇹🇷 Turkey", value: "Turkey" },
+                                          { label: "🇨🇳 China", value: "China" },
+                                          { label: "🇪🇺 Europe / US", value: "EUROPE_AMERICAS" },
+                                          { label: "🌐 Central Asia", value: "CENTRAL_ASIA" },
+                                        ].map((tab) => (
+                                          <button
+                                            key={tab.value}
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedCountryFilter(tab.value)
+                                              setFilterByRouteInput(false)
+                                              setRouteLocationSearch("")
+                                            }}
+                                            className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                                              selectedCountryFilter === tab.value
+                                                ? "bg-amber-600 text-white shadow-xs ring-1 ring-amber-400"
+                                                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 hover:text-amber-900 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+                                            }`}
+                                          >
+                                            {tab.label}
+                                          </button>
+                                        ))}
+                                      </div>
+
+                                      {/* Scroll Right Button */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          const container = e.currentTarget.parentElement?.querySelector('.pills-scroll-track') as HTMLDivElement | null
+                                          if (container) container.scrollBy({ left: 140, behavior: 'smooth' })
+                                        }}
+                                        className="hidden sm:flex shrink-0 items-center justify-center h-6 w-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-slate-600 dark:text-slate-300 hover:bg-amber-100 hover:text-amber-900 transition ml-1 cursor-pointer"
+                                        title="Scroll filter chips right"
+                                        aria-label="Scroll right"
+                                      >
+                                        <ChevronRight className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+
+                                    {/* Secondary category filter for India inside popover */}
+                                    {selectedCountryFilter === "India" && (
+                                      <div
+                                        onWheel={(e) => {
+                                          if (e.deltaY !== 0) {
+                                            e.currentTarget.scrollLeft += e.deltaY
+                                          }
+                                        }}
+                                        className="flex items-center gap-1 overflow-x-auto pb-1 border-t border-amber-200/80 bg-amber-50/60 dark:bg-slate-800/60 p-1.5 rounded-xl no-scrollbar scrollbar-none"
+                                      >
+                                        <span className="text-[9px] font-black text-amber-950 dark:text-amber-200 self-center mr-1 shrink-0">🇮🇳 Filter:</span>
+                                        {[
+                                          { label: "ALL", value: "ALL" },
+                                          { label: "✈️ AIRPORTS", value: "AIRPORTS" },
+                                          { label: "⚓ SEAPORTS", value: "SEAPORTS" },
+                                          { label: "🚚 LAND PORTS", value: "LAND_PORTS" },
+                                          { label: "📦 ICD", value: "ICD" },
+                                          { label: "🏢 CFS", value: "CFS" },
+                                          { label: "🚢 TERMINALS", value: "TERMINALS" },
+                                          { label: "🌐 LOGISTICS", value: "LOGISTICS" },
+                                        ].map((cat) => (
+                                          <button
+                                            key={cat.value}
+                                            type="button"
+                                            onClick={() => setSelectedIndiaCategoryFilter(cat.value)}
+                                            className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold transition cursor-pointer shrink-0 whitespace-nowrap ${
+                                              selectedIndiaCategoryFilter === cat.value
+                                                ? "bg-amber-600 text-white shadow-xs"
+                                                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-amber-100 hover:text-amber-900 border border-slate-200 dark:border-slate-700"
+                                            }`}
+                                          >
+                                            {cat.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Scrollable Location Match Cards — Responsive Grid with Minimum Card Width */}
+                                  <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-3 sm:p-4 pt-2.5">
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-2.5">
+                                      {quickLocationMatches.map((loc, locIndex) => (
+                                        <div
+                                          key={`quick-loc-popover-${loc.name}-${loc.code || locIndex}-${locIndex}`}
+                                          className="flex flex-col justify-between rounded-xl p-3 text-left transition bg-white hover:bg-amber-50/70 dark:bg-slate-850 dark:hover:bg-slate-800 border border-slate-200/90 hover:border-amber-400 dark:border-slate-700/80 dark:hover:border-amber-400 group shadow-xs hover:shadow-md min-w-0"
+                                        >
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              handleQuickLocationSelect(loc)
+                                              setShowLocationDropdown(null)
+                                            }}
+                                            className="flex flex-col items-start w-full cursor-pointer text-left gap-1.5 min-w-0"
+                                          >
+                                            {/* Card Top Row: Flag pill + Country / Tags + Code Pill */}
+                                            <div className="flex items-center justify-between gap-1.5 w-full min-w-0">
+                                              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                                                <span className="inline-flex items-center justify-center min-w-[26px] h-6 px-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-bold shrink-0 border border-slate-200/80 dark:border-slate-700 select-none">
+                                                  {countryFlags[loc.country] || "📍"}
+                                                </span>
+                                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
+                                                  {loc.country || "Location"}
+                                                </span>
+                                                {loc.borderCountry && (
+                                                  <span className="text-[8.5px] font-extrabold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-200/60 dark:border-blue-800 shrink-0">
+                                                    ⇄ {loc.borderCountry}
+                                                  </span>
+                                                )}
+                                                {loc.locationType && (
+                                                  <span className="text-[8.5px] font-black text-amber-900 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/60 px-1.5 py-0.5 rounded shrink-0">
+                                                    {loc.locationType.replace(/_/g, " ")}
+                                                  </span>
+                                                )}
+                                              </div>
+
+                                              {loc.code && (
+                                                <span className="rounded-md bg-amber-100 dark:bg-amber-950/70 border border-amber-300/80 dark:border-amber-800 px-2 py-0.5 text-[10px] font-black text-amber-900 dark:text-amber-200 shrink-0">
+                                                  {loc.code}
+                                                </span>
+                                              )}
+                                            </div>
+
+                                            {/* Location Names: English + Persian (Full Width, break-normal so words never split character-by-character) */}
+                                            <div className="w-full min-w-0 pt-0.5">
+                                              <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-amber-950 dark:group-hover:text-amber-200 leading-snug break-normal">
+                                                {loc.name}
+                                              </p>
+                                              {loc.persian && (
+                                                <p className="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-400 font-[vazirmatn] leading-snug break-normal mt-0.5 text-right w-full" dir="rtl">
+                                                  {loc.persian}
+                                                </p>
+                                              )}
+                                            </div>
+                                          </button>
+
+                                          {/* Action Toolbar on Card */}
+                                          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-1.5">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                handleQuickLocationSelect(loc)
+                                                setShowLocationDropdown(null)
+                                              }}
+                                              className="text-[9.5px] font-black bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg px-2.5 py-1 transition cursor-pointer shadow-2xs"
+                                            >
+                                              + Stop #{index + 1}
+                                            </button>
+                                            {loc.isPort && (
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleQuickSetDischarge(loc.portName || loc.name)}
+                                                  className="text-[9.5px] font-extrabold bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-600 rounded-lg px-2 py-1 transition cursor-pointer border border-indigo-200/60 dark:border-indigo-800 active:scale-95"
+                                                  title="Set as Port of Discharge (POD)"
+                                                >
+                                                  🚢 POD
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleQuickSetLoading(loc.portName || loc.name)}
+                                                  className="text-[9.5px] font-extrabold bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white dark:bg-blue-950/60 dark:text-blue-300 dark:hover:bg-blue-600 rounded-lg px-2 py-1 transition cursor-pointer border border-blue-200/60 dark:border-blue-800 active:scale-95"
+                                                  title="Set as Port of Loading (POL)"
+                                                >
+                                                  ⚓ POL
+                                                </button>
+                                              </>
+                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={() => handleQuickSetDelivery(loc.country === "Ivory Coast" ? "Ivory Coast, West Africa" : loc.name)}
+                                              className="text-[9.5px] font-extrabold bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-600 rounded-lg px-2 py-1 transition cursor-pointer border border-emerald-200/60 dark:border-emerald-800 active:scale-95 ml-auto"
+                                              title="Set as Final Place of Delivery"
+                                            >
+                                              📍 Delivery
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+
+                                      {quickLocationMatches.length === 0 && (
+                                        <div className="col-span-full p-5 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-3 shadow-2xs">
+                                          <div className="flex flex-col items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400">
+                                            <MapPinOff className="h-6 w-6 text-amber-500/80 mb-0.5" />
+                                            <p className="text-xs font-black text-slate-800 dark:text-slate-200">
+                                              No predefined locations found
+                                            </p>
+                                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 max-w-sm">
+                                              {quickLocationQuery
+                                                ? `No catalog match for "${quickLocationQuery}". You can keep your custom entry or reset filters.`
+                                                : "No locations match the selected country or transport mode filters."}
+                                            </p>
+                                          </div>
+                                          <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
+                                            {(routeLocationSearch || filterByRouteInput || selectedCountryFilter !== "ALL" || disableModeFilter) && (
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                  setRouteLocationSearch("")
+                                                  setFilterByRouteInput(false)
+                                                  setSelectedCountryFilter("ALL")
+                                                  setDisableModeFilter(true)
+                                                }}
+                                                className="h-7.5 px-3 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 border-amber-300 text-amber-900 dark:text-amber-200 hover:bg-amber-50 cursor-pointer shadow-2xs"
+                                              >
+                                                🌐 Show All Locations
+                                              </Button>
+                                            )}
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              onClick={() => setShowLocationDropdown(null)}
+                                              className="h-7.5 px-3 rounded-lg text-xs font-black bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-2xs"
+                                            >
+                                              ✓ Keep Custom Entry &amp; Close
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                        {/* Transport Mode Selector (Full Width Horizontal Pills) */}
+                        <div>
+                          <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between h-5">
+                            <span>Transport Mode / حالت حمل و نقل</span>
+                            <span className="text-[9.5px] font-extrabold text-slate-400 uppercase">Select Mode</span>
+                          </label>
+                          
+                          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                            {/* Option: Truck/Road */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleRouteChange(index, "transportMode", "truck")
+                                setDisableModeFilter(false)
+                              }}
+                              className={`flex items-center justify-center gap-1 sm:gap-1.5 h-10 rounded-xl border transition-all cursor-pointer px-1 sm:px-2 ${
+                                route.transportMode === "truck" || route.transportMode === "road" || !route.transportMode
+                                  ? "border-blue-500 bg-blue-50/90 dark:bg-blue-950/60 text-blue-950 dark:text-blue-200 shadow-xs ring-2 ring-blue-500/25 font-black"
+                                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-300 hover:bg-slate-50 font-bold"
+                              }`}
+                              title="Road / Truck Transport (حمل جاده‌ای با موتر)"
+                            >
+                              <Truck className={`h-4 w-4 shrink-0 ${route.transportMode === "truck" || route.transportMode === "road" || !route.transportMode ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                              <span className="text-[11px] font-black uppercase">Truck</span>
+                            </button>
+
+                            {/* Option: Vessel/Sea */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleRouteChange(index, "transportMode", "vessel")
+                                setDisableModeFilter(false)
+                              }}
+                              className={`flex items-center justify-center gap-1 sm:gap-1.5 h-10 rounded-xl border transition-all cursor-pointer px-1 sm:px-2 ${
+                                route.transportMode === "vessel"
+                                  ? "border-cyan-500 bg-cyan-50/90 dark:bg-cyan-950/60 text-cyan-950 dark:text-cyan-200 shadow-xs ring-2 ring-cyan-500/25 font-black"
+                                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-cyan-300 hover:bg-slate-50 font-bold"
+                              }`}
+                              title="Maritime / Sea Vessel (حمل دریایی با کشتی)"
+                            >
+                              <Ship className={`h-4 w-4 shrink-0 ${route.transportMode === "vessel" ? "text-cyan-600 dark:text-cyan-400" : "text-slate-400"}`} />
+                              <span className="text-[11px] font-black uppercase">Sea</span>
+                            </button>
+
+                            {/* Option: Plane/Air */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleRouteChange(index, "transportMode", "airplane")
+                                setDisableModeFilter(false)
+                              }}
+                              className={`flex items-center justify-center gap-1 sm:gap-1.5 h-10 rounded-xl border transition-all cursor-pointer px-1 sm:px-2 ${
+                                route.transportMode === "airplane"
+                                  ? "border-sky-500 bg-sky-50/90 dark:bg-sky-950/60 text-sky-950 dark:text-sky-200 shadow-xs ring-2 ring-sky-500/25 font-black"
+                                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-sky-300 hover:bg-slate-50 font-bold"
+                              }`}
+                              title="Air Freight / Flight (حمل هوایی با طیاره)"
+                            >
+                              <Plane className={`h-4 w-4 shrink-0 ${route.transportMode === "airplane" ? "text-sky-600 dark:text-sky-400" : "text-slate-400"}`} />
+                              <span className="text-[11px] font-black uppercase">Air</span>
+                            </button>
+
+                            {/* Option: Train/Rail */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleRouteChange(index, "transportMode", "train")
+                                setDisableModeFilter(false)
+                              }}
+                              className={`flex items-center justify-center gap-1 sm:gap-1.5 h-10 rounded-xl border transition-all cursor-pointer px-1 sm:px-2 ${
+                                route.transportMode === "train"
+                                  ? "border-purple-500 bg-purple-50/90 dark:bg-purple-950/60 text-purple-950 dark:text-purple-200 shadow-xs ring-2 ring-purple-500/25 font-black"
+                                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-purple-300 hover:bg-slate-50 font-bold"
+                              }`}
+                              title="Rail / Train Transport (حمل ریلی با قطار)"
+                            >
+                              <Train className={`h-4 w-4 shrink-0 ${route.transportMode === "train" ? "text-purple-600 dark:text-purple-400" : "text-slate-400"}`} />
+                              <span className="text-[11px] font-black uppercase">Rail</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                        {/* Dedicated Specifications Panel based on Transport Mode */}
+                        {(route.transportMode === "truck" || route.transportMode === "road" || !route.transportMode) && (
+                          <div className="mt-3 rounded-2xl border border-blue-100 dark:border-slate-800 bg-linear-to-br from-blue-50/70 via-indigo-50/30 to-amber-50/30 dark:from-slate-900/90 dark:via-slate-850 dark:to-slate-900 p-3 sm:p-3.5 shadow-2xs space-y-2.5">
+                            <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-blue-200/60 dark:border-slate-800 pb-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="p-1.5 rounded-lg bg-blue-600 text-white shadow-xs shrink-0">
+                                  <Truck className="h-3.5 w-3.5" />
+                                </div>
+                                <span className="text-xs font-black uppercase tracking-wider text-blue-950 dark:text-blue-200 truncate">
+                                  Truck Specifications &amp; Customs Seal
+                                </span>
+                              </div>
+                              <span className="text-[11px] font-bold text-blue-800 dark:text-blue-300 font-[vazirmatn] shrink-0" dir="rtl">
+                                مشخصات موټر، شاسی و ډریور
+                              </span>
+                            </div>
+
+                            <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-2">
+                              {/* Plate Number */}
+                              <div>
+                                <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+                                  Plate No. / پلیټ نمبر
+                                </label>
+                                <Input
+                                  value={route.plateNumber || ""}
+                                  onChange={(e) => handleRouteChange(index, "plateNumber", e.target.value)}
+                                  placeholder="مثلا: KBL-7842"
+                                  className="h-9.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-slate-900 dark:text-slate-100 text-xs focus:border-amber-400 focus:ring-amber-200"
+                                />
+                              </div>
+
+                              {/* Chassis Number */}
+                              <div>
+                                <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+                                  Chassis No. / شاسی نمبر
+                                </label>
+                                <Input
+                                  value={route.chassisNumber || ""}
+                                  onChange={(e) => handleRouteChange(index, "chassisNumber", e.target.value)}
+                                  placeholder="CH-908712"
+                                  className="h-9.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-slate-900 dark:text-slate-100 text-xs focus:border-amber-400 focus:ring-amber-200"
+                                />
+                              </div>
+
+                              {/* Driver / Trailer Man (Spans 2 columns on sm) */}
+                              <div className="sm:col-span-2">
+                                <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1 font-[vazirmatn]">
+                                  Trailer Man / Driver (ټیلر مان / ډریور)
+                                </label>
+                                <Input
+                                  value={route.trailerMan || ""}
+                                  onChange={(e) => handleRouteChange(index, "trailerMan", e.target.value)}
+                                  placeholder="نام دریور / ټیلر مان (Driver Full Name)"
+                                  className="h-9.5 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-slate-900 dark:text-slate-100 text-xs font-[vazirmatn] focus:border-amber-400 focus:ring-amber-200"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Customs Seal Requirement */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-blue-200/50 dark:border-slate-800">
+                              <label className="flex items-center gap-2 cursor-pointer select-none shrink-0">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(route.customsSealRequired)}
+                                  onChange={(e) => handleRouteChange(index, "customsSealRequired", e.target.checked)}
+                                  className="h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-400 cursor-pointer"
+                                />
+                                <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-[vazirmatn] flex items-center gap-1.5" dir="rtl">
+                                  <span>📍 په ګمرک کې سیل غواړي</span>
+                                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-sans direction-ltr">
+                                    (Customs Seal Required)
+                                  </span>
+                                </span>
+                              </label>
+                              {route.customsSealRequired && (
+                                <Input
+                                  value={route.customsSealNote || ""}
+                                  onChange={(e) => handleRouteChange(index, "customsSealNote", e.target.value)}
+                                  placeholder="Customs seal details / جزئیات سیل ګمرک"
+                                  className="h-8.5 w-full sm:w-64 rounded-lg border-amber-400 bg-white dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-slate-100 font-[vazirmatn] focus:border-amber-500"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Sea / Vessel Mode Panel */}
+                        {route.transportMode === "vessel" && (
+                          <div className="mt-3.5 rounded-2xl border border-cyan-100 bg-linear-to-br from-cyan-50/70 via-blue-50/30 to-slate-50/30 p-3.5 shadow-2xs space-y-3">
+                            <div className="flex items-center gap-2 border-b border-cyan-200/60 pb-2">
+                              <div className="p-1.5 rounded-lg bg-cyan-600 text-white shadow-xs">
+                                <Ship className="h-3.5 w-3.5" />
+                              </div>
+                              <span className="text-xs font-black uppercase tracking-wider text-cyan-950">
+                                Sea Port &amp; Vessel Details / مشخصات کشتی و بندر بحری
+                              </span>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                              <div>
+                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
+                                  Vessel Name / نام کشتی
+                                </label>
+                                <Input
+                                  value={route.notes || ""}
+                                  onChange={(e) => handleRouteChange(index, "notes", e.target.value)}
+                                  placeholder="e.g. WAN HAI 512"
+                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
+                                  Port Terminal / ترمینل بندر
+                                </label>
+                                <Input
+                                  value={route.customsSealNote || ""}
+                                  onChange={(e) => handleRouteChange(index, "customsSealNote", e.target.value)}
+                                  placeholder="Terminal 1 / Berthing Quay"
+                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
+                                  Container No. / کانتینر
+                                </label>
+                                <Input
+                                  value={route.plateNumber || ""}
+                                  onChange={(e) => handleRouteChange(index, "plateNumber", e.target.value)}
+                                  placeholder="MSCU-1234567"
+                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs font-mono"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Air Cargo Panel */}
+                        {route.transportMode === "airplane" && (
+                          <div className="mt-3.5 rounded-2xl border border-sky-100 bg-linear-to-br from-sky-50/70 via-blue-50/30 to-slate-50/30 p-3.5 shadow-2xs space-y-3">
+                            <div className="flex items-center gap-2 border-b border-sky-200/60 pb-2">
+                              <div className="p-1.5 rounded-lg bg-sky-600 text-white shadow-xs">
+                                <Plane className="h-3.5 w-3.5" />
+                              </div>
+                              <span className="text-xs font-black uppercase tracking-wider text-sky-950">
+                                Air Freight &amp; Flight Information / پرواز و بارنامه هوایی
+                              </span>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div>
+                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
+                                  Flight No. / شماره پرواز
+                                </label>
+                                <Input
+                                  value={route.notes || ""}
+                                  onChange={(e) => handleRouteChange(index, "notes", e.target.value)}
+                                  placeholder="e.g. FG-311 / EK-205"
+                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs font-mono"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
+                                  Air Waybill (AWB) / شماره AWB
+                                </label>
+                                <Input
+                                  value={route.plateNumber || ""}
+                                  onChange={(e) => handleRouteChange(index, "plateNumber", e.target.value)}
+                                  placeholder="AWB-9087612"
+                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs font-mono"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Rail Freight Panel */}
+                        {route.transportMode === "train" && (
+                          <div className="mt-3.5 rounded-2xl border border-amber-100 bg-linear-to-br from-amber-50/70 via-orange-50/30 to-slate-50/30 p-3.5 shadow-2xs space-y-3">
+                            <div className="flex items-center gap-2 border-b border-amber-200/60 pb-2">
+                              <div className="p-1.5 rounded-lg bg-amber-600 text-white shadow-xs">
+                                <Train className="h-3.5 w-3.5" />
+                              </div>
+                              <span className="text-xs font-black uppercase tracking-wider text-amber-950">
+                                Railway Freight Information / معلومات خط آهن و واگن
+                              </span>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div>
+                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
+                                  Wagon / Train No. / شماره واگن
+                                </label>
+                                <Input
+                                  value={route.plateNumber || ""}
+                                  onChange={(e) => handleRouteChange(index, "plateNumber", e.target.value)}
+                                  placeholder="WGN-54210"
+                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs font-mono"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block mb-1">
+                                  Railway Station / ایستگاه ریل
+                                </label>
+                                <Input
+                                  value={route.notes || ""}
+                                  onChange={(e) => handleRouteChange(index, "notes", e.target.value)}
+                                  placeholder="Hairatan Railway Terminal"
+                                  className="h-9.5 rounded-xl border-slate-200 bg-white font-bold text-slate-900 text-xs"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Quick Select Locations Bar with Live Search */}
+                <div className="pt-4 border-t border-slate-200/80">
+                  <div className="flex flex-col gap-3 mb-3.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="h-4 w-1 bg-amber-500 rounded-full inline-block" />
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-900">
+                            Quick Location Selector
+                          </span>
+                          <span className="text-slate-300 font-light">|</span>
+                          <span className="text-xs font-bold text-slate-600 font-[vazirmatn]" dir="rtl">
+                            انتخاب سریع محل
+                          </span>
+                        </div>
+                        {activeRouteIndex !== null && (
+                          <p className="text-[11px] font-bold text-amber-800 pl-3">
+                            Targeting: <span className="font-black text-blue-950">{getRouteStopLabel(activeRouteIndex, formData.routes.length)} (Stop #{activeRouteIndex + 1})</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Live Search Input with Search Icon & Clear Button */}
+                      <div className="relative w-full sm:w-72">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                        <Input
+                          value={routeLocationSearch}
+                          onChange={(e) => setRouteLocationSearch(e.target.value)}
+                          placeholder="Search city, port, code, or country..."
+                          className="h-8.5 text-xs rounded-xl bg-white border-slate-200/90 pl-8 pr-7 font-medium shadow-2xs focus-visible:ring-amber-400 focus-visible:border-amber-400"
+                        />
+                        {routeLocationSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setRouteLocationSearch("")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs cursor-pointer p-0.5 rounded-full hover:bg-slate-100 transition-colors"
+                            title="Clear search"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Regional Country Tabs — Uniform Height, Single-Line, Smooth Horizontal Scroll */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300">
+                      {[
+                        { label: "ALL", country: "ALL" },
+                        { label: "⚓ ALL SEAPORTS", country: "PORTS" },
+                        { label: "🇦🇪 DUBAI & UAE PORTS", country: "UAE" },
+                        { label: "🇴🇲 OMAN PORTS", country: "Oman" },
+                        { label: "🇮🇷 IRAN PORTS", country: "Iran" },
+                        { label: "🇨🇮 IVORY COAST & AFRICA", country: "AFRICA" },
+                        { label: "🇦🇫 AFGHANISTAN", country: "Afghanistan" },
+                        { label: "🇺🇿 UZBEKISTAN", country: "Uzbekistan" },
+                        { label: "🇮🇳 INDIA", country: "India" },
+                        { label: "🇵🇰 PAKISTAN", country: "Pakistan" },
+                        { label: "🇸🇦 🇶🇦 GULF STATES", country: "GULF" },
+                        { label: "🇹🇷 TURKEY", country: "Turkey" },
+                        { label: "🇨🇳 CHINA & ASIA", country: "China" },
+                        { label: "🇪🇺 EUROPE & AMERICAS", country: "EUROPE_AMERICAS" },
+                        { label: "🌐 CENTRAL ASIA", country: "CENTRAL_ASIA" },
+                      ].map((tab) => (
+                        <button
+                          key={tab.country}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCountryFilter(tab.country)
+                            setFilterByRouteInput(false)
+                            setRouteLocationSearch("")
+                          }}
+                          className={`h-8 shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 px-3 rounded-xl text-[11px] font-black transition-all cursor-pointer select-none ${
+                            selectedCountryFilter === tab.country
+                              ? "bg-amber-500 text-slate-950 shadow-xs ring-2 ring-amber-300 font-black"
+                              : "bg-slate-100/90 text-slate-700 hover:bg-amber-100/80 hover:text-amber-950 border border-slate-200/70"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Secondary Category Filter Pill Bar for INDIA */}
+                    {selectedCountryFilter === "India" && (
+                      <div className="flex items-center gap-1.5 overflow-x-auto p-2 rounded-2xl bg-linear-to-r from-amber-50/90 via-orange-50/50 to-white border border-amber-200/80 shadow-2xs pb-2 scrollbar-thin scrollbar-thumb-amber-200">
+                        <span className="text-[10px] font-black text-amber-950 uppercase tracking-wider mr-1 flex items-center gap-1 shrink-0 whitespace-nowrap">
+                          <span>🇮🇳</span>
+                          <span>India Category:</span>
+                        </span>
+                        {[
+                          { label: "ALL", value: "ALL" },
+                          { label: "✈️ AIRPORTS", value: "AIRPORTS" },
+                          { label: "⚓ SEAPORTS", value: "SEAPORTS" },
+                          { label: "🚚 LAND PORTS", value: "LAND_PORTS" },
+                          { label: "📦 ICD", value: "ICD" },
+                          { label: "🏢 CFS", value: "CFS" },
+                          { label: "🚢 TERMINALS", value: "TERMINALS" },
+                          { label: "🌐 LOGISTICS", value: "LOGISTICS" },
+                        ].map((cat) => (
+                          <button
+                            key={cat.value}
+                            type="button"
+                            onClick={() => setSelectedIndiaCategoryFilter(cat.value)}
+                            className={`h-7 shrink-0 whitespace-nowrap inline-flex items-center gap-1 px-2.5 rounded-lg text-[10px] font-black transition-all cursor-pointer select-none ${
+                              selectedIndiaCategoryFilter === cat.value
+                                ? "bg-amber-600 text-white shadow-xs ring-1 ring-amber-300"
+                                : "bg-white text-slate-700 hover:bg-amber-100 hover:text-amber-900 border border-slate-200"
+                            }`}
+                          >
+                            {cat.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Responsive Location Cards Grid with Full Visibility & Polished Alignment */}
+                  <div className="grid max-h-[480px] grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3 overflow-y-auto p-1 pr-1.5 scrollbar-thin scrollbar-thumb-slate-300 hover:scrollbar-thumb-slate-400">
+                    {quickLocationMatches.map((loc, locIndex) => (
+                      <div
+                        key={`quick-loc-catalog-${loc.name}-${loc.code || locIndex}-${locIndex}`}
+                        className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3.5 transition-all hover:border-amber-400 hover:bg-amber-50/25 hover:shadow-md shadow-2xs"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleQuickLocationSelect(loc)}
+                          className="flex flex-col items-start w-full text-left cursor-pointer"
+                          title={`Add to Route Stop: ${loc.name}${loc.borderCountry ? ` (Border: ${loc.borderCountry})` : ""}`}
+                        >
+                          {/* Top Row: Type/Flag Icon Badge + Country Tag + Code Pill */}
+                          <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-6 px-1.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200/80 text-xs font-black shrink-0 select-none">
+                                {loc.isPort ? "⚓" : (countryFlags[loc.country] || "📍")}
+                              </span>
+                              <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider truncate">
+                                {loc.country}
+                              </span>
+                            </div>
+                            {loc.code && (
+                              <span className="text-[9.5px] font-black font-mono bg-amber-100 text-amber-900 border border-amber-300/70 rounded-md px-1.5 py-0.5 shrink-0">
+                                {loc.code}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Location Names: English + Persian with Symmetrical Alignment */}
+                          <div className="w-full min-w-0 mt-2 space-y-0.5">
+                            <p className="font-black text-slate-900 text-xs sm:text-[13px] leading-snug break-normal group-hover:text-amber-950 transition-colors">
+                              {loc.name}
+                            </p>
+                            <p className="text-slate-600 font-[vazirmatn] text-[11px] font-bold leading-snug text-right w-full mt-0.5" dir="rtl">
+                              {loc.persian}
+                            </p>
+                          </div>
+
+                          {/* Metadata Tags Row (Border Country, Location Type, State) */}
+                          {(loc.borderCountry || loc.locationType || loc.state) && (
+                            <div className="flex flex-wrap items-center gap-1 w-full mt-2">
+                              {loc.borderCountry && (
+                                <span className="text-[8.5px] font-extrabold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/60 shrink-0">
+                                  ⇄ {loc.borderCountry}
+                                </span>
+                              )}
+                              {loc.locationType && (
+                                <span className="text-[8.5px] font-black text-amber-900 bg-amber-100/80 px-1.5 py-0.5 rounded shrink-0">
+                                  {loc.locationType.replace(/_/g, " ")}
+                                </span>
+                              )}
+                              {loc.state && (
+                                <span className="text-[8.5px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+                                  {loc.state}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </button>
+
+                        {/* Quick 1-Click Set Actions Toolbar */}
+                        <div className="mt-3 pt-2 border-t border-slate-100/90 grid grid-cols-2 sm:flex sm:items-center gap-1.5 w-full">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickLocationSelect(loc)}
+                            className="flex-1 text-[9.5px] font-black bg-slate-100 hover:bg-amber-500 hover:text-slate-950 text-slate-700 rounded-lg py-1 px-1.5 transition-all cursor-pointer text-center whitespace-nowrap shadow-2xs active:scale-95 border border-slate-200/60"
+                            title="Add to Route Stops"
+                          >
+                            + Route
+                          </button>
+                          {loc.isPort && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickSetDischarge(loc.portName || loc.name)}
+                                className="flex-1 text-[9.5px] font-black bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 rounded-lg py-1 px-1.5 transition-all cursor-pointer text-center whitespace-nowrap border border-indigo-200/60 active:scale-95"
+                                title="Set as Port of Discharge (بندر تخلیه)"
+                              >
+                                🚢 POD
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickSetLoading(loc.portName || loc.name)}
+                                className="flex-1 text-[9.5px] font-black bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 rounded-lg py-1 px-1.5 transition-all cursor-pointer text-center whitespace-nowrap border border-blue-200/60 active:scale-95"
+                                title="Set as Port of Loading (بندر بارگیری)"
+                              >
+                                ⚓ POL
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleQuickSetDelivery(loc.country === "Ivory Coast" ? "Ivory Coast, West Africa" : loc.name)}
+                            className="flex-1 text-[9.5px] font-black bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 rounded-lg py-1 px-1.5 transition-all cursor-pointer text-center whitespace-nowrap border border-emerald-200/60 active:scale-95"
+                            title="Set as Place of Delivery (محل تحویل)"
+                          >
+                            📍 Delivery
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {quickLocationMatches.length === 0 && (
+                      <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white/50 backdrop-blur-md px-3 py-8 text-center text-xs font-bold text-slate-500">
+                        No matching locations / نتیجه‌ای یافت نشد
+                      </div>
+                    )}
+                  </div>
+                </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+              </div>
+
+</div>
 
             {/* Logistics Quad dashboard: Freight, Remarks, Container & Shipping */}
             <div id="section-logistics-quad" className="edit-form-dashboard">
@@ -11369,6 +12502,116 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     >
                       <span>🇮🇷</span>
                       <span>Chabahar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_loading: "Bandar Imam Khomeini (BIK)" }))
+                        toast.success("Set POL: Bandar Imam Khomeini (BIK)")
+                      }}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-slate-800 dark:text-slate-200 shadow-2xs hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇮🇷</span>
+                      <span>Bandar Imam Khomeini</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_loading: "Bushehr Port" }))
+                        toast.success("Set POL: Bushehr Port")
+                      }}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-slate-800 dark:text-slate-200 shadow-2xs hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇮🇷</span>
+                      <span>Bushehr Port</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_loading: "Khorramshahr Port" }))
+                        toast.success("Set POL: Khorramshahr Port")
+                      }}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-slate-800 dark:text-slate-200 shadow-2xs hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇮🇷</span>
+                      <span>Khorramshahr</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_loading: "Bandar Anzali" }))
+                        toast.success("Set POL: Bandar Anzali")
+                      }}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-slate-800 dark:text-slate-200 shadow-2xs hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇮🇷</span>
+                      <span>Bandar Anzali</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_loading: "Jask Port (Bandar Jask)" }))
+                        toast.success("Set POL: Jask Port (Iran)")
+                      }}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-slate-800 dark:text-slate-200 shadow-2xs hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇮🇷</span>
+                      <span>Jask Port</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_discharge: "Sohar Port" }))
+                        toast.success("Set POD: Sohar Port (Oman)")
+                      }}
+                      className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-emerald-900 dark:text-emerald-300 shadow-2xs hover:bg-emerald-600 dark:hover:bg-emerald-700 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇴🇲</span>
+                      <span>Sohar Port (Oman)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_discharge: "Port of Suwaiq" }))
+                        toast.success("Set POD: Port of Suwaiq (Oman)")
+                      }}
+                      className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-emerald-900 dark:text-emerald-300 shadow-2xs hover:bg-emerald-600 dark:hover:bg-emerald-700 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇴🇲</span>
+                      <span>Suwaiq Port (Oman)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_discharge: "Port of Salalah" }))
+                        toast.success("Set POD: Port of Salalah (Oman)")
+                      }}
+                      className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-emerald-900 dark:text-emerald-300 shadow-2xs hover:bg-emerald-600 dark:hover:bg-emerald-700 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇴🇲</span>
+                      <span>Salalah Port (Oman)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_discharge: "Port of Duqm" }))
+                        toast.success("Set POD: Port of Duqm (Oman)")
+                      }}
+                      className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-emerald-900 dark:text-emerald-300 shadow-2xs hover:bg-emerald-600 dark:hover:bg-emerald-700 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇴🇲</span>
+                      <span>Duqm Port (Oman)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_discharge: "Port Sultan Qaboos" }))
+                        toast.success("Set POD: Port Sultan Qaboos (Muscat)")
+                      }}
+                      className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-emerald-900 dark:text-emerald-300 shadow-2xs hover:bg-emerald-600 dark:hover:bg-emerald-700 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇴🇲</span>
+                      <span>Muscat (Sultan Qaboos)</span>
                     </button>
                     <button
                       type="button"
@@ -11964,6 +13207,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               onOpenPdfSettings={() => handleTabChange("pdf-settings")}
               onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
               onToggleDiagnostics={() => setShowDiagnostics((prev) => !prev)}
+              onOpenPackingList={() => handleTabChange("packing-list")}
+              onOpenInvoice={() => handleTabChange("invoice")}
             />
 
             {/* Tier 1: A4 Preview Viewport (owns scrolling in Width/Manual; overflow:hidden in Page) */}
@@ -12057,6 +13302,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                         persianDateNumeric={persianDateNumeric}
                         formData={deferredFormData}
                         logoUrl={logoUrl}
+                        brandLockupUrl={brandLockupUrl}
+                        logoDesignId={logoDesignId}
                         companyName={companyName}
                         companyNamePersian={companyNamePersian}
                         companySubtitle={companySubtitle}
@@ -12111,6 +13358,32 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             )}
           </TabsContent>
 
+          {/* ACCI Packing List Tab */}
+          <TabsContent value="packing-list" className="focus-visible:outline-none">
+            {activeTab === "packing-list" && (
+              <section className="min-h-0 w-full">
+                <PackingListView
+                  formData={formData}
+                  onBackToEditor={() => handleTabChange("form")}
+                  onNavigateToTab={(tab) => handleTabChange(tab)}
+                />
+              </section>
+            )}
+          </TabsContent>
+
+          {/* ACCI Commercial Invoice Tab */}
+          <TabsContent value="invoice" className="focus-visible:outline-none">
+            {activeTab === "invoice" && (
+              <section className="min-h-0 w-full">
+                <CommercialInvoiceView
+                  formData={formData}
+                  onBackToEditor={() => handleTabChange("form")}
+                  onNavigateToTab={(tab) => handleTabChange(tab)}
+                />
+              </section>
+            )}
+          </TabsContent>
+
           {/* Shipment Attachments & Digital Folder Tab */}
           <TabsContent value="attachments" className="focus-visible:outline-none">
             {activeTab === "attachments" && (
@@ -12147,7 +13420,15 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                   showStampSignature={showStampSignature}
                   onToggleStampSignature={setShowStampSignature}
                   logoUrl={logoUrl}
+                        brandLockupUrl={brandLockupUrl}
+                        logoDesignId={logoDesignId}
                   onLogoChange={setLogoUrl}
+                  onLogoDesignChange={(designId, brandUrl, emblemUrl) => {
+                    setLogoDesignId(designId)
+                    setBrandLockupUrl(brandUrl)
+                    setLogoUrl(emblemUrl)
+                    persistCompanySettings({ logoDesignId: designId, brandLockupUrl: brandUrl, logoUrl: emblemUrl })
+                  }}
                   companyName={companyName}
                   companyNamePersian={companyNamePersian}
                   companySubtitle={companySubtitle}
@@ -12206,8 +13487,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                 issueDate={issueDate}
                 persianDate={persianDate}
                 persianDateNumeric={persianDateNumeric}
-                formData={deferredFormData}
+                formData={isExportingPDF || isShippingExporting ? formData : deferredFormData}
                 logoUrl={logoUrl}
+                        brandLockupUrl={brandLockupUrl}
+                        logoDesignId={logoDesignId}
                 companyName={companyName}
                 companyNamePersian={companyNamePersian}
                 companySubtitle={companySubtitle}
@@ -12220,8 +13503,6 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                 backgroundOpacity={bgOpacity}
                 showStampSignature={showStampSignature}
                 onToggleStampSignature={setShowStampSignature}
-                pdfExport
-                exportTarget
               />
             </PrintSafeBOL>
           </div>
@@ -12232,7 +13513,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           <div
             data-pdf-export-container="true"
             aria-hidden="true"
-            className="fixed top-0 left-[-9999px] w-[210mm] opacity-100 pointer-events-none z-[-9999] print:hidden bg-white"
+            className="fixed top-0 left-[-9999px] w-[210mm] opacity-100 pointer-events-none z-[-9999] bg-white"
             style={{ width: "210mm", minHeight: "297mm", height: "auto" }}
           >
             <A4Preview
@@ -12240,8 +13521,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               issueDate={issueDate}
               persianDate={persianDate}
               persianDateNumeric={persianDateNumeric}
-              formData={deferredFormData}
+              formData={formData}
               logoUrl={logoUrl}
+                        brandLockupUrl={brandLockupUrl}
+                        logoDesignId={logoDesignId}
               companyName={companyName}
               companyNamePersian={companyNamePersian}
               companySubtitle={companySubtitle}
@@ -12264,10 +13547,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           <div
             data-shipping-export-container="true"
             aria-hidden="true"
-            className="fixed top-0 left-[-9999px] overflow-hidden opacity-100 pointer-events-none z-[-9999] print:hidden bg-white"
+            className="fixed top-0 left-[-9999px] overflow-hidden opacity-100 pointer-events-none z-[-9999] bg-white"
             style={{ width: "210mm" }}
           >
-            <div data-shipping-preview="packing-list">
+            <div data-shipping-preview-export="packing-list">
               <PackingListPdfPage
                 data={shippingDocumentData}
                 logoUrl={logoUrl}
@@ -12275,7 +13558,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                 companySubtitle={companySubtitle}
               />
             </div>
-            <div data-shipping-preview="stickers">
+            <div data-shipping-preview-export="stickers">
               <StickerPdfPage
                 data={shippingDocumentData}
                 logoUrl={logoUrl}
@@ -12304,6 +13587,8 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
             persianDateNumeric={persianDateNumeric}
             formData={deferredFormData}
             logoUrl={logoUrl}
+                        brandLockupUrl={brandLockupUrl}
+                        logoDesignId={logoDesignId}
             companyName={companyName}
             companyNamePersian={companyNamePersian}
             companySubtitle={companySubtitle}
@@ -12560,6 +13845,22 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           persistSavedParties(SAVED_CONSIGNEES_STORAGE_KEY, next, setSavedConsignees)
           applySavedConsignee(formatted.id)
         }}
+        onUpdateParty={(updated) => {
+          const formatted: SavedParty = {
+            id: updated.id,
+            name: updated.name,
+            address: updated.address || "",
+            contact: updated.contact || "",
+            email: updated.email || "",
+            savedAt: new Date().toISOString(),
+          }
+          const next = savedConsignees.map((c) => (c.id === formatted.id ? formatted : c))
+          persistSavedParties(SAVED_CONSIGNEES_STORAGE_KEY, next, setSavedConsignees)
+          if (selectedConsigneeId === formatted.id) {
+            applySavedConsignee(formatted.id)
+          }
+          toast.success("Consignee updated in directory.")
+        }}
         onDeleteParty={(id) => {
           const next = savedConsignees.filter((c) => c.id !== id)
           persistSavedParties(SAVED_CONSIGNEES_STORAGE_KEY, next, setSavedConsignees)
@@ -12592,6 +13893,22 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           applySavedShipper(formatted.id)
           toast.success("New shipper added to directory.")
         }}
+        onUpdateParty={(updated) => {
+          const formatted: SavedParty = {
+            id: updated.id,
+            name: updated.name,
+            address: updated.address || "",
+            contact: updated.contact || "",
+            email: updated.email || "",
+            savedAt: new Date().toISOString(),
+          }
+          const next = savedShippers.map((s) => (s.id === formatted.id ? formatted : s))
+          persistSavedParties(SAVED_SHIPPERS_STORAGE_KEY, next, setSavedShippers)
+          if (selectedShipperId === formatted.id) {
+            applySavedShipper(formatted.id)
+          }
+          toast.success("Shipper updated in directory.")
+        }}
         onDeleteParty={(id) => {
           const next = savedShippers.filter((s) => s.id !== id)
           persistSavedParties(SAVED_SHIPPERS_STORAGE_KEY, next, setSavedShippers)
@@ -12623,6 +13940,22 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           persistSavedParties(SAVED_NOTIFY_PARTIES_STORAGE_KEY, next, setSavedNotifyParties)
           applySavedNotifyParty(formatted.id)
           toast.success("New notify party added to directory.")
+        }}
+        onUpdateParty={(updated) => {
+          const formatted: SavedParty = {
+            id: updated.id,
+            name: updated.name,
+            address: updated.address || "",
+            contact: updated.contact || "",
+            email: updated.email || "",
+            savedAt: new Date().toISOString(),
+          }
+          const next = savedNotifyParties.map((n) => (n.id === formatted.id ? formatted : n))
+          persistSavedParties(SAVED_NOTIFY_PARTIES_STORAGE_KEY, next, setSavedNotifyParties)
+          if (selectedNotifyPartyId === formatted.id) {
+            applySavedNotifyParty(formatted.id)
+          }
+          toast.success("Notify party updated in directory.")
         }}
         onDeleteParty={(id) => {
           const next = savedNotifyParties.filter((n) => n.id !== id)

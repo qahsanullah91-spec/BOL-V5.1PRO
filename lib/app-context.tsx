@@ -11,8 +11,18 @@ import { logAuditEvent } from '@/lib/rbac/audit-service'
 import { validateSuperAdminProtection } from '@/lib/rbac/rbac-service'
 
 const DEFAULT_LEDGER_SETTINGS: LedgerSettings = {
-  companyLogo: '/logo.png',
+  companyLogo: '/images/sky-ariana-logo.png',
   backgroundImage: '/ledger-background.png',
+  logoUrl: '/images/sky-ariana-logo.png',
+  logoDesignId: 'modern-flat',
+  brandLockupUrl: '/images/sky-ariana-brand-lockup.png',
+  backgroundOpacity: 0.12,
+  companyName: 'SKY ARIANA LIMITED',
+  companySubtitle: 'Transport & Logistics • Import & Export',
+  companyAddress: '2nd Floor, 16 No. Office, Shahidano Chowk, Etimad Rahmi Market, Kandahar, Afghanistan',
+  companyPhone: '+93 700 939 365, +93 711 435 529',
+  companyEmail: 'info@skyariana.com',
+  companyLicence: '2401-2198',
 }
 
 // Sample data from HAJI-ABDUL-WASE-KHAN-ALOKOZAY ACCOUNT LEDGER PDF

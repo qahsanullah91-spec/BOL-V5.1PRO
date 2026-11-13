@@ -35,6 +35,15 @@ export interface LedgerSettings {
   companyLogo: string
   backgroundImage: string
   logoUrl?: string
+  logoDesignId?: string
+  brandLockupUrl?: string
+  backgroundOpacity?: number
+  companyName?: string
+  companySubtitle?: string
+  companyAddress?: string
+  companyPhone?: string
+  companyEmail?: string
+  companyLicence?: string
 }
 
 export interface Company {

@@ -15,6 +15,8 @@ import { isPashtoOrArabic } from "@/lib/utils/pashto-bidi"
 export interface StickerPdfPageProps {
   data: ShippingDocumentData
   logoUrl?: string
+  brandLockupUrl?: string
+  logoDesignId?: string
   companyName?: string
   companySubtitle?: string
   commodityIndex?: number

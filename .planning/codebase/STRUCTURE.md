@@ -1,53 +1,70 @@
 ---
-last_mapped_commit: e375f553418e664b7c4d0e8cf05859dcdbf106a4
-last_mapped_at: 2026-10-23
+last_mapped_commit: 8a57ed6fd9472c92904aad31bd40ae76281bc5c8
+last_mapped_at: 2026-11-13
 ---
 # Codebase Structure
 
-**Analysis Date:** 2026-10-23
+**Analysis Date:** 2026-11-13
 
 ## Directory Layout
 
 ```
 BOL-SOFTWARE-V5/
-├── .agents/                    # Agent customizations, workflows, skills, and project rules
-│   ├── rules/                  # Coding standards, data safety, accounting invariance
+├── .agents/                    # Agent rules, workflows, skills, and project configurations
+│   ├── rules/                  # coding-standards, data-safety-and-sync, python-dependencies
 │   └── skills/                 # bol-ledger-workflow, sky-ariana-ops, qa-and-deployment
 ├── .planning/                  # GSD planning directory (codebase maps, requirements, roadmaps)
-├── app/                        # Next.js 15 App Router
+│   └── codebase/               # 7 structured codebase mapping documents
+├── app/                        # Next.js 16 App Router
 │   ├── api/                    # Server API route handlers
-│   │   ├── health/             # Heartbeat & connectivity probe
-│   │   ├── sync/               # Cloud sync & transfer code endpoints
+│   │   ├── ai/structured-extract/ # Gemini AI logistics extractor & audit endpoint
+│   │   ├── health/             # Heartbeat & connectivity probe (port 3001)
+│   │   ├── server/backups/     # Central backup creation & download
+│   │   ├── sync/               # Multi-device cloud sync & transfer codes
 │   │   └── system/update/      # Windows updater & process termination API
+│   ├── globals.css             # Live CSS stylesheet, Tailwind v4 theme, print rules
 │   ├── layout.tsx              # Root HTML & body structure with global CSS
 │   └── page.tsx                # Main SPA orchestrator and tab router
 ├── build/                      # Build assets & NSIS custom installer scripts
 │   └── installer.nsh           # NSIS process kill shield for seamless in-place updates
 ├── components/                 # React 19 UI Components
 │   ├── accounting/             # Customer/supplier ledgers, statements, vouchers
-│   ├── bill-of-lading/         # BOL Editor, print preview, multi-modal routing
-│   ├── invoice/                # Commercial invoice builder, fee demarcation
+│   ├── backup/                 # Data protection cards, backup history, automatic backups
+│   ├── bill-of-lading/         # BOL Editor, ACCI Invoice & Packing List views, A4 preview
 │   ├── reports/                # Saved BOL reports, Detailed Report Table, Print Studio
 │   ├── settings/               # System settings, backup/restore, software updates
 │   ├── sync/                   # Cloud synchronization modals & status badges
 │   ├── treasury/               # Enterprise Treasury, cash/bank accounts, FX exchanges
-│   ├── ui/                     # Primitives (Radix / Shadcn components)
+│   ├── ui/                     # 27 Radix / Shadcn primitives
 │   └── warehouse/              # Inventory LOT management, WHR receipts, gate passes
-├── electron/                   # Electron 34 Desktop Runtime
+├── docs/                       # Architectural guides and deployment specifications
+│   ├── GOOGLE_CLOUD_DEPLOYMENT.md # Cloud Run, Cloud SQL, and GCS deployment architecture
+│   ├── DATA-ARCHITECTURE.md    # Local-first persistence specifications
+│   ├── TESTING.md              # Test suite conventions and execution protocols
+│   └── RELEASE_AND_ROLLBACK_GUIDE.md # Production release and version control rules
+├── electron/                   # Electron 41 Desktop Runtime
 │   ├── desktop-api.d.ts        # Typed TypeScript declarations for window.skyDesktop
-│   ├── ipc/                    # IPC channel registrations
+│   ├── ipc/                    # IPC channel registrations (printing, updater, dialogs)
 │   ├── main.ts                 # Main Electron process, window management, registry tweaks
 │   └── preload.ts              # Secure contextBridge exposure
 ├── lib/                        # Shared Business Logic & Infrastructure
+│   ├── ai/                     # Gemini AI provider abstraction, schemas, verification
+│   ├── backup/                 # Central backup collector, manifest, scheduler, retention
 │   ├── client/                 # Client singletons (online-save-manager, hooks)
-│   ├── config/                 # System version, release metadata, constants
-│   ├── reports/                # Report query parsers, aggregators, filters
-│   ├── services/               # Storage services (blob-db, local-storage, invoice-storage)
+│   ├── config/                 # system-version.ts (Single Source of Truth)
+│   ├── services/               # Storage services (blob-db.ts, local-storage)
 │   ├── sync/                   # Delta sync queue, cryptographic transfer code helpers
-│   ├── types/                  # TypeScript interface definitions (BOL, invoice, treasury)
-│   └── utils/                  # Formatting, date parsing (Persian/Gregorian), WhatsApp
-├── public/                     # Static public assets (watermarks, icons, sounds)
-├── tests/                      # Automated unit and integration test suites (.test.cjs)
+│   ├── types/                  # TypeScript interface definitions (BOL, ACCI, treasury)
+│   └── utils/                  # ACCI docx/pdf generators, Shamsi dates, WhatsApp formatter
+├── public/                     # Static public assets (watermarks, logos, sounds)
+├── scratch/                    # Intermediate test outputs and sample exports
+│   └── acci-exports/           # Generated sample ACCI Invoice & Packing List docx/pdf files
+├── scripts/                    # Automation, database migrations, and QA tooling
+│   ├── gcs-automated-backup.cjs # Automated GCS snapshot backup pipeline
+│   ├── generate-acci-sample-exports.ts # Sample ACCI export generator
+│   ├── verify-data-integrity.cjs # Pre-merge data integrity audit
+│   └── version-control.cjs     # Single Writer Rule 8 versioning pipeline
+├── tests/                      # 121 automated test suites (1,030+ tests in .test.cjs)
 ├── package.json                # Dependencies, scripts, and electron-builder NSIS config
 ├── tsconfig.json               # Next.js TypeScript strict compiler configuration
 └── tsconfig.electron.json      # Electron TypeScript compiler configuration
@@ -59,27 +76,28 @@ BOL-SOFTWARE-V5/
 |---|---|
 | **System Version & Changelog** | `lib/config/system-version.ts` |
 | **Crash-Proof Atomic JSON Engine** | `lib/services/blob-db.ts` |
-| **Online Save & Queue Manager** | `lib/client/online-save-manager.ts` |
+| **ACCI Invoice Interactive View** | `components/bill-of-lading/commercial-invoice-view.tsx` |
+| **ACCI Packing List View** | `components/bill-of-lading/packing-list-view.tsx` |
+| **ACCI OpenXML Word Generator** | `lib/utils/acci-word-generator.ts` |
+| **ACCI Vector PDF Generator** | `lib/utils/acci-pdf-generator.ts` |
+| **GCS Automated Backup Pipeline** | `scripts/gcs-automated-backup.cjs` |
+| **Gemini AI Structured Extractor** | `app/api/ai/structured-extract/route.ts` |
 | **Electron Main Process** | `electron/main.ts` |
 | **Electron Preload Bridge** | `electron/preload.ts` |
 | **Electron IPC Handlers** | `electron/ipc/register-ipc.ts` |
-| **NSIS Update Lock Shield** | `build/installer.nsh` |
-| **Print Preview Studio** | `components/reports/report-print-preview-modal.tsx` |
-| **Detailed Report Table** | `components/reports/detailed-report-table.tsx` |
-| **BOL Master Editor** | `components/bill-of-lading/bol-editor.tsx` |
-| **WhatsApp Formatter** | `lib/utils/bol-whatsapp-formatter.ts` |
-| **Enterprise Treasury Engine** | `components/treasury/treasury-tab.tsx` |
-| **Core Test Suite Runner** | `tests/accounting-invariance.test.cjs` |
+| **Single Writer Version Pipeline** | `scripts/version-control.cjs` |
+| **Pre-Merge Integrity Audit** | `scripts/verify-data-integrity.cjs` |
 
 ## Naming & File Conventions
 
-- **React Components**: `kebab-case.tsx` (e.g., `report-print-preview-modal.tsx`)
-- **Utility & Service Modules**: `kebab-case.ts` (e.g., `online-save-manager.ts`)
-- **Test Files**: `kebab-case.test.cjs` using native `node:test` and `node:assert/strict`
-- **Data Snapshots**: `.local-<entity>.json` (e.g., `.local-bols.json`, `.local-invoices.json`)
+- **React Components**: `kebab-case.tsx` (e.g., `commercial-invoice-view.tsx`)
+- **Utility & Service Modules**: `kebab-case.ts` (e.g., `acci-word-generator.ts`)
+- **Automated Test Files**: `kebab-case.test.cjs` using native `node:test` and `node:assert/strict`
+- **Data Snapshots**: `.local-<entity>.json` (e.g., `.local-bols.json`, `.local-ledger-system.json`)
+- **Counter Tokens**: `.<name>-counter` (e.g., `.receipt-counter`, `.treasury-rcpt-counter`)
 - **Custom Browser Events**: Namespaced as `skybol:<event-name>` (e.g., `skybol:online-sync-complete`)
 
 ---
 
-*Structure analysis: 2026-10-23*
+*Structure analysis: 2026-11-13*
 *Update after moving or reorganizing directory structures*

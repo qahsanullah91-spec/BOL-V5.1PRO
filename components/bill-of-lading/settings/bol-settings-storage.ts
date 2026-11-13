@@ -58,6 +58,8 @@ export function loadBolDocumentSettings(): BolDocumentSettings {
       },
 
       logoUrl: parsed.logoUrl && !parsed.logoUrl.includes('aq-logo') ? parsed.logoUrl : DEFAULT_BOL_SETTINGS.logoUrl,
+      logoDesignId: parsed.logoDesignId || DEFAULT_BOL_SETTINGS.logoDesignId,
+      brandLockupUrl: parsed.brandLockupUrl || DEFAULT_BOL_SETTINGS.brandLockupUrl,
 
       defaultBgImageUrl: typeof parsed.bgImageUrl === 'string'
         ? parsed.bgImageUrl
@@ -144,6 +146,8 @@ export function exportSettingsToJson(settings: BolDocumentSettings): string {
     companyLicence: settings.companyLicence,
     iranOffice: settings.iranOffice,
     logoUrl: settings.logoUrl.startsWith('data:') ? 'custom-logo' : settings.logoUrl,
+    logoDesignId: settings.logoDesignId,
+    brandLockupUrl: settings.brandLockupUrl?.startsWith('data:') ? 'custom-lockup' : settings.brandLockupUrl,
     defaultBgImageUrl: settings.defaultBgImageUrl,
     defaultBgOpacity: settings.defaultBgOpacity,
     defaultShowStamp: settings.defaultShowStamp,
@@ -216,6 +220,9 @@ export function validateAndImportSettingsJson(
       defaultTransitBorderNote: typeof parsed.defaultTransitBorderNote === 'string' ? parsed.defaultTransitBorderNote : currentSettings.defaultTransitBorderNote,
 
       watermarkFavorites: Array.isArray(parsed.watermarkFavorites) ? parsed.watermarkFavorites : currentSettings.watermarkFavorites,
+      logoUrl: typeof parsed.logoUrl === 'string' && !parsed.logoUrl.includes('aq-logo') ? parsed.logoUrl : currentSettings.logoUrl,
+      logoDesignId: typeof parsed.logoDesignId === 'string' ? parsed.logoDesignId : currentSettings.logoDesignId,
+      brandLockupUrl: typeof parsed.brandLockupUrl === 'string' ? parsed.brandLockupUrl : currentSettings.brandLockupUrl,
     }
 
     return { isValid: true, updatedSettings: merged }

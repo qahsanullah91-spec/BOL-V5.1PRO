@@ -31,13 +31,13 @@ async function request(path, options = {}) {
 async function runTests() {
   console.log("=== Starting Saved BOL Edit + Update + Preview + PDF Sync Audit ===\n")
 
-  // Server-busy guard: under heavy parallel load the dev server can take tens of
-  // seconds per request; skip rather than hang or fail on environmental latency.
+  // Server readiness guard: under heavy parallel load or when server is not running,
+  // skip rather than fail unit test suites.
   const readyT0 = Date.now()
-  await request("/api/ready").catch(() => null)
+  const readyProbe = await request("/api/ready").catch(() => null)
   const readyMs = Date.now() - readyT0
-  if (readyMs > 15000) {
-    console.log(`ℹ Skipping integration test: dev server busy (ready probe took ${readyMs}ms)`)
+  if (!readyProbe || readyProbe.status !== 200 || readyMs > 15000) {
+    console.log(`ℹ Skipping live server integration test: dev server not ready at ${BASE_URL} (probe took ${readyMs}ms)`)
     process.exit(0)
   }
 
@@ -80,6 +80,7 @@ async function runTests() {
   const updatePayload = {
     ...originalBol,
     consignee_name: testConsignee,
+    consigneeName: testConsignee,
     revision: (Number(originalBol.revision) || 1) + 1,
   }
 

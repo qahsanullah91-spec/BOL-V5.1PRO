@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="2048" height="2048" viewBox="0 0 2048 2048" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    
+      <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#d97706"/>
+        <stop offset="50%" stop-color="#fbbf24"/>
+        <stop offset="100%" stop-color="#b45309"/>
+      </linearGradient>
+      <linearGradient id="navyGoldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#1e3a8a"/>
+        <stop offset="100%" stop-color="#0a1936"/>
+      </linearGradient>
+      <clipPath id="letterClip">
+        <circle cx="1024" cy="1024" r="760"/>
+      </clipPath>
+    
+  </defs>
+
+  <!-- 1. Outer Concentric Ring -->
+  <circle cx="1024" cy="1024" r="940" fill="none" stroke="url(#goldGrad)" stroke-width="56"/>
+
+  <!-- 2. Concentric White Spacing Ring -->
+  <circle cx="1024" cy="1024" r="912" fill="none" stroke="#ffffff" stroke-width="72"/>
+
+  <!-- 3. Inner Solid Disc -->
+  <circle cx="1024" cy="1024" r="840" fill="url(#navyGoldGrad)"/>
+  <circle cx="1024" cy="1024" r="834" fill="none" stroke="url(#goldGrad)" stroke-width="4"/>
+
+  <!-- 4. Monogram Letters (S - K - Y) clipped to inner letter radius -->
+  <g clip-path="url(#letterClip)">
+    
+    <!-- ==================== LETTER S ==================== -->
+    <rect x="634" y="0" width="104" height="850" fill="#ffffff"/>
+    
+    <path d="
+      M 738 340
+      A 760 760 0 0 0 264 1024
+      L 368 1024
+      A 656 656 0 0 1 634 444
+      L 738 444
+      Z
+    " fill="#ffffff"/>
+
+    <polygon points="
+      358,940 
+      462,940 
+      748,1108 
+      624,1108
+    " fill="#ffffff"/>
+
+    <rect x="634" y="1198" width="104" height="850" fill="#ffffff"/>
+
+    <path d="
+      M 264 1024
+      A 760 760 0 0 0 738 1680
+      L 634 1680
+      A 656 656 0 0 1 368 1024
+      Z
+    " fill="#ffffff"/>
+
+    <!-- ==================== LETTER K ==================== -->
+    <rect x="820" y="0" width="104" height="2048" fill="#ffffff"/>
+    
+    <rect x="1126" y="0" width="104" height="760" fill="#ffffff"/>
+    <rect x="1126" y="1288" width="104" height="760" fill="#ffffff"/>
+
+    <polygon points="
+      924,974 
+      1126,740 
+      1230,740 
+      1230,848 
+      924,1082
+    " fill="#ffffff"/>
+
+    <polygon points="
+      924,1074 
+      1126,1308 
+      1230,1308 
+      1230,1200 
+      924,966
+    " fill="#ffffff"/>
+
+    <!-- ==================== LETTER Y ==================== -->
+    <rect x="1312" y="0" width="104" height="840" fill="#ffffff"/>
+    <rect x="1620" y="0" width="104" height="840" fill="#ffffff"/>
+
+    <polygon points="
+      1312,840 
+      1416,840 
+      1570,1016 
+      1570,1060 
+      1466,1060 
+      1312,894
+    " fill="#ffffff"/>
+
+    <polygon points="
+      1724,840 
+      1620,840 
+      1466,1016 
+      1466,1060 
+      1570,1060 
+      1724,894
+    " fill="#ffffff"/>
+
+    <rect x="1466" y="1040" width="104" height="1008" fill="#ffffff"/>
+
+  </g>
+</svg>

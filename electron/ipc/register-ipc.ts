@@ -1,3 +1,13 @@
+import {
+  loadBackgroundSettings,
+  saveBackgroundSettings,
+  quitCompletely,
+  updateTrayMenu,
+  notifyBackgroundActive,
+  testNotificationBalloon,
+  getBackgroundServiceDiagnostics,
+  type BackgroundSettings,
+} from "../services/background-service"
 import { BrowserWindow, dialog, ipcMain, shell, clipboard, app } from "electron"
 import { readFile } from "node:fs/promises"
 import fs from "node:fs"
@@ -196,7 +206,7 @@ export function registerIpcHandlers(options: {
   ipcMain.handle("backup:export", async () => {
     const nowStr = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
     const options: Electron.SaveDialogOptions = {
-      defaultPath: `AQ_COMPANIES_FULL_BACKUP_${nowStr}_v5.4.14.json`,
+      defaultPath: `AQ_COMPANIES_FULL_BACKUP_${nowStr}_v5.18.18.json`,
       filters: [{ name: "AQ Companies backup", extensions: ["json"] }],
     }
     const owner = getWindow()
@@ -276,10 +286,10 @@ export function registerIpcHandlers(options: {
         status: "error",
         hasUpdate: false,
         isRepairOrReinstall: false,
-        currentVersion: app.getVersion() || "5.4.14",
-        currentBuild: "2026.10.26-PRO-5",
-        availableVersion: app.getVersion() || "5.4.14",
-        availableBuild: "2026.10.26-PRO-5",
+        currentVersion: app.getVersion() || "5.18.18",
+        currentBuild: "2026.11.13-PRO-13",
+        availableVersion: app.getVersion() || "5.18.18",
+        availableBuild: "2026.11.13-PRO-13",
         installerPath: null,
         installerName: null,
         installerSize: 0,
@@ -455,5 +465,70 @@ export function registerIpcHandlers(options: {
           properties: ["openFile"],
         })
     return result.canceled ? null : result.filePaths[0]
+  })
+  // Enterprise Background Resident & Tray IPC Handlers
+  ipcMain.handle("background:get-settings", async () => {
+    try {
+      const settings = loadBackgroundSettings()
+      return { success: true, settings }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to load background settings" }
+    }
+  })
+
+  ipcMain.handle("background:save-settings", async (_event, settings: Partial<BackgroundSettings>) => {
+    try {
+      const updated = await saveBackgroundSettings(settings || {})
+      return { success: true, settings: updated }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to save background settings" }
+    }
+  })
+
+  ipcMain.handle("background:minimize-to-tray", async () => {
+    try {
+      const window = getWindow()
+      if (window && !window.isDestroyed()) {
+        window.hide()
+        updateTrayMenu()
+        notifyBackgroundActive(
+          "AQ COMPANIES Minimized",
+          "Running silently in system tray. Double-click tray icon to restore."
+        )
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to minimize to tray" }
+    }
+  })
+
+  ipcMain.handle("background:quit-completely", async () => {
+    try {
+      quitCompletely()
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to quit application" }
+    }
+  })
+
+  ipcMain.handle("background:test-notification", async () => {
+    try {
+      const res = testNotificationBalloon(
+        "AQ COMPANIES • Background Tray Verification",
+        "Background resident tray service is active, responsive, and monitoring your enterprise sync."
+      )
+      return res
+    } catch (e: any) {
+      return { success: false, message: e?.message || "Failed to test notification" }
+    }
+  })
+
+  ipcMain.handle("background:get-diagnostics", async () => {
+    try {
+      const diag = getBackgroundServiceDiagnostics()
+      return { success: true, diagnostics: diag }
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Failed to get background diagnostics" }
+    }
   })
 }

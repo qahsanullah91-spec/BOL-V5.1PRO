@@ -31,22 +31,22 @@ export function BolSettingsSkeleton() {
             </div>
 
             {/* Sub-tab Navigation Strip */}
-            <div className="flex items-center gap-1 overflow-x-auto pt-3 pb-1 border-t border-slate-200/40 dark:border-slate-800/40 mt-3 no-scrollbar">
+            <div className="flex flex-wrap items-center gap-1.5 pt-3 pb-1 border-t border-slate-200/40 dark:border-slate-800/40 mt-3">
               {[
-                { name: "Watermark", w: "w-20" },
-                { name: "Logo & Branding", w: "w-28" },
-                { name: "Stamp & Signature", w: "w-32" },
-                { name: "General Profile", w: "w-24" },
-                { name: "PDF & Print", w: "w-20" },
-                { name: "Defaults", w: "w-16" },
-                { name: "Backup", w: "w-16" },
+                { name: "Watermark", w: "w-24" },
+                { name: "Logo & Branding", w: "w-32" },
+                { name: "Stamp & Signature", w: "w-36" },
+                { name: "General Profile", w: "w-28" },
+                { name: "PDF & Print", w: "w-24" },
+                { name: "Defaults", w: "w-20" },
+                { name: "Backup", w: "w-20" },
               ].map((tab, idx) => (
                 <div
                   key={tab.name}
-                  className={`h-7 ${tab.w} rounded-lg ${
+                  className={`h-7 ${tab.w} rounded-xl ${
                     idx === 0
                       ? "bg-blue-600/30 dark:bg-blue-600/40"
-                      : "bg-slate-100 dark:bg-slate-800/60"
+                      : "bg-slate-100 dark:bg-slate-800/60 border border-slate-200/40 dark:border-slate-700/40"
                   } shrink-0`}
                 />
               ))}

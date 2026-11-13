@@ -118,6 +118,8 @@ import {
   Bookmark,
   History,
   FileCheck,
+  ShieldCheck,
+  Clock,
   Maximize2,
   Minimize2,
   MessageSquare,
@@ -2999,6 +3001,8 @@ export function SavedBolReport({
           line-height: 1.15 !important;
           vertical-align: top !important;
           word-break: normal !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
         }
         .reports-print-document tfoot {
           display: table-footer-group !important;
@@ -3015,6 +3019,8 @@ export function SavedBolReport({
           font-weight: 900 !important;
           font-size: 8px !important;
           color: #ffffff !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
         }
         .reports-print-document svg {
           display: none !important;
@@ -3030,6 +3036,8 @@ export function SavedBolReport({
           line-height: 1.15 !important;
           white-space: normal !important;
           word-break: keep-all !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
         }
         .reports-print-document thead th[data-col-id="bolNo"],
         .reports-print-document thead th[data-col-id="date"],
@@ -3209,6 +3217,30 @@ export function SavedBolReport({
         const { jsPDF } = await import("jspdf")
 
         const isLandscape = pdfOrientation === "landscape"
+        const sanitizedCompany = (reportCompanyName || "AQ-COMPANIES").trim().replace(/[^a-zA-Z0-9_-]/g, "_")
+        const filename = `${sanitizedCompany}-${activeTab.toUpperCase()}-Report-${new Date().toISOString().split("T")[0]}.pdf`
+
+        const { captureElectronVectorPdf, drawImageHighQualityToCanvas } = await import("@/lib/utils/pdf-high-res-capture")
+        const vectorBlob = await captureElectronVectorPdf("reports", { landscape: isLandscape })
+        if (vectorBlob) {
+          const { savePDFToDevice } = await import("@/lib/utils/pdf-upload")
+          await savePDFToDevice(vectorBlob, filename)
+          const entry: ReportHistoryEntry = {
+            id: `hist-${Date.now()}`,
+            reportName: `${activeTab.toUpperCase()} PDF Report`,
+            reportType: activeTab,
+            createdDate: new Date().toISOString(),
+            createdBy: "System Administrator",
+            filterRange: `${filteredData.length} records`,
+            recordCount: activeReportData.length,
+            fileName: filename,
+          }
+          addReportHistoryEntry(entry)
+          setReportHistory(getReportHistory())
+          toast.success("Vector PDF Report Generated Successfully", { id: toastId })
+          return
+        }
+
         const element =
           document.getElementById("sky-reports-cloned-print-canvas") ||
           document.getElementById("sky-reports-print-root") ||
@@ -3237,7 +3269,7 @@ export function SavedBolReport({
             height: "auto",
             WebkitFontSmoothing: "antialiased",
             MozOsxFontSmoothing: "grayscale",
-            textRendering: "optimizeLegibility",
+            textRendering: "geometricPrecision",
           } as any,
           filter: (node: HTMLElement) => {
             const tagName = node.tagName?.toUpperCase?.()
@@ -3268,38 +3300,24 @@ export function SavedBolReport({
           image.src = svgDataUrl
         })
 
-        const MAX_CANVAS = 16384
-        const ratio = 3
-        let canvasWidth = captureElement.offsetWidth * ratio
-        let canvasHeight = captureElement.offsetHeight * ratio
-        if (canvasWidth > MAX_CANVAS || canvasHeight > MAX_CANVAS) {
-          if (canvasWidth > MAX_CANVAS && canvasHeight > MAX_CANVAS) {
-            if (canvasWidth > canvasHeight) {
-              canvasHeight *= MAX_CANVAS / canvasWidth
-              canvasWidth = MAX_CANVAS
-            } else {
-              canvasWidth *= MAX_CANVAS / canvasHeight
-              canvasHeight = MAX_CANVAS
-            }
-          } else if (canvasWidth > MAX_CANVAS) {
-            canvasHeight *= MAX_CANVAS / canvasWidth
-            canvasWidth = MAX_CANVAS
-          } else {
-            canvasWidth *= MAX_CANVAS / canvasHeight
-            canvasHeight = MAX_CANVAS
-          }
+        const MAX_CANVAS_WIDTH = 4096
+        const MAX_CANVAS_HEIGHT = 8192
+        const ratio = 4
+        let canvasWidth = Math.max(1, captureElement.offsetWidth) * ratio
+        let canvasHeight = Math.max(1, captureElement.offsetHeight) * ratio
+        if (canvasWidth > MAX_CANVAS_WIDTH || canvasHeight > MAX_CANVAS_HEIGHT) {
+          const scaleDown = Math.min(MAX_CANVAS_WIDTH / canvasWidth, MAX_CANVAS_HEIGHT / canvasHeight)
+          canvasWidth *= scaleDown
+          canvasHeight *= scaleDown
         }
 
-        const canvas = document.createElement("canvas")
-        canvas.width = Math.round(canvasWidth)
-        canvas.height = Math.round(canvasHeight)
-        const ctx = canvas.getContext("2d")
-        if (!ctx) throw new Error("Canvas rendering is not available in this environment.")
-        ctx.fillStyle = "#ffffff"
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        const canvas = drawImageHighQualityToCanvas(
+          img,
+          Math.max(1, Math.round(canvasWidth)),
+          Math.max(1, Math.round(canvasHeight)),
+        )
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.99)
+        const imgData = canvas.toDataURL("image/png")
         if (!imgData || imgData === "data:,") {
           throw new Error("Failed to capture report visually. Please ensure the report is visible on screen.")
         }
@@ -3307,6 +3325,8 @@ export function SavedBolReport({
           orientation: isLandscape ? "landscape" : "portrait",
           unit: "mm",
           format: "a4",
+          compress: true,
+          precision: 16,
         })
 
         const pdfWidth = isLandscape ? 297 : 210
@@ -3325,19 +3345,19 @@ export function SavedBolReport({
           }
           
           const xOffset = (pdfWidth - finalWidthMM) / 2
-          pdf.addImage(imgData, "JPEG", xOffset, 0, finalWidthMM, finalHeightMM, undefined, "SLOW")
+          pdf.addImage(imgData, "PNG", xOffset, 0, finalWidthMM, finalHeightMM, undefined, "MEDIUM")
         } else {
           // Multi-page logic for Detailed, Shippers, Commodities, etc.
           let heightLeft = canvasHeightMM
           let position = 0
 
-          pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, canvasHeightMM, undefined, "SLOW")
+          pdf.addImage(imgData, "PNG", 0, position, pdfWidth, canvasHeightMM, undefined, "MEDIUM")
           heightLeft -= pdfHeight
 
           while (heightLeft > 0) {
             position -= pdfHeight
             pdf.addPage()
-            pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, canvasHeightMM, undefined, "SLOW")
+            pdf.addImage(imgData, "PNG", 0, position, pdfWidth, canvasHeightMM, undefined, "MEDIUM")
             heightLeft -= pdfHeight
           }
         }
@@ -3356,8 +3376,6 @@ export function SavedBolReport({
           )
         }
 
-        const sanitizedCompany = (reportCompanyName || "AQ-COMPANIES").trim().replace(/[^a-zA-Z0-9_-]/g, "_")
-        const filename = `${sanitizedCompany}-${activeTab.toUpperCase()}-Report-${new Date().toISOString().split("T")[0]}.pdf`
         pdf.save(filename)
 
         // Record in history
@@ -4395,37 +4413,50 @@ export function SavedBolReport({
             </div>
           )}
 
-          {/* Standard Report Top Title Header */}
+          {/* Standard Report Top Title Header - Executive Design */}
           <div
             data-report-header="true"
-            className="border-b-2 border-slate-900 pb-4 mb-6 print:hidden flex flex-col sm:flex-row justify-between items-start gap-4 break-inside-avoid"
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white p-4 sm:p-5 mb-5 shadow-md border border-slate-800/80 print:hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 break-inside-avoid"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 p-1.5 overflow-hidden">
+            {/* Ambient Background Accent Glow */}
+            <div className="absolute -right-16 -top-16 w-56 h-56 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute left-1/3 -bottom-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Left: Brand Identity & Title */}
+            <div className="flex items-center gap-3.5 sm:gap-4 relative z-10">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white p-2 shadow-inner border border-white/20 shrink-0 flex items-center justify-center transition-transform hover:scale-105 duration-200">
                 <img
                   src={AQ_COMPANIES_LOGO_SRC}
-                  alt="AQ COMPANIES"
+                  alt={reportCompanyName || "AQ COMPANIES"}
                   className="w-full h-full object-contain filter drop-shadow-xs"
                 />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-black text-slate-950 dark:text-white uppercase tracking-tight">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight drop-shadow-xs">
                     {reportCompanyName || "AQ COMPANIES"}
                   </h1>
-                  <span className="text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800 uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1 text-[9.5px] font-black bg-blue-500/20 text-blue-200 border border-blue-400/30 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
+                    <ShieldCheck className="w-2.5 h-2.5 text-blue-300" />
                     Official Manifest
                   </span>
                 </div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">
-                  International Transport & Multi-Modal Logistics
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm font-black text-blue-900 uppercase">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 flex-wrap">
+                  <span className="uppercase tracking-widest text-[11px] text-slate-300">
+                    International Transport & Multi-Modal Logistics
+                  </span>
+                  <span className="text-slate-500 hidden sm:inline">•</span>
+                  <span className="text-[11px] font-[vazirmatn] text-blue-200/90 font-medium" dir="rtl">
+                    گزارش جامع بارنامه‌های بین‌المللی
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className="text-xs sm:text-sm font-black text-blue-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-blue-400" />
                     {activeTab.replace("_", " ")} REPORT
                   </span>
                   {selectedIds.length > 0 && (
-                    <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-extrabold bg-blue-500/30 text-blue-100 border border-blue-400/40 px-2.5 py-0.5 rounded-full shadow-2xs animate-pulse">
                       Selected: {selectedIds.length} of {filteredData.length}
                     </span>
                   )}
@@ -4433,21 +4464,31 @@ export function SavedBolReport({
               </div>
             </div>
 
-            <div className="text-right text-xs font-semibold text-slate-600 space-y-1 border-l-2 border-slate-200 pl-4">
-              <p className="flex justify-end gap-2">
-                <span className="text-slate-400">Generated:</span>
-                <span className="font-bold text-slate-900">
-                  {new Date().toLocaleDateString("en-GB")} - {new Date().toLocaleTimeString()}
+            {/* Right: Executive Metadata Badges */}
+            <div className="relative z-10 flex flex-wrap md:flex-col items-start md:items-end gap-2 text-xs w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+              {/* Generated Time Pill */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/5 border border-white/10 text-slate-200 backdrop-blur-xs">
+                <Clock className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+                <span className="text-slate-400 text-[11px]">Generated:</span>
+                <span className="font-bold text-white font-mono text-[11px]">
+                  {new Date().toLocaleDateString("en-GB")} - {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
-              </p>
-              <p className="flex justify-end gap-2">
-                <span className="text-slate-400">Audited Scope:</span>
-                <span className="font-bold text-slate-900">{filteredData.length} BOL Records</span>
-              </p>
-              <p className="flex justify-end gap-2">
-                <span className="text-slate-400">Status:</span>
-                <span className="font-bold text-emerald-700">Verified Read-Only</span>
-              </p>
+              </div>
+
+              {/* Audited Scope Pill */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/5 border border-white/10 text-slate-200 backdrop-blur-xs">
+                <FileCheck className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
+                <span className="text-slate-400 text-[11px]">Audited Scope:</span>
+                <span className="font-bold text-indigo-200 font-mono text-[11px]">
+                  {filteredData.length.toLocaleString()} BOL Records
+                </span>
+              </div>
+
+              {/* Status Pill */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 backdrop-blur-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping mr-0.5" />
+                <span className="font-black text-[11px] tracking-wide">Verified Read-Only</span>
+              </div>
             </div>
           </div>
 

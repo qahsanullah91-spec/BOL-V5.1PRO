@@ -684,13 +684,18 @@ function commandRelease(opts) {
   return 0
 }
 
+const REPORT_BANNER = `=================================================================
+                                                       ALL SERVICES PROVIDED BY AQ-COMPANIES.  
+AQ-BILL OF LANDING SYSTEM 
+Developed By: AHSANULLAH QURESHI           
+SOFTWARE UPDATE REPORT                                             
+=================================================================`
+
 function printReport(r) {
   const buildStatus = r.validation.build === "SUCCESS" ? "SUCCESS" : r.validation.build === "FAILED" ? "FAILED" : "PENDING"
   const metadataStatus = r.validation.overall === "FAILED" ? "FAILED" : "UPDATED"
   const notesStatus = r.summary || r.featuresAdded.length || r.bugsFixed.length ? "GENERATED" : "MINIMAL"
-  console.log("\n=================================================================")
-  console.log("                       SOFTWARE UPDATE REPORT")
-  console.log("=================================================================")
+  console.log("\n" + REPORT_BANNER)
   console.log(`Previous Version : ${r.previousVersion}`)
   console.log(`New Version      : ${r.newVersion}`)
   console.log(`Build            : ${r.buildId}`)
@@ -710,7 +715,7 @@ function printReport(r) {
   console.log(`Build Status     : ${buildStatus === "PENDING" ? "PENDING (not yet built/published)" : buildStatus}`)
   console.log(`Version Metadata : ${metadataStatus}`)
   console.log(`Release Notes    : ${notesStatus}`)
-  console.log("=================================================================")
+  console.log(REPORT_BANNER)
 }
 
 function commandHistory(opts) {

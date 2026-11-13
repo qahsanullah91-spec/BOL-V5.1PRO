@@ -3,112 +3,318 @@
   <title>Soft Arches — Sky Ariana Logistics Security Watermark</title>
   <defs>
     <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feGaussianBlur stdDeviation="2" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
-    <linearGradient id="primary-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.95" />
-      <stop offset="100%" stop-color="#1e3a8a" stop-opacity="0.5" />
+    
+    <linearGradient id="sa-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fdf4ff" />
+      <stop offset="50%" stop-color="#fae8ff" />
+      <stop offset="100%" stop-color="#f5d0fe" />
     </linearGradient>
     
   </defs>
+  
+    <rect width="900" height="1400" fill="url(#sa-bg)" />
 
-  <!-- Security Document Outer Border & Calibrated Framing -->
-  <g fill="none" stroke="#1e3a8a">
-    <rect x="22" y="22" width="856" height="1356" rx="4" stroke-width="2.4" opacity="0.8" />
-    <rect x="30" y="30" width="840" height="1340" rx="2" stroke-width="1" stroke-dasharray="6 4" opacity="0.65" />
-    <rect x="40" y="40" width="820" height="1320" stroke-width="0.8" opacity="0.45" />
+    <!-- Classic Banknote Neoclassical Engraved Archways -->
+    <g fill="none" stroke="#86198f" stroke-width="2">
+      <!-- 5 Concentric Grand Arches -->
+      
+        <path d="M 190,880 L 190,620 A 260,260 0 0 1 710,620 L 710,880" stroke-width="2.5" opacity="0.75" />
+      
+
+        <path d="M 140,880 L 140,620 A 310,310 0 0 1 760,620 L 760,880" stroke-width="1.2" opacity="0.75" />
+      
+
+        <path d="M 90,880 L 90,620 A 360,360 0 0 1 810,620 L 810,880" stroke-width="2.5" opacity="0.75" />
+      
+
+        <path d="M 40,880 L 40,620 A 410,410 0 0 1 860,620 L 860,880" stroke-width="1.2" opacity="0.75" />
+      
+
+        <path d="M -10,880 L -10,620 A 460,460 0 0 1 910,620 L 910,880" stroke-width="2.5" opacity="0.75" />
+      
+
+      <!-- Neoclassical Pillars (Fluted Columns) -->
+      
+        <rect x="104" y="620" width="32" height="420" fill="#ffffff" fill-opacity="0.8" stroke="#86198f" stroke-width="2" />
+        <line x1="112" y1="620" x2="112" y2="1040" stroke="#c026d3" stroke-width="1" />
+        <line x1="128" y1="620" x2="128" y2="1040" stroke="#c026d3" stroke-width="1" />
+      
+
+        <rect x="164" y="620" width="32" height="420" fill="#ffffff" fill-opacity="0.8" stroke="#86198f" stroke-width="2" />
+        <line x1="172" y1="620" x2="172" y2="1040" stroke="#c026d3" stroke-width="1" />
+        <line x1="188" y1="620" x2="188" y2="1040" stroke="#c026d3" stroke-width="1" />
+      
+
+        <rect x="704" y="620" width="32" height="420" fill="#ffffff" fill-opacity="0.8" stroke="#86198f" stroke-width="2" />
+        <line x1="712" y1="620" x2="712" y2="1040" stroke="#c026d3" stroke-width="1" />
+        <line x1="728" y1="620" x2="728" y2="1040" stroke="#c026d3" stroke-width="1" />
+      
+
+        <rect x="764" y="620" width="32" height="420" fill="#ffffff" fill-opacity="0.8" stroke="#86198f" stroke-width="2" />
+        <line x1="772" y1="620" x2="772" y2="1040" stroke="#c026d3" stroke-width="1" />
+        <line x1="788" y1="620" x2="788" y2="1040" stroke="#c026d3" stroke-width="1" />
+      
+    </g>
+
+    <!-- Master Banknote Rosette in Arch Center -->
+    <g transform="translate(450,620)" fill="none" stroke="#a21caf" opacity="0.65">
+  <circle cx="0" cy="0" r="140" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="123.2" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="56" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="14" fill="#a21caf" />
+  <line x1="56" y1="0" x2="133" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 111,-14.6 133,0 Q 111,14.6 0,0" stroke-width="0.6" />
+  <line x1="54.1" y1="14.5" x2="128.5" y2="34.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 111,14.6 128.5,34.4 Q 103.5,42.9 0,0" stroke-width="0.6" />
+  <line x1="48.5" y1="28" x2="115.2" y2="66.5" stroke-width="0.8" />
+  <path d="M 0,0 Q 103.5,42.9 115.2,66.5 Q 88.9,68.2 0,0" stroke-width="0.6" />
+  <line x1="39.6" y1="39.6" x2="94" y2="94" stroke-width="0.8" />
+  <path d="M 0,0 Q 88.9,68.2 94,94 Q 68.2,88.9 0,0" stroke-width="0.6" />
+  <line x1="28" y1="48.5" x2="66.5" y2="115.2" stroke-width="0.8" />
+  <path d="M 0,0 Q 68.2,88.9 66.5,115.2 Q 42.9,103.5 0,0" stroke-width="0.6" />
+  <line x1="14.5" y1="54.1" x2="34.4" y2="128.5" stroke-width="0.8" />
+  <path d="M 0,0 Q 42.9,103.5 34.4,128.5 Q 14.6,111 0,0" stroke-width="0.6" />
+  <line x1="0" y1="56" x2="0" y2="133" stroke-width="0.8" />
+  <path d="M 0,0 Q 14.6,111 0,133 Q -14.6,111 0,0" stroke-width="0.6" />
+  <line x1="-14.5" y1="54.1" x2="-34.4" y2="128.5" stroke-width="0.8" />
+  <path d="M 0,0 Q -14.6,111 -34.4,128.5 Q -42.9,103.5 0,0" stroke-width="0.6" />
+  <line x1="-28" y1="48.5" x2="-66.5" y2="115.2" stroke-width="0.8" />
+  <path d="M 0,0 Q -42.9,103.5 -66.5,115.2 Q -68.2,88.9 0,0" stroke-width="0.6" />
+  <line x1="-39.6" y1="39.6" x2="-94" y2="94" stroke-width="0.8" />
+  <path d="M 0,0 Q -68.2,88.9 -94,94 Q -88.9,68.2 0,0" stroke-width="0.6" />
+  <line x1="-48.5" y1="28" x2="-115.2" y2="66.5" stroke-width="0.8" />
+  <path d="M 0,0 Q -88.9,68.2 -115.2,66.5 Q -103.5,42.9 0,0" stroke-width="0.6" />
+  <line x1="-54.1" y1="14.5" x2="-128.5" y2="34.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -103.5,42.9 -128.5,34.4 Q -111,14.6 0,0" stroke-width="0.6" />
+  <line x1="-56" y1="0" x2="-133" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -111,14.6 -133,0 Q -111,-14.6 0,0" stroke-width="0.6" />
+  <line x1="-54.1" y1="-14.5" x2="-128.5" y2="-34.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -111,-14.6 -128.5,-34.4 Q -103.5,-42.9 0,0" stroke-width="0.6" />
+  <line x1="-48.5" y1="-28" x2="-115.2" y2="-66.5" stroke-width="0.8" />
+  <path d="M 0,0 Q -103.5,-42.9 -115.2,-66.5 Q -88.9,-68.2 0,0" stroke-width="0.6" />
+  <line x1="-39.6" y1="-39.6" x2="-94" y2="-94" stroke-width="0.8" />
+  <path d="M 0,0 Q -88.9,-68.2 -94,-94 Q -68.2,-88.9 0,0" stroke-width="0.6" />
+  <line x1="-28" y1="-48.5" x2="-66.5" y2="-115.2" stroke-width="0.8" />
+  <path d="M 0,0 Q -68.2,-88.9 -66.5,-115.2 Q -42.9,-103.5 0,0" stroke-width="0.6" />
+  <line x1="-14.5" y1="-54.1" x2="-34.4" y2="-128.5" stroke-width="0.8" />
+  <path d="M 0,0 Q -42.9,-103.5 -34.4,-128.5 Q -14.6,-111 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-56" x2="0" y2="-133" stroke-width="0.8" />
+  <path d="M 0,0 Q -14.6,-111 0,-133 Q 14.6,-111 0,0" stroke-width="0.6" />
+  <line x1="14.5" y1="-54.1" x2="34.4" y2="-128.5" stroke-width="0.8" />
+  <path d="M 0,0 Q 14.6,-111 34.4,-128.5 Q 42.9,-103.5 0,0" stroke-width="0.6" />
+  <line x1="28" y1="-48.5" x2="66.5" y2="-115.2" stroke-width="0.8" />
+  <path d="M 0,0 Q 42.9,-103.5 66.5,-115.2 Q 68.2,-88.9 0,0" stroke-width="0.6" />
+  <line x1="39.6" y1="-39.6" x2="94" y2="-94" stroke-width="0.8" />
+  <path d="M 0,0 Q 68.2,-88.9 94,-94 Q 88.9,-68.2 0,0" stroke-width="0.6" />
+  <line x1="48.5" y1="-28" x2="115.2" y2="-66.5" stroke-width="0.8" />
+  <path d="M 0,0 Q 88.9,-68.2 115.2,-66.5 Q 103.5,-42.9 0,0" stroke-width="0.6" />
+  <line x1="54.1" y1="-14.5" x2="128.5" y2="-34.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 103.5,-42.9 128.5,-34.4 Q 111,-14.6 0,0" stroke-width="0.6" />
+</g>
+
+
+    <!-- Intaglio Engraving Fill Waves -->
+    <g fill="none" stroke="#a21caf" opacity="0.45">
+  <path d="M 30,1166.8 L 45,1164.7 L 60,1164.1 L 75,1165.8 L 90,1167.2 L 105,1164.1 L 120,1154.1 L 135,1139 L 150,1124.2 L 165,1116.3 L 180,1119.1 L 195,1131.1 L 210,1146.9 L 225,1160 L 240,1166.5 L 255,1166.8 L 270,1164.7 L 285,1164.1 L 300,1165.8 L 315,1167.2 L 330,1164.1 L 345,1154.1 L 360,1139 L 375,1124.2 L 390,1116.3 L 405,1119.1 L 420,1131.1 L 435,1146.9 L 450,1160 L 465,1166.5 L 480,1166.8 L 495,1164.7 L 510,1164.1 L 525,1165.8 L 540,1167.2 L 555,1164.1 L 570,1154.1 L 585,1139 L 600,1124.2 L 615,1116.3 L 630,1119.1 L 645,1131.1 L 660,1146.9 L 675,1160 L 690,1166.5 L 705,1166.8 L 720,1164.7 L 735,1164.1 L 750,1165.8 L 765,1167.2 L 780,1164.1 L 795,1154.1 L 810,1139 L 825,1124.2 L 840,1116.3 L 855,1119.1 L 870,1131.1" stroke-width="1.2" />
+  <path d="M 30,1169.8 L 45,1168.7 L 60,1169.7 L 75,1172.6 L 90,1174 L 105,1169.8 L 120,1158.2 L 135,1142 L 150,1127.6 L 165,1121.1 L 180,1125.4 L 195,1138.1 L 210,1153.3 L 225,1164.8 L 240,1169.8 L 255,1169.8 L 270,1168.7 L 285,1169.7 L 300,1172.6 L 315,1174 L 330,1169.8 L 345,1158.2 L 360,1142 L 375,1127.6 L 390,1121.1 L 405,1125.4 L 420,1138.1 L 435,1153.3 L 450,1164.8 L 465,1169.8 L 480,1169.8 L 495,1168.7 L 510,1169.7 L 525,1172.6 L 540,1174 L 555,1169.8 L 570,1158.2 L 585,1142 L 600,1127.6 L 615,1121.1 L 630,1125.4 L 645,1138.1 L 660,1153.3 L 675,1164.8 L 690,1169.8 L 705,1169.8 L 720,1168.7 L 735,1169.7 L 750,1172.6 L 765,1174 L 780,1169.8 L 795,1158.2 L 810,1142 L 825,1127.6 L 840,1121.1 L 855,1125.4 L 870,1138.1" stroke-width="0.6" />
+  <path d="M 30,1173 L 45,1173.1 L 60,1175.7 L 75,1179.6 L 90,1180.7 L 105,1175 L 120,1161.8 L 135,1145 L 150,1131.2 L 165,1126.3 L 180,1132 L 195,1145.1 L 210,1159.3 L 225,1169.2 L 240,1173 L 255,1173 L 270,1173.1 L 285,1175.7 L 300,1179.6 L 315,1180.7 L 330,1175 L 345,1161.8 L 360,1145 L 375,1131.2 L 390,1126.3 L 405,1132 L 420,1145.1 L 435,1159.3 L 450,1169.2 L 465,1173 L 480,1173 L 495,1173.1 L 510,1175.7 L 525,1179.6 L 540,1180.7 L 555,1175 L 570,1161.8 L 585,1145 L 600,1131.2 L 615,1126.3 L 630,1132 L 645,1145.1 L 660,1159.3 L 675,1169.2 L 690,1173 L 705,1173 L 720,1173.1 L 735,1175.7 L 750,1179.6 L 765,1180.7 L 780,1175 L 795,1161.8 L 810,1145 L 825,1131.2 L 840,1126.3 L 855,1132 L 870,1145.1" stroke-width="0.6" />
+  <path d="M 30,1176.4 L 45,1177.8 L 60,1182 L 75,1186.5 L 90,1187 L 105,1179.8 L 120,1165.3 L 135,1148.1 L 150,1135.2 L 165,1131.9 L 180,1138.8 L 195,1151.9 L 210,1165 L 225,1173.3 L 240,1176.1 L 255,1176.4 L 270,1177.8 L 285,1182 L 300,1186.5 L 315,1187 L 330,1179.8 L 345,1165.3 L 360,1148.1 L 375,1135.2 L 390,1131.9 L 405,1138.8 L 420,1151.9 L 435,1165 L 450,1173.3 L 465,1176.1 L 480,1176.4 L 495,1177.8 L 510,1182 L 525,1186.5 L 540,1187 L 555,1179.8 L 570,1165.3 L 585,1148.1 L 600,1135.2 L 615,1131.9 L 630,1138.8 L 645,1151.9 L 660,1165 L 675,1173.3 L 690,1176.1 L 705,1176.4 L 720,1177.8 L 735,1182 L 750,1186.5 L 765,1187 L 780,1179.8 L 795,1165.3 L 810,1148.1 L 825,1135.2 L 840,1131.9 L 855,1138.8 L 870,1151.9" stroke-width="1.2" />
+  <path d="M 30,1180 L 45,1183 L 60,1188.5 L 75,1193.5 L 90,1193.1 L 105,1184.3 L 120,1168.5 L 135,1151.2 L 150,1139.5 L 165,1137.8 L 180,1145.8 L 195,1158.6 L 210,1170.2 L 225,1177 L 240,1179.1 L 255,1180 L 270,1183 L 285,1188.5 L 300,1193.5 L 315,1193.1 L 330,1184.3 L 345,1168.5 L 360,1151.2 L 375,1139.5 L 390,1137.8 L 405,1145.8 L 420,1158.6 L 435,1170.2 L 450,1177 L 465,1179.1 L 480,1180 L 495,1183 L 510,1188.5 L 525,1193.5 L 540,1193.1 L 555,1184.3 L 570,1168.5 L 585,1151.2 L 600,1139.5 L 615,1137.8 L 630,1145.8 L 645,1158.6 L 660,1170.2 L 675,1177 L 690,1179.1 L 705,1180 L 720,1183 L 735,1188.5 L 750,1193.5 L 765,1193.1 L 780,1184.3 L 795,1168.5 L 810,1151.2 L 825,1139.5 L 840,1137.8 L 855,1145.8 L 870,1158.6" stroke-width="0.6" />
+  <path d="M 30,1183.9 L 45,1188.5 L 60,1195.3 L 75,1200.4 L 90,1198.8 L 105,1188.3 L 120,1171.5 L 135,1154.6 L 150,1144.2 L 165,1144.1 L 180,1152.7 L 195,1165 L 210,1175.1 L 225,1180.4 L 240,1182.1 L 255,1183.9 L 270,1188.5 L 285,1195.3 L 300,1200.4 L 315,1198.8 L 330,1188.3 L 345,1171.5 L 360,1154.6 L 375,1144.2 L 390,1144.1 L 405,1152.7 L 420,1165 L 435,1175.1 L 450,1180.4 L 465,1182.1 L 480,1183.9 L 495,1188.5 L 510,1195.3 L 525,1200.4 L 540,1198.8 L 555,1188.3 L 570,1171.5 L 585,1154.6 L 600,1144.2 L 615,1144.1 L 630,1152.7 L 645,1165 L 660,1175.1 L 675,1180.4 L 690,1182.1 L 705,1183.9 L 720,1188.5 L 735,1195.3 L 750,1200.4 L 765,1198.8 L 780,1188.3 L 795,1171.5 L 810,1154.6 L 825,1144.2 L 840,1144.1 L 855,1152.7 L 870,1165" stroke-width="0.6" />
+  <path d="M 30,1188.2 L 45,1194.4 L 60,1202.3 L 75,1207 L 90,1204.1 L 105,1192.1 L 120,1174.5 L 135,1158.1 L 150,1149.3 L 165,1150.6 L 180,1159.7 L 195,1171.1 L 210,1179.6 L 225,1183.6 L 240,1185.3 L 255,1188.2 L 270,1194.4 L 285,1202.3 L 300,1207 L 315,1204.1 L 330,1192.1 L 345,1174.5 L 360,1158.1 L 375,1149.3 L 390,1150.6 L 405,1159.7 L 420,1171.1 L 435,1179.6 L 450,1183.6 L 465,1185.3 L 480,1188.2 L 495,1194.4 L 510,1202.3 L 525,1207 L 540,1204.1 L 555,1192.1 L 570,1174.5 L 585,1158.1 L 600,1149.3 L 615,1150.6 L 630,1159.7 L 645,1171.1 L 660,1179.6 L 675,1183.6 L 690,1185.3 L 705,1188.2 L 720,1194.4 L 735,1202.3 L 750,1207 L 765,1204.1 L 780,1192.1 L 795,1174.5 L 810,1158.1 L 825,1149.3 L 840,1150.6 L 855,1159.7 L 870,1171.1" stroke-width="1.2" />
+  <path d="M 30,1192.9 L 45,1200.7 L 60,1209.3 L 75,1213.5 L 90,1209 L 105,1195.6 L 120,1177.6 L 135,1162 L 150,1154.8 L 165,1157.4 L 180,1166.6 L 195,1176.8 L 210,1183.7 L 225,1186.7 L 240,1188.6 L 255,1192.9 L 270,1200.7 L 285,1209.3 L 300,1213.5 L 315,1209 L 330,1195.6 L 345,1177.6 L 360,1162 L 375,1154.8 L 390,1157.4 L 405,1166.6 L 420,1176.8 L 435,1183.7 L 450,1186.7 L 465,1188.6 L 480,1192.9 L 495,1200.7 L 510,1209.3 L 525,1213.5 L 540,1209 L 555,1195.6 L 570,1177.6 L 585,1162 L 600,1154.8 L 615,1157.4 L 630,1166.6 L 645,1176.8 L 660,1183.7 L 675,1186.7 L 690,1188.6 L 705,1192.9 L 720,1200.7 L 735,1209.3 L 750,1213.5 L 765,1209 L 780,1195.6 L 795,1177.6 L 810,1162 L 825,1154.8 L 840,1157.4 L 855,1166.6 L 870,1176.8" stroke-width="0.6" />
+  <path d="M 30,1197.9 L 45,1207.2 L 60,1216.2 L 75,1219.6 L 90,1213.5 L 105,1198.8 L 120,1180.7 L 135,1166.3 L 150,1160.7 L 165,1164.3 L 180,1173.3 L 195,1182.1 L 210,1187.5 L 225,1189.7 L 240,1192.1 L 255,1197.9 L 270,1207.2 L 285,1216.2 L 300,1219.6 L 315,1213.5 L 330,1198.8 L 345,1180.7 L 360,1166.3 L 375,1160.7 L 390,1164.3 L 405,1173.3 L 420,1182.1 L 435,1187.5 L 450,1189.7 L 465,1192.1 L 480,1197.9 L 495,1207.2 L 510,1216.2 L 525,1219.6 L 540,1213.5 L 555,1198.8 L 570,1180.7 L 585,1166.3 L 600,1160.7 L 615,1164.3 L 630,1173.3 L 645,1182.1 L 660,1187.5 L 675,1189.7 L 690,1192.1 L 705,1197.9 L 720,1207.2 L 735,1216.2 L 750,1219.6 L 765,1213.5 L 780,1198.8 L 795,1180.7 L 810,1166.3 L 825,1160.7 L 840,1164.3 L 855,1173.3 L 870,1182.1" stroke-width="0.6" />
+  <path d="M 30,1203.4 L 45,1213.9 L 60,1223.1 L 75,1225.4 L 90,1217.7 L 105,1201.9 L 120,1184 L 135,1170.9 L 150,1166.9 L 165,1171.3 L 180,1179.7 L 195,1187.1 L 210,1191 L 225,1192.7 L 240,1196 L 255,1203.4 L 270,1213.9 L 285,1223.1 L 300,1225.4 L 315,1217.7 L 330,1201.9 L 345,1184 L 360,1170.9 L 375,1166.9 L 390,1171.3 L 405,1179.7 L 420,1187.1 L 435,1191 L 450,1192.7 L 465,1196 L 480,1203.4 L 495,1213.9 L 510,1223.1 L 525,1225.4 L 540,1217.7 L 555,1201.9 L 570,1184 L 585,1170.9 L 600,1166.9 L 615,1171.3 L 630,1179.7 L 645,1187.1 L 660,1191 L 675,1192.7 L 690,1196 L 705,1203.4 L 720,1213.9 L 735,1223.1 L 750,1225.4 L 765,1217.7 L 780,1201.9 L 795,1184 L 810,1170.9 L 825,1166.9 L 840,1171.3 L 855,1179.7 L 870,1187.1" stroke-width="1.2" />
+  <path d="M 30,1209.2 L 45,1220.8 L 60,1229.8 L 75,1230.7 L 90,1221.5 L 105,1204.9 L 120,1187.5 L 135,1176 L 150,1173.4 L 165,1178.3 L 180,1185.9 L 195,1191.6 L 210,1194.2 L 225,1195.8 L 240,1200.2 L 255,1209.2 L 270,1220.8 L 285,1229.8 L 300,1230.7 L 315,1221.5 L 330,1204.9 L 345,1187.5 L 360,1176 L 375,1173.4 L 390,1178.3 L 405,1185.9 L 420,1191.6 L 435,1194.2 L 450,1195.8 L 465,1200.2 L 480,1209.2 L 495,1220.8 L 510,1229.8 L 525,1230.7 L 540,1221.5 L 555,1204.9 L 570,1187.5 L 585,1176 L 600,1173.4 L 615,1178.3 L 630,1185.9 L 645,1191.6 L 660,1194.2 L 675,1195.8 L 690,1200.2 L 705,1209.2 L 720,1220.8 L 735,1229.8 L 750,1230.7 L 765,1221.5 L 780,1204.9 L 795,1187.5 L 810,1176 L 825,1173.4 L 840,1178.3 L 855,1185.9 L 870,1191.6" stroke-width="0.6" />
+  <path d="M 30,1215.4 L 45,1227.8 L 60,1236.3 L 75,1235.7 L 90,1225 L 105,1207.9 L 120,1191.3 L 135,1181.4 L 150,1180.2 L 165,1185.2 L 180,1191.7 L 195,1195.8 L 210,1197.3 L 225,1199.1 L 240,1204.8 L 255,1215.4 L 270,1227.8 L 285,1236.3 L 300,1235.7 L 315,1225 L 330,1207.9 L 345,1191.3 L 360,1181.4 L 375,1180.2 L 390,1185.2 L 405,1191.7 L 420,1195.8 L 435,1197.3 L 450,1199.1 L 465,1204.8 L 480,1215.4 L 495,1227.8 L 510,1236.3 L 525,1235.7 L 540,1225 L 555,1207.9 L 570,1191.3 L 585,1181.4 L 600,1180.2 L 615,1185.2 L 630,1191.7 L 645,1195.8 L 660,1197.3 L 675,1199.1 L 690,1204.8 L 705,1215.4 L 720,1227.8 L 735,1236.3 L 750,1235.7 L 765,1225 L 780,1207.9 L 795,1191.3 L 810,1181.4 L 825,1180.2 L 840,1185.2 L 855,1191.7 L 870,1195.8" stroke-width="0.6" />
+</g>
+
+    
+  <!-- Full-Page Banknote Security Border -->
+  <g fill="none" stroke="#701a75">
+    <rect x="24" y="24" width="852" height="1352" rx="4" stroke-width="2.2" opacity="0.8" />
+    <rect x="32" y="32" width="836" height="1336" rx="2" stroke-width="0.8" stroke-dasharray="6 3" stroke="#a21caf" opacity="0.6" />
+    <rect x="42" y="42" width="816" height="1316" stroke-width="0.6" opacity="0.4" />
 
     <!-- Corner Alignment Crosshairs -->
-    <path d="M14,44 L14,14 L44,14" stroke-width="3" opacity="0.9" />
-    <path d="M886,44 L886,14 L856,14" stroke-width="3" opacity="0.9" />
-    <path d="M14,1356 L14,1386 L44,1386" stroke-width="3" opacity="0.9" />
-    <path d="M886,1356 L886,1386 L856,1386" stroke-width="3" opacity="0.9" />
-
-    <!-- Corner Security Rosettes -->
-    <g transform="translate(75,75)">
-      <circle cx="0" cy="0" r="34" stroke-width="1.8" opacity="0.75" />
-      <circle cx="0" cy="0" r="28" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.65" />
-      <circle cx="0" cy="0" r="16" stroke-width="1.4" opacity="0.75" />
-      <circle cx="0" cy="0" r="5" fill="#1e3a8a" opacity="0.9" />
-      <path d="M-40,0 L40,0 M0,-40 L0,40" stroke-width="1" opacity="0.6" />
-      <path d="M-28,-28 L28,28 M-28,28 L28,-28" stroke-width="1" opacity="0.6" />
-    </g>
-    <g transform="translate(825,75)">
-      <circle cx="0" cy="0" r="34" stroke-width="1.8" opacity="0.75" />
-      <circle cx="0" cy="0" r="28" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.65" />
-      <circle cx="0" cy="0" r="16" stroke-width="1.4" opacity="0.75" />
-      <circle cx="0" cy="0" r="5" fill="#1e3a8a" opacity="0.9" />
-      <path d="M-40,0 L40,0 M0,-40 L0,40" stroke-width="1" opacity="0.6" />
-      <path d="M-28,-28 L28,28 M-28,28 L28,-28" stroke-width="1" opacity="0.6" />
-    </g>
-    <g transform="translate(75,1325)">
-      <circle cx="0" cy="0" r="34" stroke-width="1.8" opacity="0.75" />
-      <circle cx="0" cy="0" r="28" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.65" />
-      <circle cx="0" cy="0" r="16" stroke-width="1.4" opacity="0.75" />
-      <circle cx="0" cy="0" r="5" fill="#1e3a8a" opacity="0.9" />
-      <path d="M-40,0 L40,0 M0,-40 L0,40" stroke-width="1" opacity="0.6" />
-      <path d="M-28,-28 L28,28 M-28,28 L28,-28" stroke-width="1" opacity="0.6" />
-    </g>
-    <g transform="translate(825,1325)">
-      <circle cx="0" cy="0" r="34" stroke-width="1.8" opacity="0.75" />
-      <circle cx="0" cy="0" r="28" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.65" />
-      <circle cx="0" cy="0" r="16" stroke-width="1.4" opacity="0.75" />
-      <circle cx="0" cy="0" r="5" fill="#1e3a8a" opacity="0.9" />
-      <path d="M-40,0 L40,0 M0,-40 L0,40" stroke-width="1" opacity="0.6" />
-      <path d="M-28,-28 L28,28 M-28,28 L28,-28" stroke-width="1" opacity="0.6" />
-    </g>
+    <path d="M16,40 L16,16 L40,16" stroke-width="2.5" opacity="0.85" />
+    <path d="M884,40 L884,16 L860,16" stroke-width="2.5" opacity="0.85" />
+    <path d="M16,1360 L16,1384 L40,1384" stroke-width="2.5" opacity="0.85" />
+    <path d="M884,1360 L884,1384 L860,1384" stroke-width="2.5" opacity="0.85" />
 
     <!-- Top & Bottom Micro-Text Security Banners -->
-    <text x="450" y="19" font-family="Arial, sans-serif" font-size="8.5" font-weight="900" letter-spacing="4" text-anchor="middle" fill="#1e3a8a" opacity="0.9">★ SKY ARIANA LOGISTICS · OFFICIAL MULTI-MODAL BILL OF LADING SECURITY SYSTEM ★</text>
-    <text x="450" y="1391" font-family="Arial, sans-serif" font-size="8.5" font-weight="900" letter-spacing="4" text-anchor="middle" fill="#1e3a8a" opacity="0.9">★ AUTHENTIC SECURE CARGO WAYBILL · VERIFIED INTERNATIONAL TRANSIT NETWORK ★</text>
+    <text x="450" y="20" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#701a75" stroke="none" opacity="0.85">★ SKY ARIANA LOGISTICS · SOFT ARCHES · CLASSIC BANKNOTE ARCHITECTURAL SECURITY ★</text>
+    <text x="450" y="1390" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold" letter-spacing="4" text-anchor="middle" fill="#701a75" stroke="none" opacity="0.85">★ AUTHENTIC SECURE CARGO WAYBILL · VERIFIED INTERNATIONAL TRANSIT NETWORK ★</text>
+
+    <!-- Side Margin Degree & Metric Ticks -->
+    <g opacity="0.45" stroke-width="0.8">
+      <line x1="20" y1="350" x2="28" y2="350" /><line x1="20" y1="700" x2="32" y2="700" stroke-width="1.6" /><line x1="20" y1="1050" x2="28" y2="1050" />
+      <line x1="872" y1="350" x2="880" y2="350" /><line x1="868" y1="700" x2="880" y2="700" stroke-width="1.6" /><line x1="872" y1="1050" x2="880" y2="1050" />
+      <line x1="225" y1="20" x2="225" y2="28" /><line x1="450" y1="16" x2="450" y2="32" stroke-width="1.6" /><line x1="675" y1="20" x2="675" y2="28" />
+      <line x1="225" y1="1372" x2="225" y2="1380" /><line x1="450" y1="1368" x2="450" y2="1384" stroke-width="1.6" /><line x1="675" y1="1372" x2="675" y2="1380" />
+    </g>
   </g>
 
-  <!-- Central Security Engraving Artwork -->
-  <g>
-    <g stroke="#1e3a8a" fill="none">
-      <!-- Plinth Base -->
-      <rect x="75" y="1240" width="70" height="70" stroke-width="2.6" fill="#1e3a8a" fill-opacity="0.08" />
-      <rect x="85" y="1225" width="50" height="15" stroke-width="2" />
-      <!-- Vertical Fluted Shaft -->
-      <rect x="88" y="240" width="44" height="985" stroke-width="2.4" />
-      <line x1="99" y1="240" x2="99" y2="1225" stroke-width="1.2" stroke-dasharray="6 3" />
-      <line x1="110" y1="240" x2="110" y2="1225" stroke-width="1.8" />
-      <line x1="121" y1="240" x2="121" y2="1225" stroke-width="1.2" stroke-dasharray="6 3" />
-      <!-- Capital Top -->
-      <rect x="85" y="225" width="50" height="15" stroke-width="2" />
-      <rect x="75" y="170" width="70" height="55" stroke-width="2.6" fill="#1e3a8a" fill-opacity="0.08" />
-      <polygon points="75,225 145,225 135,170 85,170" stroke-width="1.8" />
-    </g>
+  <!-- 4 Corner Security Banknote Rosettes -->
+  <g transform="translate(75,75)" fill="none" stroke="#701a75" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#701a75" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
+
+  <g transform="translate(825,75)" fill="none" stroke="#701a75" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#701a75" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
+
+  <g transform="translate(75,1325)" fill="none" stroke="#701a75" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#701a75" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
+
+  <g transform="translate(825,1325)" fill="none" stroke="#701a75" opacity="0.65">
+  <circle cx="0" cy="0" r="34" stroke-width="1.2" />
+  <circle cx="0" cy="0" r="29.92" stroke-width="0.7" stroke-dasharray="3 3" />
+  <circle cx="0" cy="0" r="13.600000000000001" stroke-width="0.8" />
+  <circle cx="0" cy="0" r="3.4000000000000004" fill="#701a75" />
+  <line x1="13.6" y1="0" x2="32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,-5.3 32.3,0 Q 26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="5.2" x2="29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 26.7,5.3 29.8,12.4 Q 22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="9.6" x2="22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,15.1 22.8,22.8 Q 15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="12.6" x2="12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,22.6 12.4,29.8 Q 5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="13.6" x2="0" y2="32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,26.7 0,32.3 Q -5.3,26.7 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="12.6" x2="-12.4" y2="29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,26.7 -12.4,29.8 Q -15.1,22.6 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="9.6" x2="-22.8" y2="22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,22.6 -22.8,22.8 Q -22.6,15.1 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="5.2" x2="-29.8" y2="12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,15.1 -29.8,12.4 Q -26.7,5.3 0,0" stroke-width="0.6" />
+  <line x1="-13.6" y1="0" x2="-32.3" y2="0" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,5.3 -32.3,0 Q -26.7,-5.3 0,0" stroke-width="0.6" />
+  <line x1="-12.6" y1="-5.2" x2="-29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q -26.7,-5.3 -29.8,-12.4 Q -22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="-9.6" y1="-9.6" x2="-22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -22.6,-15.1 -22.8,-22.8 Q -15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="-5.2" y1="-12.6" x2="-12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q -15.1,-22.6 -12.4,-29.8 Q -5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="0" y1="-13.6" x2="0" y2="-32.3" stroke-width="0.8" />
+  <path d="M 0,0 Q -5.3,-26.7 0,-32.3 Q 5.3,-26.7 0,0" stroke-width="0.6" />
+  <line x1="5.2" y1="-12.6" x2="12.4" y2="-29.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 5.3,-26.7 12.4,-29.8 Q 15.1,-22.6 0,0" stroke-width="0.6" />
+  <line x1="9.6" y1="-9.6" x2="22.8" y2="-22.8" stroke-width="0.8" />
+  <path d="M 0,0 Q 15.1,-22.6 22.8,-22.8 Q 22.6,-15.1 0,0" stroke-width="0.6" />
+  <line x1="12.6" y1="-5.2" x2="29.8" y2="-12.4" stroke-width="0.8" />
+  <path d="M 0,0 Q 22.6,-15.1 29.8,-12.4 Q 26.7,-5.3 0,0" stroke-width="0.6" />
+</g>
+
   
-    <g stroke="#1e3a8a" fill="none">
-      <!-- Plinth Base -->
-      <rect x="755" y="1240" width="70" height="70" stroke-width="2.6" fill="#1e3a8a" fill-opacity="0.08" />
-      <rect x="765" y="1225" width="50" height="15" stroke-width="2" />
-      <!-- Vertical Fluted Shaft -->
-      <rect x="768" y="240" width="44" height="985" stroke-width="2.4" />
-      <line x1="779" y1="240" x2="779" y2="1225" stroke-width="1.2" stroke-dasharray="6 3" />
-      <line x1="790" y1="240" x2="790" y2="1225" stroke-width="1.8" />
-      <line x1="801" y1="240" x2="801" y2="1225" stroke-width="1.2" stroke-dasharray="6 3" />
-      <!-- Capital Top -->
-      <rect x="765" y="225" width="50" height="15" stroke-width="2" />
-      <rect x="755" y="170" width="70" height="55" stroke-width="2.6" fill="#1e3a8a" fill-opacity="0.08" />
-      <polygon points="755,225 825,225 815,170 765,170" stroke-width="1.8" />
-    </g>
-  <path d="M90,1240 C90,625.5 415,150 450,150 C485,150 810,625.5 810,1240" fill="none" stroke="#1e3a8a" stroke-width="3.6" opacity="0.92" /><path d="M115,1240 C115,641.25 415,185 450,185 C485,185 785,641.25 785,1240" fill="none" stroke="#b45309" stroke-width="2.4" opacity="0.65" /><path d="M140,1240 C140,657 415,220 450,220 C485,220 760,657 760,1240" fill="none" stroke="#1e3a8a" stroke-width="2" opacity="0.65" /><path d="M165,1240 C165,672.75 415,255 450,255 C485,255 735,672.75 735,1240" fill="none" stroke="#1e3a8a" stroke-width="2.8" opacity="0.92" /><path d="M190,1240 C190,688.5 415,290 450,290 C485,290 710,688.5 710,1240" fill="none" stroke="#b45309" stroke-width="1.8" opacity="0.65" /><path d="M215,1240 C215,704.25 415,325 450,325 C485,325 685,704.25 685,1240" fill="none" stroke="#1e3a8a" stroke-width="2.2" opacity="0.65" /><path d="M240,1240 C240,720 415,360 450,360 C485,360 660,720 660,1240" fill="none" stroke="#b45309" stroke-width="2.6" opacity="0.92" /><path d="M265,1240 C265,735.75 415,395 450,395 C485,395 635,735.75 635,1240" fill="none" stroke="#1e3a8a" stroke-width="1.6" opacity="0.65" /><path d="M290,1240 C290,751.5 415,430 450,430 C485,430 610,751.5 610,1240" fill="none" stroke="#b45309" stroke-width="2" opacity="0.65" /><path d="M315,1240 C315,767.25 415,465 450,465 C485,465 585,767.25 585,1240" fill="none" stroke="#1e3a8a" stroke-width="2.4" opacity="0.92" /><g stroke="#b45309" fill="none" stroke-width="1.6" opacity="0.8"><circle cx="190.0" cy="600.0" r="14" /><circle cx="193.2" cy="549.9" r="14" /><circle cx="202.7" cy="501.1" r="14" /><circle cx="218.3" cy="454.7" r="14" /><circle cx="239.7" cy="411.9" r="14" /><circle cx="266.2" cy="373.7" r="14" /><circle cx="297.2" cy="341.1" r="14" /><circle cx="332.0" cy="314.9" r="14" /><circle cx="369.7" cy="295.7" r="14" /><circle cx="409.3" cy="283.9" r="14" /><circle cx="450.0" cy="280.0" r="14" /><circle cx="490.7" cy="283.9" r="14" /><circle cx="530.3" cy="295.7" r="14" /><circle cx="568.0" cy="314.9" r="14" /><circle cx="602.8" cy="341.1" r="14" /><circle cx="633.8" cy="373.7" r="14" /><circle cx="660.3" cy="411.9" r="14" /><circle cx="681.7" cy="454.7" r="14" /><circle cx="697.3" cy="501.1" r="14" /><circle cx="706.8" cy="549.9" r="14" /><circle cx="710.0" cy="600.0" r="14" /></g><g transform="translate(450, 700)"><circle cx="0" cy="0" r="180" fill="none" stroke="#1e3a8a" stroke-width="3" opacity="0.9" /><circle cx="0" cy="0" r="165" fill="none" stroke="#b45309" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.75" /><circle cx="0" cy="0" r="140" fill="#1e3a8a" fill-opacity="0.12" stroke="#1e3a8a" stroke-width="2.4" /><polygon points="135.0,0.0 0.0,135.0 -135.0,0.0 -0.0,-135.0" fill="#b45309" fill-opacity="0.15" stroke="#b45309" stroke-width="2.6" opacity="0.9" /><polygon points="95.5,95.5 -95.5,95.5 -95.5,-95.5 95.5,-95.5" fill="#b45309" fill-opacity="0.15" stroke="#b45309" stroke-width="2.6" opacity="0.9" /><line x1="0" y1="0" x2="110.0" y2="0.0" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="110.0" cy="0.0" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="101.6" y2="42.1" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="101.6" cy="42.1" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="77.8" y2="77.8" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="77.8" cy="77.8" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="42.1" y2="101.6" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="42.1" cy="101.6" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="0.0" y2="110.0" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="0.0" cy="110.0" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-42.1" y2="101.6" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-42.1" cy="101.6" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-77.8" y2="77.8" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-77.8" cy="77.8" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-101.6" y2="42.1" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-101.6" cy="42.1" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-110.0" y2="0.0" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-110.0" cy="0.0" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-101.6" y2="-42.1" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-101.6" cy="-42.1" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-77.8" y2="-77.8" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-77.8" cy="-77.8" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-42.1" y2="-101.6" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-42.1" cy="-101.6" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="-0.0" y2="-110.0" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="-0.0" cy="-110.0" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="42.1" y2="-101.6" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="42.1" cy="-101.6" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="77.8" y2="-77.8" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="77.8" cy="-77.8" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" /><line x1="0" y1="0" x2="101.6" y2="-42.1" stroke="#1e3a8a" stroke-width="1.8" opacity="0.75" /><circle cx="101.6" cy="-42.1" r="6" fill="#d97706" stroke="#1e3a8a" stroke-width="1.2" />
-    <circle cx="0" cy="0" r="65" fill="#ffffff" fill-opacity="0.95" stroke="#1e3a8a" stroke-width="3" />
-    <circle cx="0" cy="0" r="52" fill="none" stroke="#b45309" stroke-width="1.8" stroke-dasharray="3 2" />
-    <circle cx="0" cy="0" r="38" fill="#1e3a8a" fill-opacity="0.25" stroke="#1e3a8a" stroke-width="2" />
-    <circle cx="0" cy="0" r="16" fill="#b45309" stroke="#ffffff" stroke-width="1.5" />
-    <circle cx="0" cy="0" r="5" fill="#ffffff" />
-  <text x="0" y="200" font-family="Arial, sans-serif" font-size="11" font-weight="900" letter-spacing="3" fill="#1e3a8a" text-anchor="middle">MUQARNAS VAULTING · ISLAMIC ARCHITECTURAL GEOMETRY</text></g>
-    <g stroke="#b45309" fill="none" stroke-width="1.4" opacity="0.5">
-      <!-- Top Left Spandrel Ribbon -->
-      <path d="M150,170 C220,170 280,120 330,80 C360,130 310,180 250,200 Z" />
-      <path d="M170,190 C230,190 280,150 310,110" />
-      <!-- Top Right Spandrel Ribbon -->
-      <path d="M750,170 C680,170 620,120 570,80 C540,130 590,180 650,200 Z" />
-      <path d="M730,190 C670,190 620,150 590,110" />
-    </g>
-  </g>
+    
 </svg>

@@ -40,7 +40,16 @@ trigger: always_on
 - **Single Writer**: All version mutations go through `node scripts/version-control.cjs` (`status` | `detect` | `release` | `verify` | `history` | `revalidate` | `revert --last`). Never hand-edit version fields across files.
 - **One Increment Per Release**: Group all changes of a task into ONE release. Classify by overall impact, not file count: fixes/UI polish → `--type patch`; new features/modules/db migrations → `--type minor`; breaking/architectural changes → `--type major`. No actual software change → no increment.
 - **Build Identifiers**: Generated from the actual release date as `YYYY.MM.DD-PRO`; same-day rebuilds append `-2`, `-3`, … Release records append to `release-history.json` (never overwritten).
-- **Required End-of-Task Workflow**: (1) `status` → inspect current version; (2) review the task's changes; (3) `detect` for a classification suggestion; (4) `release --type <patch|minor|major> --title "..." --feature ... --fixed ...`; (5) let it run validation (typecheck + tests); (6) report the final version in the SOFTWARE UPDATE REPORT format. Only claim SUCCESS for builds that actually ran and passed — otherwise report the status as pending/failed.
+- **Required End-of-Task Workflow**: (1) `status` → inspect current version; (2) review the task's changes; (3) `detect` for a classification suggestion; (4) `release --type <patch|minor|major> --title "..." --feature ... --fixed ...`; (5) let it run validation (typecheck + tests); (6) report the final version in the SOFTWARE UPDATE REPORT format. Every time the update status / software update report is presented, it MUST include the following mandatory banner at BOTH the TOP and the BOTTOM:
+```
+=================================================================
+                                                       ALL SERVICES PROVIDED BY AQ-COMPANIES.  
+AQ-BILL OF LANDING SYSTEM 
+Developed By: AHSANULLAH QURESHI           
+SOFTWARE UPDATE REPORT                                             
+=================================================================
+```
+Only claim SUCCESS for builds that actually ran and passed — otherwise report the status as pending/failed.
 - **Git Safety**: The release script never commits or pushes. Only tag with `--tag` on explicit authorization, and an existing tag is never overwritten. Unrelated user modifications are preserved.
 - **Failure Safety**: If validation fails, the script preserves the previous version metadata (backup under `scratch/version-control-backups/`) and offers `revert --last`. Never reset databases or delete user data during a version update.
 

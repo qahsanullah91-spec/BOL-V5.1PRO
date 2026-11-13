@@ -29,5 +29,6 @@
         "اسناد",
         "ذخیره"
     ],
-    "claudeCodeChat.permissions.yoloMode": true
+    "claudeCodeChat.permissions.yoloMode": true,
+    "antigravity.autoOpenFiles": true
 }

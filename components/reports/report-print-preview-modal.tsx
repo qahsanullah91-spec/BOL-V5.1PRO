@@ -147,6 +147,44 @@ export function ReportPrintPreviewModal({
   const paperWidthMm = isLandscape ? 297 : 210
   const paperHeightMm = isLandscape ? 210 : 297
 
+  // Dynamically calculate exact column widths so the sum is mathematically guaranteed to equal 100.00%
+  const colWidths = useMemo(() => {
+    const weights: { key: string; weight: number }[] = [
+      { key: "idx", weight: 3.2 },
+      { key: "bolNo", weight: 10.5 },
+      { key: "date", weight: 7.3 },
+    ]
+
+    if (showTruckDriver && isLandscape) {
+      weights.push({ key: "truckDriver", weight: 11.0 })
+    }
+
+    weights.push({ key: "shipper", weight: isLandscape ? 13.5 : 17.0 })
+    weights.push({ key: "consignee", weight: isLandscape ? 13.5 : 17.0 })
+    weights.push({ key: "cargo", weight: isLandscape ? 12.0 : 15.0 })
+    weights.push({ key: "packages", weight: 7.0 })
+    weights.push({ key: "netWt", weight: 7.0 })
+
+    if (showGoodsValue) {
+      weights.push({ key: "goodsValue", weight: 8.0 })
+    }
+
+    if (showRent) {
+      weights.push({ key: "rent", weight: 7.0 })
+    }
+
+    if (showRoutes && isLandscape) {
+      weights.push({ key: "routes", weight: 8.0 })
+    }
+
+    const total = weights.reduce((acc, w) => acc + w.weight, 0)
+    const map: Record<string, string> = {}
+    weights.forEach((w) => {
+      map[w.key] = `${((w.weight / total) * 100).toFixed(2)}%`
+    })
+    return map
+  }, [showTruckDriver, isLandscape, showGoodsValue, showRent, showRoutes])
+
   // Fit the A4 sheet to the available preview width
   const fitToWidth = useCallback(() => {
     const container = previewScrollRef.current
@@ -269,6 +307,8 @@ export function ReportPrintPreviewModal({
         #${PRINT_ROOT_ID} table {
           display: table !important;
           width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
           table-layout: fixed !important;
           border-collapse: collapse !important;
         }
@@ -279,8 +319,14 @@ export function ReportPrintPreviewModal({
         #${PRINT_ROOT_ID} thead th {
           background: #0f172a !important;
           color: #ffffff !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
+        }
+        #${PRINT_ROOT_ID} tbody td {
+          min-width: 0 !important;
+          box-sizing: border-box !important;
         }
         #${PRINT_ROOT_ID} tbody tr {
           page-break-inside: avoid !important;
@@ -406,7 +452,7 @@ export function ReportPrintPreviewModal({
           minHeight: "0mm",
           WebkitFontSmoothing: "antialiased",
           MozosxFontSmoothing: "grayscale",
-          textRendering: "optimizeLegibility",
+          textRendering: "geometricPrecision",
         } as any,
         filter: (node: HTMLElement) => {
           const tagName = node.tagName?.toUpperCase?.()
@@ -437,39 +483,32 @@ export function ReportPrintPreviewModal({
         image.src = svgDataUrl
       })
 
-      // Rasterize at high DPI, capped at the browser's maximum canvas size
-      const MAX_CANVAS = 16384
-      const ratio = 3
-      let canvasWidth = sheet.offsetWidth * ratio
-      let canvasHeight = sheet.offsetHeight * ratio
-      if (canvasWidth > MAX_CANVAS || canvasHeight > MAX_CANVAS) {
-        if (canvasWidth > MAX_CANVAS && canvasHeight > MAX_CANVAS) {
-          if (canvasWidth > canvasHeight) {
-            canvasHeight *= MAX_CANVAS / canvasWidth
-            canvasWidth = MAX_CANVAS
-          } else {
-            canvasWidth *= MAX_CANVAS / canvasHeight
-            canvasHeight = MAX_CANVAS
-          }
-        } else if (canvasWidth > MAX_CANVAS) {
-          canvasHeight *= MAX_CANVAS / canvasWidth
-          canvasWidth = MAX_CANVAS
-        } else {
-          canvasWidth *= MAX_CANVAS / canvasHeight
-          canvasHeight = MAX_CANVAS
-        }
+      // Rasterize using CPU-backed canvas safely clamped to avoid GPU VRAM tile corruption
+      const MAX_CANVAS_WIDTH = 4096
+      const MAX_CANVAS_HEIGHT = 8192
+      const ratio = 4
+      let canvasWidth = Math.max(1, sheet.offsetWidth) * ratio
+      let canvasHeight = Math.max(1, sheet.offsetHeight) * ratio
+      if (canvasWidth > MAX_CANVAS_WIDTH || canvasHeight > MAX_CANVAS_HEIGHT) {
+        const scaleDown = Math.min(MAX_CANVAS_WIDTH / canvasWidth, MAX_CANVAS_HEIGHT / canvasHeight)
+        canvasWidth *= scaleDown
+        canvasHeight *= scaleDown
       }
 
       const canvas = document.createElement("canvas")
-      canvas.width = Math.round(canvasWidth)
-      canvas.height = Math.round(canvasHeight)
-      const ctx = canvas.getContext("2d")
+      canvas.width = Math.max(1, Math.round(canvasWidth))
+      canvas.height = Math.max(1, Math.round(canvasHeight))
+      const ctx =
+        canvas.getContext("2d", { willReadFrequently: true, alpha: false }) ||
+        canvas.getContext("2d")
       if (!ctx) throw new Error("Canvas rendering is not available in this environment.")
       ctx.fillStyle = "#ffffff"
       ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = "high"
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.98)
+      const imgData = canvas.toDataURL("image/png")
       if (!imgData || imgData === "data:,") {
         throw new Error("Failed to capture the preview sheet. Please try again.")
       }
@@ -479,6 +518,8 @@ export function ReportPrintPreviewModal({
         orientation: isLandscapePdf ? "landscape" : "portrait",
         unit: "mm",
         format: "a4",
+        compress: true,
+        precision: 16,
       })
 
       const pdfWidth = isLandscapePdf ? 297 : 210
@@ -488,12 +529,12 @@ export function ReportPrintPreviewModal({
 
       let heightLeft = canvasHeightMM
       let position = 0
-      pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, canvasHeightMM, undefined, "SLOW")
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, canvasHeightMM, undefined, "MEDIUM")
       heightLeft -= pdfHeight
       while (heightLeft > 0) {
         position -= pdfHeight
         pdf.addPage()
-        pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, canvasHeightMM, undefined, "SLOW")
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, canvasHeightMM, undefined, "MEDIUM")
         heightLeft -= pdfHeight
       }
 
@@ -879,29 +920,29 @@ export function ReportPrintPreviewModal({
           </div>
 
           {/* Table */}
-          <div className="flex-1 my-3 overflow-hidden">
+          <div className="flex-1 my-3 w-full overflow-visible">
             <table className="w-full border-collapse text-left table-fixed">
               <thead>
                 <tr className="bg-slate-900 text-white text-[8px] uppercase tracking-wider font-bold">
-                  <th className="p-1 border border-slate-800 text-center w-7">#</th>
-                  <th className="p-1 border border-slate-800 w-[12%]">BOL Number</th>
-                  <th className="p-1 border border-slate-800 w-[8%]">Date</th>
+                  <th style={{ width: colWidths.idx }} className="p-1 border border-slate-800 text-center">#</th>
+                  <th style={{ width: colWidths.bolNo }} className="p-1 border border-slate-800">BOL Number</th>
+                  <th style={{ width: colWidths.date }} className="p-1 border border-slate-800">Date</th>
                   {showTruckDriver && isLandscape && (
-                    <th className="p-1 border border-slate-800 w-[12%]">Truck / Driver</th>
+                    <th style={{ width: colWidths.truckDriver }} className="p-1 border border-slate-800">Truck / Driver</th>
                   )}
-                  <th className="p-1 border border-slate-800 w-[14%]">Shipper</th>
-                  <th className="p-1 border border-slate-800 w-[14%]">Consignee</th>
-                  <th className="p-1 border border-slate-800 w-[13%]">Cargo</th>
-                  <th className="p-1 border border-slate-800 text-right w-[8%]">Packages</th>
-                  <th className="p-1 border border-slate-800 text-right w-[9%]">Net Wt</th>
+                  <th style={{ width: colWidths.shipper }} className="p-1 border border-slate-800">Shipper</th>
+                  <th style={{ width: colWidths.consignee }} className="p-1 border border-slate-800">Consignee</th>
+                  <th style={{ width: colWidths.cargo }} className="p-1 border border-slate-800">Cargo</th>
+                  <th style={{ width: colWidths.packages }} className="p-1 border border-slate-800 text-right">Packages</th>
+                  <th style={{ width: colWidths.netWt }} className="p-1 border border-slate-800 text-right">Net Wt</th>
                   {showGoodsValue && (
-                    <th className="p-1 border border-slate-800 text-right w-[9%]">Goods Value</th>
+                    <th style={{ width: colWidths.goodsValue }} className="p-1 border border-slate-800 text-right">Goods Value</th>
                   )}
                   {showRent && (
-                    <th className="p-1 border border-slate-800 text-right w-[9%]">Driver Rent</th>
+                    <th style={{ width: colWidths.rent }} className="p-1 border border-slate-800 text-right">Driver Rent</th>
                   )}
                   {showRoutes && isLandscape && (
-                    <th className="p-1 border border-slate-800 w-[10%]">Route / Border</th>
+                    <th style={{ width: colWidths.routes }} className="p-1 border border-slate-800">Route / Border</th>
                   )}
                 </tr>
               </thead>
@@ -997,30 +1038,30 @@ export function ReportPrintPreviewModal({
               </tbody>
               <tfoot>
                 <tr className="bg-slate-900 text-white font-bold text-[8px]">
-                  <td className="p-1 border border-slate-800 text-center font-mono">
+                  <td style={{ width: colWidths.idx }} className="p-1 border border-slate-800 text-center font-mono">
                     Σ
                   </td>
                   <td colSpan={labelColSpan} className="p-1 border border-slate-800 text-right uppercase tracking-wider font-mono">
                     Total Summary ({summaryTotals.count} Shipments):
                   </td>
-                  <td className="p-1 border border-slate-800 text-right font-mono font-black text-blue-200">
+                  <td style={{ width: colWidths.packages }} className="p-1 border border-slate-800 text-right font-mono font-black text-blue-200">
                     {summaryTotals.packages.toLocaleString()}
                   </td>
-                  <td className="p-1 border border-slate-800 text-right font-mono font-black text-emerald-200">
+                  <td style={{ width: colWidths.netWt }} className="p-1 border border-slate-800 text-right font-mono font-black text-emerald-200">
                     {summaryTotals.weight.toLocaleString(undefined, { maximumFractionDigits: 1 })} KG
                   </td>
                   {showGoodsValue && (
-                    <td className="p-1 border border-slate-800 text-right font-mono font-black text-purple-200">
+                    <td style={{ width: colWidths.goodsValue }} className="p-1 border border-slate-800 text-right font-mono font-black text-purple-200">
                       ${summaryTotals.goodsValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                   )}
                   {showRent && (
-                    <td className="p-1 border border-slate-800 text-right font-mono font-black text-amber-200">
+                    <td style={{ width: colWidths.rent }} className="p-1 border border-slate-800 text-right font-mono font-black text-amber-200">
                       {summaryTotals.rent.toLocaleString()} AFN
                     </td>
                   )}
                   {showRoutes && isLandscape && (
-                    <td className="p-1 border border-slate-800"></td>
+                    <td style={{ width: colWidths.routes }} className="p-1 border border-slate-800"></td>
                   )}
                 </tr>
               </tfoot>

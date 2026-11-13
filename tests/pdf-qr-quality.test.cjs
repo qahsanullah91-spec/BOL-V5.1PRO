@@ -50,10 +50,10 @@ test("PDF Export & QR Code Quality Suite", async (t) => {
     );
   });
 
-  await t.test("4. shipping-documents.ts drawBolPage enforces 336+ DPI (3.5x pixelRatio) and preserves data-qr-code", () => {
+  await t.test("4. shipping-documents.ts drawBolPage uses lossless 384 DPI capture and preserves data-qr-code", () => {
     assert.ok(
-      shippingDocsContent.includes("pixelRatio: 3.5"),
-      "drawBolPage must use pixelRatio: 3.5 for ultra-sharp print quality"
+      shippingDocsContent.includes("pixelRatio: 4"),
+      "drawBolPage must use pixelRatio: 4 for 384 DPI print quality"
     );
     assert.ok(
       shippingDocsContent.includes('textRendering: "geometricPrecision"'),
@@ -65,15 +65,15 @@ test("PDF Export & QR Code Quality Suite", async (t) => {
       "drawBolPage filter must explicitly retain QR code elements"
     );
     assert.ok(
-      shippingDocsContent.includes('"image/jpeg", 0.99'),
-      "drawBolPage must use maximum quality 0.99 for clean, artifact-free output"
+      shippingDocsContent.includes('toDataURL("image/png")') && shippingDocsContent.includes('pdf.addImage(imageData, "PNG"'),
+      "drawBolPage must preserve lossless PNG quality in the PDF"
     );
   });
 
-  await t.test("5. pdf-upload.ts generatePDFBlob enforces 336+ DPI and protects QR code elements", () => {
+  await t.test("5. pdf-upload.ts generatePDFBlob uses lossless 384 DPI capture and protects QR code elements", () => {
     assert.ok(
-      pdfUploadContent.includes("pixelRatio: 3.5"),
-      "pdf-upload must use pixelRatio: 3.5"
+      pdfUploadContent.includes("pixelRatio: 4"),
+      "pdf-upload must use pixelRatio: 4"
     );
     assert.ok(
       pdfUploadContent.includes('node.getAttribute?.("data-qr-code") === "true"') ||
@@ -81,8 +81,8 @@ test("PDF Export & QR Code Quality Suite", async (t) => {
       "pdf-upload filter must explicitly retain QR code elements"
     );
     assert.ok(
-      pdfUploadContent.includes('"image/jpeg", 0.99'),
-      "pdf-upload must use 0.99 JPEG quality"
+      pdfUploadContent.includes('toDataURL("image/png")') && pdfUploadContent.includes('pdf.addImage(imageData, "PNG"'),
+      "pdf-upload must preserve lossless PNG quality in the PDF"
     );
     assert.ok(
       pdfUploadContent.includes("button:not([data-qr-code])"),

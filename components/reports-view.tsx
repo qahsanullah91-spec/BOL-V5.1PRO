@@ -1592,58 +1592,74 @@ export function ReportsView() {
     }, 60)
   }
 
+  const renderReportsContainerToPdf = async () => {
+    const printContainer = document.querySelector('#sky-reports-print-root') || document.querySelector('.reports-print-root')
+    if (!printContainer) throw new Error('Print container not found')
+
+    const { toSvg } = await import('html-to-image')
+    const { jsPDF } = await import('jspdf')
+    const { loadSvgImage, computeClampedCanvasDimensions, drawImageHighQualityToCanvas } = await import('@/lib/utils/pdf-high-res-capture')
+
+    const isLandscape = printOrientation === 'landscape'
+    const targetEl = printContainer as HTMLElement
+    const svgDataUrl = await toSvg(targetEl, {
+      cacheBust: false,
+      skipFonts: true,
+      backgroundColor: '#ffffff',
+      style: {
+        transform: 'none',
+        margin: '0',
+        boxShadow: 'none',
+        opacity: '1',
+        visibility: 'visible',
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale',
+        textRendering: 'geometricPrecision',
+      } as any,
+    })
+
+    const img = await loadSvgImage(svgDataUrl, 45000)
+    const { width: canvasWidth, height: canvasHeight } = computeClampedCanvasDimensions(
+      targetEl.offsetWidth || 794,
+      targetEl.offsetHeight || 1123,
+      4,
+      4096,
+    )
+    const canvas = drawImageHighQualityToCanvas(img, canvasWidth, canvasHeight)
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF({
+      orientation: isLandscape ? 'landscape' : 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true,
+      precision: 16,
+    })
+
+    const pdfWidth = isLandscape ? 297 : 210
+    const pdfHeight = isLandscape ? 210 : 297
+    const imgProps = pdf.getImageProperties(imgData)
+    const canvasHeightMM = (imgProps.height * pdfWidth) / imgProps.width
+
+    let heightLeft = canvasHeightMM
+    let position = 0
+
+    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeightMM, undefined, 'MEDIUM')
+    heightLeft -= pdfHeight
+
+    while (heightLeft > 0) {
+      position = heightLeft - canvasHeightMM
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeightMM, undefined, 'MEDIUM')
+      heightLeft -= pdfHeight
+    }
+
+    return pdf
+  }
+
   const handleExportPDF = async () => {
     setIsExportingPDF(true)
     try {
-      const printContainer = document.querySelector('#sky-reports-print-root') || document.querySelector('.reports-print-root')
-      if (!printContainer) throw new Error('Print container not found')
-
-      const { toCanvas } = await import('html-to-image')
-      const { jsPDF } = await import('jspdf')
-
-      const isLandscape = printOrientation === 'landscape'
-      const canvas = await toCanvas(printContainer as HTMLElement, {
-        pixelRatio: 3,
-        quality: 1.0,
-        skipFonts: true,
-        backgroundColor: '#ffffff',
-        style: {
-          transform: 'none',
-          margin: '0',
-          boxShadow: 'none',
-          opacity: '1',
-          visibility: 'visible',
-          WebkitFontSmoothing: 'antialiased',
-          MozOsxFontSmoothing: 'grayscale',
-          textRendering: 'optimizeLegibility',
-        } as any,
-      })
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.99)
-      const pdf = new jsPDF({
-        orientation: isLandscape ? 'landscape' : 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      })
-
-      const pdfWidth = isLandscape ? 297 : 210
-      const pdfHeight = isLandscape ? 210 : 297
-      const imgProps = pdf.getImageProperties(imgData)
-      const canvasHeightMM = (imgProps.height * pdfWidth) / imgProps.width
-
-      let heightLeft = canvasHeightMM
-      let position = 0
-
-      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, canvasHeightMM, undefined, 'SLOW')
-      heightLeft -= pdfHeight
-
-      while (heightLeft > 0) {
-        position = heightLeft - canvasHeightMM
-        pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, canvasHeightMM, undefined, 'SLOW')
-        heightLeft -= pdfHeight
-      }
-
+      const pdf = await renderReportsContainerToPdf()
       pdf.save(`SkyAriana_Report_${printScope}_${new Date().toISOString().slice(0, 10)}.pdf`)
       toast.success("High-res PDF exported successfully!")
       setIsPrintDialogOpen(false)
@@ -4108,38 +4124,7 @@ export function ReportsView() {
                   isLight ? "border-cyan-300 text-cyan-800 bg-cyan-50/50 hover:bg-cyan-100" : "border-cyan-700 text-cyan-300 bg-cyan-950/30 hover:bg-cyan-900/50"
                 }`}
                 getPdfBlob={async () => {
-                  const printContainer = document.querySelector('#sky-reports-print-root') || document.querySelector('.reports-print-root')
-                  if (!printContainer) throw new Error('Print container not found')
-                  const { toCanvas } = await import('html-to-image')
-                  const { jsPDF } = await import('jspdf')
-                  const isLandscape = printOrientation === 'landscape'
-                  const canvas = await toCanvas(printContainer as HTMLElement, {
-                    pixelRatio: 3,
-                    quality: 1.0,
-                    skipFonts: true,
-                    backgroundColor: '#ffffff',
-                    style: {
-                      transform: 'none',
-                      margin: '0',
-                      boxShadow: 'none',
-                      opacity: '1',
-                      visibility: 'visible',
-                      WebkitFontSmoothing: 'antialiased',
-                      MozOsxFontSmoothing: 'grayscale',
-                      textRendering: 'optimizeLegibility',
-                    } as any,
-                  })
-                  const imgData = canvas.toDataURL('image/jpeg', 0.99)
-                  const pdf = new jsPDF({
-                    orientation: isLandscape ? 'landscape' : 'portrait',
-                    unit: 'mm',
-                    format: 'a4',
-                  })
-                  const pdfWidth = isLandscape ? 297 : 210
-                  const pdfHeight = isLandscape ? 210 : 297
-                  const imgProps = pdf.getImageProperties(imgData)
-                  const canvasHeightMM = (imgProps.height * pdfWidth) / imgProps.width
-                  pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, canvasHeightMM, undefined, 'SLOW')
+                  const pdf = await renderReportsContainerToPdf()
                   return pdf.output('blob')
                 }}
               />

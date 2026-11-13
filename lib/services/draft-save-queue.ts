@@ -30,6 +30,18 @@ export class DraftSaveQueue<T> {
     clearTimeout(this.retryTimer)
   }
 
+  async flush(): Promise<boolean> {
+    if (this.stopped) return false
+    clearTimeout(this.retryTimer)
+    if (!this.running && this.pending !== undefined) {
+      void this.drain()
+    }
+    while (this.running && !this.stopped) {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    }
+    return this.pending === undefined
+  }
+
   private async drain() {
     if (this.running || this.stopped || this.pending === undefined) return
     this.running = true

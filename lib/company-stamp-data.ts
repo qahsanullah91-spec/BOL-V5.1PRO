@@ -19,7 +19,7 @@ export interface CompanyStampConfig {
 
 export const DEFAULT_STAMP_CONFIG: CompanyStampConfig = {
   dataUrl: COMPANY_STAMP_SIGNATURE_SRC,
-  scale: 1.2,
+  scale: 1.25,
   rotation: -1.5,
   opacity: 1.0,
   signatoryTitle: "FOR & ON BEHALF OF: SKY ARIANA LIMITED",
@@ -37,7 +37,7 @@ export function getStoredCompanyStamp(): string {
 }
 
 export function getStoredCompanyStampScale(): number {
-  if (typeof window === "undefined") return 1.2
+  if (typeof window === "undefined") return 1.25
   try {
     const stored = localStorage.getItem(COMPANY_STAMP_SCALE_KEY)
     if (stored) {
@@ -45,7 +45,7 @@ export function getStoredCompanyStampScale(): number {
       if (!isNaN(num) && num >= 0.4 && num <= 3.0) return num
     }
   } catch {}
-  return 1.2
+  return 1.25
 }
 
 export function getStoredCompanyStampRotation(): number {

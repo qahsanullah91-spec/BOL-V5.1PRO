@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="2048" height="2048" viewBox="0 0 2048 2048" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="discGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="35%" stop-color="#164e9e"/>
+      <stop offset="100%" stop-color="#0f2d6b"/>
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#0e3a8a"/>
+    </linearGradient>
+    <clipPath id="letterClip">
+      <circle cx="1024" cy="1024" r="760"/>
+    </clipPath>
+  </defs>
+
+  <!-- 1. Outer Concentric Ring -->
+  <circle cx="1024" cy="1024" r="940" fill="none" stroke="url(#ringGrad)" stroke-width="56"/>
+
+  <!-- 2. Concentric Spacing Channel -->
+  <circle cx="1024" cy="1024" r="912" fill="none" stroke="#ffffff" stroke-width="72"/>
+
+  <!-- 3. Solid Royal Blue Disc -->
+  <circle cx="1024" cy="1024" r="840" fill="url(#discGrad)"/>
+  <circle cx="1024" cy="1024" r="834" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="3"/>
+
+  <!-- 4. Letters Geometry (S, K, Y) -->
+  <g clip-path="url(#letterClip)">
+    <!-- LETTER S -->
+    <rect x="0" y="284" width="738" height="104" fill="#ffffff"/>
+    <rect x="634" y="284" width="104" height="792" fill="#ffffff"/>
+    <rect x="634" y="972" width="1414" height="104" fill="#ffffff"/>
+    <rect x="0" y="972" width="388" height="1076" fill="#ffffff"/>
+    <rect x="0" y="1660" width="738" height="104" fill="#ffffff"/>
+
+    <!-- LETTER K -->
+    <rect x="820" y="0" width="104" height="2048" fill="#ffffff"/>
+    <polygon points="1230,284 1126,284 924,1024 924,920 1126,284" fill="#ffffff"/>
+    <polygon points="1230,1764 1126,1764 924,1024 924,1128 1126,1764" fill="#ffffff"/>
+    <rect x="1126" y="0" width="104" height="284" fill="#ffffff"/>
+    <rect x="1126" y="1764" width="104" height="284" fill="#ffffff"/>
+
+    <!-- LETTER Y -->
+    <rect x="1312" y="0" width="104" height="840" fill="#ffffff"/>
+    <rect x="1620" y="0" width="104" height="840" fill="#ffffff"/>
+    <polygon points="1416,840 1570,1016 1570,1060 1466,1060 1312,894" fill="#ffffff"/>
+    <polygon points="1724,840 1620,840 1466,1016 1466,1060 1570,1060 1724,894" fill="#ffffff"/>
+    <rect x="1466" y="1040" width="104" height="1008" fill="#ffffff"/>
+  </g>
+</svg>

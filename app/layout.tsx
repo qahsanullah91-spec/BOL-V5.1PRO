@@ -1,6 +1,7 @@
 import '@/lib/polyfills'
 import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { PWARegister } from '@/components/pwa-register'
 import { ChunkErrorHandler } from '@/components/chunk-error-handler'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -92,7 +93,12 @@ export default function RootLayout({
           <GlobalContextMenu />
           <Toaster richColors position="top-right" />
           {children}
-          {process.env.NODE_ENV === 'production' && process.env.VERCEL === '1' && !process.env.SKY_DESKTOP && <Analytics />}
+          {process.env.NODE_ENV === 'production' && process.env.VERCEL === '1' && !process.env.SKY_DESKTOP && (
+            <>
+              <Analytics />
+              <SpeedInsights />
+            </>
+          )}
         </ThemeProvider>
       </body>
     </html>

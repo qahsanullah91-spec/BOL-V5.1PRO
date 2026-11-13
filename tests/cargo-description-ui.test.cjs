@@ -81,4 +81,18 @@ assert.ok(
   'bol-editor formatCleanCargoDescription must correct raisnis'
 );
 
-console.log('✓ All 7 Cargo Description UI & Text tests passed successfully!');
+// 8. Verify single-row horizontal fit when displayItemLines.length === 0 and no invalid Tailwind spacing
+assert.ok(
+  blockCode.includes('displayItemLines.length === 0'),
+  'CargoDescriptionBlock must support dedicated single-row compact layout when only metadata exists'
+);
+assert.ok(
+  !blockCode.includes('mt-0.8') && !blockCode.includes('p-0.8') && !blockCode.includes('mt-0.3'),
+  'CargoDescriptionBlock must not contain invalid Tailwind spacing classes (mt-0.8, p-0.8, mt-0.3)'
+);
+assert.ok(
+  !blockCode.includes('pb-0.2') && !blockCode.includes('mb-0.8'),
+  'CargoDescriptionBlock must not contain invalid Tailwind padding/margin sub-fractions (pb-0.2, mb-0.8)'
+);
+
+console.log('✓ All 8 Cargo Description UI & Text tests passed successfully!');
