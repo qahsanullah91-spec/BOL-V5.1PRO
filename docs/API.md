@@ -17,15 +17,15 @@ Queries the local release directory and system status to detect whether a new in
   ```json
   {
     "success": true,
-    "currentVersion": "5.18.18",
+    "currentVersion": "5.28.1",
     "currentBuild": 512,
     "releaseDate": "2026-10-23",
     "platform": "win32",
     "availableUpdate": {
       "hasUpdate": true,
-      "version": "5.18.18",
-      "installerName": "AQ-COMPANIES-Setup-5.18.18.exe",
-      "installerPath": "D:\\SOFTWARES-APPS\\BOL-SOFTWARE-V5\\release\\AQ-COMPANIES-Setup-5.18.18.exe",
+      "version": "5.28.1",
+      "installerName": "AQ-COMPANIES-Setup-5.28.1.exe",
+      "installerPath": "D:\\SOFTWARES-APPS\\BOL-SOFTWARE-V5\\release\\AQ-COMPANIES-Setup-5.28.1.exe",
       "installerFormattedSize": "115.42 MB",
       "status": "ready_to_install"
     },

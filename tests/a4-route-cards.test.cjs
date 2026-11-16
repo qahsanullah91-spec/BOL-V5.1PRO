@@ -61,4 +61,22 @@ assert.ok(
   'formatRouteStopLocation must safely avoid duplicate subFacility'
 );
 
-console.log('✓ All 7 A4 Route Timeline Cards tests passed successfully!');
+// 8. Verify Symmetrical Equal-Width Card Flex Structure
+assert.ok(
+  routeTimelineCode.includes('route-timeline-item flex-1 min-w-0 flex flex-col items-stretch'),
+  'Each route card must be an independent flex-1 item so all cards have equal width'
+);
+
+// 9. Verify Authentic Persian Nhava Sheva Normalization
+assert.ok(
+  a4PreviewContent.includes('persianMain = persianMain.replace(/نوا\\s*شوا/g, "نهاوا شیوا")'),
+  'formatRouteStopLocation must normalize authentic Persian Nhava Sheva spelling'
+);
+
+// 10. Verify Harmonious Two-Tone Capsule Badge Borders
+assert.ok(
+  routeTimelineCode.includes('border-emerald-300/90') && routeTimelineCode.includes('border-indigo-300/90'),
+  'RouteTimeline must use harmonious tinted borders for capsule badges'
+);
+
+console.log('✓ All 10 A4 Route Timeline Cards tests passed successfully!');

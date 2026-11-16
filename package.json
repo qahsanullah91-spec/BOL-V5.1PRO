@@ -1,7 +1,7 @@
 {
   "name": "aq-companies",
   "productName": "AQ COMPANIES",
-  "version": "5.18.18",
+  "version": "5.28.1",
   "description": "AQ COMPANIES - Logistics and BOL Management Desktop Workspace",
   "author": "Ahsanullah Qureshi",
   "copyright": "Copyright © Ahsanullah Qureshi",
@@ -23,6 +23,7 @@
     ]
   },
   "scripts": {
+    "predev": "node scripts/patch-html2canvas.cjs",
     "dev": "next dev --webpack -p 3001",
     "postinstall": "node scripts/patch-html2canvas.cjs",
     "electron:dev": "concurrently -k -s first \"npm:dev\" \"npm:electron:dev:launch\"",
@@ -130,6 +131,7 @@
     "uuid": "^14.0.0",
     "vaul": "^1.1.2",
     "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

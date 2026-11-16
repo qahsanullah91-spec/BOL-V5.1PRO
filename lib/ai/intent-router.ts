@@ -63,8 +63,25 @@ export function routeUserIntent(prompt: string): ParsedUserIntent {
       }
     }
 
+    // Check if user specifically asks to generate or download PDF documents
+    if (
+      lower.includes('pdf') ||
+      lower.includes('download') ||
+      lower.includes('generate complete') ||
+      lower.includes('packing list pdf') ||
+      lower.includes('sticker label')
+    ) {
+      return {
+        intent: 'GENERATE_PDF',
+        confidence: 0.98,
+        isExactIdentifier: true,
+        targetIdentifier: rawBol,
+        filters: { bolNumber: rawBol },
+      }
+    }
+
     // Check if user wants WhatsApp update for this BOL
-    if (lower.includes('whatsapp') || lower.includes('update customer') || lower.includes('tell customer')) {
+    if (lower.includes('whatsapp') || lower.includes('update customer') || lower.includes('tell customer') || lower.includes('واتساپ')) {
       return {
         intent: 'WHATSAPP_STATUS',
         confidence: 0.95,

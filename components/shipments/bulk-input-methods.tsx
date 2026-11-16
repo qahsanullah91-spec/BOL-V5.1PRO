@@ -11,6 +11,11 @@ import {
   Zap,
   Loader2,
   CheckCircle2,
+  Upload,
+  FileUp,
+  FileText,
+  X,
+  Image as ImageIcon,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -28,6 +33,45 @@ export function BulkInputMethods({ onComplete }: BulkInputMethodsProps) {
   const [inputText, setInputText] = useState("")
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractionResult, setExtractionResult] = useState<any | null>(null)
+  const [selectedFile, setSelectedFile] = useState<{
+    file: File
+    base64: string
+    name: string
+    size: number
+    mimeType: string
+  } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
+
+  const handleFileSelect = (file: File) => {
+    const validTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"]
+    if (!validTypes.includes(file.type.toLowerCase()) && !file.name.match(/\.(pdf|png|jpe?g|webp)$/i)) {
+      toast.error("Please upload a PDF or image file (PNG, JPG, WebP)")
+      return
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("File size must be under 15MB")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      setSelectedFile({
+        file,
+        base64: result,
+        name: file.name,
+        size: file.size,
+        mimeType: file.type || "application/pdf",
+      })
+      toast.success(`Attached ${file.name} for multimodal extraction`)
+    }
+    reader.onerror = () => {
+      toast.error("Failed to read file")
+    }
+    reader.readAsDataURL(file)
+  }
 
   const handleWhatsAppParse = () => {
     if (!inputText.trim()) return
@@ -36,7 +80,10 @@ export function BulkInputMethods({ onComplete }: BulkInputMethodsProps) {
   }
 
   const handleGeminiExtract = async () => {
-    if (!inputText.trim()) return
+    if (!inputText.trim() && !selectedFile) {
+      toast.error("Please enter shipment text or attach a document file")
+      return
+    }
 
     try {
       setIsExtracting(true)
@@ -45,6 +92,13 @@ export function BulkInputMethods({ onComplete }: BulkInputMethodsProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: inputText,
+          file: selectedFile
+            ? {
+                data: selectedFile.base64,
+                mimeType: selectedFile.mimeType,
+                name: selectedFile.name,
+              }
+            : undefined,
           type: "bol",
         }),
       })
@@ -73,7 +127,7 @@ export function BulkInputMethods({ onComplete }: BulkInputMethodsProps) {
         }
 
         toast.success(`Extracted structured BOL data (${data.method === 'gemini' ? data.modelUsed : 'Offline Parser'})`)
-        onComplete([parsedRow], [{ originalText: inputText, extracted: d }], "WHATSAPP")
+        onComplete([parsedRow], [{ originalText: inputText, extracted: d, fileAttached: selectedFile?.name }], "WHATSAPP")
       } else {
         toast.error(data.error || "Structured extraction failed. Falling back to local WhatsApp parser.")
         handleWhatsAppParse()
@@ -101,16 +155,112 @@ export function BulkInputMethods({ onComplete }: BulkInputMethodsProps) {
           </button>
           <div className="flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-amber-500" />
-            <h3 className="text-xl font-black text-slate-900">Gemini AI Structured Extraction</h3>
+            <h3 className="text-xl font-black text-slate-900">Gemini AI Multimodal &amp; Structured Extraction</h3>
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Paste any unformatted transit message, packing note, or driver WhatsApp chat. Google Gemini extracts strict schema fields (Consignee, Truck, Border Station, Weights, Cartons).
+            Upload a scanned Bill of Lading, invoice, or commercial receipt (PDF, PNG, JPG), or paste unformatted WhatsApp chat. Google Gemini extracts strict schema fields (Consignee, Truck, Border Station, Weights, Cartons).
           </p>
         </div>
 
+        {/* Multimodal File Upload Dropzone */}
+        <div
+          onDragOver={(e) => {
+            e.preventDefault()
+            setIsDragging(true)
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setIsDragging(false)
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+              handleFileSelect(e.dataTransfer.files[0])
+            }
+          }}
+          className={`relative border-2 border-dashed rounded-2xl p-4 transition-all text-center ${
+            isDragging
+              ? "border-amber-500 bg-amber-50/70 dark:bg-amber-950/30"
+              : selectedFile
+              ? "border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20"
+              : "border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-850 hover:border-amber-400"
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                handleFileSelect(e.target.files[0])
+              }
+            }}
+          />
+
+          {selectedFile ? (
+            <div className="flex items-center justify-between gap-3 p-1">
+              <div className="flex items-center gap-2.5 min-w-0 text-left">
+                <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 shrink-0">
+                  {selectedFile.mimeType.includes("pdf") ? (
+                    <FileText className="h-5 w-5" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">
+                    {selectedFile.name}
+                  </p>
+                  <p className="text-[10.5px] font-medium text-slate-500">
+                    {(selectedFile.size / 1024).toFixed(1)} KB • {selectedFile.mimeType.includes("pdf") ? "PDF Document" : "Image"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-7 text-xs font-bold"
+                >
+                  Change
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedFile(null)}
+                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  title="Remove attached document"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="cursor-pointer py-2 flex flex-col items-center justify-center gap-1.5"
+            >
+              <div className="p-2.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                <FileUp className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200">
+                  Click to browse or drag &amp; drop document
+                </p>
+                <p className="text-[10.5px] font-medium text-slate-500 mt-0.5">
+                  Supports Scanned PDF, PNG, JPG, or WebP up to 15MB
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
         <Textarea
-          className="min-h-[260px] font-mono text-sm p-4 bg-white"
-          placeholder="Paste logistics text in English, Dari, or Pashto...&#10;&#10;Consignee: Afghan Aryana Ltd&#10;Truck: HRT-9281, Driver: Mohammad Gul&#10;Border: Islam Qala&#10;Cargo: 1,200 Cartons Dry Raisins, Gross Weight: 21,600 KG&#10;Rent: 48,000 AFN..."
+          className="min-h-[180px] font-mono text-sm p-4 bg-white"
+          placeholder="Optional: Paste supplemental logistics text in English, Dari, or Pashto (e.g. WhatsApp notes, driver phone, customs rates)...&#10;&#10;Consignee: Afghan Aryana Ltd&#10;Truck: HRT-9281, Driver: Mohammad Gul&#10;Border: Islam Qala&#10;Cargo: 1,200 Cartons Dry Raisins, Gross Weight: 21,600 KG..."
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           dir="auto"
@@ -119,22 +269,22 @@ export function BulkInputMethods({ onComplete }: BulkInputMethodsProps) {
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-1.5 text-xs text-slate-500">
             <Zap className="w-4 h-4 text-amber-500" />
-            <span>Strict schema enforcement with offline fallback</span>
+            <span>Multimodal Gemini 3.8 Flash + schema enforcement</span>
           </div>
 
           <Button
             onClick={handleGeminiExtract}
             className="bg-amber-600 hover:bg-amber-700 text-white font-bold cursor-pointer"
-            disabled={!inputText.trim() || isExtracting}
+            disabled={(!inputText.trim() && !selectedFile) || isExtracting}
           >
             {isExtracting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                <span>Extracting with Gemini...</span>
+                <span>{selectedFile ? "Analyzing Document with Gemini..." : "Extracting with Gemini..."}</span>
               </>
             ) : (
               <>
-                <span>Extract & Open Grid</span>
+                <span>Extract &amp; Open Grid</span>
                 <ArrowRight className="h-4 w-4 ml-2" />
               </>
             )}

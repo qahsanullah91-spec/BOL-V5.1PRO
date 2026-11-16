@@ -63,6 +63,7 @@ import { SavedBolReport } from "@/components/reports/saved-bol-report"
 import { extractBolRoute, parsePackages, parseWeight, parseMoney, parsePackageUnit, formatPackageBreakdown } from "@/lib/reports/parsers"
 import type { ReportTab } from "@/lib/reports/types"
 import { isMeaningfulBOL, parseBolSeq, isUUID, cleanBolNumber, normalizeBolRecord } from "@/lib/utils/bol-filters"
+import { A4Preview } from "./a4-preview"
 import { RecentBolCard } from "./recent-bol-card"
 import { SavedBolCard } from "./saved-bol-card"
 import { duplicateBol, archiveBol, restoreBol } from "@/lib/services/bol-lifecycle-service"
@@ -340,6 +341,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
   const [uploadingId, setUploadingId] = useState<string | null>(null)
   const [openingPdfId, setOpeningPdfId] = useState<string | null>(null)
   const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null)
+  const [pdfExportData, setPdfExportData] = useState<{ record: any; bolNumber: string } | null>(null)
   const [uploadingCompanyName, setUploadingCompanyName] = useState<string | null>(null)
   const [selectedCompanyName, setSelectedCompanyName] = useState<string | null>(null)
   const [openCompanyTabs, setOpenCompanyTabs] = useState<string[]>([])
@@ -1777,7 +1779,14 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
           }
         } catch (_) {}
 
-        const previewElement = document.querySelector('[data-pdf-export="true"]') as HTMLElement | null
+        // Mount dedicated full-fidelity A4Preview in the DOM for direct PDF export
+        setPdfExportData({ record: fullRecord, bolNumber: fullRecord.bol_number || canonicalId })
+        await new Promise((resolve) => setTimeout(resolve, 350))
+
+        const previewElement = (document.querySelector('[data-saved-pdf-export-container="true"] [data-pdf-export="true"]') ||
+          document.querySelector('[data-saved-pdf-export-container="true"] [data-bol-a4="true"]') ||
+          document.querySelector('[data-pdf-export="true"]') ||
+          document.querySelector('[data-bol-a4="true"]')) as HTMLElement | null
         const shippingDocData = deriveShippingDocumentData(
           fullRecord as unknown as import("@/lib/types/bill-of-lading").BillOfLadingFormData,
           fullRecord.bol_number || canonicalId,
@@ -1790,7 +1799,8 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
             kind: "all",
             data: shippingDocData,
             bolElement: previewElement,
-            logoUrl: "/images/logo.png",
+            useElectronVectorPdf: true,
+            logoUrl: "/images/sky-ariana-logo.png",
             companyName: "SKY ARIANA LIMITED",
             companySubtitle: "Import & Export - International Transportation",
           })
@@ -1799,12 +1809,13 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
           pdfBlob = await generateBOLPDFBlob({
             fileName,
             previewElement,
+            useElectronVectorPdf: true,
             modern: {
               bolNumber: fullRecord.bol_number || canonicalId,
               issueDate: fullRecord.issue_date || "",
               persianDateNumeric: "",
               formData: fullRecord as unknown as import("@/lib/types/bill-of-lading").BillOfLadingFormData,
-              logoUrl: "/images/logo.png",
+              logoUrl: "/images/sky-ariana-logo.png",
               companyName: "SKY ARIANA LIMITED",
               companyNamePersian: "شرکت حمل و نقل بین المللی اسکای آریانا",
               companySubtitle: "Import & Export - International Transportation",
@@ -1844,6 +1855,7 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
           window.print()
         }
       } finally {
+        setPdfExportData(null)
         setDownloadingPdfId(null)
       }
     }, 350)
@@ -3990,6 +4002,34 @@ export function SavedDocuments({ onLoadDocument, refreshTrigger, variant = "side
               </Button>
             </div>
           </div>
+        </div>
+      )}
+      {/* Dedicated high fidelity container for direct PDF download. Off-screen positioning (-left-[10000px]) guarantees zero background bleed into UI. */}
+      {pdfExportData && (
+        <div
+          data-saved-pdf-export-container="true"
+          aria-hidden="true"
+          className="fixed -left-[10000px] top-0 pointer-events-none opacity-100 z-[-9999] bg-white"
+          style={{ position: "fixed", left: "-10000px", top: 0, width: "210mm", minHeight: "297mm", height: "auto" }}
+        >
+          <A4Preview
+            bolNumber={pdfExportData.bolNumber}
+            issueDate={pdfExportData.record.issue_date || ""}
+            persianDate={pdfExportData.record.persian_date || pdfExportData.record.persianDate || ""}
+            persianDateNumeric={pdfExportData.record.persian_date || pdfExportData.record.persianDate || ""}
+            formData={pdfExportData.record}
+            logoUrl="/images/sky-ariana-logo.png"
+            companyName="SKY ARIANA LIMITED"
+            companyNamePersian="شرکت حمل و نقل بین المللی اسکای آریانا"
+            companySubtitle="Import & Export - International Transportation"
+            companyPhone="+93 700 939 365"
+            companyEmail="info@skyariana.com"
+            companyAddress="2nd Floor, 16 No. Office, Shahidano, Chowk, Etimad Rahmi Market, Kandahar, Afghanistan"
+            companyLicence="2401-2198"
+            showStampSignature={true}
+            pdfExport
+            exportTarget
+          />
         </div>
       )}
     </Card>

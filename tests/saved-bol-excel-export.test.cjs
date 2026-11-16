@@ -98,6 +98,7 @@ test("Excel Export: Generates professional multi-sheet workbook with frontend-de
     assert.ok(summarySheet["!cols"]?.length >= 2, "Summary sheet must configure column widths");
     assert.ok(summarySheet["!rows"]?.length >= 5, "Summary sheet must configure row heights");
     assert.ok(summarySheet["!views"]?.length > 0, "Summary sheet must configure freeze pane view");
+    assert.equal(summarySheet["A1"].s?.fill?.fgColor?.rgb, "1E3A8A", "Summary banner must have executive navy fill (#1E3A8A)");
 
     // 2. Check Detailed BOLs sheet formatting and metadata
     const detailedSheet = capturedWb.Sheets["Detailed BOLs"];
@@ -108,6 +109,7 @@ test("Excel Export: Generates professional multi-sheet workbook with frontend-de
     assert.equal(detailedSheet["!freeze"].ySplit, 1, "Detailed BOLs must freeze header row (ySplit=1)");
     assert.ok(detailedSheet["!cols"]?.length > 10, "Detailed BOLs must configure smart column widths");
     assert.ok(detailedSheet["!rows"]?.length > 2, "Detailed BOLs must configure row heights");
+    assert.equal(detailedSheet["A1"].s?.fill?.fgColor?.rgb, "1E3A8A", "Detailed BOLs header must have executive navy fill (#1E3A8A)");
 
     // Check custom number formatting applied
     // Find numeric cells in Detailed BOLs

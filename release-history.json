@@ -6273,6 +6273,855 @@
       },
       "backupPath": "scratch\\version-control-backups\\v5.18.17-to-v5.18.18-2026.11.13-PRO-13",
       "createdAt": "2026-11-13T21:31:19.120Z"
+    },
+    {
+      "previousVersion": "v5.18.18",
+      "newVersion": "v5.18.19",
+      "build": "2026.11.13-PRO-14",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "PDF Quality, Scannable Vector QR Code and Route En-Dash Normalization",
+      "summary": "",
+      "featuresAdded": [
+        "Preserved black vector QR code paths and white backgrounds across PDF high-res capture and print portals",
+        "Added en-dash and em-dash splitting in route stops to prevent location name clipping"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Purged stale Webpack bytecode caches and added predev patch guard to eliminate oklch color errors during PDF download"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.18-to-v5.18.19-2026.11.13-PRO-14",
+      "createdAt": "2026-11-13T22:18:03.858Z"
+    },
+    {
+      "previousVersion": "v5.18.19",
+      "newVersion": "v5.18.20",
+      "build": "2026.11.13-PRO-15",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "PDF Quality, Scannable Vector QR Code and Route En-Dash Normalization",
+      "summary": "",
+      "featuresAdded": [
+        "Preserved black vector QR code paths and white backgrounds across PDF high-res capture and print portals",
+        "Added en-dash and em-dash splitting in route stops to prevent location name clipping"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Purged stale Webpack bytecode caches and added predev patch guard to eliminate oklch color errors during PDF download"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.19-to-v5.18.20-2026.11.13-PRO-15",
+      "createdAt": "2026-11-13T22:23:16.359Z"
+    },
+    {
+      "previousVersion": "v5.18.20",
+      "newVersion": "v5.19.0",
+      "build": "2026.11.13-PRO-16",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "MINOR",
+      "title": "Add Complete Indian Ports Directory and Fix Nhava Sheva Port Details",
+      "summary": "",
+      "featuresAdded": [
+        "Full Indian Ports Directory (12 Major Ports, Commercial Gateways & Inland Terminals)",
+        "Seaport & Customs Terminal Banner in Route Stop Cards with ICEGATE Code and Terminal Presets",
+        "Decoupled Bilingual Route Search Matcher with Persian Normalization"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Nhava Sheva search returning 0 matches when typing 'Nhava Sheva, I' with Persian 'نوا شوا، هند'",
+        "Missing port details and terminal selectors for Nhava Sheva and other Indian ports in route stop editor"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.18.20-to-v5.19.0-2026.11.13-PRO-16",
+      "createdAt": "2026-11-13T22:23:38.779Z"
+    },
+    {
+      "previousVersion": "v5.19.0",
+      "newVersion": "v5.19.1",
+      "build": "2026.11.13-PRO-17",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Saved BOL Report: Rate per KG, Net Weight, and Gross Weight Stacked Hierarchy",
+      "summary": "",
+      "featuresAdded": [
+        "3-tier vertical stack displaying Rate per KG on top, Net Weight in middle, and Gross Weight on bottom in both table and cargo summary",
+        "Added Rate/KG on top of Gross Wt in table header with active sort controls"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved horizontal collision where adjacent weight and rate columns smashed into single strings like 22,597 KG5.00"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.19.0-to-v5.19.1-2026.11.13-PRO-17",
+      "createdAt": "2026-11-14T06:06:13.407Z"
+    },
+    {
+      "previousVersion": "v5.19.1",
+      "newVersion": "v5.19.2",
+      "build": "2026.11.13-PRO-18",
+      "releaseDate": "2026-11-13",
+      "changeCategory": "PATCH",
+      "title": "Route Preset Selector Fitted Responsive Layout & Interactive Navigation",
+      "summary": "",
+      "featuresAdded": [
+        "Added interactive smooth-scroll chevron controls to station and container filter rails"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved RTL horizontal clipping and vertical scrollbar collision in route cards list"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.19.1-to-v5.19.2-2026.11.13-PRO-18",
+      "createdAt": "2026-11-14T07:47:59.968Z"
+    },
+    {
+      "previousVersion": "v5.19.2",
+      "newVersion": "v5.19.3",
+      "build": "2026.11.14-PRO",
+      "releaseDate": "2026-11-14",
+      "changeCategory": "PATCH",
+      "title": "A4 Preview Route Timeline Cards Equal Width & Persian Typography Polish",
+      "summary": "",
+      "featuresAdded": [
+        "Balanced route cards with 100% equal width flex-1 distribution and centered connecting arrows"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved unequal card width where Card 5 was 20% wider, and normalized authentic Persian spelling to نهاوا شیوا"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.19.2-to-v5.19.3-2026.11.14-PRO",
+      "createdAt": "2026-11-14T08:29:24.748Z"
+    },
+    {
+      "previousVersion": "v5.19.3",
+      "newVersion": "v5.20.0",
+      "build": "2026.11.14-PRO-2",
+      "releaseDate": "2026-11-14",
+      "changeCategory": "MINOR",
+      "title": "Indian Ports Directory & Port Details Integration with High-Res PDF Export Fix",
+      "summary": "",
+      "featuresAdded": [
+        "Full Indian Ports Directory (25+ major seaports, commercial gateways, and premier ICDs) with UN/LOCODE, ICEGATE customs station codes, active terminals, and DFC badges",
+        "Interactive Suggested Locations popover header banner and location match cards with quick terminal preset buttons"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Nhava Sheva 0-results issue via decoupled bilingual token matching",
+        "PDF download missing middle sections and vector icon line-art fills in Saved BOL and BOL Editor"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.19.3-to-v5.20.0-2026.11.14-PRO-2",
+      "createdAt": "2026-11-14T09:07:28.962Z"
+    },
+    {
+      "previousVersion": "v5.20.0",
+      "newVersion": "v5.21.0",
+      "build": "2026.11.14-PRO-3",
+      "releaseDate": "2026-11-14",
+      "changeCategory": "MINOR",
+      "title": "Executive Styled Excel Export Engine and Saved BOL Report Center Enhancements",
+      "summary": "",
+      "featuresAdded": [
+        "Integrated xlsx-js-style executive corporate styling engine across all 12 operational sheets with brand navy headers, alternating zebra striping, accounting double underlines, and emerald/amber status badges",
+        "Enhanced Saved BOL Report Center toolbar with prominent PRO Excel export dropdown menu supporting full 12-sheet workbook, active tab view, and selected records"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Purged stale Next.js Webpack cache and eliminated OKLCH color parser exceptions in html2canvas PDF rendering pipeline"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.20.0-to-v5.21.0-2026.11.14-PRO-3",
+      "createdAt": "2026-11-14T10:10:46.664Z"
+    },
+    {
+      "previousVersion": "v5.21.0",
+      "newVersion": "v5.21.1",
+      "build": "2026.11.14-PRO-4",
+      "releaseDate": "2026-11-14",
+      "changeCategory": "PATCH",
+      "title": "Fix BOL PDF Download Fidelity, Section Visibility & India Ports",
+      "summary": "",
+      "featuresAdded": [
+        "Indian Ports directory with UN/LOCODE and resilient bilingual search in route selector"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved PDF export dropout where section headers and cards vanished under watermark blowout"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.21.0-to-v5.21.1-2026.11.14-PRO-4",
+      "createdAt": "2026-11-14T11:05:11.332Z"
+    },
+    {
+      "previousVersion": "v5.21.1",
+      "newVersion": "v5.21.2",
+      "build": "2026.11.14-PRO-5",
+      "releaseDate": "2026-11-14",
+      "changeCategory": "PATCH",
+      "title": "Fix A4 preview PDF download colors, SVG rasterization, and layout fidelity",
+      "summary": "",
+      "featuresAdded": [
+        "Synchronized DOM sanitization and modern CSS color mapping across all PDF export engines"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Route transportation path solid black rectangles on vessel mode pills",
+        "Cargo description section header badge white blackout",
+        "Shipping details & ports Persian subtitles colliding with English port values",
+        "Cargo table Rate & Goods Value numeric top clipping",
+        "SVG foreignObject UTF-8 byte corruption on Dari/Pashto text in loadSvgImage"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.21.1-to-v5.21.2-2026.11.14-PRO-5",
+      "createdAt": "2026-11-15T06:56:40.725Z"
+    },
+    {
+      "previousVersion": "v5.21.2",
+      "newVersion": "v5.21.3",
+      "build": "2026.11.14-PRO-6",
+      "releaseDate": "2026-11-14",
+      "changeCategory": "PATCH",
+      "title": "Fix A4 Preview Off-Screen PDF Export Containers Bleed",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Relocated on-demand PDF and shipping document export containers off-screen to -left-[10000px], completely eliminating background bleed during PDF download in A4 Preview",
+        "Updated fallback DOM wrappers in pdf-upload and shipping-documents with -10000px left offsets and -9999 z-index"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.21.2-to-v5.21.3-2026.11.14-PRO-6",
+      "createdAt": "2026-11-15T06:57:47.992Z"
+    },
+    {
+      "previousVersion": "v5.21.3",
+      "newVersion": "v5.22.0",
+      "build": "2026.11.15-PRO",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "MINOR",
+      "title": "A4 Preview PDF High-Resolution Quality & Indian Ports Hub Release",
+      "summary": "",
+      "featuresAdded": [
+        "Fixed Arabic and Persian cursive font shaping by resetting letter-spacing to 0 in PDF exports",
+        "Enhanced toSvg primary vector engine in shipping-documents and pdf-upload with skipFonts and fallback protection",
+        "Added complete Indian Seaports & ICDs directory with Nhava Sheva (INNSA) and quick POD shortcuts in BOL editor"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Fixed Section 1 transit date and invoice capsule styling with solid white pill and red divider",
+        "Resolved vertical numeral clipping on Issue Date and Driver Rent cards in Section 1",
+        "Fixed Exporter Contacts DetailCard layout squashing and invalid Tailwind decimal classes",
+        "Resolved CargoRow package count and commodity name overlap with expanded cell height",
+        "Fixed Footer Tier 2 and Tier 3 spacing to eliminate Iran Transit Office and Head Office collision"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.21.3-to-v5.22.0-2026.11.15-PRO",
+      "createdAt": "2026-11-15T11:14:28.592Z"
+    },
+    {
+      "previousVersion": "v5.22.0",
+      "newVersion": "v5.23.0",
+      "build": "2026.11.15-PRO-2",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "MINOR",
+      "title": "A4 PDF Export Typography, India Ports & Saved BOL Report Enhancements",
+      "summary": "",
+      "featuresAdded": [
+        "Added India ports (Nhava Sheva, Mundra, Kandla, Pipavav, Chennai, Kolkata, Cochin, Tuticorin) to route selector",
+        "Improved Saved BOL Report and Excel multi-column formatting"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved top-clipping of numerals in Issue Date and Driver Rent cards in A4 PDF preview",
+        "Fixed Cargo table column headers height and padding to prevent horizontal text slicing",
+        "Fixed Cargo package commodity and Rate/Value cell heights with visible overflow",
+        "Fixed Exporter Contacts header bar squashing and party address typewriter line-height",
+        "Protected Transport Mode pills in Route Timeline from OKLCH color wiping with explicit pastel styling"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.22.0-to-v5.23.0-2026.11.15-PRO-2",
+      "createdAt": "2026-11-15T13:42:12.858Z"
+    },
+    {
+      "previousVersion": "v5.23.0",
+      "newVersion": "v5.24.0",
+      "build": "2026.11.15-PRO-3",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "MINOR",
+      "title": "Flutter Mobile Companion App Scaffold & Dart Porting",
+      "summary": "",
+      "featuresAdded": [
+        "Scaffolded apps/driver_companion Flutter companion app with layered MVVM architecture",
+        "Ported multi-modal BOL and Ledger accounting models to Dart",
+        "Ported 3-way offline synchronization engine and SHA-256 checksums to Dart"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.23.0-to-v5.24.0-2026.11.15-PRO-3",
+      "createdAt": "2026-11-15T14:16:04.064Z"
+    },
+    {
+      "previousVersion": "v5.24.0",
+      "newVersion": "v5.24.1",
+      "build": "2026.11.15-PRO-4",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "PATCH",
+      "title": "Fix A4 Preview PDF download, eliminate oklch color parser exceptions and isolate offscreen export containers",
+      "summary": "",
+      "featuresAdded": [],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Purged stale Webpack cache and eliminated OKLCH color parser exceptions in html2canvas PDF rendering pipeline",
+        "Replaced oklch design tokens in app/globals.css and styles/globals.css with standard hex colors for universal canvas compatibility",
+        "Isolated on-demand export containers strictly off-screen (-10000px) to prevent background packing list bleed during A4 Preview PDF downloads"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.24.0-to-v5.24.1-2026.11.15-PRO-4",
+      "createdAt": "2026-11-15T15:38:08.342Z"
+    },
+    {
+      "previousVersion": "v5.24.1",
+      "newVersion": "v5.25.0",
+      "build": "2026.11.15-PRO-5",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "MINOR",
+      "title": "Databricks Apps Integration & AppKit Workspace",
+      "summary": "",
+      "featuresAdded": [
+        "Installed and verified Databricks CLI v1.26.0 with permanent User PATH registration",
+        "Created dual-mode Databricks Apps Python backend with offline simulation fallback",
+        "Configured dynamic local runner successfully hosting endpoints on port 8008",
+        "Engineered Next.js API route proxy for secure frontend-to-warehouse dispatch",
+        "Scaffolded Databricks AppKit Workspace with Metric Views, Genie AI, and SQL Explorer",
+        "Added databricks navigation view to AppContext and enterprise header menu"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved Windows port 8000 bind conflict via dynamic multi-port selection in run_local.py"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.24.1-to-v5.25.0-2026.11.15-PRO-5",
+      "createdAt": "2026-11-15T16:10:50.448Z"
+    },
+    {
+      "previousVersion": "v5.25.0",
+      "newVersion": "v5.25.1",
+      "build": "2026.11.15-PRO-6",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "PATCH",
+      "title": "Sky AI Assistant Interface Redesign & Operational Telemetry",
+      "summary": "",
+      "featuresAdded": [
+        "Transformed Sky AI Assistant into dense 6-domain operations command center with live telemetry",
+        "Added quick action prompt chips and enhanced input console with keyboard shortcuts"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved barren layout and wasted vertical space in AI Assistant workspace"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.25.0-to-v5.25.1-2026.11.15-PRO-6",
+      "createdAt": "2026-11-15T16:29:20.566Z"
+    },
+    {
+      "previousVersion": "v5.25.1",
+      "newVersion": "v5.25.2",
+      "build": "2026.11.15-PRO-7",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "PATCH",
+      "title": "A4 PDF Export Quality, Anti-Blackout & Typography Fit Polish",
+      "summary": "",
+      "featuresAdded": [
+        "Enhanced A4 Preview & PDF Export rendering with strict hex color sanitization preventing black bar artifacts"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved solid black bars on cargo headers and pills, squashed Persian contacts header, monospace line collisions, and ultra-density date overlap"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.25.1-to-v5.25.2-2026.11.15-PRO-7",
+      "createdAt": "2026-11-15T16:44:21.890Z"
+    },
+    {
+      "previousVersion": "v5.25.2",
+      "newVersion": "v5.25.3",
+      "build": "2026.11.15-PRO-8",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "PATCH",
+      "title": "Iran Port Information & Jask Seaport Details Integration",
+      "summary": "",
+      "featuresAdded": [
+        "Iranian Seaports (Jask Port, Bandar Abbas, Chabahar, BIK, Bushehr, Khorramshahr, Anzali, Assaluyeh) first-class Port Details and terminal presets",
+        "Iran Category secondary filter tabs in route stop location picker"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resilient input resolution for Jask Port ensuring zero search drops on dash/partial entries"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.25.2-to-v5.25.3-2026.11.15-PRO-8",
+      "createdAt": "2026-11-15T17:40:00.206Z"
+    },
+    {
+      "previousVersion": "v5.25.3",
+      "newVersion": "v5.26.0",
+      "build": "2026.11.15-PRO-9",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "MINOR",
+      "title": "Google Antigravity SDK Agent Integration & Sky AI Assistant Overhaul",
+      "summary": "",
+      "featuresAdded": [
+        "Integrated Google Antigravity SDK autonomous multi-tool agent architecture in Python with Pydantic structured output",
+        "Implemented double-entry accounting invariance identity assertion (Net Balance = Total Debit - Total Credit) with zero-tolerance mathematical audit",
+        "Engineered Sky AI Assistant Executive UI with dynamic Engine Selector (Antigravity SDK, Gemini 3.8 Flash, Local Grounded), live telemetry HUD, and 6 domain capability hubs",
+        "Added interactive Google Antigravity Agent Execution Trace accordion displaying step-by-step reasoning, tool invocations, and invariance verification"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved SeaportInfo customsLocationCode TypeScript typing drift in route-location-service",
+        "Fixed Daily Timeline sheet TOTAL row alignment in date-range Excel exports"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.25.3-to-v5.26.0-2026.11.15-PRO-9",
+      "createdAt": "2026-11-15T17:44:29.718Z"
+    },
+    {
+      "previousVersion": "v5.26.0",
+      "newVersion": "v5.26.1",
+      "build": "2026.11.15-PRO-10",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "PATCH",
+      "title": "Fix A4 Preview PDF download, eliminate oklch color parser exceptions and isolate offscreen export containers",
+      "summary": "",
+      "featuresAdded": [
+        "Quarantined on-demand export containers (data-pdf-export-container and data-shipping-export-container) to -left-[10000px] off-screen to eliminate background bleed into A4 Preview",
+        "Added !important white background overrides in onclone hooks across pdf-upload.ts and shipping-documents.ts to protect html2canvas against oklch color errors",
+        "Purged stale Webpack bytecode caches and rebuilt clean development bundles",
+        "Integrated executive Date-Range Operations Analytics banner and 13-sheet multi-sheet Excel export engine with daily timeline pacing"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved 'Attempting to parse an unsupported color function oklch' error during PDF download",
+        "Eliminated background document bleed visible behind A4 Preview during PDF generation"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.26.0-to-v5.26.1-2026.11.15-PRO-10",
+      "createdAt": "2026-11-15T17:49:31.281Z"
+    },
+    {
+      "previousVersion": "v5.26.1",
+      "newVersion": "v5.26.2",
+      "build": "2026.11.15-PRO-11",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "PATCH",
+      "title": "Fix A4 Preview PDF Download Clipping, Header Collisions and Card Alignment",
+      "summary": "",
+      "featuresAdded": [
+        "Fixed A4 Preview PDF exported layout with proper dynamic scale calibration, zero character slicing, and clean card spacing"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved horizontal border collision slicing through shipment info cards, party names, exporter contacts, and cargo grid headers; fixed document cutoff to ensure full visibility of timeline, signature chamber, and footer"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "FAILED",
+        "build": "PENDING",
+        "overall": "FAILED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.26.1-to-v5.26.2-2026.11.15-PRO-11",
+      "createdAt": "2026-11-15T18:33:14.034Z"
+    },
+    {
+      "previousVersion": "v5.26.2",
+      "newVersion": "v5.27.0",
+      "build": "2026.11.15-PRO-12",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "MINOR",
+      "title": "Upgrade SKY AI Business Assistant",
+      "summary": "",
+      "featuresAdded": [
+        "ChatGPT and Gemini style AI chat interface with sidebar, conversation history, and Ask/Work modes",
+        "Dedicated WhatsApp generator across 11 logistics categories in English, Persian, and Pashto",
+        "Authoritative BOL PDF and ACCI export document generation inside chat",
+        "Multi-provider AI support (Google Gemini, OpenAI GPT-4o, and Offline Local Engine)"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Enhanced container location and missing document auditing with zero hallucination"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.26.2-to-v5.27.0-2026.11.15-PRO-12",
+      "createdAt": "2026-11-15T18:50:37.272Z"
+    },
+    {
+      "previousVersion": "v5.27.0",
+      "newVersion": "v5.27.1",
+      "build": "2026.11.15-PRO-13",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "PATCH",
+      "title": "Fix Software EXE Vertical Scrolling in A4 Preview & Workspace",
+      "summary": "",
+      "featuresAdded": [
+        "Added smooth keyboard (PageDown/PageUp/Space) and mouse wheel scrolling with 48px bottom clearance in A4 preview"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Restored vertical scrolling down in desktop EXE by eliminating overflow-hidden lock on A4 preview viewport and stage"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.27.0-to-v5.27.1-2026.11.15-PRO-13",
+      "createdAt": "2026-11-15T19:06:33.975Z"
+    },
+    {
+      "previousVersion": "v5.27.1",
+      "newVersion": "v5.28.0",
+      "build": "2026.11.15-PRO-14",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "MINOR",
+      "title": "Phase 2: Build SKY AI Chat Engine",
+      "summary": "",
+      "featuresAdded": [
+        "ChatGPT/Gemini style interface with conversation history, user profile, and session search",
+        "Multi-provider streaming engine with Google Gemini, OpenAI, and Offline Local support",
+        "Safe file attachment parsing for PDF, DOCX, XLSX, CSV, and images"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Enforced RBAC conversation ownership and user privacy isolation"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.27.1-to-v5.28.0-2026.11.15-PRO-14",
+      "createdAt": "2026-11-15T19:25:42.639Z"
+    },
+    {
+      "previousVersion": "v5.28.0",
+      "newVersion": "v5.28.1",
+      "build": "2026.11.15-PRO-15",
+      "releaseDate": "2026-11-15",
+      "changeCategory": "PATCH",
+      "title": "Fix A4 Preview PDF Export & Exact Layout Fidelity",
+      "summary": "",
+      "featuresAdded": [
+        "Fixed A4 Preview PDF Download (Complete PDF / Download BOL Only) 1:1 layout match for BOL-2026-NSA763"
+      ],
+      "featuresModified": [],
+      "featuresRemoved": [],
+      "bugsFixed": [
+        "Resolved Shipping Details & Ports clipping, unrounded carton weights, Exporter Contacts overlap, route bidi parentheses, logo text font readiness, and download filename"
+      ],
+      "changeTypes": [],
+      "validation": {
+        "typecheck": "SUCCESS",
+        "tests": "SUCCESS",
+        "build": "PENDING",
+        "overall": "VALIDATED"
+      },
+      "git": {
+        "branch": "main",
+        "tag": null,
+        "committed": false
+      },
+      "backupPath": "scratch\\version-control-backups\\v5.28.0-to-v5.28.1-2026.11.15-PRO-15",
+      "createdAt": "2026-11-16T05:10:49.851Z"
     }
   ]
 }

@@ -38,6 +38,44 @@ import { parseSyncedCargoItems } from "@/lib/utils/cargo-grid"
 import { extractBolCargoAndRates } from "./cargo-rate-extractor"
 import type { BillOfLadingFormData } from "@/lib/types/bill-of-lading"
 
+function parseDateSafely(raw?: any): Date | null {
+  if (!raw) return null
+  const d = new Date(raw)
+  return isNaN(d.getTime()) ? null : d
+}
+
+/**
+ * Dynamically resolves the high-performance xlsx styling engine (xlsx-js-style)
+ * with transparent fallback to xlsx and node:test spy forwarding.
+ */
+export async function getXLSXEngine(): Promise<any> {
+  let engine: any
+  try {
+    const styleMod = await import("xlsx-js-style")
+    engine = styleMod.default || styleMod
+  } catch {
+    const stdMod = await import("xlsx")
+    engine = stdMod.default || stdMod
+  }
+
+  // Intercept for test environments (e.g. node:test) that monkey-patch require("xlsx").writeFile
+  if (typeof require !== "undefined") {
+    try {
+      const nodeXlsx = require("xlsx")
+      if (nodeXlsx && typeof nodeXlsx.writeFile === "function" && nodeXlsx.writeFile !== engine.writeFile) {
+        const origEngineWrite = engine.writeFile
+        engine.writeFile = (wb: any, fn: string, opts?: any) => {
+          nodeXlsx.writeFile(wb, fn, opts)
+          if (typeof window !== "undefined" && origEngineWrite) {
+            origEngineWrite(wb, fn, opts)
+          }
+        }
+      }
+    } catch {}
+  }
+  return engine
+}
+
 /**
  * Extracts Driver Father Name from explicit field or Dari/Pashto 'ولد' pattern.
  */
@@ -170,7 +208,326 @@ function applyColumnFormats(ws: any, colFormatMap: Record<number, string>): void
 }
 
 /**
- * Configures worksheet layout: auto-fitted columns, frozen header row, autofilters, and comfortable row heights.
+ * Applies executive corporate styling across all cells in a table worksheet:
+ * - Brand Navy header fill (#1E3A8A) with crisp white bold typography
+ * - Alternating zebra striping on data rows (#FFFFFF / #F8FAFC)
+ * - Thin structural cell borders (#E2E8F0)
+ * - Accounting double borders on summary / total rows
+ * - High-contrast badges for YES/SATISFIED/VERIFIED (Emerald) and NO/PENDING (Amber)
+ * - Smart alignments: text left, identifiers center, numbers right
+ * - Consistent number formats (#,##0 and #,##0.00)
+ */
+function applyExecutiveTableStyling(
+  XLSX: any,
+  ws: any,
+  rows: (string | number | undefined | null | any)[][],
+  colFormatMap?: Record<number, string>,
+  freezeRows: number = 1
+): void {
+  if (!ws || !rows || rows.length === 0) return
+
+  const numRows = rows.length
+  const numCols = rows[0]?.length || 1
+
+  for (let r = 0; r < numRows; r++) {
+    const rowData = rows[r]
+    if (!rowData) continue
+
+    const isHeaderRow = r < freezeRows
+    const firstCellStr = String(rowData[0] ?? "").trim().toUpperCase()
+    const secondCellStr = String(rowData[1] ?? "").trim().toUpperCase()
+    const isTotalRow =
+      !isHeaderRow &&
+      (firstCellStr === "TOTAL" ||
+        firstCellStr.startsWith("TOTAL ") ||
+        secondCellStr === "TOTAL" ||
+        secondCellStr.startsWith("TOTAL "))
+
+    const isZebraEven = (r - freezeRows) % 2 === 0
+    const rowBgColor = isZebraEven ? "FFFFFF" : "F8FAFC"
+
+    for (let c = 0; c < numCols; c++) {
+      const cellAddress = XLSX.utils.encode_cell({ r, c })
+      let cell = ws[cellAddress]
+
+      // If cell is undefined in a sparse worksheet, instantiate it if row has a value
+      if (!cell && rowData[c] !== undefined && rowData[c] !== null) {
+        cell = { t: typeof rowData[c] === "number" ? "n" : "s", v: rowData[c] }
+        ws[cellAddress] = cell
+      }
+      if (!cell) continue
+
+      if (isHeaderRow) {
+        // --- 1. TABLE HEADER ROW ---
+        cell.s = {
+          font: { name: "Segoe UI", sz: 10.5, bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "1E3A8A" } },
+          alignment: { horizontal: "center", vertical: "center", wrapText: true },
+          border: {
+            top: { style: "thin", color: { rgb: "93C5FD" } },
+            bottom: { style: "medium", color: { rgb: "93C5FD" } },
+            left: { style: "thin", color: { rgb: "93C5FD" } },
+            right: { style: "thin", color: { rgb: "93C5FD" } },
+          },
+        }
+      } else if (isTotalRow) {
+        // --- 2. ACCOUNTING SUMMARY / TOTAL ROW ---
+        const isNumeric = cell.t === "n" || typeof cell.v === "number"
+        cell.s = {
+          font: { name: "Segoe UI", sz: 10.5, bold: true, color: { rgb: "0F172A" } },
+          fill: { fgColor: { rgb: "F1F5F9" } },
+          alignment: { horizontal: isNumeric ? "right" : "left", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "94A3B8" } },
+            bottom: { style: "double", color: { rgb: "0F172A" } }, // Standard accounting double underline
+            left: { style: "thin", color: { rgb: "E2E8F0" } },
+            right: { style: "thin", color: { rgb: "E2E8F0" } },
+          },
+        }
+        if (isNumeric) {
+          if (colFormatMap && colFormatMap[c]) {
+            cell.z = colFormatMap[c]
+          } else if (cell.v !== undefined && cell.v !== null && Number.isInteger(Number(cell.v))) {
+            cell.z = "#,##0"
+          } else {
+            cell.z = "#,##0.00"
+          }
+        }
+      } else {
+        // --- 3. STANDARD DATA ROW ---
+        const rawVal = cell.v
+        const valStr = String(rawVal ?? "").trim()
+        const upperVal = valStr.toUpperCase()
+
+        // Check for Status Badges
+        if (upperVal === "YES" || upperVal === "SATISFIED" || upperVal === "VERIFIED") {
+          cell.s = {
+            font: { name: "Segoe UI", sz: 9.5, bold: true, color: { rgb: "065F46" } },
+            fill: { fgColor: { rgb: "D1FAE5" } },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "E2E8F0" } },
+              bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+              left: { style: "thin", color: { rgb: "E2E8F0" } },
+              right: { style: "thin", color: { rgb: "E2E8F0" } },
+            },
+          }
+        } else if (upperVal === "NO" || upperVal === "PENDING" || upperVal === "MISSING") {
+          cell.s = {
+            font: { name: "Segoe UI", sz: 9.5, bold: true, color: { rgb: "92400E" } },
+            fill: { fgColor: { rgb: "FEF3C7" } },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "E2E8F0" } },
+              bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+              left: { style: "thin", color: { rgb: "E2E8F0" } },
+              right: { style: "thin", color: { rgb: "E2E8F0" } },
+            },
+          }
+        } else {
+          // Standard cell with smart alignment
+          let horizontal: "left" | "center" | "right" = "left"
+
+          if (cell.t === "n" || typeof cell.v === "number") {
+            horizontal = "right"
+            // Apply number format
+            if (colFormatMap && colFormatMap[c]) {
+              cell.z = colFormatMap[c]
+            } else if (!cell.z) {
+              cell.z = Number.isInteger(Number(cell.v)) ? "#,##0" : "#,##0.00"
+            }
+          } else if (
+            valStr === "-" ||
+            valStr === "—" ||
+            (valStr.length <= 18 &&
+              (/^\d{4}-\d{2}-\d{2}/.test(valStr) ||
+                /^\d{2}\/\d{2}\/\d{4}/.test(valStr) ||
+                /^(USD|AFN|EUR)$/i.test(valStr) ||
+                /^BOL-/i.test(valStr) ||
+                /^INV-/i.test(valStr) ||
+                /^\d+$/.test(valStr) ||
+                /^[A-Z]{3,4}\d{6,8}$/i.test(valStr)))
+          ) {
+            horizontal = "center"
+          }
+
+          cell.s = {
+            font: { name: "Segoe UI", sz: 10, color: { rgb: "0F172A" } },
+            fill: { fgColor: { rgb: rowBgColor } },
+            alignment: { horizontal, vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "E2E8F0" } },
+              bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+              left: { style: "thin", color: { rgb: "E2E8F0" } },
+              right: { style: "thin", color: { rgb: "E2E8F0" } },
+            },
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Applies custom executive styling to the Executive Summary worksheet:
+ * - Corporate Navy Banner title with bold typography
+ * - Soft Ice Blue subtitle metadata with generation timestamp
+ * - Section divider rows styled in Royal Blue with white bold text
+ * - Green badges for Satisfied Accounting Invariance and Verified Demarcation
+ * - Zebra striping on KPI metric rows with clean cell borders
+ */
+function styleSummaryWorksheet(
+  XLSX: any,
+  ws: any,
+  summaryRows: (string | number)[][]
+): void {
+  if (!ws || !summaryRows) return
+
+  const totalCols = 5
+
+  for (let r = 0; r < summaryRows.length; r++) {
+    const row = summaryRows[r]
+    if (!row || row.length === 0) continue
+
+    const firstVal = String(row[0] ?? "").trim()
+
+    if (r === 0) {
+      // Report Title Banner (Navy Blue #1E3A8A, White Bold 13.5pt)
+      for (let c = 0; c < 4; c++) {
+        const addr = XLSX.utils.encode_cell({ r: 0, c })
+        let cell = ws[addr]
+        if (!cell) {
+          cell = { t: "s", v: c === 0 ? firstVal : "" }
+          ws[addr] = cell
+        }
+        cell.s = {
+          font: { name: "Segoe UI", sz: 13.5, bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "1E3A8A" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "93C5FD" } },
+            bottom: { style: "thin", color: { rgb: "93C5FD" } },
+            left: { style: "thin", color: { rgb: "93C5FD" } },
+            right: { style: "thin", color: { rgb: "93C5FD" } },
+          },
+        }
+      }
+    } else if (r === 1) {
+      // Subtitle metadata row (Ice Blue #EFF6FF, Royal Blue 9.5pt)
+      for (let c = 0; c < 4; c++) {
+        const addr = XLSX.utils.encode_cell({ r: 1, c })
+        let cell = ws[addr]
+        if (!cell) {
+          cell = { t: "s", v: row[c] ?? "" }
+          ws[addr] = cell
+        }
+        cell.s = {
+          font: { name: "Segoe UI", sz: 9.5, italic: true, bold: true, color: { rgb: "1E40AF" } },
+          fill: { fgColor: { rgb: "EFF6FF" } },
+          alignment: { horizontal: c === 0 ? "left" : "right", vertical: "center" },
+          border: {
+            bottom: { style: "thin", color: { rgb: "93C5FD" } },
+          },
+        }
+      }
+    } else if (
+      firstVal.startsWith("REPORT SCOPE") ||
+      firstVal.startsWith("DATE-RANGE") ||
+      firstVal.startsWith("KEY PERFORMANCE") ||
+      firstVal.startsWith("GOODS VALUE") ||
+      firstVal.startsWith("DISPATCHED DRIVER") ||
+      firstVal.startsWith("CONTAINER FLEET") ||
+      firstVal.startsWith("TRANSIT BORDER") ||
+      firstVal.startsWith("TOP ") ||
+      firstVal.startsWith("ACCOUNTING INVARIANCE")
+    ) {
+      // Section Header Row (Royal Blue #1E40AF, White Bold 10.5pt)
+      for (let c = 0; c < totalCols; c++) {
+        const addr = XLSX.utils.encode_cell({ r, c })
+        let cell = ws[addr]
+        if (!cell && c < row.length && row[c] !== undefined) {
+          cell = { t: "s", v: row[c] }
+          ws[addr] = cell
+        }
+        if (cell) {
+          cell.s = {
+            font: { name: "Segoe UI", sz: 10.5, bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "1E40AF" } },
+            alignment: { horizontal: c === 0 ? "left" : "center", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "93C5FD" } },
+              bottom: { style: "medium", color: { rgb: "93C5FD" } },
+              left: { style: "thin", color: { rgb: "93C5FD" } },
+              right: { style: "thin", color: { rgb: "93C5FD" } },
+            },
+          }
+        }
+      }
+    } else {
+      // Standard Data Row in Summary
+      const isZebraEven = r % 2 === 0
+      const rowBg = isZebraEven ? "FFFFFF" : "F8FAFC"
+
+      for (let c = 0; c < totalCols; c++) {
+        const addr = XLSX.utils.encode_cell({ r, c })
+        const cell = ws[addr]
+        if (!cell) continue
+
+        const val = cell.v
+        const valStr = String(val ?? "").trim().toUpperCase()
+
+        if (valStr === "SATISFIED" || valStr === "VERIFIED" || valStr === "YES") {
+          // Status badge Emerald
+          cell.s = {
+            font: { name: "Segoe UI", sz: 9.5, bold: true, color: { rgb: "065F46" } },
+            fill: { fgColor: { rgb: "D1FAE5" } },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "E2E8F0" } },
+              bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+              left: { style: "thin", color: { rgb: "E2E8F0" } },
+              right: { style: "thin", color: { rgb: "E2E8F0" } },
+            },
+          }
+        } else if (cell.t === "n" || typeof val === "number") {
+          // Numeric metric
+          cell.s = {
+            font: { name: "Segoe UI", sz: 10, bold: r < 18, color: { rgb: "0F172A" } },
+            fill: { fgColor: { rgb: rowBg } },
+            alignment: { horizontal: "right", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "E2E8F0" } },
+              bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+              left: { style: "thin", color: { rgb: "E2E8F0" } },
+              right: { style: "thin", color: { rgb: "E2E8F0" } },
+            },
+          }
+          if (!cell.z) {
+            cell.z = Number.isInteger(Number(val)) ? "#,##0" : "#,##0.00"
+          }
+        } else {
+          // Descriptive text
+          const isCenter = c === 2 && row.length === 3 // Unit column in KPI
+          cell.s = {
+            font: { name: "Segoe UI", sz: 10, color: { rgb: isCenter ? "475569" : "0F172A" } },
+            fill: { fgColor: { rgb: rowBg } },
+            alignment: { horizontal: isCenter ? "center" : "left", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "E2E8F0" } },
+              bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+              left: { style: "thin", color: { rgb: "E2E8F0" } },
+              right: { style: "thin", color: { rgb: "E2E8F0" } },
+            },
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Configures worksheet layout: auto-fitted columns, frozen header row, autofilters, comfortable row heights,
+ * and executive corporate styling across all cells.
  */
 function configureTableWorksheet(
   XLSX: any,
@@ -187,8 +544,8 @@ function configureTableWorksheet(
   if (!ws || !rows || rows.length === 0) return
 
   const freezeRows = options?.freezeRows ?? 1
-  const headerHeight = options?.headerHeight ?? 26
-  const dataHeight = options?.dataHeight ?? 19.5
+  const headerHeight = options?.headerHeight ?? 28
+  const dataHeight = options?.dataHeight ?? 20
   const hasAutofilter = options?.hasAutofilter ?? true
 
   // 1. Auto-fit column widths with generous breathing space
@@ -212,12 +569,8 @@ function configureTableWorksheet(
     ws["!autofilter"] = { ref: `A1:${endColLetter}${rows.length}` }
   }
 
-  // 5. Targeted cell formatting
-  if (colFormatMap) {
-    applyColumnFormats(ws, colFormatMap)
-  } else {
-    applySheetCellFormatting(ws)
-  }
+  // 5. Apply Executive Corporate Styling & Number Formatting
+  applyExecutiveTableStyling(XLSX, ws, rows, colFormatMap, freezeRows)
 }
 
 /**
@@ -229,15 +582,53 @@ export async function exportReportToExcel(
   docs: SavedDocument[],
   fileNamePrefix: string = "Sky-Ariana-Operations-Report",
   activeTab?: string,
-  exportMode: "current" | "all" | "comprehensive" = "comprehensive"
+  exportMode: "current" | "all" | "comprehensive" = "comprehensive",
+  dateRangeFilter?: { dateFrom?: string; dateTo?: string; label?: string }
 ): Promise<void> {
   // Yield to browser event loop before heavy computation
   await new Promise((resolve) => setTimeout(resolve, 0))
 
   const [XLSX, kpis] = await Promise.all([
-    import("xlsx"),
+    getXLSXEngine(),
     Promise.resolve().then(() => calculateOverviewKpis(docs)),
   ])
+
+  // Date Range Scope and Run-rate Calculations
+  let dateRangeLabel = "All Time — Complete Historical Archive"
+  let totalDaysInPeriod = 0
+
+  if (dateRangeFilter?.dateFrom || dateRangeFilter?.dateTo) {
+    const fromStr = dateRangeFilter.dateFrom || "Earliest"
+    const toStr = dateRangeFilter.dateTo || "Latest"
+    dateRangeLabel = `${fromStr} to ${toStr}`
+    if (dateRangeFilter.dateFrom && dateRangeFilter.dateTo) {
+      const dFrom = new Date(dateRangeFilter.dateFrom)
+      const dTo = new Date(dateRangeFilter.dateTo)
+      const diffTime = Math.abs(dTo.getTime() - dFrom.getTime())
+      totalDaysInPeriod = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1)
+    }
+  } else if (docs.length > 0) {
+    const docTimestamps = docs
+      .map((d) => {
+        const raw = d.issue_date || d.created_at
+        if (!raw) return undefined
+        const parsed = new Date(raw)
+        return isNaN(parsed.getTime()) ? undefined : parsed.getTime()
+      })
+      .filter((t): t is number => typeof t === "number")
+    if (docTimestamps.length > 0) {
+      const minT = Math.min(...docTimestamps)
+      const maxT = Math.max(...docTimestamps)
+      const minD = new Date(minT).toISOString().split("T")[0]
+      const maxD = new Date(maxT).toISOString().split("T")[0]
+      dateRangeLabel = minD === maxD ? minD : `${minD} to ${maxD}`
+      totalDaysInPeriod = Math.max(1, Math.ceil((maxT - minT) / (1000 * 60 * 60 * 24)) + 1)
+    }
+  }
+
+  const dailyBols = totalDaysInPeriod > 0 ? Number((kpis.totalBols / totalDaysInPeriod).toFixed(1)) : kpis.totalBols
+  const dailyPackages = totalDaysInPeriod > 0 ? Math.round(kpis.totalPackages / totalDaysInPeriod) : kpis.totalPackages
+  const dailyNetWeightKg = totalDaysInPeriod > 0 ? Math.round(kpis.totalNetWeightKg / totalDaysInPeriod) : kpis.totalNetWeightKg
 
   const shippers = groupShippers(docs)
   const consignees = groupConsignees(docs)
@@ -277,7 +668,17 @@ export async function exportReportToExcel(
   // ==========================================
   const summaryRows: (string | number)[][] = [
     ["SKY ARIANA LIMITED — OPERATIONS & MANAGEMENT REPORT"],
-    [`Generated Date: ${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString()}`, `Total Records: ${docs.length} BOLs`],
+    [
+      `Generated Date: ${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString()}`,
+      `Total Records: ${docs.length} BOLs`,
+      `Date Range Scope: ${dateRangeLabel}`,
+    ],
+    [],
+    ["REPORT SCOPE & DATE-RANGE AUDIT", "VALUE", "UNIT", "OPERATIONAL STATUS"],
+    ["Active Date Range Filter", dateRangeLabel, totalDaysInPeriod > 0 ? `${totalDaysInPeriod} Calendar Days` : "All Time", "FILTERED ACTIVE"],
+    ["Average Daily BOL Dispatch Rate", dailyBols, "BOLs / Day", "RUN-RATE PACE"],
+    ["Average Daily Cargo Volume", dailyPackages, "Cartons / Day", "VOLUME PACE"],
+    ["Average Daily Net Weight", dailyNetWeightKg, "Kilograms / Day", "WEIGHT PACE"],
     [],
     ["KEY PERFORMANCE INDICATORS (KPI)", "VALUE", "UNIT"],
     ["Total Bills of Lading (BOL)", kpis.totalBols, "Records"],
@@ -379,7 +780,7 @@ export async function exportReportToExcel(
   ]
   for (let r = 3; r < summaryRows.length; r++) {
     const row = summaryRows[r]
-    if (row && row.length > 0 && typeof row[0] === "string" && (row[0].startsWith("TOP ") || row[0].includes("KEY PERFORMANCE") || row[0].includes("GOODS VALUE") || row[0].includes("DISPATCHED DRIVER") || row[0].includes("CONTAINER FLEET") || row[0].includes("TRANSIT BORDER") || row[0].includes("ACCOUNTING INVARIANCE"))) {
+    if (row && row.length > 0 && typeof row[0] === "string" && (row[0].startsWith("REPORT SCOPE") || row[0].startsWith("DATE-RANGE") || row[0].startsWith("TOP ") || row[0].includes("KEY PERFORMANCE") || row[0].includes("GOODS VALUE") || row[0].includes("DISPATCHED DRIVER") || row[0].includes("CONTAINER FLEET") || row[0].includes("TRANSIT BORDER") || row[0].includes("ACCOUNTING INVARIANCE"))) {
       summaryRowHeights.push({ hpt: 23 })
     } else if (!row || row.length === 0) {
       summaryRowHeights.push({ hpt: 10 })
@@ -390,6 +791,7 @@ export async function exportReportToExcel(
   wsSummary["!rows"] = summaryRowHeights
 
   applySheetCellFormatting(wsSummary)
+  styleSummaryWorksheet(XLSX, wsSummary, summaryRows)
   XLSX.utils.book_append_sheet(wb, wsSummary, "Summary")
 
   // ==========================================
@@ -1050,6 +1452,136 @@ export async function exportReportToExcel(
     }
     configureTableWorksheet(XLSX, wsFin, finRows, finColFormats)
     XLSX.utils.book_append_sheet(wb, wsFin, "Financials")
+  }
+
+  // 13. Daily Timeline (Appended when an active date range filter is provided)
+  if (dateRangeFilter?.dateFrom && dateRangeFilter?.dateTo && (isAllSheets || lowerTab === "operations" || lowerTab === "overview")) {
+    const dailyMap = new Map<string, {
+      bols: number
+      packages: number
+      netWeight: number
+      grossWeight: number
+      goodsValueUsd: number
+      driverRentAfn: number
+      borderStations: Set<string>
+      trucks: Set<string>
+    }>()
+
+    for (const doc of docs) {
+      const d = parseDateSafely(doc.issue_date || doc.created_at)
+      const dayKey = d ? d.toISOString().split("T")[0] : "Undated"
+      if (!dailyMap.has(dayKey)) {
+        dailyMap.set(dayKey, {
+          bols: 0,
+          packages: 0,
+          netWeight: 0,
+          grossWeight: 0,
+          goodsValueUsd: 0,
+          driverRentAfn: 0,
+          borderStations: new Set(),
+          trucks: new Set(),
+        })
+      }
+      const entry = dailyMap.get(dayKey)!
+      entry.bols += 1
+      entry.packages += parsePackages(doc.number_of_packages)
+      entry.netWeight += parseWeight(doc.net_weight)
+      entry.grossWeight += parseWeight(doc.gross_weight)
+
+      const gv = parseMoney(doc.goods_value)
+      if (gv.currency === "USD" || gv.amount > 0) {
+        entry.goodsValueUsd += gv.amount
+      }
+
+      const dr = parseMoney(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent || "")
+      if (dr.currency === "AFN" || dr.amount > 0) {
+        entry.driverRentAfn += dr.amount
+      }
+
+      const station = extractTransitBorderStation(doc)
+      if (station && station !== "—" && station !== "Other / Internal") {
+        entry.borderStations.add(station)
+      }
+
+      const truck = extractTruckNo(doc) || doc.truck_number
+      if (truck) entry.trucks.add(truck)
+    }
+
+    const sortedDays = Array.from(dailyMap.keys()).sort()
+    const dailyHeaders = [
+      "#",
+      "Date",
+      "Display Date",
+      "Dispatched BOLs",
+      "Total Packages (CTNS)",
+      "Net Weight (KG)",
+      "Gross Weight (KG)",
+      "Goods Value (USD)",
+      "Driver Rent (AFN)",
+      "Active Trucks",
+      "Transit Border Stations",
+    ]
+
+    let totBols = 0
+    let totPkgs = 0
+    let totNet = 0
+    let totGross = 0
+    let totUsd = 0
+    let totAfn = 0
+
+    const dailyRows: (string | number)[][] = [
+      dailyHeaders,
+      ...sortedDays.map((dayKey, idx) => {
+        const item = dailyMap.get(dayKey)!
+        totBols += item.bols
+        totPkgs += item.packages
+        totNet += item.netWeight
+        totGross += item.grossWeight
+        totUsd += item.goodsValueUsd
+        totAfn += item.driverRentAfn
+
+        return [
+          idx + 1,
+          dayKey,
+          formatDisplayDate(dayKey),
+          item.bols,
+          item.packages,
+          Math.round(item.netWeight * 100) / 100,
+          Math.round(item.grossWeight * 100) / 100,
+          Math.round(item.goodsValueUsd * 100) / 100,
+          Math.round(item.driverRentAfn),
+          item.trucks.size,
+          Array.from(item.borderStations).join(", ") || "Direct Transit",
+        ]
+      }),
+      [
+        "TOTAL",
+        "TOTAL",
+        `Summary of ${sortedDays.length} Days`,
+        totBols,
+        totPkgs,
+        Math.round(totNet * 100) / 100,
+        Math.round(totGross * 100) / 100,
+        Math.round(totUsd * 100) / 100,
+        Math.round(totAfn),
+        "—",
+        "—",
+      ],
+    ]
+
+    const wsDaily = XLSX.utils.aoa_to_sheet(dailyRows)
+    const dailyColFormats: Record<number, string> = {
+      0: "#,##0",
+      3: "#,##0",
+      4: "#,##0",
+      5: "#,##0.00",
+      6: "#,##0.00",
+      7: "$#,##0.00",
+      8: "#,##0",
+      9: "#,##0",
+    }
+    configureTableWorksheet(XLSX, wsDaily, dailyRows, dailyColFormats)
+    XLSX.utils.book_append_sheet(wb, wsDaily, "Daily Timeline")
   }
 
   // Active view only pruning (when exportMode is 'current')

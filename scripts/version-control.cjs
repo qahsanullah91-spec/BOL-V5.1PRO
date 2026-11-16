@@ -55,11 +55,26 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"))
 }
 
-/** Atomic write: temp file + rename in the same directory. */
+/** Atomic write: temp file + rename in the same directory with Windows EPERM resilience. */
 function writeAtomic(file, content) {
   const tmp = `${file}.tmp.${process.pid}.${Date.now()}`
   fs.writeFileSync(tmp, content, "utf8")
-  fs.renameSync(tmp, file)
+  try {
+    fs.renameSync(tmp, file)
+  } catch (err) {
+    if (err.code === "EPERM" || err.code === "EBUSY") {
+      try {
+        fs.writeFileSync(file, content, "utf8")
+        if (fs.existsSync(tmp)) {
+          try { fs.unlinkSync(tmp) } catch {}
+        }
+        return
+      } catch (innerErr) {
+        throw err
+      }
+    }
+    throw err
+  }
 }
 
 function todayParts(now = new Date()) {

@@ -1,0 +1,15 @@
+resources:
+  jobs:
+    ai_workflow_orchestrator:
+      name: "[${bundle.target}] AI Operations End-to-End Orchestrator"
+      tasks:
+        - task_key: run_lakeflow_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.ai_lakeflow_pipeline.id}
+        
+        - task_key: run_notebook_inference
+          depends_on:
+            - task_key: run_lakeflow_pipeline
+          notebook_task:
+            notebook_path: ../notebooks/databricks_ai_pipeline.py
+            source: WORKSPACE

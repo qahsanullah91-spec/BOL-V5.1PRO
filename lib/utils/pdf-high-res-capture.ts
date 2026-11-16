@@ -190,18 +190,25 @@ function svgDataUrlToObjectUrl(svgDataUrl: string): string | null {
     if (commaIdx === -1) return null
     const meta = svgDataUrl.slice(0, commaIdx)
     const payload = svgDataUrl.slice(commaIdx + 1)
-    let svgContent: string
     if (meta.includes(";base64")) {
-      svgContent = atob(payload)
+      const binaryString = atob(payload)
+      const len = binaryString.length
+      const bytes = new Uint8Array(len)
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      const blob = new Blob([bytes], { type: "image/svg+xml;charset=utf-8" })
+      return URL.createObjectURL(blob)
     } else {
+      let svgContent: string
       try {
         svgContent = decodeURIComponent(payload)
       } catch {
         svgContent = unescape(payload)
       }
+      const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" })
+      return URL.createObjectURL(blob)
     }
-    const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" })
-    return URL.createObjectURL(blob)
   } catch {
     return null
   }
@@ -239,6 +246,11 @@ export function loadSvgImage(
       resolve(image)
     }
     image.onerror = () => {
+      // If objectUrl failed, attempt fallback directly to svgDataUrl if not already tried
+      if (objectUrl && image.src !== svgDataUrl) {
+        image.src = svgDataUrl
+        return
+      }
       window.clearTimeout(timer)
       cleanup()
       reject(new Error("Failed to load serialized SVG for PDF export rasterization."))
@@ -421,7 +433,7 @@ let colorConversionCtx: CanvasRenderingContext2D | null = null
  * Converts ANY valid browser CSS color (including modern oklch, oklab, lab, lch, color-mix)
  * to standard rgba/hex representation using an off-screen canvas context.
  */
-export function convertCssColorToRgb(colorStr?: string | null): string {
+export function convertCssColorToRgb(colorStr?: string | null, isBackground = false): string {
   if (!colorStr || colorStr === "transparent" || colorStr === "none" || colorStr === "inherit") {
     return colorStr || ""
   }
@@ -437,16 +449,17 @@ export function convertCssColorToRgb(colorStr?: string | null): string {
         colorConversionCtx = colorConversionCanvas.getContext("2d", { willReadFrequently: true })
       }
       if (colorConversionCtx) {
-        colorConversionCtx.fillStyle = "#000000"
+        const sentinel = isBackground ? "rgba(0, 0, 0, 0)" : "rgb(15, 23, 42)"
+        colorConversionCtx.fillStyle = sentinel
         colorConversionCtx.fillStyle = colorStr
         const result = colorConversionCtx.fillStyle
-        if (result && !hasUnsupportedColor(result)) {
+        if (result && result !== sentinel && !hasUnsupportedColor(result)) {
           return result
         }
       }
     }
   } catch {}
-  return "#0f172a"
+  return isBackground ? "transparent" : "#0f172a"
 }
 
 export function setPDFStyle(
@@ -458,11 +471,20 @@ export function setPDFStyle(
 }
 
 export function getPDFBorderColor(className: string): string {
+  if (className.includes("border-sky-")) return "#7dd3fc"
   if (className.includes("border-blue-")) return "#93c5fd"
-  if (className.includes("border-red-")) return "#ff4d5f"
+  if (className.includes("border-indigo-")) return "#a5b4fc"
+  if (className.includes("border-teal-")) return "#5eead4"
+  if (className.includes("border-cyan-")) return "#67e8f9"
+  if (className.includes("border-red-") || className.includes("border-rose-")) return "#ff4d5f"
   if (className.includes("border-green-") || className.includes("border-emerald-")) return "#86efac"
   if (className.includes("border-purple-")) return "#c4b5fd"
   if (className.includes("border-amber-")) return "#fcd34d"
+  if (className.includes("border-white/40") || className.includes("border-white/30")) return "rgba(255, 255, 255, 0.4)"
+  if (className.includes("border-white")) return "#ffffff"
+  if (className.includes("border-slate-300")) return "#cbd5e1"
+  if (className.includes("border-slate-200")) return "#e2e8f0"
+  if (className.includes("border-slate-100")) return "#f1f5f9"
   return "#cbd5e1"
 }
 
@@ -477,28 +499,61 @@ export function getPDFBoxShadow(className: string): string {
 export function getPDFTextColor(className: string, sourceStyle: CSSStyleDeclaration): string {
   if (className.includes("text-white")) return "#ffffff"
   if (className.includes("text-blue-100")) return "#dbeafe"
+  if (className.includes("text-blue-200")) return "#bfdbfe"
+  if (className.includes("text-blue-300")) return "#93c5fd"
   if (className.includes("text-blue-400")) return "#60a5fa"
   if (className.includes("text-blue-500")) return "#3b82f6"
   if (className.includes("text-blue-600")) return "#2563eb"
   if (className.includes("text-blue-700")) return "#1d4ed8"
   if (className.includes("text-blue-800")) return "#1e40af"
-  if (className.includes("text-red-400")) return "#f87171"
-  if (className.includes("text-red-500")) return "#ef4444"
-  if (className.includes("text-red-600")) return "#dc2626"
-  if (className.includes("text-red-700")) return "#b91c1c"
-  if (className.includes("text-red-800")) return "#991b1b"
-  if (className.includes("text-green-600")) return "#16a34a"
-  if (className.includes("text-green-700")) return "#15803d"
-  if (className.includes("text-green-800")) return "#166534"
+  if (className.includes("text-blue-900")) return "#1e3a8a"
+  if (className.includes("text-blue-950")) return "#172554"
+  if (className.includes("text-slate-950")) return "#020617"
+  if (className.includes("text-slate-900")) return "#0f172a"
+  if (className.includes("text-slate-800")) return "#1e293b"
+  if (className.includes("text-slate-700")) return "#334155"
+  if (className.includes("text-slate-600")) return "#475569"
+  if (className.includes("text-slate-500")) return "#64748b"
+  if (className.includes("text-cyan-950")) return "#083344"
+  if (className.includes("text-cyan-900")) return "#164e63"
+  if (className.includes("text-cyan-800")) return "#155e75"
+  if (className.includes("text-cyan-700")) return "#0e7490"
+  if (className.includes("text-cyan-600")) return "#0891b2"
+  if (className.includes("text-emerald-950")) return "#022c22"
+  if (className.includes("text-emerald-900")) return "#064e3b"
+  if (className.includes("text-emerald-800")) return "#065f46"
+  if (className.includes("text-emerald-700")) return "#047857"
   if (className.includes("text-emerald-600")) return "#059669"
+  if (className.includes("text-amber-950")) return "#451a03"
+  if (className.includes("text-amber-900")) return "#78350f"
+  if (className.includes("text-amber-800")) return "#92400e"
+  if (className.includes("text-amber-700")) return "#b45309"
   if (className.includes("text-amber-600")) return "#d97706"
   if (className.includes("text-purple-600")) return "#9333ea"
-  if (className.includes("text-cyan-600")) return "#0891b2"
+  if (className.includes("text-purple-700")) return "#7e22ce"
+  if (className.includes("text-purple-900")) return "#581c87"
+  if (className.includes("text-purple-950")) return "#3b0764"
+  if (className.includes("text-indigo-950")) return "#1e1b4b"
+  if (className.includes("text-indigo-900")) return "#312e81"
+  if (className.includes("text-indigo-800")) return "#3730a3"
+  if (className.includes("text-indigo-700")) return "#4338ca"
+  if (className.includes("text-indigo-600")) return "#4f46e5"
+  if (className.includes("text-rose-950") || className.includes("text-red-950")) return "#4c0519"
+  if (className.includes("text-rose-900") || className.includes("text-red-900")) return "#881337"
+  if (className.includes("text-rose-800") || className.includes("text-red-800")) return "#9f1239"
+  if (className.includes("text-rose-700") || className.includes("text-red-700")) return "#be123c"
+  if (className.includes("text-rose-600") || className.includes("text-red-600")) return "#e11d48"
+  if (className.includes("text-red-500")) return "#ef4444"
+  if (className.includes("text-red-400")) return "#f87171"
   if (className.includes("text-sky-600")) return "#0284c7"
+  if (className.includes("text-sky-700")) return "#0369a1"
+  if (className.includes("text-sky-900")) return "#0c4a6e"
+  if (className.includes("text-sky-950")) return "#082f49"
   if (className.includes("text-orange-600")) return "#ea580c"
   if (className.includes("text-gray-500")) return "#6b7280"
   if (className.includes("text-gray-600")) return "#4b5563"
   if (className.includes("text-gray-800")) return "#1f2937"
+  if (className.includes("text-black")) return "#000000"
 
   if (sourceStyle.color && sourceStyle.color !== "rgba(0, 0, 0, 0)" && sourceStyle.color !== "transparent") {
     return convertCssColorToRgb(sourceStyle.color) || "#0f172a"
@@ -508,42 +563,79 @@ export function getPDFTextColor(className: string, sourceStyle: CSSStyleDeclarat
 }
 
 export function getPDFBackgroundColor(className: string, sourceStyle: CSSStyleDeclaration): string {
-  if (className.includes("bg-white/40")) return "rgba(255, 255, 255, 0.4)"
-  if (className.includes("bg-white/50")) return "rgba(255, 255, 255, 0.5)"
-  if (className.includes("bg-white/70")) return "rgba(255, 255, 255, 0.7)"
-  if (className.includes("bg-white/80")) return "rgba(255, 255, 255, 0.8)"
-  if (className.includes("bg-white/20")) return "rgba(255, 255, 255, 0.2)"
-  if (className.includes("bg-blue-900/35")) return "rgba(30, 58, 138, 0.35)"
-  if (className.includes("from-blue-500/10") || className.includes("to-blue-600/10")) return "#eff6ff"
-  if (className.includes("from-green-500/10") || className.includes("to-green-600/10")) return "#f0fdf4"
-
-  if (className.includes("from-blue-600") || className.includes("bg-blue-600") || className.includes("to-blue-800")) {
-    return "#1e40ff"
-  }
-  if (className.includes("from-blue-500") || className.includes("to-blue-700") || className.includes("bg-blue-500")) {
-    return "#1d4ed8"
-  }
-  if (className.includes("from-red-600") || className.includes("bg-red-600") || className.includes("to-rose-500")) {
-    return "#ff263b"
-  }
-  if (className.includes("from-red-50") || className.includes("bg-red-50")) return "#fef2f2"
-  if (className.includes("from-green-600") || className.includes("bg-green-600") || className.includes("from-emerald-600")) {
-    return "#16a34a"
-  }
-  if (className.includes("from-green-500/10") || className.includes("bg-green-100") || className.includes("from-emerald-50")) {
-    return "#f0fdf4"
-  }
-  if (className.includes("from-blue-50") || className.includes("bg-blue-50") || className.includes("bg-blue-100")) {
-    return "#eff6ff"
-  }
-  if (className.includes("bg-white") || className.includes("via-white") || className.includes("from-white") || className.includes("to-white")) {
+  // Explicit party cards, sections, detail cards must be solid white in PDF
+  if (
+    className.includes("party-card") ||
+    className.includes("detail-card") ||
+    className.includes("exporter-contact-detail-card") ||
+    className.includes("business-information") ||
+    className.includes("bg-white") ||
+    className.includes("via-white") ||
+    className.includes("from-white") ||
+    className.includes("to-white")
+  ) {
+    if (className.includes("bg-white/20") || className.includes("bg-white/25") || className.includes("bg-white/30")) {
+      return "rgba(255, 255, 255, 0.22)"
+    }
     return "#ffffff"
   }
+  if (className.includes("bg-white/40")) return "rgba(255, 255, 255, 0.9)"
+  if (className.includes("bg-white/50")) return "rgba(255, 255, 255, 0.95)"
+  if (className.includes("bg-white/70") || className.includes("bg-white/80") || className.includes("bg-white/90") || className.includes("bg-white/95")) return "#ffffff"
+  if (className.includes("bg-white/20") || className.includes("bg-white/25") || className.includes("bg-white/30")) return "rgba(255, 255, 255, 0.22)"
+  if (className.includes("bg-blue-900/35")) return "rgba(30, 58, 138, 0.35)"
+
+  // Sky blues (CRITICAL for Route Timeline vessel mode pills & accents)
+  if (className.includes("from-sky-50") || className.includes("bg-sky-50") || className.includes("to-sky-50")) return "#f0f9ff"
+  if (className.includes("from-sky-100") || className.includes("bg-sky-100")) return "#e0f2fe"
+  if (className.includes("from-sky-200") || className.includes("bg-sky-200")) return "#bae6fd"
+  if (className.includes("from-sky-500") || className.includes("bg-sky-500")) return "#0ea5e9"
+  if (className.includes("from-sky-600") || className.includes("bg-sky-600")) return "#0284c7"
+  if (className.includes("from-sky-700") || className.includes("bg-sky-700")) return "#0369a1"
+
+  // Standard Blues
+  if (className.includes("from-blue-500/10") || className.includes("to-blue-600/10") || className.includes("from-blue-50") || className.includes("bg-blue-50")) return "#eff6ff"
+  if (className.includes("from-blue-100") || className.includes("bg-blue-100")) return "#dbeafe"
+  if (className.includes("from-blue-600") || className.includes("bg-blue-600") || className.includes("to-blue-800")) return "#1e40af"
+  if (className.includes("from-blue-500") || className.includes("to-blue-700") || className.includes("bg-blue-500")) return "#1d4ed8"
+
+  // Greens & Emeralds
+  if (className.includes("from-green-500/10") || className.includes("to-green-600/10") || className.includes("from-emerald-50") || className.includes("bg-green-50") || className.includes("bg-emerald-50")) return "#f0fdf4"
+  if (className.includes("from-green-100") || className.includes("bg-green-100") || className.includes("bg-emerald-100")) return "#dcfce7"
+  if (className.includes("from-green-600") || className.includes("bg-green-600") || className.includes("from-emerald-600") || className.includes("bg-emerald-600")) return "#16a34a"
+
+  // Reds & Roses
+  if (className.includes("from-red-50") || className.includes("bg-red-50") || className.includes("bg-rose-50")) return "#fef2f2"
+  if (className.includes("from-red-100") || className.includes("bg-red-100") || className.includes("bg-rose-100")) return "#fee2e2"
+  if (className.includes("from-red-600") || className.includes("bg-red-600") || className.includes("to-rose-500")) return "#dc2626"
+
+  // Indigos & Purples
+  if (className.includes("from-indigo-50") || className.includes("bg-indigo-50")) return "#eef2ff"
+  if (className.includes("from-indigo-100") || className.includes("bg-indigo-100")) return "#e0e7ff"
+  if (className.includes("from-indigo-600") || className.includes("bg-indigo-600")) return "#4f46e5"
+  if (className.includes("from-purple-50") || className.includes("bg-purple-50")) return "#faf5ff"
+  if (className.includes("from-purple-100") || className.includes("bg-purple-100")) return "#f3e8ff"
+  if (className.includes("from-purple-600") || className.includes("bg-purple-600")) return "#9333ea"
+
+  // Cyans & Teals
+  if (className.includes("from-cyan-50") || className.includes("bg-cyan-50")) return "#ecfeff"
+  if (className.includes("from-cyan-100") || className.includes("bg-cyan-100")) return "#cffafe"
+  if (className.includes("from-teal-50") || className.includes("bg-teal-50")) return "#f0fdfa"
+  if (className.includes("from-teal-100") || className.includes("bg-teal-100")) return "#ccfbf1"
+
+  // Ambers & Yellows
+  if (className.includes("from-amber-50") || className.includes("bg-amber-50")) return "#fffbeb"
+  if (className.includes("from-amber-100") || className.includes("bg-amber-100")) return "#fef3c7"
+  if (className.includes("from-amber-200") || className.includes("bg-amber-200")) return "#fde68a"
+  if (className.includes("from-amber-500") || className.includes("bg-amber-500")) return "#f59e0b"
+
+  // Grays & Slates
   if (className.includes("bg-gray-50") || className.includes("from-gray-50")) return "#f9fafb"
   if (className.includes("bg-slate-50") || className.includes("from-slate-50")) return "#f8fafc"
+  if (className.includes("bg-slate-100") || className.includes("from-slate-100")) return "#f1f5f9"
 
   if (sourceStyle.backgroundColor !== "rgba(0, 0, 0, 0)" && sourceStyle.backgroundColor !== "transparent") {
-    return convertCssColorToRgb(sourceStyle.backgroundColor) || "transparent"
+    return convertCssColorToRgb(sourceStyle.backgroundColor, true) || "transparent"
   }
 
   return "transparent"
@@ -594,6 +686,103 @@ export function sanitizeElementForPDF(source: Element, target: Element): void {
   const sourceStyle = window.getComputedStyle(source)
   const targetElement = target as HTMLElement
   const className = source.getAttribute("class") || ""
+  const tagName = source.tagName.toLowerCase()
+
+  // 0. Watermark element - PRESERVE low opacity, NEVER overwrite to 1!
+  const isWatermark =
+    source.getAttribute("data-bol-watermark") === "true" ||
+    className.includes("bol-watermark") ||
+    source.closest?.("[data-bol-watermark='true'], .bol-watermark") !== null
+
+  if (isWatermark) {
+    const rawOpacity = (source as HTMLElement).style?.opacity || sourceStyle.opacity
+    const numOpacity = parseFloat(rawOpacity)
+    const safeOpacity = !isNaN(numOpacity) ? Math.min(0.20, Math.max(0.04, numOpacity)) : 0.11
+    setPDFStyle(targetElement, "opacity", String(safeOpacity))
+    setPDFStyle(targetElement, "visibility", "visible")
+    Array.from(source.children).forEach((sourceChild, index) => {
+      const targetChild = target.children.item(index)
+      if (targetChild) {
+        sanitizeElementForPDF(sourceChild, targetChild)
+      }
+    })
+    return
+  }
+
+  // 1. QR Code and barcode absolute fidelity protection
+  const isQRCode =
+    source.getAttribute("data-qr-code") === "true" ||
+    source.getAttribute("data-qr-svg") === "true" ||
+    source.getAttribute("data-qr-path") === "true" ||
+    source.getAttribute("data-qr-bg") === "true" ||
+    className.includes("bol-qr-container") ||
+    source.closest?.("[data-qr-code='true'], .bol-qr-container") !== null
+
+  if (isQRCode) {
+    if (tagName === "rect" || source.getAttribute("data-qr-bg") === "true") {
+      setPDFStyle(targetElement, "fill", "#ffffff")
+      setPDFStyle(targetElement, "background-color", "#ffffff")
+      setPDFStyle(targetElement, "opacity", "1")
+      setPDFStyle(targetElement, "visibility", "visible")
+      return
+    }
+    if (tagName === "path" || source.getAttribute("data-qr-path") === "true") {
+      setPDFStyle(targetElement, "fill", "#0f172a")
+      setPDFStyle(targetElement, "color", "#0f172a")
+      setPDFStyle(targetElement, "opacity", "1")
+      setPDFStyle(targetElement, "visibility", "visible")
+      return
+    }
+    if (target instanceof SVGElement) {
+      setPDFStyle(target, "background-color", "#ffffff")
+      setPDFStyle(target, "opacity", "1")
+      setPDFStyle(target, "visibility", "visible")
+      Array.from(source.children).forEach((sourceChild, index) => {
+        const targetChild = target.children.item(index)
+        if (targetChild) {
+          sanitizeElementForPDF(sourceChild, targetChild)
+        }
+      })
+      return
+    }
+    setPDFStyle(targetElement, "background-color", "#ffffff")
+    setPDFStyle(targetElement, "border-color", "#93c5fd")
+    setPDFStyle(targetElement, "color", "#0f172a")
+    setPDFStyle(targetElement, "opacity", "1")
+    setPDFStyle(targetElement, "visibility", "visible")
+    Array.from(source.children).forEach((sourceChild, index) => {
+      const targetChild = target.children.item(index)
+      if (targetChild) {
+        sanitizeElementForPDF(sourceChild, targetChild)
+      }
+    })
+    return
+  }
+
+  // Section Header bar (e.g. style={blueBarStyle})
+  const isSectionHeader =
+    source.parentElement?.getAttribute("data-print-section") !== null &&
+    source.parentElement?.firstElementChild === source
+  const hasBlueBarStyle =
+    sourceStyle.backgroundImage.includes("linear-gradient") ||
+    (source as HTMLElement).style?.background?.includes("linear-gradient") ||
+    (source as HTMLElement).style?.backgroundImage?.includes("linear-gradient")
+
+  if (isSectionHeader || (hasBlueBarStyle && className.includes("text-white"))) {
+    setPDFStyle(targetElement, "background-color", "#1e40af")
+    setPDFStyle(targetElement, "background-image", "linear-gradient(90deg, #1e40af 0%, #2563eb 55%, #0284c7 90%, #0891b2 100%)")
+    setPDFStyle(targetElement, "color", "#ffffff")
+    setPDFStyle(targetElement, "opacity", "1")
+    setPDFStyle(targetElement, "visibility", "visible")
+    Array.from(source.children).forEach((sourceChild, index) => {
+      const targetChild = target.children.item(index)
+      if (targetChild) {
+        sanitizeElementForPDF(sourceChild, targetChild)
+      }
+    })
+    return
+  }
+
   const textColor = getPDFTextColor(className, sourceStyle)
   const backgroundColor = getPDFBackgroundColor(className, sourceStyle)
   const backgroundImage = getPDFBackgroundImage(className, sourceStyle)
@@ -639,10 +828,46 @@ export function sanitizeElementForPDF(source: Element, target: Element): void {
     setPDFStyle(targetElement, "background-image", "none")
   }
 
+  // Explicit cards and sections get solid background so they never become transparent over watermarks
+  if (
+    source.getAttribute("data-print-section") ||
+    className.includes("party-card") ||
+    className.includes("detail-card") ||
+    className.includes("exporter-contact-detail-card") ||
+    source.getAttribute("data-afghan-plate") === "true" ||
+    source.closest?.("[data-afghan-plate='true']") !== null
+  ) {
+    setPDFStyle(targetElement, "background-color", "#ffffff")
+    setPDFStyle(targetElement, "border-color", "#bfdbfe")
+  }
+
   if (target instanceof SVGElement) {
-    setPDFStyle(target, "color", textColor)
-    setPDFStyle(target, "fill", sourceStyle.fill === "none" ? "none" : textColor)
-    setPDFStyle(target, "stroke", sourceStyle.stroke === "none" ? "none" : textColor)
+    const rootSvg = (source instanceof SVGSVGElement ? source : source.closest("svg")) as SVGSVGElement | null
+    const rootSvgFill = rootSvg?.getAttribute("fill")
+    const explicitFill = source.getAttribute("fill")
+    const explicitStroke = source.getAttribute("stroke") || rootSvg?.getAttribute("stroke")
+    const hasExplicitStroke = Boolean(explicitStroke && explicitStroke !== "none")
+    const hasExplicitFill = Boolean(explicitFill && explicitFill !== "none")
+
+    const parentContainer = source.closest(".text-white, [class*='text-white'], .bg-indigo-600, .bg-blue-600, .bg-emerald-600, .bg-cyan-600, .bg-slate-900")
+    const effectiveIconColor = parentContainer ? "#ffffff" : textColor
+
+    if (explicitFill && explicitFill !== "none" && explicitFill !== "currentColor") {
+      setPDFStyle(target, "fill", convertCssColorToRgb(explicitFill, true))
+    } else if (explicitFill === "currentColor") {
+      setPDFStyle(target, "fill", effectiveIconColor)
+    }
+
+    if (hasExplicitStroke) {
+      if (explicitStroke !== "currentColor") {
+        setPDFStyle(target, "stroke", convertCssColorToRgb(explicitStroke))
+      } else {
+        setPDFStyle(target, "stroke", effectiveIconColor)
+      }
+    } else if (rootSvgFill === "none" && !hasExplicitFill && target.tagName !== "svg") {
+      setPDFStyle(target, "stroke", effectiveIconColor)
+    }
+    setPDFStyle(target, "color", effectiveIconColor)
   }
 
   Array.from(source.children).forEach((sourceChild, index) => {

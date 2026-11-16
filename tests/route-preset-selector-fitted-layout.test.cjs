@@ -96,4 +96,27 @@ test("Route Preset Selector Fitted Adaptive Layout & Density Suite", async (t) =
       "Expected grid mode to use responsive single-column on split view and 2 columns on lg screens"
     )
   })
+
+  await t.test("6. Interactive rail navigation controls and RTL scrollbar clearance", () => {
+    assert.match(
+      routeSelectorSource,
+      /stationRailRef\s*=\s*useRef<HTMLDivElement>/,
+      "Expected station rail ref for smooth scrolling"
+    )
+    assert.match(
+      routeSelectorSource,
+      /containerFilterRailRef\s*=\s*useRef<HTMLDivElement>/,
+      "Expected container filter rail ref for smooth scrolling"
+    )
+    assert.match(
+      routeSelectorSource,
+      /scrollRail\s*=\s*\(ref:\s*React\.RefObject/,
+      "Expected scrollRail helper function"
+    )
+    assert.match(
+      routeSelectorSource,
+      /px-2\s+pl-3\s+pr-2/,
+      "Expected RTL scrollbar clearance (pl-3) in route cards list"
+    )
+  })
 })

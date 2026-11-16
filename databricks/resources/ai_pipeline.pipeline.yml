@@ -1,0 +1,14 @@
+resources:
+  pipelines:
+    ai_lakeflow_pipeline:
+      name: "[${bundle.target}] AI Operations Lakeflow Streaming Pipeline"
+      catalog: ${var.catalog}
+      target: ${var.schema}
+      continuous: false
+      serverless: true
+      channel: preview
+      libraries:
+        - file:
+            path: ../lakeflow/lakeflow_ai_pipeline.sql
+      configuration:
+        bundle.source: ${bundle.root_path}

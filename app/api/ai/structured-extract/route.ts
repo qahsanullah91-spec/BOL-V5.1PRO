@@ -10,7 +10,7 @@ import { runComprehensiveVerification } from '@/lib/ai/smart-verification'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { text = '', type = 'bol', model, payload } = body
+    const { text = '', type = 'bol', model, payload, file } = body
 
     // 1. Verification Audit Mode
     if (type === 'verify') {
@@ -26,9 +26,20 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    if (!text || typeof text !== 'string' || !text.trim()) {
+    const hasText = Boolean(text && typeof text === 'string' && text.trim())
+    const hasFile = Boolean(file && file.data && file.mimeType)
+
+    if (!hasText && !hasFile) {
       return NextResponse.json(
-        { success: false, error: 'Text content is required for structured extraction.' },
+        { success: false, error: 'Text content or a document file (PDF, PNG, JPG, WebP) is required for structured extraction.' },
+        { status: 400 }
+      )
+    }
+
+    const allowedMimeTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+    if (hasFile && !allowedMimeTypes.includes(file.mimeType.toLowerCase())) {
+      return NextResponse.json(
+        { success: false, error: `Unsupported file type: ${file.mimeType}. Supported formats: PDF, PNG, JPEG, WebP.` },
         { status: 400 }
       )
     }
@@ -37,11 +48,17 @@ export async function POST(request: NextRequest) {
 
     // 2. Bill of Lading Structured Extraction
     if (type === 'bol') {
-      const prompt = `Extract all Bill of Lading shipment, border transit, and multi-modal routing particulars from this text:\n\n${text}`
+      const prompt = hasText && hasFile
+        ? `Extract all Bill of Lading shipment, border transit, consignee, shipper, cargo carton counts, gross weight, net weight, truck specs, container numbers, and multi-modal routing particulars from this attached document and supplemental text:\n\n${text}`
+        : hasFile
+        ? `Extract all Bill of Lading shipment, border transit, consignee, shipper, cargo carton counts, gross weight, net weight, truck specs, container numbers, and multi-modal routing particulars from this attached document.`
+        : `Extract all Bill of Lading shipment, border transit, and multi-modal routing particulars from this text:\n\n${text}`
+
       const extracted = await extractStructuredData<Record<string, any>>(
         prompt,
         BOL_EXTRACTION_JSON_SCHEMA,
         {
+          file: hasFile ? { data: file.data, mimeType: file.mimeType, name: file.name } : undefined,
           systemPrompt:
             'You are Sky Ariana AI Logistics Extractor. Extract exact consignee, shipper, Afghan border station (e.g. Islam Qala, Torghundi, Hairatan, Spin Boldak), truck/driver details, cargo weights, carton count, and multi-modal transit routes. Output strict JSON matching the schema.',
         }
@@ -82,11 +99,17 @@ export async function POST(request: NextRequest) {
 
     // 3. Financial Ledger Structured Extraction
     if (type === 'ledger') {
-      const prompt = `Extract financial transaction details (amount, currency USD/AFN, date, description, type) from this record:\n\n${text}`
+      const prompt = hasText && hasFile
+        ? `Extract financial transaction details (amount, currency USD/AFN, date, description, type) from this record and document:\n\n${text}`
+        : hasFile
+        ? `Extract financial transaction details (amount, currency USD/AFN, date, description, type) from this attached receipt or invoice document.`
+        : `Extract financial transaction details (amount, currency USD/AFN, date, description, type) from this record:\n\n${text}`
+
       const extracted = await extractStructuredData<Record<string, any>>(
         prompt,
         LEDGER_EXTRACTION_JSON_SCHEMA,
         {
+          file: hasFile ? { data: file.data, mimeType: file.mimeType, name: file.name } : undefined,
           systemPrompt:
             'You are Sky Ariana AI Accounting Extractor. Enforce strict currency segregation (USD vs AFN) and identify debit vs credit accurately.',
         }

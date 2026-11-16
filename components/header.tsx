@@ -389,6 +389,15 @@ export const ENTERPRISE_MODULES: EnterpriseModuleItem[] = [
     color: 'text-purple-400 dark:text-purple-300',
   },
   {
+    id: 'databricks',
+    title: 'Databricks Analytics & AI',
+    shortLabel: 'Databricks Apps',
+    subtitle: 'Serverless SQL, Metric Views, Lakebase & Genie Copilot',
+    icon: Database,
+    category: 'system',
+    color: 'text-orange-500 dark:text-orange-400',
+  },
+  {
     id: 'settings',
     title: 'System Settings',
     shortLabel: 'Settings',

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, startTransition } from "react"
+import React, { useState, useMemo, useRef, startTransition } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,8 @@ import {
   List,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   SlidersHorizontal,
   Copy,
   Check,
@@ -1440,6 +1442,16 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
   const [isShortcutsExpanded, setIsShortcutsExpanded] = useState<boolean>(false)
   const [shortcutTab, setShortcutTab] = useState<"routes" | "modifiers" | "all">("routes")
 
+  // Refs for smooth horizontal rail navigation
+  const stationRailRef = useRef<HTMLDivElement>(null)
+  const containerFilterRailRef = useRef<HTMLDivElement>(null)
+
+  const scrollRail = (ref: React.RefObject<HTMLDivElement | null>, direction: "left" | "right") => {
+    if (!ref.current) return
+    const amount = direction === "left" ? -240 : 240
+    ref.current.scrollBy({ left: amount, behavior: "smooth" })
+  }
+
   // Total count of all preset route options
   const totalOptionsCount = useMemo(() => {
     return ROUTE_GROUPS.reduce((acc, g) => acc + g.options.length, 0)
@@ -2322,35 +2334,63 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
 
       {/* FILTER CONTROLS: STATION TABS + SEARCH + CONTAINER TYPE + VIEW MODE */}
       <div className="space-y-2">
-        {/* Station Pills - Single Row Scrollable Rail */}
-        <div className="flex items-center gap-1 p-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80 overflow-x-auto no-scrollbar scroll-smooth w-full" dir="rtl">
+        {/* Station Pills - Single Row Scrollable Rail with Interactive Nav Controls */}
+        <div className="relative flex items-center gap-1 w-full" dir="rtl">
+          {/* Right Scroll Button (Back to Start in RTL) */}
           <button
             type="button"
-            onClick={() => setSelectedGroup("all")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-              selectedGroup === "all"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/90 dark:border-slate-700"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-50"
-            }`}
+            onClick={() => scrollRail(stationRailRef, "right")}
+            className="hidden sm:flex items-center justify-center h-7 w-6 rounded-lg bg-white/95 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white shadow-2xs hover:bg-slate-50 shrink-0 cursor-pointer z-10 transition-colors"
+            title="پیمایش به راست"
+            aria-label="Scroll right"
           >
-            <span>همه مرزها</span>
-            <span className="text-[10px] opacity-75 font-mono mr-1">({totalOptionsCount})</span>
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
-          {ROUTE_GROUPS.map((g) => (
+
+          <div
+            ref={stationRailRef}
+            className="flex items-center gap-1 p-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80 overflow-x-auto no-scrollbar scroll-smooth flex-1 min-w-0"
+            dir="rtl"
+          >
             <button
-              key={g.id}
               type="button"
-              onClick={() => setSelectedGroup(g.id)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap flex items-center gap-1 ${
-                selectedGroup === g.id
+              onClick={() => setSelectedGroup("all")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                selectedGroup === "all"
                   ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/90 dark:border-slate-700"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
-              <span>{g.label}</span>
-              <span className="text-[10px] opacity-70 font-mono">({g.options.length})</span>
+              <span>همه مرزها</span>
+              <span className="text-[10px] opacity-75 font-mono mr-1">({totalOptionsCount})</span>
             </button>
-          ))}
+            {ROUTE_GROUPS.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => setSelectedGroup(g.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-[vazirmatn] font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap flex items-center gap-1 ${
+                  selectedGroup === g.id
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/90 dark:border-slate-700"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                <span>{g.label}</span>
+                <span className="text-[10px] opacity-70 font-mono">({g.options.length})</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Left Scroll Button (Advance Forward in RTL) */}
+          <button
+            type="button"
+            onClick={() => scrollRail(stationRailRef, "left")}
+            className="hidden sm:flex items-center justify-center h-7 w-6 rounded-lg bg-white/95 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white shadow-2xs hover:bg-slate-50 shrink-0 cursor-pointer z-10 transition-colors"
+            title="پیمایش به چپ (ایستگاه‌های بیشتر)"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {/* Search Box + View Mode Toggle - Full Width Balanced Control Row */}
@@ -2364,16 +2404,22 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="جستجو در مسیرها…"
               dir="rtl"
-              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pr-8 pl-6 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-sky-500 font-[vazirmatn]"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pr-8 pl-14 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-sky-500 font-[vazirmatn]"
             />
             {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute left-2 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="h-3 w-3" />
-              </button>
+              <div className="absolute left-2 flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 hidden sm:inline">
+                  {displayedGroups.reduce((acc, g) => acc + g.options.length, 0)} یافته
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
+                  title="پاک کردن جستجو"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
             )}
           </div>
 
@@ -2408,89 +2454,117 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
           </div>
         </div>
 
-        {/* Container Type Filter Bar - Single Row Scrollable rail */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100/70 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 overflow-x-auto no-scrollbar scroll-smooth" dir="rtl">
-          <span className="text-slate-500 font-[vazirmatn] text-xs font-black shrink-0 px-1">فیلتر نوع کانتینر:</span>
+        {/* Container Type Filter Bar - Single Row Scrollable rail with Nav Controls */}
+        <div className="relative flex items-center gap-1 w-full" dir="rtl">
+          {/* Right Scroll Button */}
           <button
             type="button"
-            onClick={() => setContainerFilter("all")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-              containerFilter === "all"
-                ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs font-black"
-                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-slate-700"
-            }`}
+            onClick={() => scrollRail(containerFilterRailRef, "right")}
+            className="hidden sm:flex items-center justify-center h-7 w-6 rounded-lg bg-white/95 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white shadow-2xs hover:bg-slate-50 shrink-0 cursor-pointer z-10 transition-colors"
+            title="پیمایش به راست"
+            aria-label="Scroll right"
           >
-            همه ({filterCounts.all})
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
+
+          <div
+            ref={containerFilterRailRef}
+            className="flex items-center gap-1.5 p-1 bg-slate-100/70 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 overflow-x-auto no-scrollbar scroll-smooth flex-1 min-w-0"
+            dir="rtl"
+          >
+            <span className="text-slate-500 font-[vazirmatn] text-xs font-black shrink-0 px-1">فیلتر نوع کانتینر:</span>
+            <button
+              type="button"
+              onClick={() => setContainerFilter("all")}
+              className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                containerFilter === "all"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs font-black"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-slate-700"
+              }`}
+            >
+              همه ({filterCounts.all})
+            </button>
+            <button
+              type="button"
+              onClick={() => setContainerFilter("full_reefer")}
+              className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                containerFilter === "full_reefer"
+                  ? "bg-sky-600 text-white shadow-2xs font-black"
+                  : "bg-sky-50 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 hover:bg-sky-100 border border-sky-200 dark:border-sky-800"
+              }`}
+            >
+              <Snowflake className="h-3 w-3 text-cyan-500" />
+              <span>تمام مسیر یخچالی ({filterCounts.fullReefer})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setContainerFilter("switch_only")}
+              className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                containerFilter === "switch_only"
+                  ? "bg-purple-700 text-white shadow-2xs font-black"
+                  : "bg-purple-50 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 hover:bg-purple-100 border border-purple-200 dark:border-purple-800"
+              }`}
+            >
+              <RefreshCw className="h-3 w-3 text-purple-600" />
+              <span className="flex items-center gap-0.5">
+                <span>فقط سوییچ</span>
+                <span dir="ltr" className="inline-block font-sans font-black">B/L</span>
+                <span>({filterCounts.switchOnly})</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setContainerFilter("mixed")}
+              className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                containerFilter === "mixed"
+                  ? "bg-amber-600 text-white shadow-2xs font-black"
+                  : "bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800"
+              }`}
+            >
+              <Box className="h-3 w-3 text-amber-600" />
+              <span>معمولی ← یخچالی ({filterCounts.mixed})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setContainerFilter("reefer")}
+              className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                containerFilter === "reefer"
+                  ? "bg-cyan-600 text-white shadow-2xs font-black"
+                  : "bg-cyan-50 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 hover:bg-cyan-100 border border-cyan-200 dark:border-cyan-800"
+              }`}
+            >
+              <Snowflake className="h-3 w-3 text-cyan-600" />
+              <span>یخچالی ({filterCounts.reefer})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setContainerFilter("dry")}
+              className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                containerFilter === "dry"
+                  ? "bg-slate-700 text-white shadow-2xs font-black"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 border border-slate-200 dark:border-slate-700"
+              }`}
+            >
+              <Box className="h-3 w-3 text-slate-500" />
+              <span>معمولی ({filterCounts.dry})</span>
+            </button>
+          </div>
+
+          {/* Left Scroll Button */}
           <button
             type="button"
-            onClick={() => setContainerFilter("full_reefer")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-              containerFilter === "full_reefer"
-                ? "bg-sky-600 text-white shadow-2xs font-black"
-                : "bg-sky-50 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 hover:bg-sky-100 border border-sky-200 dark:border-sky-800"
-            }`}
+            onClick={() => scrollRail(containerFilterRailRef, "left")}
+            className="hidden sm:flex items-center justify-center h-7 w-6 rounded-lg bg-white/95 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white shadow-2xs hover:bg-slate-50 shrink-0 cursor-pointer z-10 transition-colors"
+            title="پیمایش به چپ (فیلترهای بیشتر)"
+            aria-label="Scroll left"
           >
-            <Snowflake className="h-3 w-3 text-cyan-500" />
-            <span>تمام مسیر یخچالی ({filterCounts.fullReefer})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setContainerFilter("switch_only")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-              containerFilter === "switch_only"
-                ? "bg-purple-700 text-white shadow-2xs font-black"
-                : "bg-purple-50 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 hover:bg-purple-100 border border-purple-200 dark:border-purple-800"
-            }`}
-          >
-            <RefreshCw className="h-3 w-3 text-purple-600" />
-            <span className="flex items-center gap-1">
-              <span>فقط سوییچ</span>
-              <span dir="ltr" className="inline-block font-sans font-black">B/L</span>
-              <span>({filterCounts.switchOnly})</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setContainerFilter("mixed")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-              containerFilter === "mixed"
-                ? "bg-amber-600 text-white shadow-2xs font-black"
-                : "bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800"
-            }`}
-          >
-            <Box className="h-3 w-3 text-amber-600" />
-            <span>معمولی ← یخچالی ({filterCounts.mixed})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setContainerFilter("reefer")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-              containerFilter === "reefer"
-                ? "bg-cyan-600 text-white shadow-2xs font-black"
-                : "bg-cyan-50 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 hover:bg-cyan-100 border border-cyan-200 dark:border-cyan-800"
-            }`}
-          >
-            <Snowflake className="h-3 w-3 text-cyan-600" />
-            <span>یخچالی ({filterCounts.reefer})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setContainerFilter("dry")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-              containerFilter === "dry"
-                ? "bg-slate-700 text-white shadow-2xs font-black"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 border border-slate-200 dark:border-slate-700"
-            }`}
-          >
-            <Box className="h-3 w-3 text-slate-500" />
-            <span>معمولی ({filterCounts.dry})</span>
+            <ChevronLeft className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
       {/* Grouped Preset Route Buttons Grid or High-Density List */}
-      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700" dir="rtl">
+      <div className="space-y-3 max-h-[500px] overflow-y-auto px-2 pl-3 pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700" dir="rtl">
         {displayedGroups.length === 0 ? (
           <div className="p-8 text-center rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 font-[vazirmatn] text-sm">
             مسیر منطبق با فیلتر انتخابی پیدا نشد. لطفاً فیلتر را تغییر دهید.
@@ -2499,14 +2573,16 @@ export function RoutePresetSelector({ value, onChange }: RoutePresetSelectorProp
           displayedGroups.map((group) => (
             <div key={group.id} className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white/90 dark:bg-slate-900/80 shadow-2xs overflow-hidden">
               {/* Sticky Station Group Header */}
-              <div className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xs px-3 py-1.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <span className={`rounded-full border px-2.5 py-0.5 font-[vazirmatn] text-xs font-black shadow-2xs ${group.badgeColor}`}>
+              <div className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xs px-3 py-1.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className={`rounded-full border px-2.5 py-0.5 font-[vazirmatn] text-xs font-black shadow-2xs shrink-0 ${group.badgeColor}`}>
                     {group.label}
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-500 font-sans">{group.sublabel}</span>
+                  <span className="text-[11px] font-semibold text-slate-500 font-sans truncate min-w-0" title={group.sublabel}>
+                    {group.sublabel}
+                  </span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono font-bold bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] text-slate-400 font-mono font-bold bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shrink-0 whitespace-nowrap">
                   {group.options.length} مسیر آماده
                 </span>
               </div>

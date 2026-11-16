@@ -10,7 +10,7 @@ System versioning is defined authoritatively in [`lib/config/system-version.ts`]
 
 ```typescript
 export const CURRENT_SYSTEM_VERSION = {
-  version: "5.18.18",
+  version: "5.28.1",
   buildNumber: 512,
   releaseDate: "2026-10-23",
   updateChannel: "stable",

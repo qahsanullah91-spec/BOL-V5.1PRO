@@ -205,6 +205,8 @@ export function DocumentQRCode({
       height={size}
       viewBox={`0 0 ${qrData.size} ${qrData.size}`}
       className="w-full h-full object-contain shrink-0 block"
+      data-qr-svg="true"
+      data-pdf-preserve-color="true"
       style={{
         shapeRendering: "crispEdges",
         WebkitPrintColorAdjust: "exact",
@@ -212,8 +214,8 @@ export function DocumentQRCode({
         backgroundColor: "#ffffff",
       }}
     >
-      <rect width={qrData.size} height={qrData.size} fill="#ffffff" />
-      <path d={qrData.path} fill="#0f172a" />
+      <rect width={qrData.size} height={qrData.size} fill="#ffffff" data-qr-bg="true" data-pdf-preserve-color="true" />
+      <path d={qrData.path} fill="#0f172a" data-qr-path="true" data-pdf-preserve-color="true" />
     </svg>
   )
 

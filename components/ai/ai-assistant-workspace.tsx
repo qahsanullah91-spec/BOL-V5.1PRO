@@ -5,7 +5,7 @@ import { AIChatInterface } from "./ai-chat-interface"
 
 export function AiAssistantWorkspace() {
   return (
-    <div className="w-full max-w-5xl mx-auto h-[calc(100vh-4.5rem)] flex flex-col py-2">
+    <div className="w-full h-[calc(100vh-5.25rem)] flex flex-col">
       <AIChatInterface isFloating={false} />
     </div>
   )

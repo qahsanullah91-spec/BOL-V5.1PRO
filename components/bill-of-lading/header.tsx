@@ -378,6 +378,8 @@ export function BillOfLadingHeader({
         {/* Large Overlapping QR Code Container (spans top blue & bottom white boundary halfway) */}
         <div
           className="bol-qr-container absolute z-20 bg-white border-2 border-[#93c5fd] rounded-2xl flex items-center justify-center shrink-0"
+          data-qr-code="true"
+          data-pdf-preserve-color="true"
           style={{
             width: `${qrMmSize}mm`,
             height: `${qrMmSize}mm`,

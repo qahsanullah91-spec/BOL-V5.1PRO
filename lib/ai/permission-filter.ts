@@ -47,6 +47,8 @@ export function checkIntentPermission(
     if (
       intent === 'TASK_STATUS' ||
       intent === 'DAILY_REPORT' ||
+      intent === 'GENERATE_REPORT' ||
+      intent === 'WRITE_WHATSAPP' ||
       intent === 'AUDIT_HISTORY' ||
       intent === 'BORDER_STATUS' ||
       intent === 'STALE_TRACKING' ||

@@ -55,6 +55,7 @@ export interface SeaportInfo {
   terminals: PortTerminalInfo[]
   seaCorridorNotes?: string
   customsTerminalCode?: string
+  customsLocationCode?: string
 }
 
 export interface AirportInfo {

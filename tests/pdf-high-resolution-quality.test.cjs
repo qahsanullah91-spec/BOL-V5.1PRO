@@ -12,6 +12,7 @@ const savedReport = fs.readFileSync(path.join(root, 'components', 'reports', 'sa
 const printModal = fs.readFileSync(path.join(root, 'components', 'reports', 'report-print-preview-modal.tsx'), 'utf8');
 const reportsView = fs.readFileSync(path.join(root, 'components', 'reports-view.tsx'), 'utf8');
 const bolEditor = fs.readFileSync(path.join(root, 'components', 'bill-of-lading', 'bol-editor.tsx'), 'utf8');
+const savedDocs = fs.readFileSync(path.join(root, 'components', 'bill-of-lading', 'saved-documents.tsx'), 'utf8');
 
 test('Shared high-res PDF capture helper prevents GPU VRAM rainbow corruption and embeds vector fonts', () => {
   assert.ok(highResHelper.includes('Vazirmatn'), 'Must embed Vazirmatn @font-face alias for bilingual PDF typography');
@@ -82,4 +83,24 @@ test('PDF engines sanitize modern CSS colors (oklch) and patch-html2canvas guard
   const patchScript = fs.readFileSync(path.join(root, 'scripts', 'patch-html2canvas.cjs'), 'utf8');
   assert.ok(patchScript.includes('unsupported color function'), 'patch script must target unsupported color function error');
   assert.ok(fs.existsSync(path.join(root, 'scripts', 'patch-html2canvas.cjs')), 'patch-html2canvas.cjs must exist');
+});
+
+test('PDF export containers are strictly positioned off-screen to prevent background bleed into A4 Preview', () => {
+  // bol-editor containers
+  assert.ok(bolEditor.includes('data-pdf-export-container="true"'), 'bol-editor must have data-pdf-export-container');
+  assert.ok(bolEditor.includes('data-shipping-export-container="true"'), 'bol-editor must have data-shipping-export-container');
+  assert.ok(bolEditor.includes('-left-[10000px]'), 'bol-editor export containers must be positioned off-screen (-left-[10000px])');
+  assert.ok(!bolEditor.includes('fixed top-0 left-0 w-[210mm] opacity-100 pointer-events-none z-[-100]'), 'bol-editor must not mount export container at visible left-0');
+  assert.ok(!bolEditor.includes('fixed top-0 left-0 overflow-hidden opacity-100 pointer-events-none z-[-100]'), 'bol-editor must not mount shipping container at visible left-0');
+
+  // saved-documents container
+  assert.ok(savedDocs.includes('data-saved-pdf-export-container="true"'), 'saved-documents must have data-saved-pdf-export-container');
+  assert.ok(savedDocs.includes('-left-[10000px]'), 'saved-documents export container must be positioned off-screen (-left-[10000px])');
+  assert.ok(!savedDocs.includes('fixed top-0 left-0 w-[210mm] opacity-100 pointer-events-none z-[-100]'), 'saved-documents must not mount export container at visible left-0');
+
+  // fallback wrappers in pdf-upload and shipping-documents
+  assert.ok(pdfUpload.includes('wrapper.style.left = "-10000px"'), 'pdf-upload wrapper must be positioned at -10000px');
+  assert.ok(!pdfUpload.includes('wrapper.style.left = "0"'), 'pdf-upload wrapper must not be at left 0');
+  assert.ok(shippingDocs.includes('wrapper.style.left = "-10000px"'), 'shipping-documents wrapper must be positioned at -10000px');
+  assert.ok(!shippingDocs.includes('wrapper.style.left = "0"'), 'shipping-documents wrapper must not be at left 0');
 });

@@ -2597,26 +2597,48 @@ export function SavedBolReport({
   // Export handlers
   const handleExportExcel = async (exportMode: "all" | "current" = "all") => {
     const isCurrentOnly = exportMode === "current"
+    const dateRangeFilter =
+      advancedFilters.dateFrom || advancedFilters.dateTo
+        ? {
+            dateFrom: advancedFilters.dateFrom,
+            dateTo: advancedFilters.dateTo,
+            label: quickDate !== "all" ? quickDate : undefined,
+          }
+        : undefined
+
+    const dateSuffix =
+      advancedFilters.dateFrom && advancedFilters.dateTo
+        ? `_${advancedFilters.dateFrom}_to_${advancedFilters.dateTo}`
+        : advancedFilters.dateFrom
+        ? `_from_${advancedFilters.dateFrom}`
+        : ""
+
     const toastId = toast.loading(
       isCurrentOnly
         ? `Generating Excel (.xlsx) for ${activeTab.toUpperCase()}...`
+        : dateRangeFilter
+        ? `Generating Executive Date-Range Excel Workbook (${advancedFilters.dateFrom || "Start"} to ${advancedFilters.dateTo || "Today"})...`
         : "Generating Complete Multi-Sheet Excel Workbook..."
     )
     try {
-      const fileName = isCurrentOnly
+      const baseName = isCurrentOnly
         ? `Sky-Ariana-${activeTab.toUpperCase()}-View`
         : `Sky-Ariana-Operations-Full-Report`
+      const fileName = `${baseName}${dateSuffix}`
 
       await exportReportToExcel(
         activeReportData,
         fileName,
         activeTab,
-        exportMode
+        exportMode,
+        dateRangeFilter
       )
       toast.dismiss(toastId)
       toast.success(
         isCurrentOnly
           ? `Excel report for ${activeTab.toUpperCase()} generated`
+          : dateRangeFilter
+          ? "Executive Date-Range Excel Report Generated with Daily Timeline"
           : "Complete 12-sheet Excel report generated successfully"
       )
 
@@ -2625,11 +2647,15 @@ export function SavedBolReport({
         id: `hist-${Date.now()}`,
         reportName: isCurrentOnly
           ? `${activeTab.toUpperCase()} Operations Report`
+          : dateRangeFilter
+          ? `Date-Range Operations Workbook (${fileName})`
           : "Complete Operations Workbook (12 Sheets)",
         reportType: activeTab,
         createdDate: new Date().toISOString(),
         createdBy: "System Administrator",
-        filterRange: `${filteredData.length} records`,
+        filterRange: dateRangeFilter
+          ? `${dateSuffix.replace(/^_/, "")} (${filteredData.length} records)`
+          : `${filteredData.length} records`,
         recordCount: activeReportData.length,
         fileName: `${fileName}.xlsx`,
       }
@@ -3588,12 +3614,12 @@ export function SavedBolReport({
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-bold text-slate-500">Data Exports</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => handleExportExcel("all")} className="text-xs font-bold text-emerald-700 cursor-pointer">
-                  <FileSpreadsheet className="w-4 h-4 mr-2" />
-                  Excel (.xlsx) — Complete (12 Sheets)
+                  <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600" />
+                  Excel (.xlsx) — Executive Workbook (12 Styled Sheets)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExportExcel("current")} className="text-xs font-bold text-emerald-800 cursor-pointer">
-                  <FileSpreadsheet className="w-4 h-4 mr-2" />
-                  Excel (.xlsx) — Active View ({activeTab})
+                  <FileSpreadsheet className="w-4 h-4 mr-2 text-blue-600" />
+                  Excel (.xlsx) — Active View Styled Sheet ({activeTab.toUpperCase()})
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportCSV} className="text-xs font-bold cursor-pointer">
                   <FileText className="w-4 h-4 mr-2 text-slate-500" />
@@ -3721,47 +3747,47 @@ export function SavedBolReport({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="outline"
-                  className="h-9 px-3 rounded-xl border-emerald-300 dark:border-emerald-800 bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200 font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-all hover:shadow-xs active:scale-95 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
-                  title="Export report dataset to Microsoft Excel (.xlsx)"
+                  className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs shadow-md shadow-emerald-600/25 flex items-center gap-2 cursor-pointer active:scale-95 transition-all shrink-0 [&_span]:pointer-events-none [&_svg]:pointer-events-none"
+                  title="Export report dataset to Executive Styled Microsoft Excel (.xlsx)"
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Excel</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-emerald-600/70 ml-0.5" />
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+                  <span>Excel Export</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider bg-white/20 text-white uppercase">PRO</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-emerald-100 ml-0.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 font-sans shadow-xl border-emerald-200 dark:border-emerald-800">
-                <DropdownMenuLabel className="text-xs font-black text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+              <DropdownMenuContent align="end" className="w-72 font-sans shadow-2xl border-emerald-200 dark:border-emerald-800 p-1.5">
+                <DropdownMenuLabel className="text-xs font-black text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 px-2 py-1.5">
                   <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  Excel (.xlsx) Export Options
+                  Executive Excel (.xlsx) Designer
                 </DropdownMenuLabel>
 
                 <DropdownMenuItem
                   onClick={() => handleExportExcel("all")}
-                  className="text-xs font-bold text-emerald-800 dark:text-emerald-300 cursor-pointer py-2 focus:bg-emerald-50 dark:focus:bg-emerald-950/50"
+                  className="text-xs font-bold text-emerald-900 dark:text-emerald-200 cursor-pointer p-2.5 rounded-lg focus:bg-emerald-50 dark:focus:bg-emerald-950/60 transition-colors"
                 >
-                  <div className="flex flex-col">
-                    <span className="flex items-center gap-1.5">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-1.5 font-black text-emerald-700 dark:text-emerald-400">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                      Complete Audit Workbook (12 Sheets)
+                      Executive Workbook (12 Styled Sheets)
                     </span>
                     <span className="text-[10px] text-slate-500 font-normal pl-5">
-                      Full multi-sheet workbook with KPI summary, fleet, and financials
+                      Full corporate palette, zebra rows, borders, KPI cards, fleet & financials
                     </span>
                   </div>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
                   onClick={() => handleExportExcel("current")}
-                  className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer py-2 focus:bg-slate-100 dark:focus:bg-slate-800"
+                  className="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer p-2.5 rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800 transition-colors"
                 >
-                  <div className="flex flex-col">
-                    <span className="flex items-center gap-1.5">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-1.5 font-black text-blue-700 dark:text-blue-400">
                       <FileDown className="w-3.5 h-3.5 text-blue-600" />
-                      Active View Only ({activeTab.toUpperCase()})
+                      Active Tab Styled Sheet ({activeTab.toUpperCase()})
                     </span>
                     <span className="text-[10px] text-slate-500 font-normal pl-5">
-                      Lightweight export of current {activeTab} tab + Summary
+                      Fast executive export of current {activeTab} view with Summary
                     </span>
                   </div>
                 </DropdownMenuItem>
@@ -3769,15 +3795,15 @@ export function SavedBolReport({
                 {selectedIds.length > 0 && (
                   <DropdownMenuItem
                     onClick={() => handleExportExcel("all")}
-                    className="text-xs font-bold text-amber-700 dark:text-amber-300 cursor-pointer py-2 focus:bg-amber-50 dark:focus:bg-amber-950/50"
+                    className="text-xs font-bold text-amber-900 dark:text-amber-200 cursor-pointer p-2.5 rounded-lg focus:bg-amber-50 dark:focus:bg-amber-950/60 transition-colors"
                   >
-                    <div className="flex flex-col">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="flex items-center gap-1.5 font-black text-amber-700 dark:text-amber-400">
                         <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
                         Selected Rows Only ({selectedIds.length} BOLs)
                       </span>
                       <span className="text-[10px] text-slate-500 font-normal pl-5">
-                        Exports complete workbook filtered to selected items
+                        Filtered 12-sheet executive workbook for selected records
                       </span>
                     </div>
                   </DropdownMenuItem>
@@ -3840,6 +3866,52 @@ export function SavedBolReport({
                   </button>
                 )
               })}
+            </div>
+
+            {/* Inline Custom Date Range Inputs */}
+            <div className="flex items-center gap-1.5 shrink-0 bg-white dark:bg-slate-800/90 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <input
+                type="date"
+                value={advancedFilters.dateFrom || ""}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setQuickDate("all")
+                  setAdvancedFilters((prev) => ({ ...prev, dateFrom: val || undefined }))
+                }}
+                className="h-7 px-1.5 text-[11px] font-semibold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                title="Date Range Start Date"
+              />
+              <span className="text-[11px] text-slate-400 font-bold">to</span>
+              <input
+                type="date"
+                value={advancedFilters.dateTo || ""}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setQuickDate("all")
+                  setAdvancedFilters((prev) => ({ ...prev, dateTo: val || undefined }))
+                }}
+                className="h-7 px-1.5 text-[11px] font-semibold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                title="Date Range End Date"
+              />
+              {(advancedFilters.dateFrom || advancedFilters.dateTo) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickDate("all")
+                    setAdvancedFilters((prev) => {
+                      const next = { ...prev }
+                      delete next.dateFrom
+                      delete next.dateTo
+                      return next
+                    })
+                  }}
+                  className="h-6 w-6 flex items-center justify-center rounded-md text-slate-400 hover:text-red-600 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                  title="Clear custom date range"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             {/* Right side: Advanced Filters & Clear */}
@@ -4491,6 +4563,131 @@ export function SavedBolReport({
               </div>
             </div>
           </div>
+
+          {/* ======================================================== */}
+          {/* EXECUTIVE DATE-RANGE OPERATIONS ANALYTICS BANNER */}
+          {/* ======================================================== */}
+          {(advancedFilters.dateFrom || advancedFilters.dateTo || quickDate !== "all") && (
+            <div className="relative overflow-hidden rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-gradient-to-br from-blue-50/80 via-white to-sky-50/50 dark:from-slate-900 dark:via-blue-950/20 dark:to-slate-900 p-4 sm:p-5 shadow-xs">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-400" />
+
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                {/* Left: Scope Details */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600 text-white font-extrabold text-xs shadow-2xs">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Date Range Operations Analytics
+                    </span>
+                    <span className="text-xs font-bold text-blue-900 dark:text-blue-300 font-mono bg-blue-100/80 dark:bg-blue-950/80 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
+                      {advancedFilters.dateFrom || "Start"} → {advancedFilters.dateTo || "Today"}
+                    </span>
+                    <span className="text-xs font-extrabold text-slate-600 dark:text-slate-400">
+                      ({filteredData.length} Dispatched BOLs)
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Filtered operations period pacing, cargo velocity, and multi-currency financials.
+                  </p>
+                </div>
+
+                {/* Right: Quick Action Buttons */}
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <Button
+                    size="sm"
+                    onClick={() => handleExportExcel("all")}
+                    className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-[#1E3A8A] to-[#1E40AF] hover:from-[#1E40AF] hover:to-[#2563EB] text-white font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer"
+                    title="Export filtered date-range to Executive Multi-Sheet Excel (.xlsx)"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Export Period Excel (.xlsx)</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setQuickDate("all")
+                      setAdvancedFilters((prev) => {
+                        const next = { ...prev }
+                        delete next.dateFrom
+                        delete next.dateTo
+                        return next
+                      })
+                    }}
+                    className="h-8.5 px-2.5 rounded-xl border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-red-600 cursor-pointer"
+                    title="Reset date filter to All Time"
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1" />
+                    Reset Scope
+                  </Button>
+                </div>
+              </div>
+
+              {/* Analytics Metric Cards Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 mt-3.5 pt-3.5 border-t border-blue-100 dark:border-blue-900/40">
+                <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shipments / Day</div>
+                  <div className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                    {(() => {
+                      const dFrom = advancedFilters.dateFrom ? new Date(advancedFilters.dateFrom).getTime() : 0
+                      const dTo = advancedFilters.dateTo ? new Date(advancedFilters.dateTo).getTime() : Date.now()
+                      const days = Math.max(1, Math.ceil(Math.abs(dTo - dFrom) / (1000 * 60 * 60 * 24)) + 1)
+                      return (filteredData.length / days).toFixed(1)
+                    })()}
+                    <span className="text-xs font-semibold text-slate-400 ml-1">BOL/d</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cargo Volume / Day</div>
+                  <div className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                    {(() => {
+                      const dFrom = advancedFilters.dateFrom ? new Date(advancedFilters.dateFrom).getTime() : 0
+                      const dTo = advancedFilters.dateTo ? new Date(advancedFilters.dateTo).getTime() : Date.now()
+                      const days = Math.max(1, Math.ceil(Math.abs(dTo - dFrom) / (1000 * 60 * 60 * 24)) + 1)
+                      return Math.round(overviewKpis.totalPackages / days).toLocaleString()
+                    })()}
+                    <span className="text-xs font-semibold text-slate-400 ml-1">CTNS/d</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Net Weight Pacing</div>
+                  <div className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                    {(() => {
+                      const dFrom = advancedFilters.dateFrom ? new Date(advancedFilters.dateFrom).getTime() : 0
+                      const dTo = advancedFilters.dateTo ? new Date(advancedFilters.dateTo).getTime() : Date.now()
+                      const days = Math.max(1, Math.ceil(Math.abs(dTo - dFrom) / (1000 * 60 * 60 * 24)) + 1)
+                      return Math.round(overviewKpis.totalNetWeightKg / days).toLocaleString()
+                    })()}
+                    <span className="text-xs font-semibold text-slate-400 ml-1">KG/d</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Declared Value (USD)</div>
+                  <div className="text-lg font-black text-blue-700 dark:text-blue-400 mt-0.5">
+                    ${(overviewKpis.currencyTotals.find((c) => c.currency === "USD")?.amount || 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700 col-span-2 sm:col-span-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Driver Rent (AFN)</div>
+                  <div className="text-lg font-black text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    {(() => {
+                      let totAfn = 0
+                      for (const doc of filteredData) {
+                        const m = parseMoney(doc.driver_rent || (doc as any).driverFreight || (doc as any).driverRent || "")
+                        if (m.currency === "AFN" || m.amount > 0) totAfn += m.amount
+                      }
+                      return totAfn.toLocaleString()
+                    })()}
+                    <span className="text-xs font-semibold text-slate-400 ml-1">AFN</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ======================================================== */}
           {/* OPERATIONS REPORTS (PHASE 3) */}

@@ -63,9 +63,13 @@ class _BolListViewState extends State<BolListView> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  _isServerHealthy ? 'Server Connected (Port 3001)' : 'Connecting...',
-                  style: const TextStyle(fontSize: 11, color: Colors.white70),
+                Expanded(
+                  child: Text(
+                    _isServerHealthy ? 'Server Connected (Port 3001)' : 'Connecting...',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: const TextStyle(fontSize: 11, color: Colors.white70),
+                  ),
                 ),
               ],
             ),
@@ -138,12 +142,16 @@ class _BolListViewState extends State<BolListView> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   color: Colors.blueGrey.withOpacity(0.08),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Total: ${apiResp?.total ?? bols.length} BOL Records',
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      Expanded(
+                        child: Text(
+                          'Total: ${apiResp?.total ?? bols.length} BOL Records',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         'Page ${apiResp?.page ?? 1} of ${apiResp?.totalPages ?? 1}',
                         style: const TextStyle(color: Colors.grey, fontSize: 12),
@@ -171,17 +179,22 @@ class _BolListViewState extends State<BolListView> {
                             child: const Icon(Icons.assignment_outlined),
                           ),
                           title: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                bol.bolNumber,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              Expanded(
+                                child: Text(
+                                  bol.bolNumber,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                ),
                               ),
-                              if (bol.issueDate.isNotEmpty)
+                              if (bol.issueDate.isNotEmpty) ...[
+                                const SizedBox(width: 8),
                                 Text(
                                   bol.issueDate,
                                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                                 ),
+                              ],
                             ],
                           ),
                           subtitle: Column(
@@ -190,6 +203,8 @@ class _BolListViewState extends State<BolListView> {
                               const SizedBox(height: 4),
                               Text(
                                 'Consignee: ${bol.consigneeName.isNotEmpty ? bol.consigneeName : "N/A"}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                               ),
                               const SizedBox(height: 2),
@@ -203,6 +218,8 @@ class _BolListViewState extends State<BolListView> {
                                 const SizedBox(height: 4),
                                 Text(
                                   bol.cleanSummary,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade700, fontWeight: FontWeight.w500),
                                 ),
                               ],
@@ -231,21 +248,34 @@ class _BolListViewState extends State<BolListView> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: _currentPage > 1 ? () => _loadPage(_currentPage - 1) : null,
-                          icon: const Icon(Icons.chevron_left),
-                          label: const Text('Previous'),
+                        Flexible(
+                          child: ElevatedButton.icon(
+                            onPressed: _currentPage > 1 ? () => _loadPage(_currentPage - 1) : null,
+                            icon: const Icon(Icons.chevron_left, size: 18),
+                            label: const Text('Previous', overflow: TextOverflow.ellipsis),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                          ),
                         ),
-                        Text(
-                          'Page $_currentPage of ${apiResp?.totalPages}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            'Page $_currentPage of ${apiResp?.totalPages}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
                         ),
-                        ElevatedButton.icon(
-                          onPressed: _currentPage < (apiResp?.totalPages ?? 1)
-                              ? () => _loadPage(_currentPage + 1)
-                              : null,
-                          icon: const Icon(Icons.chevron_right),
-                          label: const Text('Next'),
+                        Flexible(
+                          child: ElevatedButton.icon(
+                            onPressed: _currentPage < (apiResp?.totalPages ?? 1)
+                                ? () => _loadPage(_currentPage + 1)
+                                : null,
+                            icon: const Icon(Icons.chevron_right, size: 18),
+                            label: const Text('Next', overflow: TextOverflow.ellipsis),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                          ),
                         ),
                       ],
                     ),

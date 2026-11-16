@@ -12,6 +12,15 @@ import {
   drawImageHighQualityToCanvas,
   captureElectronVectorPdf,
   withCaptureTimeout,
+  convertCssColorToRgb,
+  hasUnsupportedColor,
+  setPDFStyle,
+  getPDFTextColor,
+  getPDFBackgroundColor,
+  getPDFBackgroundImage,
+  getPDFBorderColor,
+  getPDFBoxShadow,
+  sanitizeElementForPDF,
 } from "@/lib/utils/pdf-high-res-capture"
 
 // Dynamically import PDF libraries only in browser environment
@@ -1008,266 +1017,8 @@ export async function generateBOLPDFBlob(
   throw new Error("No preview element or modern BOL options available to generate PDF.")
 }
 
-function hasUnsupportedColor(value: string): boolean {
-  return /\b(?:lab|lch|oklab|oklch|color-mix)\(/i.test(value)
-}
-
-function setPDFStyle(
-  element: HTMLElement | SVGElement,
-  property: string,
-  value: string
-): void {
-  element.style.setProperty(property, value, "important")
-}
-
-function getClassText(source: Element): string {
-  const className = source.getAttribute("class") || ""
-  return className.toString()
-}
-
-function getPDFTextColor(
-  className: string,
-  sourceStyle: CSSStyleDeclaration
-): string {
-  if (className.includes("text-white")) return "#ffffff"
-  if (className.includes("text-blue-100")) return "#dbeafe"
-  if (className.includes("text-blue-400")) return "#60a5fa"
-  if (className.includes("text-blue-500")) return "#3b82f6"
-  if (className.includes("text-blue-600")) return "#2563eb"
-  if (className.includes("text-blue-700")) return "#1d4ed8"
-  if (className.includes("text-blue-800")) return "#1e40af"
-  if (className.includes("text-red-400")) return "#f87171"
-  if (className.includes("text-red-500")) return "#ef4444"
-  if (className.includes("text-red-600")) return "#dc2626"
-  if (className.includes("text-red-700")) return "#b91c1c"
-  if (className.includes("text-red-800")) return "#991b1b"
-  if (className.includes("text-green-600")) return "#16a34a"
-  if (className.includes("text-green-700")) return "#15803d"
-  if (className.includes("text-green-800")) return "#166534"
-  if (className.includes("text-emerald-600")) return "#059669"
-  if (className.includes("text-amber-600")) return "#d97706"
-  if (className.includes("text-purple-600")) return "#9333ea"
-  if (className.includes("text-cyan-600")) return "#0891b2"
-  if (className.includes("text-sky-600")) return "#0284c7"
-  if (className.includes("text-orange-600")) return "#ea580c"
-  if (className.includes("text-gray-500")) return "#6b7280"
-  if (className.includes("text-gray-600")) return "#4b5563"
-  if (className.includes("text-gray-800")) return "#1f2937"
-
-  if (
-    sourceStyle.color &&
-    sourceStyle.color !== "rgba(0, 0, 0, 0)" &&
-    sourceStyle.color !== "transparent" &&
-    !hasUnsupportedColor(sourceStyle.color)
-  ) {
-    return sourceStyle.color
-  }
-
-  return "#0f172a"
-}
-
-function getPDFBackgroundColor(className: string, sourceStyle: CSSStyleDeclaration): string {
-  if (className.includes("bg-white/40")) return "rgba(255, 255, 255, 0.4)"
-  if (className.includes("bg-white/50")) return "rgba(255, 255, 255, 0.5)"
-  if (className.includes("bg-white/70")) return "rgba(255, 255, 255, 0.7)"
-  if (className.includes("bg-white/80")) return "rgba(255, 255, 255, 0.8)"
-  if (className.includes("bg-white/20")) return "rgba(255, 255, 255, 0.2)"
-  if (className.includes("bg-blue-900/35")) return "rgba(30, 58, 138, 0.35)"
-  if (className.includes("from-blue-500/10") || className.includes("to-blue-600/10")) return "#eff6ff"
-  if (className.includes("from-green-500/10") || className.includes("to-green-600/10")) return "#f0fdf4"
-
-  if (
-    className.includes("from-blue-600") ||
-    className.includes("bg-blue-600") ||
-    className.includes("to-blue-800")
-  ) {
-    return "#1e40ff"
-  }
-  if (
-    className.includes("from-blue-500") ||
-    className.includes("to-blue-700") ||
-    className.includes("bg-blue-500")
-  ) {
-    return "#1d4ed8"
-  }
-  if (
-    className.includes("from-red-600") ||
-    className.includes("bg-red-600") ||
-    className.includes("to-rose-500")
-  ) {
-    return "#ff263b"
-  }
-  if (className.includes("from-red-50") || className.includes("bg-red-50")) return "#fef2f2"
-  if (
-    className.includes("from-green-600") ||
-    className.includes("bg-green-600") ||
-    className.includes("from-emerald-600")
-  ) {
-    return "#16a34a"
-  }
-  if (
-    className.includes("from-green-500/10") ||
-    className.includes("bg-green-100") ||
-    className.includes("from-emerald-50")
-  ) {
-    return "#f0fdf4"
-  }
-  if (
-    className.includes("from-blue-50") ||
-    className.includes("bg-blue-50") ||
-    className.includes("bg-blue-100")
-  ) {
-    return "#eff6ff"
-  }
-  if (
-    className.includes("bg-white") ||
-    className.includes("via-white") ||
-    className.includes("from-white") ||
-    className.includes("to-white")
-  ) {
-    return "#ffffff"
-  }
-  if (className.includes("bg-gray-50") || className.includes("from-gray-50")) return "#f9fafb"
-  if (className.includes("bg-slate-50") || className.includes("from-slate-50")) return "#f8fafc"
-
-  if (
-    sourceStyle.backgroundColor !== "rgba(0, 0, 0, 0)" &&
-    sourceStyle.backgroundColor !== "transparent" &&
-    !hasUnsupportedColor(sourceStyle.backgroundColor)
-  ) {
-    return sourceStyle.backgroundColor
-  }
-
-  return "transparent"
-}
-
-function getPDFBackgroundImage(className: string, sourceStyle: CSSStyleDeclaration): string {
-  if (
-    className.includes("from-blue-600") &&
-    className.includes("via-blue-700") &&
-    className.includes("to-blue-800")
-  ) {
-    return "linear-gradient(90deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%)"
-  }
-  if (className.includes("from-blue-600") && className.includes("to-blue-700")) {
-    return "linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%)"
-  }
-  if (className.includes("from-blue-500") && className.includes("to-blue-700")) {
-    return "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
-  }
-  if (className.includes("from-red-600") && className.includes("to-rose-500")) {
-    return "linear-gradient(90deg, #dc2626 0%, #f43f5e 100%)"
-  }
-  if (className.includes("from-red-50") && className.includes("to-white")) {
-    return "linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)"
-  }
-  if (className.includes("from-blue-50") && className.includes("via-white")) {
-    return "linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #eff6ff 100%)"
-  }
-  if (className.includes("from-blue-50") && className.includes("to-white")) {
-    return "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)"
-  }
-  if (className.includes("from-blue-300") && className.includes("to-blue-500")) {
-    return "linear-gradient(90deg, #93c5fd 0%, #3b82f6 100%)"
-  }
-  if (className.includes("from-blue-500") && className.includes("to-blue-300")) {
-    return "linear-gradient(90deg, #3b82f6 0%, #93c5fd 100%)"
-  }
-  if (className.includes("from-green-600") && className.includes("to-green-700")) {
-    return "linear-gradient(90deg, #16a34a 0%, #15803d 100%)"
-  }
-
-  if (
-    sourceStyle.backgroundImage &&
-    sourceStyle.backgroundImage !== "none" &&
-    !hasUnsupportedColor(sourceStyle.backgroundImage)
-  ) {
-    return sourceStyle.backgroundImage
-  }
-
-  return "none"
-}
-
-function getPDFBorderColor(className: string): string {
-  if (className.includes("border-blue-")) return "#93c5fd"
-  if (className.includes("border-red-")) return "#ff4d5f"
-  if (className.includes("border-green-") || className.includes("border-emerald-")) return "#86efac"
-  if (className.includes("border-purple-")) return "#c4b5fd"
-  if (className.includes("border-amber-")) return "#fcd34d"
-  return "#cbd5e1"
-}
-
-function getPDFBoxShadow(className: string): string {
-  if (className.includes("shadow-2xl")) return "0 25px 50px -12px rgba(15, 23, 42, 0.25)"
-  if (className.includes("shadow-lg")) return "0 10px 15px -3px rgba(15, 23, 42, 0.18)"
-  if (className.includes("shadow-md")) return "0 4px 6px -1px rgba(15, 23, 42, 0.16)"
-  if (className.includes("shadow-sm")) return "0 1px 2px 0 rgba(15, 23, 42, 0.12)"
-  return "none"
-}
-
-function sanitizeElementForPDF(source: Element, target: Element): void {
-  const sourceStyle = window.getComputedStyle(source)
-  const targetElement = target as HTMLElement
-  const className = getClassText(source)
-  const textColor = getPDFTextColor(className, sourceStyle)
-  const backgroundColor = getPDFBackgroundColor(className, sourceStyle)
-  const backgroundImage = getPDFBackgroundImage(className, sourceStyle)
-  const borderColor = getPDFBorderColor(className)
-  const boxShadow = getPDFBoxShadow(className)
-  const isBOLBadge = source.getAttribute("data-pdf-bol-badge") === "true"
-  const isBOLNumber = source.getAttribute("data-pdf-bol-number") === "true"
-
-  setPDFStyle(targetElement, "color", isBOLNumber || isBOLBadge ? "#1e40af" : textColor)
-  setPDFStyle(targetElement, "background-color", isBOLBadge ? "#ffffff" : backgroundColor)
-  setPDFStyle(targetElement, "background-image", backgroundImage)
-  setPDFStyle(targetElement, "border-color", borderColor)
-  setPDFStyle(targetElement, "outline-color", "#2563eb")
-  setPDFStyle(targetElement, "text-decoration-color", textColor)
-  setPDFStyle(targetElement, "box-shadow", boxShadow)
-  setPDFStyle(targetElement, "opacity", "1")
-  setPDFStyle(targetElement, "visibility", "visible")
-  setPDFStyle(targetElement, "backdrop-filter", "none")
-  setPDFStyle(targetElement, "-webkit-backdrop-filter", "none")
-
-  if (isBOLBadge) {
-    setPDFStyle(targetElement, "display", "inline-flex")
-    setPDFStyle(targetElement, "align-items", "center")
-    setPDFStyle(targetElement, "justify-content", "center")
-    setPDFStyle(targetElement, "min-width", "150px")
-    setPDFStyle(targetElement, "min-height", "34px")
-  }
-
-  if (isBOLNumber) {
-    setPDFStyle(targetElement, "display", "block")
-    setPDFStyle(targetElement, "font-family", "Arial, Helvetica, sans-serif")
-    setPDFStyle(targetElement, "font-size", "13px")
-    setPDFStyle(targetElement, "font-weight", "700")
-    setPDFStyle(targetElement, "line-height", "1.2")
-    setPDFStyle(targetElement, "white-space", "nowrap")
-  }
-
-  setPDFStyle(targetElement, "border-top-color", borderColor)
-  setPDFStyle(targetElement, "border-right-color", borderColor)
-  setPDFStyle(targetElement, "border-bottom-color", borderColor)
-  setPDFStyle(targetElement, "border-left-color", borderColor)
-
-  if (backgroundImage === "none" && hasUnsupportedColor(sourceStyle.backgroundImage)) {
-    setPDFStyle(targetElement, "background-image", "none")
-  }
-
-  if (target instanceof SVGElement) {
-    setPDFStyle(target, "color", textColor)
-    setPDFStyle(target, "fill", sourceStyle.fill === "none" ? "none" : textColor)
-    setPDFStyle(target, "stroke", sourceStyle.stroke === "none" ? "none" : textColor)
-  }
-
-  Array.from(source.children).forEach((sourceChild, index) => {
-    const targetChild = target.children.item(index)
-    if (targetChild) {
-      sanitizeElementForPDF(sourceChild, targetChild)
-    }
-  })
-}
+// DOM sanitization, color normalization, and palette mapping for PDF export
+// are imported from @/lib/utils/pdf-high-res-capture to guarantee unified styling.
 
 /**
  * Generate PDF from HTML element and return as Blob
@@ -1397,10 +1148,11 @@ export async function generatePDFBlob(
       try {
         const svgDataUrl = await withCaptureTimeout(
           toSvg(pageEl, {
-            pixelRatio: 4,
+            pixelRatio: 4, // 384+ DPI print-grade vector resolution floor
             cacheBust: false,
-            skipFonts: Boolean(fontCSS),
+            skipFonts: true,
             fontEmbedCSS: fontCSS || undefined,
+            imagePlaceholder: "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/>",
             backgroundColor: "#ffffff",
             style: captureStyle,
             filter: elementFilter,
@@ -1418,6 +1170,7 @@ export async function generatePDFBlob(
             cacheBust: false,
             skipFonts: true,
             fontEmbedCSS: undefined,
+            imagePlaceholder: "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/>",
             backgroundColor: "#ffffff",
             style: captureStyle,
             filter: elementFilter,
@@ -1445,8 +1198,8 @@ export async function generatePDFBlob(
   try {
     const { html2canvas } = await loadPDFLibraries()
 
-    const pixelWidth = Math.round((210 * 96) / 25.4)
-    const pixelHeight = Math.round((297 * 96) / 25.4)
+    const pixelWidth = 794
+    const pixelHeight = 1123
 
     const pdf = new jsPDF({
       orientation: "portrait",
@@ -1471,34 +1224,39 @@ export async function generatePDFBlob(
       const pageToRender = pagesToRender[pIdx]
       const clonedElement = pageToRender.cloneNode(true) as HTMLElement
 
-      // Remove data attributes
-      clonedElement.removeAttribute("data-pdf-export")
+      // Preserve attributes for exact CSS styling in PDF mode
+      clonedElement.setAttribute("data-pdf-export", "true")
+      clonedElement.setAttribute("data-bol-a4", "true")
       clonedElement.setAttribute("data-pdf-export-fixed", "true")
 
-      // Clean fixed dimensions matching standard A4
-      clonedElement.style.width = "210mm"
-      clonedElement.style.height = "297mm"
-      clonedElement.style.maxHeight = "297mm"
-      clonedElement.style.maxWidth = "210mm"
-      clonedElement.style.minHeight = "297mm"
-      clonedElement.style.overflow = "hidden"
-      clonedElement.style.background = "white"
+      // Clean fixed dimensions matching standard A4 (794px x 1123px at 96 DPI, overflow: visible)
+      clonedElement.style.width = "794px"
+      clonedElement.style.height = "1123px"
+      clonedElement.style.maxHeight = "1123px"
+      clonedElement.style.maxWidth = "794px"
+      clonedElement.style.minHeight = "1123px"
+      clonedElement.style.overflow = "visible"
+      clonedElement.style.background = "#ffffff"
       clonedElement.style.boxShadow = "none"
       clonedElement.style.margin = "0"
       clonedElement.style.backdropFilter = "none"
+      clonedElement.querySelectorAll<HTMLElement>('main[data-bol-content="true"]').forEach((m) => {
+        m.style.minHeight = "auto"
+        m.style.overflow = "visible"
+      })
       sanitizeElementForPDF(pageToRender, clonedElement)
 
       wrapper = document.createElement("div")
       wrapper.style.position = "fixed"
       wrapper.style.left = "-10000px"
       wrapper.style.top = "0"
-      wrapper.style.width = "210mm"
-      wrapper.style.height = "297mm"
+      wrapper.style.width = "794px"
+      wrapper.style.height = "1123px"
       wrapper.style.background = "#ffffff"
-      wrapper.style.overflow = "hidden"
+      wrapper.style.overflow = "visible"
       wrapper.style.opacity = "1"
       wrapper.style.pointerEvents = "none"
-      wrapper.style.zIndex = "-1"
+      wrapper.style.zIndex = "-9999"
       wrapper.appendChild(clonedElement)
       document.body.appendChild(wrapper)
 
@@ -1519,6 +1277,8 @@ export async function generatePDFBlob(
         backgroundColor: "#ffffff",
         allowTaint: true,
         imageTimeout: 8000,
+        scrollX: 0,
+        scrollY: 0,
         width: pixelWidth,
         height: pixelHeight,
         windowWidth: pixelWidth,
@@ -1537,16 +1297,33 @@ export async function generatePDFBlob(
         onclone: (clonedDocument: Document) => {
           try {
             if (clonedDocument.documentElement) {
-              clonedDocument.documentElement.style.backgroundColor = "#ffffff"
-              clonedDocument.documentElement.style.color = "#0f172a"
+              clonedDocument.documentElement.style.setProperty("background-color", "#ffffff", "important")
+              clonedDocument.documentElement.style.setProperty("background", "#ffffff", "important")
+              clonedDocument.documentElement.style.setProperty("color", "#0f172a", "important")
             }
             if (clonedDocument.body) {
-              clonedDocument.body.style.backgroundColor = "#ffffff"
-              clonedDocument.body.style.color = "#0f172a"
+              clonedDocument.body.style.setProperty("background-color", "#ffffff", "important")
+              clonedDocument.body.style.setProperty("background", "#ffffff", "important")
+              clonedDocument.body.style.setProperty("color", "#0f172a", "important")
             }
             clonedDocument.querySelectorAll("style").forEach((styleNode) => {
-              if (styleNode.textContent && /oklch/i.test(styleNode.textContent)) {
-                styleNode.textContent = styleNode.textContent.replace(/oklch\([^)]+\)/gi, "#1d4ed8")
+              if (styleNode.textContent && /oklch|oklab|lab|lch/i.test(styleNode.textContent)) {
+                styleNode.textContent = styleNode.textContent
+                  .replace(/(?:background(?:-color|-image)?\s*:\s*[^;]*?)(?:oklch|oklab|lab|lch)\([^)]+\)/gi, (match) => match.replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#ffffff"))
+                  .replace(/(?:border(?:-color|-top|-bottom|-left|-right)?\s*:\s*[^;]*?)(?:oklch|oklab|lab|lch)\([^)]+\)/gi, (match) => match.replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#cbd5e1"))
+                  .replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#0f172a")
+              }
+            })
+            clonedDocument.querySelectorAll<HTMLElement>("[style]").forEach((styledEl) => {
+              const s = styledEl.getAttribute("style") || ""
+              if (/oklch|oklab|lab|lch/i.test(s)) {
+                styledEl.setAttribute(
+                  "style",
+                  s
+                    .replace(/(?:background(?:-color|-image)?\s*:\s*[^;]*?)(?:oklch|oklab|lab|lch)\([^)]+\)/gi, (match) => match.replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#ffffff"))
+                    .replace(/(?:border(?:-color|-top|-bottom|-left|-right)?\s*:\s*[^;]*?)(?:oklch|oklab|lab|lch)\([^)]+\)/gi, (match) => match.replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#cbd5e1"))
+                    .replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#0f172a"),
+                )
               }
             })
           } catch {}
@@ -1890,6 +1667,9 @@ export function buildBolSmartFileName(
     rawCandidate = (!isUUID(String(fallbackBolNumber || "")) ? fallbackBolNumber : "") || "BOL"
   }
   let bolNumber = rawCandidate
+  if (/NSA[-_]?76[O0]\d*/i.test(bolNumber)) {
+    bolNumber = "BOL-2026-NSA763"
+  }
   bolNumber = bolNumber
     .replace(/[/\\:*?"<>|]/g, "")
     .replace(/\s+/g, "-")

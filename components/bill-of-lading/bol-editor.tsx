@@ -1063,6 +1063,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }, [onRefreshDocuments])
   const [activeRouteIndex, setActiveRouteIndex] = useState<number | null>(null)
   const [showLocationDropdown, setShowLocationDropdown] = useState<number | null>(null)
+  const [activeLocationField, setActiveLocationField] = useState<"en" | "fa" | null>(null)
 
   useEffect(() => {
     if (showLocationDropdown === null) return
@@ -1076,6 +1077,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
   }, [showLocationDropdown])
   const [selectedCountryFilter, setSelectedCountryFilter] = useState("ALL")
   const [selectedIndiaCategoryFilter, setSelectedIndiaCategoryFilter] = useState("ALL")
+  const [selectedIranCategoryFilter, setSelectedIranCategoryFilter] = useState("ALL")
   const [disableModeFilter, setDisableModeFilter] = useState(false)
   const [showStampSignature, setShowStampSignature] = useState(true)
   const [routeLocationSearch, setRouteLocationSearch] = useState("")
@@ -4493,21 +4495,22 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     { name: "Ai-Khanoum, AF", persian: "آیخانم، افغانستان", country: "Afghanistan", code: "AIK", isBorder: true, borderCountry: "Tajikistan" },
     
     // 🇮🇷 Iran — All Commercial Seaports & Terminals (Persian Gulf, Sea of Oman & Caspian Sea) + Major Cities
-    { name: "Bandar Abbas (Shahid Rajaee Port), IR", persian: "بندرعباس (بندر شهید رجایی)، ایران", country: "Iran", code: "BND", isPort: true, portName: "Bandar Abbas (Shahid Rajaee)", locationType: "SEA_PORT_MAJOR", unLocode: "IRBND", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Bandar Abbas, Shahid Rajaee, IRBND, بندرعباس, شهید رجایی" },
-    { name: "Bandar Abbas (Shahid Bahonar Port), IR", persian: "بندرعباس (بندر شهید باهنر)، ایران", country: "Iran", code: "BND-BHN", isPort: true, portName: "Shahid Bahonar Port (Bandar Abbas)", locationType: "SEA_PORT_MAJOR", unLocode: "IRBND", seaCargo: true, containerEnabled: true, aliases: "Shahid Bahonar, Bahonar Port, Bandar Abbas, شهید باهنر" },
-    { name: "Chabahar Port (Shahid Beheshti), IR", persian: "بندر چابهار (شهید بهشتی)، ایران", country: "Iran", code: "CHA", isPort: true, portName: "Chabahar Port (Shahid Beheshti)", locationType: "SEA_PORT_MAJOR", unLocode: "IRZBR", seaCargo: true, containerEnabled: true, aliases: "Chabahar, Shahid Beheshti, ZBR, چابهار" },
-    { name: "Chabahar (Shahid Kalantari Port), IR", persian: "بندر چابهار (شهید کلانتری)، ایران", country: "Iran", code: "CHA-KLN", isPort: true, portName: "Shahid Kalantari Port (Chabahar)", locationType: "SEA_PORT_MAJOR", unLocode: "IRZBR", seaCargo: true, aliases: "Shahid Kalantari, Chabahar, شهید کلانتری" },
-    { name: "Bandar Imam Khomeini (BIK), IR", persian: "بندر امام خمینی، ایران", country: "Iran", code: "BIK", isPort: true, portName: "Bandar Imam Khomeini (BIK)", locationType: "SEA_PORT_MAJOR", unLocode: "IRBKM", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "BIK, Bandar Khomeini, IRBKM, Sarbandar" },
-    { name: "Bushehr Port, IR", persian: "بندر بوشهر، ایران", country: "Iran", code: "BSH", isPort: true, portName: "Bushehr Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRBUZ", seaCargo: true, containerEnabled: true, aliases: "Bushehr, IRBUZ, بندر بوشهر" },
-    { name: "Khorramshahr Port, IR", persian: "بندر خرمشهر، ایران", country: "Iran", code: "KHR", isPort: true, portName: "Khorramshahr Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRKHO", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Khorramshahr, IRKHO, Arvand, خرمشهر" },
+    { name: "Bandar Abbas (Shahid Rajaee Port), IR", persian: "بندرعباس (بندر شهید رجایی)، ایران", country: "Iran", code: "BND", isPort: true, portName: "Bandar Abbas (Shahid Rajaee)", locationType: "SEA_PORT_MAJOR", unLocode: "IRBND", customsCode: "IRBND1", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Bandar Abbas, Shahid Rajaee, IRBND, بندرعباس, شهید رجایی" },
+    { name: "Bandar Abbas (Shahid Bahonar Port), IR", persian: "بندرعباس (بندر شهید باهنر)، ایران", country: "Iran", code: "BND-BHN", isPort: true, portName: "Shahid Bahonar Port (Bandar Abbas)", locationType: "SEA_PORT_MAJOR", unLocode: "IRBND", customsCode: "IRBND2", seaCargo: true, containerEnabled: true, aliases: "Shahid Bahonar, Bahonar Port, Bandar Abbas, شهید باهنر" },
+    { name: "Chabahar Port (Shahid Beheshti), IR", persian: "بندر چابهار (شهید بهشتی)، ایران", country: "Iran", code: "CHA", isPort: true, portName: "Chabahar Port (Shahid Beheshti)", locationType: "SEA_PORT_MAJOR", unLocode: "IRZBR", customsCode: "IRZBR1", seaCargo: true, containerEnabled: true, aliases: "Chabahar, Shahid Beheshti, ZBR, چابهار" },
+    { name: "Chabahar (Shahid Kalantari Port), IR", persian: "بندر چابهار (شهید کلانتری)، ایران", country: "Iran", code: "CHA-KLN", isPort: true, portName: "Shahid Kalantari Port (Chabahar)", locationType: "SEA_PORT_MAJOR", unLocode: "IRZBR", customsCode: "IRZBR2", seaCargo: true, aliases: "Shahid Kalantari, Chabahar, شهید کلانتری" },
+    { name: "Bandar Imam Khomeini (BIK), IR", persian: "بندر امام خمینی، ایران", country: "Iran", code: "BIK", isPort: true, portName: "Bandar Imam Khomeini (BIK)", locationType: "SEA_PORT_MAJOR", unLocode: "IRBKM", customsCode: "IRBKM1", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "BIK, Bandar Khomeini, IRBKM, Sarbandar" },
+    { name: "Bushehr Port, IR", persian: "بندر بوشهر، ایران", country: "Iran", code: "BSH", isPort: true, portName: "Bushehr Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRBUZ", customsCode: "IRBUZ1", seaCargo: true, containerEnabled: true, aliases: "Bushehr, IRBUZ, بندر بوشهر" },
+    { name: "Khorramshahr Port, IR", persian: "بندر خرمشهر، ایران", country: "Iran", code: "KHR", isPort: true, portName: "Khorramshahr Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRKHO", customsCode: "IRKHO1", seaCargo: true, containerEnabled: true, railConnected: true, aliases: "Khorramshahr, IRKHO, Arvand, خرمشهر" },
     { name: "Abadan Port, IR", persian: "بندر آبادان، ایران", country: "Iran", code: "ABD-PORT", isPort: true, portName: "Abadan Port", locationType: "SEA_PORT", unLocode: "IRABD", seaCargo: true, aliases: "Abadan, IRABD, بندر آبادان" },
-    { name: "Bandar Lengeh Port, IR", persian: "بندر لنگه، ایران", country: "Iran", code: "BLG", isPort: true, portName: "Bandar Lengeh", locationType: "SEA_PORT", unLocode: "IRBDH", seaCargo: true, aliases: "Bandar Lenguh, Lengeh, IRBDH, بندر لنگه" },
-    { name: "Qeshm Island Port (Bahman / Kaveh), IR", persian: "بندر قشم (اسکله بهمن / کاوه)، ایران", country: "Iran", code: "GSM", isPort: true, portName: "Qeshm Port", locationType: "SEA_PORT", unLocode: "IRGSM", seaCargo: true, aliases: "Qeshm, Bahman Port, Kaveh Port, Shahid Zakeri, قشم" },
-    { name: "Kish Island Port, IR", persian: "بندر کیش، ایران", country: "Iran", code: "KIH-PORT", isPort: true, portName: "Kish Commercial Port", locationType: "SEA_PORT", unLocode: "IRKIH", seaCargo: true, aliases: "Kish, IRKIH, بندر کیش" },
-    { name: "Jask Port – IRAN", persian: "جاسک – ایران", country: "Iran", code: "JSK", isPort: true, portName: "Jask Port (Bandar Jask)", locationType: "SEA_PORT_MAJOR", unLocode: "IRJSK", seaCargo: true, containerEnabled: true, cargoEnabled: true, roadConnected: true, state: "Hormozgan", aliases: "Jask Port – IRAN, Jask Port - Iran, Jask Port, Bandar Jask Port, Bandar Jask, Port of Jask, Jask, IRJSK, JSK, جاسک – ایران, جاسک - ایران, بندر جاسک, بندر جاسک، ایران, جاسک, پایانه تجاری و نفتی جاسک, Jask Port - IRAN, Jask Port, IR" },
-    { name: "Bandar Jask Port, IR", persian: "بندر جاسک، ایران", country: "Iran", code: "JSK", isPort: true, portName: "Bandar Jask Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRJSK", seaCargo: true, containerEnabled: true, cargoEnabled: true, roadConnected: true, state: "Hormozgan", aliases: "Bandar Jask Port, Jask Port, Jask Port - Iran, Jask Port, IR, Jask, IRJSK, JSK, بندر جاسک، ایران, بندر جاسک, جاسک - ایران, جاسک" },
+    { name: "Bandar Lengeh Port, IR", persian: "بندر لنگه، ایران", country: "Iran", code: "BLG", isPort: true, portName: "Bandar Lengeh", locationType: "SEA_PORT", unLocode: "IRBDH", customsCode: "IRBDH1", seaCargo: true, aliases: "Bandar Lenguh, Lengeh, IRBDH, بندر لنگه" },
+    { name: "Qeshm Island Port (Bahman / Kaveh), IR", persian: "بندر قشم (اسکله بهمن / کاوه)، ایران", country: "Iran", code: "GSM", isPort: true, portName: "Qeshm Port", locationType: "SEA_PORT", unLocode: "IRGSM", customsCode: "IRGSM1", seaCargo: true, aliases: "Qeshm, Bahman Port, Kaveh Port, Shahid Zakeri, قشم" },
+    { name: "Kish Island Port, IR", persian: "بندر کیش، ایران", country: "Iran", code: "KIH-PORT", isPort: true, portName: "Kish Commercial Port", locationType: "SEA_PORT", unLocode: "IRKIH", customsCode: "IRKIH1", seaCargo: true, aliases: "Kish, IRKIH, بندر کیش" },
+    { name: "Jask Port – IRAN", persian: "جاسک – ایران", country: "Iran", code: "JSK", isPort: true, portName: "Jask Port (Bandar Jask)", locationType: "SEA_PORT_MAJOR", unLocode: "IRJSK", customsCode: "IRJSK1", seaCargo: true, containerEnabled: true, cargoEnabled: true, roadConnected: true, state: "Hormozgan", aliases: "Jask Port – IRAN, Jask Port - Iran, Jask Port, Bandar Jask Port, Bandar Jask, Port of Jask, Jask, IRJSK, JSK, جاسک – ایران, جاسک - ایران, بندر جاسک, بندر جاسک، ایران, جاسک, پایانه تجاری و نفتی جاسک, Jask Port - IRAN, Jask Port, IR" },
+    { name: "Jask Port - Iran", persian: "جاسک - ایران", country: "Iran", code: "JSK", isPort: true, portName: "Jask Port (Bandar Jask)", locationType: "SEA_PORT_MAJOR", unLocode: "IRJSK", customsCode: "IRJSK1", seaCargo: true, containerEnabled: true, cargoEnabled: true, roadConnected: true, state: "Hormozgan", aliases: "Jask Port - Iran, Jask Port – IRAN, Jask Port, Bandar Jask Port, Bandar Jask, Port of Jask, Jask, IRJSK, JSK, جاسک - ایران, جاسک – ایران, بندر جاسک, بندر جاسک، ایران, جاسک, پایانه تجاری و نفتی جاسک, Jask Port - IRAN, Jask Port, IR" },
+    { name: "Bandar Jask Port, IR", persian: "بندر جاسک، ایران", country: "Iran", code: "JSK", isPort: true, portName: "Bandar Jask Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRJSK", customsCode: "IRJSK1", seaCargo: true, containerEnabled: true, cargoEnabled: true, roadConnected: true, state: "Hormozgan", aliases: "Bandar Jask Port, Jask Port, Jask Port - Iran, Jask Port, IR, Jask, IRJSK, JSK, بندر جاسک، ایران, بندر جاسک, جاسک - ایران, جاسک" },
     { name: "Bandar Mahshahr Port (Imam Khomeini Petrochemical), IR", persian: "بندر ماهشهر، ایران", country: "Iran", code: "MRX", isPort: true, portName: "Bandar Mahshahr Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRMRX", seaCargo: true, aliases: "Mahshahr, IRMRX, ماهشهر" },
-    { name: "Assaluyeh Port (Pars Special Energy Zone), IR", persian: "بندر عسلویه (منطقه ویژه پارس)، ایران", country: "Iran", code: "PGU", isPort: true, portName: "Assaluyeh / Pars Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRPGU", seaCargo: true, aliases: "Assaluyeh, Asaluyeh, Tombak, Pars Port, عسلویه" },
+    { name: "Assaluyeh Port (Pars Special Energy Zone), IR", persian: "بندر عسلویه (منطقه ویژه پارس)، ایران", country: "Iran", code: "PGU", isPort: true, portName: "Assaluyeh / Pars Port", locationType: "SEA_PORT_MAJOR", unLocode: "IRPGU", customsCode: "IRPGU1", seaCargo: true, aliases: "Assaluyeh, Asaluyeh, Tombak, Pars Port, عسلویه" },
     { name: "Bandar Kangan Port, IR", persian: "بندر کنگان، ایران", country: "Iran", code: "KNG", isPort: true, portName: "Kangan Port", locationType: "SEA_PORT", unLocode: "IRKNG", seaCargo: true, aliases: "Kangan, کنگان" },
     { name: "Bandar Genaveh Port, IR", persian: "بندر گناوه، ایران", country: "Iran", code: "GNV", isPort: true, portName: "Bandar Genaveh", locationType: "SEA_PORT", unLocode: "IRGNV", seaCargo: true, aliases: "Genaveh, Ganaveh, گناوه" },
     { name: "Bandar Deylam Port, IR", persian: "بندر دیلم، ایران", country: "Iran", code: "DYL", isPort: true, portName: "Bandar Deylam", locationType: "SEA_PORT", seaCargo: true, aliases: "Deylam, بندر دیلم" },
@@ -5371,14 +5374,19 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
   const activeInputLocationEn = showLocationDropdown !== null && activeRouteIndex !== null ? (formData.routes[activeRouteIndex]?.location || "") : ""
   const activeInputLocationFa = showLocationDropdown !== null && activeRouteIndex !== null ? (formData.routes[activeRouteIndex]?.locationPersian || "") : ""
-  const activeInputLocation = `${activeInputLocationEn} ${activeInputLocationFa}`.trim()
+  const activeInputLocation =
+    activeLocationField === "en"
+      ? activeInputLocationEn
+      : activeLocationField === "fa"
+      ? activeInputLocationFa
+      : `${activeInputLocationEn} ${activeInputLocationFa}`.trim()
   const activeStopTransportMode = showLocationDropdown !== null && activeRouteIndex !== null ? (formData.routes[activeRouteIndex]?.transportMode || "truck") : null
   const rawLocationQuery = (routeLocationSearch || (filterByRouteInput ? activeInputLocation : "")).trim().toLowerCase()
   const quickLocationQuery = rawLocationQuery
     .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\u0640]/g, "-")
     .replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, " ")
   const queryTokens = quickLocationQuery
-    .split(/[\s,./\-_()–—ـ\u00A0\u200C]+/)
+    .split(/[\s,./\-_()–—ـ\u00A0\u200C\u060C\u061B]+/)
     .map((t) => t.replace(/^-+|-+$/g, ""))
     .filter((t) => t.length > 0)
 
@@ -5409,8 +5417,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     return (
       Boolean(loc.isPort) ||
       Boolean(loc.portName) ||
+      Boolean(loc.seaCargo) ||
       lType.startsWith("SEA_PORT") ||
       lType === "TERMINAL" ||
+      lType === "INLAND_WATERWAY_TERMINAL" ||
       pType === "SEA" ||
       pType === "SEA_CARGO" ||
       nameLow.includes("port") ||
@@ -5440,6 +5450,831 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       fa.includes("ریل") ||
       fa.includes("پایانه کانتینری")
     )
+  }
+
+  const detectPortDetails = (route?: { location?: string; locationPersian?: string; name?: string; persian?: string; code?: string; unLocode?: string }) => {
+    if (!route) return null
+    const locEn = (route.location || route.name || "").toLowerCase()
+    const locFa = (route.locationPersian || route.persian || "").toLowerCase()
+    const code = (route.code || "").toLowerCase()
+    const unLocode = (route.unLocode || "").toLowerCase()
+    const combined = `${locEn} ${locFa} ${code} ${unLocode}`.trim()
+    if (!combined) return null
+
+    const normCombined = combined
+      .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\u0640]/g, "-")
+      .replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, " ")
+      .replace(/ي/g, "ی")
+      .replace(/ك/g, "ک")
+      .replace(/ة/g, "ه")
+      .replace(/[آأإ]/g, "ا")
+
+    // ==========================================
+    // 🇮🇷 IRAN COMMERCIAL SEAPORTS & ENERGY GATEWAYS
+    // ==========================================
+
+    // 0.A Jask Port (Bandar Jask / Makran Crude Oil & Commercial Gateway Hub) — Iran
+    if (
+      normCombined.includes("jask") ||
+      normCombined.includes("irjsk") ||
+      normCombined.includes("jsk") ||
+      normCombined.includes("جاسک")
+    ) {
+      return {
+        name: "Jask Port (Bandar Jask / Makran Oil & Commercial Gateway)",
+        title: "Jask Commercial Port Authority & Makran Energy Hub",
+        titleFa: "بندر تجاری و نفتی جاسک (پایانه مکران / هرمزگان)، ایران",
+        unLocode: "IRJSK",
+        customsCode: "IRJSK1",
+        stateCountry: "Hormozgan / Gulf of Oman, Iran 🇮🇷",
+        category: "Strategic Deepwater Energy, Commercial & Multimodal Seaport",
+        terminals: "Jask Commercial Jetty, Makran Crude Terminal, Multi-Purpose Coastal Berths, Customs Bonded Zone",
+        terminalPresets: ["Jask Commercial Jetty", "Makran Terminal", "Customs Bonded Zone", "General Cargo Wharf"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // 0.B Shahid Rajaee Port (Bandar Abbas / Megamax Container Hub) — Iran
+    if (
+      normCombined.includes("rajaee") ||
+      normCombined.includes("rajaie") ||
+      normCombined.includes("rajai") ||
+      normCombined.includes("رجایی") ||
+      (normCombined.includes("bandar abbas") && !normCombined.includes("bahonar")) ||
+      (normCombined.includes("بندرعباس") && !normCombined.includes("باهنر")) ||
+      (normCombined.includes("بندر عباس") && !normCombined.includes("باهنر")) ||
+      normCombined.includes("irbnd")
+    ) {
+      return {
+        name: "Shahid Rajaee Port (Bandar Abbas)",
+        title: "Shahid Rajaee Port Authority (Bandar Abbas)",
+        titleFa: "مجتمع بزرگ بندری شهید رجایی (بندرعباس / خلیج فارس)، ایران",
+        unLocode: "IRBND",
+        customsCode: "IRBND1",
+        stateCountry: "Hormozgan / Persian Gulf, Iran 🇮🇷",
+        category: "Iran's Premier Deepwater Megamax Container & Multi-Modal Hub",
+        terminals: "Container Terminal #1, Container Terminal #2, Petrochemical Wharf, General Cargo Wharves",
+        terminalPresets: ["Container Terminal #1", "Container Terminal #2", "Petrochemical Wharf", "General Cargo"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 0.C Shahid Bahonar Port (Bandar Abbas / General Cargo & Passenger) — Iran
+    if (
+      normCombined.includes("bahonar") ||
+      normCombined.includes("باهنر")
+    ) {
+      return {
+        name: "Shahid Bahonar Port (Bandar Abbas)",
+        title: "Shahid Bahonar Port Authority (Bandar Abbas)",
+        titleFa: "بندر شهید باهنر (بندرعباس / هرمزگان)، ایران",
+        unLocode: "IRBND",
+        customsCode: "IRBND2",
+        stateCountry: "Hormozgan / Persian Gulf, Iran 🇮🇷",
+        category: "Commercial Multi-Purpose Seaport, Ro-Ro & Passenger Terminal",
+        terminals: "Bahonar Cargo Berths 1-5, Ro-Ro Wharf, Passenger Pier",
+        terminalPresets: ["Bahonar Cargo Berth", "Ro-Ro Terminal", "General Cargo Berth"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // 0.D Shahid Beheshti Port (Chabahar / Oceanic Hub & Afghanistan Transit) — Iran
+    if (
+      normCombined.includes("beheshti") ||
+      normCombined.includes("بهشتی") ||
+      (normCombined.includes("chabahar") && !normCombined.includes("kalantari")) ||
+      (normCombined.includes("چابهار") && !normCombined.includes("کلانتری")) ||
+      normCombined.includes("irzbr") ||
+      normCombined.includes("ipgl")
+    ) {
+      return {
+        name: "Shahid Beheshti Port (Chabahar)",
+        title: "Shahid Beheshti Port Authority (Chabahar Oceanic Hub)",
+        titleFa: "بندر شهید بهشتی (چابهار / دریای عمان)، ایران",
+        unLocode: "IRZBR",
+        customsCode: "IRZBR1",
+        stateCountry: "Sistan and Baluchestan / Sea of Oman, Iran 🇮🇷",
+        category: "Strategic Oceanic Deepwater Container Gateway (INSTC / Afghanistan Transit)",
+        terminals: "Shahid Beheshti Container Terminal (IPGL / Adani-JNPA), Grain Silo Berth, General Cargo Berths 1-5",
+        terminalPresets: ["Shahid Beheshti CT", "IPGL Terminal", "Grain Silo Berth", "General Cargo Berth"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // 0.E Shahid Kalantari Port (Chabahar) — Iran
+    if (
+      normCombined.includes("kalantari") ||
+      normCombined.includes("کلانتری")
+    ) {
+      return {
+        name: "Shahid Kalantari Port (Chabahar)",
+        title: "Shahid Kalantari Port Authority (Chabahar)",
+        titleFa: "بندر شهید کلانتری (چابهار)، ایران",
+        unLocode: "IRZBR",
+        customsCode: "IRZBR2",
+        stateCountry: "Sistan and Baluchestan / Sea of Oman, Iran 🇮🇷",
+        category: "Coastal & General Cargo Commercial Seaport",
+        terminals: "Kalantari Commercial Berths 1-5, Coastal Traffic Jetty",
+        terminalPresets: ["Kalantari Berth #1", "Coastal Jetty"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // 0.F Bandar Imam Khomeini Port (BIK) — Iran
+    if (
+      normCombined.includes("imam khomeini") ||
+      normCombined.includes("bik") ||
+      normCombined.includes("irbkm") ||
+      normCombined.includes("امام خمینی") ||
+      normCombined.includes("سربندر")
+    ) {
+      return {
+        name: "Bandar Imam Khomeini Port (BIK)",
+        title: "Bandar Imam Khomeini Port Authority (BIK)",
+        titleFa: "مجتمع بزرگ بندری امام خمینی (خوزستان)، ایران",
+        unLocode: "IRBKM",
+        customsCode: "IRBKM1",
+        stateCountry: "Khuzestan / Persian Gulf, Iran 🇮🇷",
+        category: "Premier Strategic Bulk Grain, Petrochemical & Container Hub",
+        terminals: "Grain Silo Terminal, Petrochemical Docks, Container Wharf, General Cargo Berths",
+        terminalPresets: ["Grain Silo Terminal", "Petrochemical Dock", "Container Terminal", "General Cargo"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 0.G Bushehr Port — Iran
+    if (
+      normCombined.includes("bushehr") ||
+      normCombined.includes("irbuz") ||
+      normCombined.includes("بوشهر")
+    ) {
+      return {
+        name: "Bushehr Port Authority",
+        title: "Bushehr Port Authority & Negin Island Complex",
+        titleFa: "بندر بوشهر (مجتمع بندری نگین)، ایران",
+        unLocode: "IRBUZ",
+        customsCode: "IRBUZ1",
+        stateCountry: "Bushehr / Persian Gulf, Iran 🇮🇷",
+        category: "Major Commercial Coastal Seaport & Negin Container Terminal",
+        terminals: "Negin Island Container Terminal, Kowser Wharf, Commercial Berths",
+        terminalPresets: ["Negin Island CT", "Kowser Wharf", "Commercial Berth"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // 0.H Khorramshahr Commercial Port — Iran
+    if (
+      normCombined.includes("khorramshahr") ||
+      normCombined.includes("irkho") ||
+      normCombined.includes("خرمشهر")
+    ) {
+      return {
+        name: "Khorramshahr Commercial Port",
+        title: "Khorramshahr Port Authority (Arvand Free Zone)",
+        titleFa: "بندر تجاری خرمشهر (منطقه آزاد اروند)، خوزستان، ایران",
+        unLocode: "IRKHO",
+        customsCode: "IRKHO1",
+        stateCountry: "Khuzestan, Iran 🇮🇷",
+        category: "Historic Riverine Commercial & Free Zone Gateway",
+        terminals: "Arvand Container Terminal, General Cargo Wharves 1-13",
+        terminalPresets: ["Arvand CT", "General Cargo Wharf", "Ro-Ro Berth"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 0.I Bandar Anzali & Caspian Port (Anzali Free Zone) — Iran
+    if (
+      normCombined.includes("anzali") ||
+      normCombined.includes("caspian") ||
+      normCombined.includes("irbaz") ||
+      normCombined.includes("انزلی") ||
+      normCombined.includes("کاسپین")
+    ) {
+      return {
+        name: "Bandar Anzali & Caspian Port (Anzali Free Zone)",
+        title: "Bandar Anzali & Caspian Port Complex (INSTC)",
+        titleFa: "مجتمع بندری انزلی و کاسپین (منطقه آزاد انزلی)، گیلان، ایران",
+        unLocode: "IRBAZ",
+        customsCode: "IRBAZ1",
+        stateCountry: "Gilan / Caspian Sea, Iran 🇮🇷",
+        category: "Premier Caspian Sea Multi-Modal & Container Seaport",
+        terminals: "Caspian Free Zone Container Terminal, Anzali Historic Docks, Ro-Ro Rail Ferry Berth",
+        terminalPresets: ["Caspian CT", "Ro-Ro Rail Berth", "Anzali Dock"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 0.J Assaluyeh Port (Pars Energy SEZ) — Iran
+    if (
+      normCombined.includes("assaluyeh") ||
+      normCombined.includes("asaluyeh") ||
+      normCombined.includes("irpgu") ||
+      normCombined.includes("عسلویه")
+    ) {
+      return {
+        name: "Assaluyeh Port (Pars Energy SEZ)",
+        title: "Pars Special Economic Energy Zone Port (Assaluyeh)",
+        titleFa: "بندر عسلویه (منطقه ویژه اقتصادی انرژی پارس)، ایران",
+        unLocode: "IRPGU",
+        customsCode: "IRPGU1",
+        stateCountry: "Bushehr / Persian Gulf, Iran 🇮🇷",
+        category: "Major Energy, Petrochemical & Container Port",
+        terminals: "Pars Petrochemical Port, General Cargo Jetty, LNG Berths",
+        terminalPresets: ["Pars Petrochemical Jetty", "General Cargo Berth", "LNG Terminal"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // 0.K Bandar Lengeh Port — Iran
+    if (
+      normCombined.includes("lengeh") ||
+      normCombined.includes("irbdh") ||
+      normCombined.includes("لنگه")
+    ) {
+      return {
+        name: "Bandar Lengeh Port",
+        title: "Bandar Lengeh Commercial Port Authority",
+        titleFa: "بندر تجاری لنگه (هرمزگان)، ایران",
+        unLocode: "IRBDH",
+        customsCode: "IRBDH1",
+        stateCountry: "Hormozgan / Persian Gulf, Iran 🇮🇷",
+        category: "Commercial Coastal Trade & Ro-Ro Gateway to UAE",
+        terminals: "Lengeh Commercial Wharves, Ro-Ro Berth",
+        terminalPresets: ["Lengeh Commercial Wharf", "Ro-Ro Berth"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // 0.L Qeshm Island Port (Bahman / Kaveh) — Iran
+    if (
+      normCombined.includes("qeshm") ||
+      normCombined.includes("irgsm") ||
+      normCombined.includes("قشم")
+    ) {
+      return {
+        name: "Qeshm Island Port (Bahman / Kaveh)",
+        title: "Qeshm Free Zone Port Authority",
+        titleFa: "بندر جزیره قشم (اسکله بهمن و کاوه)، هرمزگان، ایران",
+        unLocode: "IRGSM",
+        customsCode: "IRGSM1",
+        stateCountry: "Hormozgan / Persian Gulf, Iran 🇮🇷",
+        category: "Island Free Trade & Commercial Container Terminal",
+        terminals: "Bahman Cargo Pier, Kaveh Deepwater Jetty",
+        terminalPresets: ["Bahman Cargo Pier", "Kaveh Deepwater Jetty"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // 0.M Kish Island Commercial Port — Iran
+    if (
+      normCombined.includes("kish") ||
+      normCombined.includes("irkih") ||
+      normCombined.includes("کیش")
+    ) {
+      return {
+        name: "Kish Island Commercial Port",
+        title: "Kish Free Zone Commercial Port Authority",
+        titleFa: "بندر تجاری جزیره کیش (منطقه آزاد)، ایران",
+        unLocode: "IRKIH",
+        customsCode: "IRKIH1",
+        stateCountry: "Hormozgan / Persian Gulf, Iran 🇮🇷",
+        category: "Island Free Trade Commercial & Passenger Gateway",
+        terminals: "Commercial Cargo Basin, Passenger Pier",
+        terminalPresets: ["Commercial Cargo Basin", "Kish Passenger Pier"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // ==========================================
+    // 🇮🇳 INDIA COMMERCIAL SEAPORTS & ICD GATEWAYS
+    // ==========================================
+
+    // 1. Nhava Sheva / JNPT
+    if (
+      combined.includes("nhava") ||
+      combined.includes("sheva") ||
+      combined.includes("jnpt") ||
+      combined.includes("innsa") ||
+      combined.includes("نوا شوا") ||
+      combined.includes("نهاوا شوا") ||
+      combined.includes("ناوا شیوا") ||
+      combined.includes("ناوا شوا") ||
+      combined.includes("jawaharlal nehru")
+    ) {
+      return {
+        name: "Nhava Sheva Port (JNPT / Navi Mumbai)",
+        title: "Nhava Sheva Port Authority (JNPT / Mumbai)",
+        titleFa: "بندر نوا شوا (JNPT ممبئی)، هند",
+        unLocode: "INNSA",
+        customsCode: "INNSA1",
+        stateCountry: "Maharashtra, India 🇮🇳",
+        category: "Major Container Seaport & Gateway Hub",
+        terminals: "JNPCT, NSICT (DP World), GTI (APM Terminals), BMCT (PSA Mumbai), NSIGT",
+        terminalPresets: ["JNPCT", "NSICT (DP World)", "GTI (APM)", "BMCT (PSA Mumbai)", "NSIGT"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 2. Mundra Port (APSEZ)
+    if (
+      combined.includes("mundra") ||
+      combined.includes("inmun") ||
+      combined.includes("موندرا") ||
+      combined.includes("apsez")
+    ) {
+      return {
+        name: "Mundra Port (Adani Ports & SEZ)",
+        title: "Mundra Port & SEZ (APSEZ)",
+        titleFa: "بندر موندرا (گجرات)، هند",
+        unLocode: "INMUN",
+        customsCode: "INMUN1",
+        stateCountry: "Gujarat, India 🇮🇳",
+        category: "Premier Commercial & Container Deepwater Hub",
+        terminals: "AICTPL (CT3/CT4), MICT (DP World), AMCT",
+        terminalPresets: ["AICTPL (Adani)", "MICT (DP World)", "AMCT Terminal 2"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 3. Deendayal / Kandla Port
+    if (
+      combined.includes("kandla") ||
+      combined.includes("deendayal") ||
+      combined.includes("inixy") ||
+      combined.includes("کاندلا") ||
+      combined.includes("دیندایال")
+    ) {
+      return {
+        name: "Deendayal Port (Kandla)",
+        title: "Deendayal Port Authority (Kandla)",
+        titleFa: "بندر کاندلا (دیندایال)، هند",
+        unLocode: "INIXY",
+        customsCode: "INIXY1",
+        stateCountry: "Gujarat, India 🇮🇳",
+        category: "Major Bulk, Liquid & Dry Cargo Gateway",
+        terminals: "Kandla Cargo Berths, Oil Jetties, Tuna Tekra Container Terminal",
+        terminalPresets: ["Tuna Tekra", "Cargo Berth #1-6", "Oil Jetty"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 4. Pipavav Port
+    if (combined.includes("pipavav") || combined.includes("inpav") || combined.includes("پیپاوائو")) {
+      return {
+        name: "Port Pipavav (APM Terminals)",
+        title: "Port Pipavav (APM Terminals)",
+        titleFa: "بندر پیپاوائو (گجرات)، هند",
+        unLocode: "INPAV",
+        customsCode: "INPAV1",
+        stateCountry: "Gujarat, India 🇮🇳",
+        category: "Major Container & Liquid Seaport",
+        terminals: "APM Terminals Pipavav",
+        terminalPresets: ["APM Terminals Pipavav"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 5. Cochin / Vallarpadam
+    if (combined.includes("cochin") || combined.includes("kochi") || combined.includes("vallarpadam") || combined.includes("incok") || combined.includes("کوچین")) {
+      return {
+        name: "Cochin Port (Vallarpadam ICTT)",
+        title: "Cochin Port (Vallarpadam ICTT)",
+        titleFa: "بندر کوچین (پایانه بین‌المللی کانتینری والرپادام)، هند",
+        unLocode: "INCOK",
+        customsCode: "INCOK1",
+        stateCountry: "Kerala, India 🇮🇳",
+        category: "International Container Transshipment Terminal (ICTT)",
+        terminals: "Vallarpadam ICTT (DP World)",
+        terminalPresets: ["Vallarpadam ICTT", "Ernakulam Wharf"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 6. Mumbai Port Trust (MbPT)
+    if (combined.includes("mumbai port") || combined.includes("inbom") || (combined.includes("mumbai") && !combined.includes("navi mumbai") && !combined.includes("nhava")) || combined.includes("بندر ممبئی")) {
+      return {
+        name: "Mumbai Port Trust (MbPT)",
+        title: "Mumbai Port Authority (MbPT)",
+        titleFa: "بندر ممبئی (قدیم)، ماهاراشترا، هند",
+        unLocode: "INBOM",
+        customsCode: "INBOM1",
+        stateCountry: "Maharashtra, India 🇮🇳",
+        category: "Major Natural Seaport & Multipurpose Gateway",
+        terminals: "Indira Dock, Victoria Dock, Offshore Container Terminal (OCT)",
+        terminalPresets: ["Indira Dock", "OCT Terminal", "Victoria Dock"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 7. Chennai Port (Madras)
+    if (combined.includes("chennai") || combined.includes("madras") || combined.includes("inmaa") || combined.includes("چنای") || combined.includes("مدرس")) {
+      return {
+        name: "Chennai Port Trust (Madras Port)",
+        title: "Chennai Port Authority (CCTPL / CITPL)",
+        titleFa: "بندر چنای (مدرس)، تامیل نادو، هند",
+        unLocode: "INMAA",
+        customsCode: "INMAA1",
+        stateCountry: "Tamil Nadu, India 🇮🇳",
+        category: "Premier East Coast Container & Automobile Seaport",
+        terminals: "CCTPL (DP World), CITPL (PSA Chennai), Jawahar Dock",
+        terminalPresets: ["CCTPL (DP World)", "CITPL (PSA)", "Jawahar Dock"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 8. Kamarajar Port (Ennore)
+    if (combined.includes("ennore") || combined.includes("kamarajar") || combined.includes("inenr") || combined.includes("انور") || combined.includes("کاماراجار")) {
+      return {
+        name: "Kamarajar Port (Ennore Port)",
+        title: "Kamarajar Port Limited (Ennore)",
+        titleFa: "بندر انور (کاماراجار)، تامیل نادو، هند",
+        unLocode: "INENR",
+        customsCode: "INENR1",
+        stateCountry: "Tamil Nadu, India 🇮🇳",
+        category: "Corporate Major Seaport & Container Facility",
+        terminals: "AECTPL (Adani Ennore Container Terminal), Chettinad Coal Terminal",
+        terminalPresets: ["Adani Ennore CT", "Coal Terminal", "General Cargo"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 9. Kattupalli Port (Adani Kattupalli)
+    if (combined.includes("kattupalli") || combined.includes("inkat") || combined.includes("کاتوپالی")) {
+      return {
+        name: "Kattupalli Port (Adani Ports)",
+        title: "Adani Kattupalli Port & Container Terminal",
+        titleFa: "بندر کاتوپالی (آدانی)، تامیل نادو، هند",
+        unLocode: "INKAT",
+        customsCode: "INKAT1",
+        stateCountry: "Tamil Nadu, India 🇮🇳",
+        category: "Modern Deepwater Container Terminal & Gateway",
+        terminals: "Adani Kattupalli Container Terminal (AKCTP)",
+        terminalPresets: ["Adani Kattupalli CT", "Berth #1", "Berth #2"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 10. V.O. Chidambaranar Port (Tuticorin)
+    if (combined.includes("tuticorin") || combined.includes("chidambaranar") || combined.includes("intut") || combined.includes("توتیکورین")) {
+      return {
+        name: "V.O. Chidambaranar Port (Tuticorin)",
+        title: "V.O. Chidambaranar Port Authority (VOC Port)",
+        titleFa: "بندر توتیکورین (چی‌دامبارانار)، تامیل نادو، هند",
+        unLocode: "INTUT",
+        customsCode: "INTUT1",
+        stateCountry: "Tamil Nadu, India 🇮🇳",
+        category: "Major Deepwater Container & All-Weather Seaport",
+        terminals: "Dakshin Bharat Gateway Terminal (DBGT), PSA SICAL Container Terminal",
+        terminalPresets: ["DBGT Terminal", "PSA Sical", "Berth #8 Container"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 11. Vizhinjam International Seaport (Trivandrum)
+    if (combined.includes("vizhinjam") || combined.includes("inviz") || combined.includes("ویژینجام") || combined.includes("تیرووانانتاپورام")) {
+      return {
+        name: "Vizhinjam International Transshipment Deepwater Seaport",
+        title: "Vizhinjam International Seaport (Adani Ports)",
+        titleFa: "بندر ترانزیت بین‌المللی ویژینجام، کرالا، هند",
+        unLocode: "INVIZ",
+        customsCode: "INVIZ1",
+        stateCountry: "Kerala, India 🇮🇳",
+        category: "Premier Deepwater Megamax Container Transshipment Hub",
+        terminals: "Adani Vizhinjam Container Terminal (Ultra Large Vessel Berth)",
+        terminalPresets: ["Adani Vizhinjam CT", "Deepwater Berth 1"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 12. New Mangalore Port (NMPT)
+    if (combined.includes("new mangalore") || combined.includes("mangalore") || combined.includes("innml") || combined.includes("منگلور")) {
+      return {
+        name: "New Mangalore Port Authority (NMPT)",
+        title: "New Mangalore Port Authority (NMPT)",
+        titleFa: "بندر نیو منگلور، کارناتاکا، هند",
+        unLocode: "INNML",
+        customsCode: "INNML1",
+        stateCountry: "Karnataka, India 🇮🇳",
+        category: "Major All-Weather Deepwater Coastal Seaport",
+        terminals: "JMM Container Terminal (Berth 14), Deep Draft Bulk Cargo Berths",
+        terminalPresets: ["Berth 14 Container", "Bulk Berth #8"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 13. Mormugao Port (Goa)
+    if (combined.includes("mormugao") || combined.includes("marmagao") || combined.includes("goa port") || combined.includes("inmrm") || combined.includes("مورموگائو") || combined.includes("گوا")) {
+      return {
+        name: "Mormugao Port Authority (Goa)",
+        title: "Mormugao Port Authority (Goa)",
+        titleFa: "بندر مورموگائو، گوا، هند",
+        unLocode: "INMRM",
+        customsCode: "INMRM1",
+        stateCountry: "Goa, India 🇮🇳",
+        category: "Major Natural Harbor & Multipurpose Bulk/Container Port",
+        terminals: "Berth 10/11 Multipurpose, SWPL Bulk Terminal",
+        terminalPresets: ["Berth 10 Multipurpose", "SWPL Terminal"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 14. Visakhapatnam Port (Vizag Port)
+    if (combined.includes("visakhapatnam") || combined.includes("vizag") || combined.includes("invtz") || combined.includes("ویساخاپاتنام") || combined.includes("ویزاگ")) {
+      return {
+        name: "Visakhapatnam Port Authority (Vizag Port)",
+        title: "Visakhapatnam Port Authority (VCTPL)",
+        titleFa: "بندر ویساخاپاتنام (ویزاگ)، آندرا پرادش، هند",
+        unLocode: "INVTZ",
+        customsCode: "INVTZ1",
+        stateCountry: "Andhra Pradesh, India 🇮🇳",
+        category: "Major Natural Deepwater East Coast Gateway",
+        terminals: "Visakha Container Terminal (VCTPL / JM Baxi), Outer Harbour Ore Berths",
+        terminalPresets: ["VCTPL Terminal", "Outer Harbour Berth", "EQ Berths"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 15. Gangavaram Port (Adani Gangavaram)
+    if (combined.includes("gangavaram") || combined.includes("inggv") || combined.includes("گانگاوارام")) {
+      return {
+        name: "Gangavaram Port (Adani Gangavaram)",
+        title: "Adani Gangavaram Deepwater Port",
+        titleFa: "بندر گانگاوارام (آدانی)، آندرا پرادش، هند",
+        unLocode: "INGGV",
+        customsCode: "INGGV1",
+        stateCountry: "Andhra Pradesh, India 🇮🇳",
+        category: "Deepest All-Weather Multipurpose Port in India",
+        terminals: "Deepwater Multipurpose Berths 1-9, Adani Bulk & Container Facility",
+        terminalPresets: ["Adani Gangavaram Berth", "Deepwater Berth #1"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 16. Krishnapatnam Port (Adani KPCL)
+    if (combined.includes("krishnapatnam") || combined.includes("inkri") || combined.includes("kpcl") || combined.includes("کریشناپاتنام")) {
+      return {
+        name: "Krishnapatnam Port (Adani KPCL)",
+        title: "Adani Krishnapatnam Port Limited (KPCT)",
+        titleFa: "بندر کریشناپاتنام (آدانی)، آندرا پرادش، هند",
+        unLocode: "INKRI",
+        customsCode: "INKRI1",
+        stateCountry: "Andhra Pradesh, India 🇮🇳",
+        category: "Premier Deepwater Multimodal & Container Hub",
+        terminals: "KPCT Container Terminal, Automated Bulk Cargo Berths",
+        terminalPresets: ["KPCT Container Terminal", "Berth #1-4"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 17. Paradip Port
+    if (combined.includes("paradip") || combined.includes("paradeep") || combined.includes("inprt") || combined.includes("پارادیپ")) {
+      return {
+        name: "Paradip Port Authority",
+        title: "Paradip Port Authority (PICT)",
+        titleFa: "بندر پارادیپ، اودیشا، هند",
+        unLocode: "INPRT",
+        customsCode: "INPRT1",
+        stateCountry: "Odisha, India 🇮🇳",
+        category: "Major All-Weather Deepwater East Coast Port",
+        terminals: "Paradip International Cargo Terminal (PICT), Mechanised Coal Berths",
+        terminalPresets: ["PICT Container", "Mechanised Coal Berth"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 18. Dhamra Port (Adani Dhamra)
+    if (combined.includes("dhamra") || combined.includes("indhm") || combined.includes("دهامرا")) {
+      return {
+        name: "Dhamra Port (Adani Dhamra)",
+        title: "Dhamra Port Company Limited (DPCL)",
+        titleFa: "بندر دهامرا (آدانی)، اودیشا، هند",
+        unLocode: "INDHM",
+        customsCode: "INDHM1",
+        stateCountry: "Odisha, India 🇮🇳",
+        category: "Deep Draft All-Weather Seaport & LNG Terminal",
+        terminals: "Dhamra LNG Terminal, Adani Deepwater Bulk Berths",
+        terminalPresets: ["Dhamra Bulk Berth", "LNG Terminal"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 19. Gopalpur Port
+    if (combined.includes("gopalpur") || combined.includes("ingpr") || combined.includes("ingpt") || combined.includes("گوپالپور")) {
+      return {
+        name: "Gopalpur Port Limited",
+        title: "Gopalpur Port Authority (Shapoorji Pallonji / JSW)",
+        titleFa: "بندر گوپال‌پور، اودیشا، هند",
+        unLocode: "INGPT",
+        customsCode: "INGPT1",
+        stateCountry: "Odisha, India 🇮🇳",
+        category: "Deepwater Commercial Seaport & Bulk Gateway",
+        terminals: "Commercial Deepwater Berths, Bulk Cargo Jetties",
+        terminalPresets: ["Gopalpur Deepwater Berth"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 20. Syama Prasad Mookerjee Port (Kolkata Dock Complex)
+    if (combined.includes("kolkata") || combined.includes("calcutta") || combined.includes("inccu") || combined.includes("کلکته") || combined.includes("موکرجی")) {
+      return {
+        name: "Syama Prasad Mookerjee Port (Kolkata Port)",
+        title: "Syama Prasad Mookerjee Port Authority (Kolkata)",
+        titleFa: "بندر کلکته (شاماپرساد موکرجی)، بنگال غربی، هند",
+        unLocode: "INCCU",
+        customsCode: "INCCU1",
+        stateCountry: "West Bengal, India 🇮🇳",
+        category: "India's Oldest Operating Major Riverine Seaport",
+        terminals: "Netaji Subhash Dock (NSD), Kidderpore Dock (KPD)",
+        terminalPresets: ["Netaji Subhash Dock", "Kidderpore Dock"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 21. Haldia Dock Complex (HDC)
+    if (combined.includes("haldia") || combined.includes("inhal") || combined.includes("هالدیا") || combined.includes("هالدیه")) {
+      return {
+        name: "Haldia Dock Complex (HDC - Kolkata Port)",
+        title: "Haldia Dock Complex (SMP Kolkata)",
+        titleFa: "مجموعه اسکله‌های هالدیا، بنگال غربی، هند",
+        unLocode: "INHAL",
+        customsCode: "INHAL1",
+        stateCountry: "West Bengal, India 🇮🇳",
+        category: "Major Riverine Deep Draft Container & Bulk Complex",
+        terminals: "Berth 4B Container, Oil Jetties 1-3, General Cargo Berths",
+        terminalPresets: ["Berth 4B Container", "Haldia Oil Jetty"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 22. Hazira Port (Adani / Essar)
+    if (combined.includes("hazira") || combined.includes("inhza") || combined.includes("حاضیره") || combined.includes("هازیرا")) {
+      return {
+        name: "Hazira Port (Adani Hazira / Essar Bulk)",
+        title: "Adani Hazira Port Limited (AHPL)",
+        titleFa: "بندر هازیرا (سورت)، گجرات، هند",
+        unLocode: "INHZA",
+        customsCode: "INHZA1",
+        stateCountry: "Gujarat, India 🇮🇳",
+        category: "Strategic Commercial Container & Multi-Commodity Gateway",
+        terminals: "Adani Hazira Container Terminal (AHCT), Essar Bulk Terminal",
+        terminalPresets: ["Adani Hazira CT", "Essar Bulk Terminal"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 23. Dahej Port (Petronet LNG / Adani)
+    if (combined.includes("dahej") || combined.includes("indhj") || combined.includes("داهج")) {
+      return {
+        name: "Dahej Port (Petronet LNG / Adani)",
+        title: "Dahej Commercial Seaport & LNG Terminal",
+        titleFa: "بندر داهج، گجرات، هند",
+        unLocode: "INDHJ",
+        customsCode: "INDHJ1",
+        stateCountry: "Gujarat, India 🇮🇳",
+        category: "Specialized Deepwater Bulk, Liquid & LNG Gateway",
+        terminals: "Petronet LNG Jetty, Adani Dahej Solid Cargo Port",
+        terminalPresets: ["Adani Dahej Terminal", "Petronet LNG Jetty"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 24. Karaikal Port (Adani Karaikal)
+    if (combined.includes("karaikal") || combined.includes("inkrk") || combined.includes("کارایکال")) {
+      return {
+        name: "Karaikal Port (Adani Karaikal)",
+        title: "Adani Karaikal Port Limited",
+        titleFa: "بندر کارایکال، پودوچری، هند",
+        unLocode: "INKRK",
+        customsCode: "INKRK1",
+        stateCountry: "Puducherry, India 🇮🇳",
+        category: "Deepwater All-Weather Multipurpose Port",
+        terminals: "Multipurpose Berths 1-4, Adani Bulk & Container Facility",
+        terminalPresets: ["Karaikal Multipurpose Berth"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 25. Port Blair Port (Andaman & Nicobar)
+    if (combined.includes("port blair") || combined.includes("inixz") || combined.includes("andaman") || combined.includes("پورت بلیر") || combined.includes("آندامان")) {
+      return {
+        name: "Port Blair Port Authority (Andaman)",
+        title: "Port Blair Port Trust",
+        titleFa: "بندر پورت بلیر، جزایر آندامان و نیکوبار، هند",
+        unLocode: "INIXZ",
+        customsCode: "INIXZ1",
+        stateCountry: "Andaman and Nicobar Islands, India 🇮🇳",
+        category: "Major Island Territory Seaport & Naval Harbor",
+        terminals: "Haddo Wharf, Chatham Wharf, Hope Town",
+        terminalPresets: ["Haddo Wharf", "Chatham Wharf"],
+        railConnected: false,
+        seaCargo: true,
+      }
+    }
+
+    // 26. ICD Tughlakabad (Delhi TKD - India's Premier Inland Dry Port)
+    if (combined.includes("tughlakabad") || combined.includes("tkd") || combined.includes("intkd") || combined.includes("توغلق‌آباد") || combined.includes("طغلق آباد") || combined.includes("خشکه دهلی")) {
+      return {
+        name: "ICD Tughlakabad (TKD Delhi / CONCOR)",
+        title: "Inland Container Depot Tughlakabad (ICD TKD)",
+        titleFa: "بندر خشک طغلق‌آباد (CONCOR دهلی)، هند",
+        unLocode: "INTKD",
+        customsCode: "INTKD6",
+        stateCountry: "New Delhi / NCR, India 🇮🇳",
+        category: "India's Premier & Largest Inland Container Dry Port",
+        terminals: "CONCOR ICD Tughlakabad, Rail Container Siding, Customs Bonded CFS",
+        terminalPresets: ["CONCOR ICD TKD", "Rail Yard Siding", "Customs Bonded Area"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 27. ICD Dadri (Greater Noida / DFC Junction)
+    if (combined.includes("dadri") || combined.includes("inder") || combined.includes("دادری")) {
+      return {
+        name: "ICD Dadri (CONCOR Multimodal Logistics Hub)",
+        title: "ICD Dadri (Western & Eastern DFC Junction)",
+        titleFa: "بندر خشک دادری (تقاطع DFC نویدا بزرگ)، هند",
+        unLocode: "INDER",
+        customsCode: "INDER6",
+        stateCountry: "Uttar Pradesh / NCR, India 🇮🇳",
+        category: "Premier DFC Connected Multimodal Logistics Hub",
+        terminals: "CONCOR Dadri MMLH, Dedicated Freight Corridor Yard, Bonded CFS",
+        terminalPresets: ["CONCOR Dadri MMLH", "DFC Siding", "Customs Terminal"],
+        railConnected: true,
+        seaCargo: true,
+      }
+    }
+
+    // 28. Generic lookup from predefinedLocations if isPort is true or locationType is SEA_PORT/ICD
+    const matched = predefinedLocations.find((p) => {
+      const isCandidate = p.isPort || p.locationType?.startsWith("SEA_PORT") || p.locationType === "ICD"
+      if (!isCandidate) return false
+      const pName = (p.name || "").toLowerCase()
+      const pCode = (p.code || "").toLowerCase()
+      const pUnlocode = (p.unLocode || "").toLowerCase()
+      const pFa = (p.persian || "").toLowerCase()
+      const pAliases = Array.isArray(p.aliases) ? p.aliases.join(" ").toLowerCase() : (p.aliases || "").toLowerCase()
+      return (
+        (locEn && (pName.includes(locEn) || (pCode && pCode === locEn) || (pUnlocode && pUnlocode === locEn) || pAliases.includes(locEn))) ||
+        (locFa && (pFa.includes(locFa) || pAliases.includes(locFa)))
+      )
+    })
+
+    if (matched) {
+      const derivedPresets = matched.district ? [matched.district] : [matched.name.split(",")[0]]
+      return {
+        name: matched.portName || matched.name,
+        title: matched.name,
+        titleFa: matched.persian,
+        unLocode: matched.unLocode || matched.code,
+        customsCode: matched.customsCode || `${matched.unLocode || matched.code}1`,
+        stateCountry: `${matched.state ? `${matched.state}, ` : ""}${matched.country}`,
+        category: matched.locationType ? matched.locationType.replace(/_/g, " ") : "Seaport",
+        terminals: matched.district || undefined,
+        terminalPresets: derivedPresets,
+        railConnected: Boolean(matched.railConnected),
+        seaCargo: Boolean(matched.seaCargo || matched.isPort),
+      }
+    }
+
+    return null
   }
 
   const quickLocationMatches = predefinedLocations.filter((loc) => {
@@ -5478,17 +6313,105 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\u0640]/g, "-")
       .replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, " ")
 
-    let matchesQuery = !quickLocationQuery || searchableText.includes(quickLocationQuery)
+    const normSearchable = searchableText
+      .replace(/[\u064B-\u065F\u0670]/g, "")
+      .replace(/ي/g, "ی")
+      .replace(/ك/g, "ک")
+      .replace(/ة/g, "ه")
+      .replace(/[آأإ]/g, "ا")
+      .replace(/نهاوا/g, "نوا")
+      .replace(/شیوا/g, "شوا")
 
-    // Multi-word and token-based matching (e.g. "new del", "delhi air", "tashkent cargo")
+    const normQuery = quickLocationQuery
+      .replace(/[\u064B-\u065F\u0670]/g, "")
+      .replace(/ي/g, "ی")
+      .replace(/ك/g, "ک")
+      .replace(/ة/g, "ه")
+      .replace(/[آأإ]/g, "ا")
+      .replace(/نهاوا/g, "نوا")
+      .replace(/شیوا/g, "شوا")
+
+    let matchesQuery = !quickLocationQuery || searchableText.includes(quickLocationQuery) || normSearchable.includes(normQuery)
+
+    // Token-based matching with bilingual decoupling
     if (!matchesQuery && queryTokens.length > 0) {
-      const allTokensMatch = queryTokens.every((token) => {
-        if (token === "new" && (queryTokens.includes("del") || queryTokens.includes("delhi") || queryTokens.includes("york"))) {
-          return searchableText.includes("delhi") || searchableText.includes("new") || searchableText.includes("york")
-        }
-        return searchableText.includes(token)
-      })
-      if (allTokensMatch) matchesQuery = true
+      const enTokens = queryTokens.filter((t) => /[a-zA-Z0-9]/.test(t))
+      const faTokens = queryTokens
+        .filter((t) => /[\u0600-\u06FF]/.test(t))
+        .map((t) =>
+          t
+            .replace(/ي/g, "ی")
+            .replace(/ك/g, "ک")
+            .replace(/ة/g, "ه")
+            .replace(/[آأإ]/g, "ا")
+            .replace(/نهاوا/g, "نوا")
+            .replace(/شیوا/g, "شوا")
+        )
+
+      const enMatch =
+        enTokens.length > 0 &&
+        enTokens.every((token) => {
+          if (token === "new" && (enTokens.includes("del") || enTokens.includes("delhi") || enTokens.includes("york"))) {
+            return searchableText.includes("delhi") || searchableText.includes("new") || searchableText.includes("york")
+          }
+          if (token.length <= 2) {
+            return searchableText.includes(token) || loc.code.toLowerCase().startsWith(token) || (loc.country || "").toLowerCase().startsWith(token)
+          }
+          return searchableText.includes(token)
+        })
+
+      const faMatch =
+        faTokens.length > 0 &&
+        faTokens.every((token) => {
+          return normSearchable.includes(token)
+        })
+
+      if (enMatch || faMatch) {
+        matchesQuery = true
+      }
+    }
+
+    // Special resilient matching for Nhava Sheva / JNPT
+    const isNhavaQuery =
+      normQuery.includes("nhava") ||
+      normQuery.includes("sheva") ||
+      normQuery.includes("jnpt") ||
+      normQuery.includes("nava sheva") ||
+      normQuery.includes("innsa") ||
+      normQuery.includes("نوا شوا") ||
+      normQuery.includes("نهاوا شوا") ||
+      normQuery.includes("ناوا شیوا") ||
+      (normQuery.includes("نوا") && normQuery.includes("شوا"))
+
+    if (!matchesQuery && isNhavaQuery) {
+      if (
+        loc.code === "INNSA" ||
+        loc.unLocode === "INNSA" ||
+        searchableText.includes("nhava") ||
+        searchableText.includes("sheva") ||
+        searchableText.includes("jnpt") ||
+        normSearchable.includes("نوا شوا") ||
+        (normSearchable.includes("نوا") && normSearchable.includes("شوا"))
+      ) {
+        matchesQuery = true
+      }
+    }
+
+    // Special resilient matching for Mundra
+    const isMundraQuery =
+      normQuery.includes("mundra") ||
+      normQuery.includes("inmun") ||
+      normQuery.includes("موندرا")
+
+    if (!matchesQuery && isMundraQuery) {
+      if (
+        loc.code === "INMUN" ||
+        loc.unLocode === "INMUN" ||
+        searchableText.includes("mundra") ||
+        normSearchable.includes("موندرا")
+      ) {
+        matchesQuery = true
+      }
     }
 
     // Special prefix matching for Jask (e.g. "jask", "jask port", "jask - i", "جاسک")
@@ -5556,7 +6479,36 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       }
     }
 
+    // Secondary category filter for Iran
+    if (selectedCountryFilter === "Iran" && selectedIranCategoryFilter !== "ALL") {
+      if (selectedIranCategoryFilter === "SEAPORTS") {
+        if (!loc.isPort && !loc.locationType?.startsWith("SEA_PORT")) return false
+      } else if (selectedIranCategoryFilter === "BORDERS") {
+        if (!loc.isBorder && loc.locationType !== "LAND_BORDER") return false
+      } else if (selectedIranCategoryFilter === "AIRPORTS") {
+        if (!loc.locationType?.startsWith("AIRPORT") && !loc.airCargo && !loc.iataCode) return false
+      }
+    }
+
     return true
+  }).sort((a, b) => {
+    const q = quickLocationQuery.toLowerCase()
+    if (q.includes("jask") || q.includes("جاسک") || q.includes("irjsk")) {
+      const aIsJsk = a.code === "JSK" || a.unLocode === "IRJSK" || (a.name || "").toLowerCase().includes("jask") ? 1 : 0
+      const bIsJsk = b.code === "JSK" || b.unLocode === "IRJSK" || (b.name || "").toLowerCase().includes("jask") ? 1 : 0
+      if (aIsJsk !== bIsJsk) return bIsJsk - aIsJsk
+    }
+    if (q.includes("nhava") || q.includes("sheva") || q.includes("jnpt") || q.includes("innsa") || q.includes("نوا") || q.includes("نهاوا") || q.includes("شیوا")) {
+      const aIsNsa = a.code === "INNSA" || a.unLocode === "INNSA" ? 1 : 0
+      const bIsNsa = b.code === "INNSA" || b.unLocode === "INNSA" ? 1 : 0
+      if (aIsNsa !== bIsNsa) return bIsNsa - aIsNsa
+    }
+    if (q.includes("mundra") || q.includes("inmun") || q.includes("موندرا")) {
+      const aIsMun = a.code === "INMUN" || a.unLocode === "INMUN" ? 1 : 0
+      const bIsMun = b.code === "INMUN" || b.unLocode === "INMUN" ? 1 : 0
+      if (aIsMun !== bIsMun) return bIsMun - aIsMun
+    }
+    return 0
   })
 
   const handleQuickLocationSelect = (loc: { name: string; persian: string }) => {
@@ -5974,12 +6926,20 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
       setIsSaving(true)
       setIsExportingPDF(true)
       await new Promise((resolve) => setTimeout(resolve, 80))
+      if (typeof document !== "undefined" && document.fonts?.ready) {
+        try {
+          await document.fonts.ready
+        } catch {}
+      }
       const toastId = toast.loading("Generating PDF...", {
         description: "Please wait, this may take a moment...",
       })
 
       const fileName = buildBolSmartFileName({ ...formData, bol_number: bolNumber }, bolNumber, ".pdf")
-      const previewElement = document.querySelector('[data-pdf-export="true"]') as HTMLElement | null
+      const previewElement =
+        (document.querySelector('[data-pdf-export-container="true"] [data-pdf-export="true"]') as HTMLElement | null) ||
+        (document.querySelector('[data-pdf-export="true"]') as HTMLElement | null) ||
+        (document.querySelector('[data-bol-a4="true"]') as HTMLElement | null)
       const pdfBlob = await generateBOLPDFBlob({
         fileName,
         previewElement,
@@ -6146,7 +7106,10 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
 
       const printWindow = openPDFPrintWindow(fileName)
 
-      const previewElement = document.querySelector('[data-pdf-export="true"]') as HTMLElement | null
+      const previewElement =
+        (document.querySelector('[data-pdf-export-container="true"] [data-pdf-export="true"]') as HTMLElement | null) ||
+        (document.querySelector('[data-pdf-export="true"]') as HTMLElement | null) ||
+        (document.querySelector('[data-bol-a4="true"]') as HTMLElement | null)
       const pdfBlob = await generateBOLPDFBlob({
         fileName,
         previewElement,
@@ -6220,12 +7183,19 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     stickerLayout: StickerLayout = "single",
     onProgress?: (progress: number, message: string) => void,
   ) => {
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      try {
+        await document.fonts.ready
+      } catch {}
+    }
     let bolElement =
+      (document.querySelector('[data-pdf-export-container="true"] [data-pdf-export="true"]') as HTMLElement | null) ||
       (document.querySelector('[data-pdf-export="true"]') as HTMLElement | null) ||
       (document.querySelector('[data-bol-a4="true"]') as HTMLElement | null)
     if (!bolElement) {
-      await new Promise((resolve) => setTimeout(resolve, 80))
+      await new Promise((resolve) => setTimeout(resolve, 120))
       bolElement =
+        (document.querySelector('[data-pdf-export-container="true"] [data-pdf-export="true"]') as HTMLElement | null) ||
         (document.querySelector('[data-pdf-export="true"]') as HTMLElement | null) ||
         (document.querySelector('[data-bol-a4="true"]') as HTMLElement | null)
     }
@@ -6263,6 +7233,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
     setIsShippingExporting(true)
     setIsExportingPDF(true)
     await new Promise((resolve) => setTimeout(resolve, 150))
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      try {
+        await document.fonts.ready
+      } catch {}
+    }
     const fileName = buildShippingDocumentFileName(kind, shippingDocumentData)
     const toastId = toast.loading("Building shipping documents...", {
       description: kind === "all" ? "Combining BOL, packing list and sticker labels" : `Preparing ${fileName}`,
@@ -11254,11 +12229,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                   data-transit-stop="true"
                                   onFocus={() => {
                                     setActiveRouteIndex(index)
+                                    setActiveLocationField("en")
                                     setFilterByRouteInput(false)
                                     setShowLocationDropdown(index)
                                   }}
                                   onChange={(e) => {
                                     setActiveRouteIndex(index)
+                                    setActiveLocationField("en")
                                     setFilterByRouteInput(true)
                                     setShowLocationDropdown(index)
                                     handleRouteChange(index, "location", e.target.value)
@@ -11280,11 +12257,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                   data-transit-stop="true"
                                   onFocus={() => {
                                     setActiveRouteIndex(index)
+                                    setActiveLocationField("fa")
                                     setFilterByRouteInput(false)
                                     setShowLocationDropdown(index)
                                   }}
                                   onChange={(e) => {
                                     setActiveRouteIndex(index)
+                                    setActiveLocationField("fa")
                                     setFilterByRouteInput(true)
                                     setShowLocationDropdown(index)
                                     handleRouteChange(index, "locationPersian", e.target.value)
@@ -11392,6 +12371,70 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                       )}
                                     </div>
 
+                                    {/* Active Stop Port / Terminal Information Banner inside popover */}
+                                    {(() => {
+                                      const activeStopPort = detectPortDetails(route)
+                                      if (!activeStopPort) return null
+                                      return (
+                                        <div className="rounded-xl border border-cyan-300 dark:border-cyan-700 bg-linear-to-r from-cyan-50/95 via-sky-50/70 to-emerald-50/60 dark:from-cyan-950/50 dark:via-slate-900/70 dark:to-emerald-950/40 p-2.5 shadow-2xs space-y-1.5 animate-in fade-in duration-150">
+                                          <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                              <span className="flex items-center justify-center h-5 w-5 rounded-md bg-cyan-600 text-white text-[10px] font-black shrink-0">
+                                                ⚓
+                                              </span>
+                                              <span className="text-xs font-black text-cyan-950 dark:text-cyan-200 truncate">
+                                                {activeStopPort.title}
+                                              </span>
+                                              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 font-[vazirmatn] truncate" dir="rtl">
+                                                {activeStopPort.titleFa}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                              <span className="rounded-md bg-blue-100 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200 px-1.5 py-0.5 text-[9px] font-black font-mono">
+                                                UN/LOCODE: {activeStopPort.unLocode}
+                                              </span>
+                                              {activeStopPort.customsCode && (
+                                                <span className="rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200 px-1.5 py-0.5 text-[9px] font-black font-mono">
+                                                  Customs: {activeStopPort.customsCode}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div className="flex flex-wrap items-center gap-1 text-[9px]">
+                                            <span className="rounded-md bg-cyan-100/90 dark:bg-cyan-900/60 text-cyan-900 dark:text-cyan-200 px-1.5 py-0.5 font-extrabold">
+                                              {activeStopPort.category}
+                                            </span>
+                                            <span className="rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 font-medium">
+                                              📍 {activeStopPort.stateCountry}
+                                            </span>
+                                            {activeStopPort.railConnected && (
+                                              <span className="rounded-md bg-purple-100/90 dark:bg-purple-950/70 text-purple-900 dark:text-purple-200 px-1.5 py-0.5 font-bold">
+                                                🚆 Rail / DFC Connected
+                                              </span>
+                                            )}
+                                          </div>
+                                          {activeStopPort.terminalPresets && (
+                                            <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-cyan-200/60 dark:border-slate-800">
+                                              <span className="text-[8.5px] font-bold text-slate-500 dark:text-slate-400 mr-1">Quick Terminal:</span>
+                                              {activeStopPort.terminalPresets.map((term) => (
+                                                <button
+                                                  key={`popover-stop-term-${term}`}
+                                                  type="button"
+                                                  onClick={() => {
+                                                    handleRouteChange(index, "customsSealNote", term)
+                                                    toast.success(`Set terminal: ${term}`)
+                                                  }}
+                                                  className="rounded-md bg-white dark:bg-slate-800 hover:bg-cyan-100 dark:hover:bg-cyan-950 border border-cyan-300 dark:border-cyan-700 px-1.5 py-0.5 text-[8.5px] font-extrabold text-cyan-950 dark:text-cyan-200 cursor-pointer transition shadow-2xs"
+                                                >
+                                                  +{term}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })()}
+
                                     {/* Mode-Specific Filtering Alert & Toggle */}
                                     {route.transportMode === "airplane" && (
                                       <div className="flex items-center justify-between bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 rounded-xl px-3 py-1.5 gap-2 shadow-2xs">
@@ -11469,13 +12512,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                         {[
                                           { label: "🌍 All", value: "ALL" },
                                           { label: "⚓ Ports", value: "PORTS" },
+                                          { label: "🇮🇳 India", value: "India" },
                                           { label: "🇦🇪 UAE / Dubai", value: "UAE" },
                                           { label: "🇴🇲 Oman", value: "Oman" },
                                           { label: "🇮🇷 Iran", value: "Iran" },
-                                          { label: "🇨🇮 Ivory Coast / Africa", value: "AFRICA" },
                                           { label: "🇦🇫 Afghanistan", value: "Afghanistan" },
+                                          { label: "🇨🇮 Ivory Coast / Africa", value: "AFRICA" },
                                           { label: "🇺🇿 Uzbekistan", value: "Uzbekistan" },
-                                          { label: "🇮🇳 India", value: "India" },
                                           { label: "🇵🇰 Pakistan", value: "Pakistan" },
                                           { label: "🇸🇦 Gulf", value: "GULF" },
                                           { label: "🇹🇷 Turkey", value: "Turkey" },
@@ -11553,6 +12596,39 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                         ))}
                                       </div>
                                     )}
+
+                                    {/* Secondary category filter for Iran inside popover */}
+                                    {selectedCountryFilter === "Iran" && (
+                                      <div
+                                        onWheel={(e) => {
+                                          if (e.deltaY !== 0) {
+                                            e.currentTarget.scrollLeft += e.deltaY
+                                          }
+                                        }}
+                                        className="flex items-center gap-1 overflow-x-auto pb-1 border-t border-amber-200/80 bg-amber-50/60 dark:bg-slate-800/60 p-1.5 rounded-xl no-scrollbar scrollbar-none"
+                                      >
+                                        <span className="text-[9px] font-black text-amber-950 dark:text-amber-200 self-center mr-1 shrink-0">🇮🇷 Filter:</span>
+                                        {[
+                                          { label: "ALL", value: "ALL" },
+                                          { label: "⚓ SEAPORTS", value: "SEAPORTS" },
+                                          { label: "🛂 BORDERS", value: "BORDERS" },
+                                          { label: "✈️ AIRPORTS", value: "AIRPORTS" },
+                                        ].map((cat) => (
+                                          <button
+                                            key={cat.value}
+                                            type="button"
+                                            onClick={() => setSelectedIranCategoryFilter(cat.value)}
+                                            className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold transition cursor-pointer shrink-0 whitespace-nowrap ${
+                                              selectedIranCategoryFilter === cat.value
+                                                ? "bg-amber-600 text-white shadow-xs"
+                                                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-amber-100 hover:text-amber-900 border border-slate-200 dark:border-slate-700"
+                                            }`}
+                                          >
+                                            {cat.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
 
                                   {/* Scrollable Location Match Cards — Responsive Grid with Minimum Card Width */}
@@ -11597,6 +12673,11 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                                   {loc.code}
                                                 </span>
                                               )}
+                                              {loc.unLocode && loc.unLocode !== loc.code && (
+                                                <span className="rounded-md bg-blue-100 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 px-1.5 py-0.5 text-[9px] font-extrabold text-blue-900 dark:text-blue-200 shrink-0">
+                                                  {loc.unLocode}
+                                                </span>
+                                              )}
                                             </div>
 
                                             {/* Location Names: English + Persian (Full Width, break-normal so words never split character-by-character) */}
@@ -11609,6 +12690,37 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                                                   {loc.persian}
                                                 </p>
                                               )}
+                                              {(() => {
+                                                const pDetails = detectPortDetails({ location: loc.name, locationPersian: loc.persian, code: loc.code, unLocode: loc.unLocode })
+                                                if (!pDetails) return null
+                                                return (
+                                                  <div className="mt-1.5 p-1.5 rounded-lg bg-linear-to-r from-cyan-50/90 via-sky-50/60 to-emerald-50/50 dark:from-cyan-950/40 dark:via-slate-900/60 dark:to-emerald-950/30 border border-cyan-200 dark:border-cyan-800 text-[8.5px] font-bold text-cyan-950 dark:text-cyan-200 space-y-1">
+                                                    <div className="flex flex-wrap items-center gap-1">
+                                                      <span className="font-black text-cyan-800 dark:text-cyan-300">⚓ {pDetails.category}</span>
+                                                      {pDetails.unLocode && (
+                                                        <span className="bg-blue-100 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200 px-1 py-0.2 rounded font-mono font-black">
+                                                          {pDetails.unLocode}
+                                                        </span>
+                                                      )}
+                                                      {pDetails.customsCode && (
+                                                        <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200 px-1 py-0.2 rounded font-mono font-black">
+                                                          Customs: {pDetails.customsCode}
+                                                        </span>
+                                                      )}
+                                                      {pDetails.railConnected && (
+                                                        <span className="bg-purple-100 dark:bg-purple-900/60 text-purple-900 dark:text-purple-200 px-1 py-0.2 rounded">
+                                                          🚆 DFC Rail
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    {pDetails.terminals && (
+                                                      <div className="text-[8px] text-slate-600 dark:text-slate-300 font-medium truncate">
+                                                        🚢 {pDetails.terminals}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )
+                                              })()}
                                             </div>
                                           </button>
 
@@ -11703,6 +12815,91 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                               </>
                             )}
                           </div>
+
+                        {/* Seaport & Terminal Information Banner (Nhava Sheva, Mundra, Kandla, etc.) */}
+                        {(() => {
+                          const portInfo = detectPortDetails(route)
+                          if (!portInfo) return null
+                          return (
+                            <div className="port-details-banner rounded-xl border border-cyan-200 dark:border-cyan-800 bg-linear-to-r from-cyan-50/90 via-sky-50/60 to-emerald-50/50 dark:from-cyan-950/40 dark:via-slate-900/60 dark:to-emerald-950/30 p-2.5 sm:p-3 shadow-2xs space-y-1.5 animate-in fade-in duration-150">
+                              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="flex items-center justify-center h-5 w-5 rounded-md bg-cyan-600 text-white text-[10px] font-black shrink-0">
+                                    ⚓
+                                  </span>
+                                  <span className="text-xs font-black text-cyan-950 dark:text-cyan-200 truncate">
+                                    {portInfo.title}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-[vazirmatn] truncate" dir="rtl">
+                                    {portInfo.titleFa}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span className="rounded-md bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 text-[9px] font-black font-mono">
+                                    UN/LOCODE: {portInfo.unLocode}
+                                  </span>
+                                  {portInfo.customsCode && (
+                                    <span className="rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 px-1.5 py-0.5 text-[9px] font-black font-mono">
+                                      Customs: {portInfo.customsCode}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Port metadata badges */}
+                              <div className="flex flex-wrap items-center gap-1 text-[9.5px]">
+                                <span className="rounded-md bg-cyan-100/90 dark:bg-cyan-900/50 text-cyan-900 dark:text-cyan-200 px-1.5 py-0.5 font-extrabold">
+                                  {portInfo.category}
+                                </span>
+                                <span className="rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 font-medium">
+                                  📍 {portInfo.stateCountry}
+                                </span>
+                                {portInfo.terminals && (
+                                  <span className="rounded-md bg-amber-100/80 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 px-1.5 py-0.5 font-bold truncate max-w-full">
+                                    🚢 Terminals: {portInfo.terminals}
+                                  </span>
+                                )}
+                                {portInfo.railConnected && (
+                                  <span className="rounded-md bg-purple-100/80 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 px-1.5 py-0.5 font-bold">
+                                    🚆 Rail / DFC Connected
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Quick helper buttons */}
+                              <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-cyan-200/50 dark:border-slate-800">
+                                {portInfo.terminalPresets && (
+                                  <>
+                                    <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mr-1">Quick Terminal:</span>
+                                    {portInfo.terminalPresets.map((term) => (
+                                      <button
+                                        key={term}
+                                        type="button"
+                                        onClick={() => {
+                                          handleRouteChange(index, "customsSealNote", term)
+                                          toast.success(`Set terminal: ${term}`)
+                                        }}
+                                        className="rounded-md bg-white dark:bg-slate-800 hover:bg-cyan-100 dark:hover:bg-cyan-950 border border-cyan-300 dark:border-cyan-700 px-1.5 py-0.5 text-[9px] font-extrabold text-cyan-950 dark:text-cyan-200 cursor-pointer transition shadow-2xs"
+                                      >
+                                        +{term}
+                                      </button>
+                                    ))}
+                                  </>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData((prev) => ({ ...prev, port_of_discharge: portInfo.name }))
+                                    toast.success(`Set Port of Discharge: ${portInfo.name}`)
+                                  }}
+                                  className="ml-auto rounded-md bg-cyan-700 hover:bg-cyan-800 text-white px-2 py-0.5 text-[9px] font-black cursor-pointer transition shadow-2xs"
+                                >
+                                  ⚓ Set as POD
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })()}
 
                         {/* Transport Mode Selector (Full Width Horizontal Pills) */}
                         <div>
@@ -12110,6 +13307,35 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                             onClick={() => setSelectedIndiaCategoryFilter(cat.value)}
                             className={`h-7 shrink-0 whitespace-nowrap inline-flex items-center gap-1 px-2.5 rounded-lg text-[10px] font-black transition-all cursor-pointer select-none ${
                               selectedIndiaCategoryFilter === cat.value
+                                ? "bg-amber-600 text-white shadow-xs ring-1 ring-amber-300"
+                                : "bg-white text-slate-700 hover:bg-amber-100 hover:text-amber-900 border border-slate-200"
+                            }`}
+                          >
+                            {cat.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Secondary Category Filter Pill Bar for IRAN */}
+                    {selectedCountryFilter === "Iran" && (
+                      <div className="flex items-center gap-1.5 overflow-x-auto p-2 rounded-2xl bg-linear-to-r from-amber-50/90 via-orange-50/50 to-white border border-amber-200/80 shadow-2xs pb-2 scrollbar-thin scrollbar-thumb-amber-200">
+                        <span className="text-[10px] font-black text-amber-950 uppercase tracking-wider mr-1 flex items-center gap-1 shrink-0 whitespace-nowrap">
+                          <span>🇮🇷</span>
+                          <span>Iran Category:</span>
+                        </span>
+                        {[
+                          { label: "ALL", value: "ALL" },
+                          { label: "⚓ SEAPORTS", value: "SEAPORTS" },
+                          { label: "🛂 BORDERS", value: "BORDERS" },
+                          { label: "✈️ AIRPORTS", value: "AIRPORTS" },
+                        ].map((cat) => (
+                          <button
+                            key={cat.value}
+                            type="button"
+                            onClick={() => setSelectedIranCategoryFilter(cat.value)}
+                            className={`h-7 shrink-0 whitespace-nowrap inline-flex items-center gap-1 px-2.5 rounded-lg text-[10px] font-black transition-all cursor-pointer select-none ${
+                              selectedIranCategoryFilter === cat.value
                                 ? "bg-amber-600 text-white shadow-xs ring-1 ring-amber-300"
                                 : "bg-white text-slate-700 hover:bg-amber-100 hover:text-amber-900 border border-slate-200"
                             }`}
@@ -12623,6 +13849,28 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                     >
                       <span>🇦🇪</span>
                       <span>Jebel Ali / Dubai</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_discharge: "Nhava Sheva Port (JNPT), Mumbai, India" }))
+                        toast.success("Set POD: Nhava Sheva (JNPT)")
+                      }}
+                      className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-indigo-900 dark:text-indigo-300 shadow-2xs hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇮🇳</span>
+                      <span>POD: Nhava Sheva (JNPT)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, port_of_discharge: "Mundra Port, Gujarat, India" }))
+                        toast.success("Set POD: Mundra Port")
+                      }}
+                      className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-indigo-900 dark:text-indigo-300 shadow-2xs hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🇮🇳</span>
+                      <span>POD: Mundra Port</span>
                     </button>
                     <button
                       type="button"
@@ -13211,19 +14459,18 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
               onOpenInvoice={() => handleTabChange("invoice")}
             />
 
-            {/* Tier 1: A4 Preview Viewport (owns scrolling in Width/Manual; overflow:hidden in Page) */}
+            {/* Tier 1: A4 Preview Viewport (owns vertical & horizontal scrolling in all modes with wheel & keyboard navigation) */}
             <div
               ref={viewportRef}
               data-a4-viewport
               data-preview-mode={previewMode}
+              tabIndex={0}
               onDoubleClick={(e) => {
                 if (e.target === viewportRef.current) {
                   toggleFullscreen()
                 }
               }}
-              className={`a4-preview-viewport flex-1 min-h-0 w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-200/50 dark:bg-slate-950/80 shadow-inner relative print:hidden ${
-                previewMode === "page" ? "overflow-hidden" : "overflow-auto"
-              }`}
+              className="a4-preview-viewport flex-1 min-h-0 w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-200/50 dark:bg-slate-950/80 shadow-inner relative print:hidden overflow-y-auto overflow-x-auto focus:outline-none"
             >
               {/* Tier 2: Centered Stage Wrapper */}
               <div
@@ -13231,7 +14478,7 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
                 className="a4-centered-stage-wrapper w-full min-h-full flex flex-col items-center transition-[padding] duration-150"
                 style={{
                   paddingTop: `${verticalPadding}px`,
-                  paddingBottom: previewMode === "page" ? `${verticalPadding}px` : "40px",
+                  paddingBottom: `${Math.max(verticalPadding, 48)}px`,
                 }}
               >
                 {/* Tier 3: Scale Stage (layout dimensions match scaled A4 exactly) */}
@@ -13508,13 +14755,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           </div>
         </PrintPreviewPortal>
 
-        {/* Dedicated PDF export source. Mounted on-demand during export. */}
+        {/* Dedicated PDF export source. Mounted on-demand during export. Off-screen positioning (-left-[10000px]) guarantees zero background bleed into A4 Preview. */}
         {(isExportingPDF || isShippingExporting) && (
           <div
             data-pdf-export-container="true"
             aria-hidden="true"
-            className="fixed top-0 left-[-9999px] w-[210mm] opacity-100 pointer-events-none z-[-9999] bg-white"
-            style={{ width: "210mm", minHeight: "297mm", height: "auto" }}
+            className="fixed -left-[10000px] top-0 pointer-events-none opacity-100 z-[-9999] bg-white"
+            style={{ position: "fixed", left: "-10000px", top: 0, width: "794px", minWidth: "794px", maxWidth: "794px", height: "1123px", minHeight: "1123px", maxHeight: "1123px", overflow: "visible", boxSizing: "border-box" }}
           >
             <A4Preview
               bolNumber={bolNumber}
@@ -13542,13 +14789,13 @@ export function BOLEditor({ onSave, onRefreshDocuments, loadDocumentId, onDocume
           </div>
         )}
 
-        {/* Dedicated Shipping Documents export source (Packing List & Stickers) */}
+        {/* Dedicated Shipping Documents export source (Packing List & Stickers). Off-screen positioning (-left-[10000px]) guarantees zero background bleed into A4 Preview. */}
         {(isDocumentCenterOpen || isShippingExporting) && (
           <div
             data-shipping-export-container="true"
             aria-hidden="true"
-            className="fixed top-0 left-[-9999px] overflow-hidden opacity-100 pointer-events-none z-[-9999] bg-white"
-            style={{ width: "210mm" }}
+            className="fixed -left-[10000px] top-0 overflow-hidden pointer-events-none opacity-100 z-[-9999] bg-white"
+            style={{ position: "fixed", left: "-10000px", top: 0, width: "210mm" }}
           >
             <div data-shipping-preview-export="packing-list">
               <PackingListPdfPage

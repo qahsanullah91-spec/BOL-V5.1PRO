@@ -149,10 +149,7 @@ export function useA4PreviewScale(active: boolean, pageCount: number = 1) {
       previewMode === "page" ? pageScale : previewMode === "width" ? widthScale : manualScale
 
     const scaledW = Math.floor(A4_WIDTH_PX * activeComputedScale)
-    const scaledH = Math.floor(
-      (previewMode === "page" || safePageCount <= 1 ? A4_HEIGHT_PX : totalUnscaledHeight) *
-        activeComputedScale
-    )
+    const scaledH = Math.floor(totalUnscaledHeight * activeComputedScale)
 
     const overX = Math.max(0, scaledW - availableWidth)
     const overY = previewMode === "page" ? Math.max(0, scaledH - availableHeight) : 0
@@ -438,14 +435,35 @@ export function useA4PreviewScale(active: boolean, pageCount: number = 1) {
         e.preventDefault()
         setShowDiagnostics((prev) => !prev)
       }
+      // Space / PageDown / PageUp navigation for ergonomic document reading
+      else if (e.key === "PageDown" || (e.key === " " && !e.shiftKey)) {
+        if (viewportRef.current) {
+          e.preventDefault()
+          viewportRef.current.scrollBy({ top: 320, behavior: "smooth" })
+        }
+      } else if (e.key === "PageUp" || (e.key === " " && e.shiftKey)) {
+        if (viewportRef.current) {
+          e.preventDefault()
+          viewportRef.current.scrollBy({ top: -320, behavior: "smooth" })
+        }
+      } else if (e.key === "Home" && (e.ctrlKey || e.metaKey)) {
+        if (viewportRef.current) {
+          e.preventDefault()
+          viewportRef.current.scrollTo({ top: 0, behavior: "smooth" })
+        }
+      } else if (e.key === "End" && (e.ctrlKey || e.metaKey)) {
+        if (viewportRef.current) {
+          e.preventDefault()
+          viewportRef.current.scrollTo({ top: viewportRef.current.scrollHeight, behavior: "smooth" })
+        }
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [active, isFullscreen, zoomIn, zoomOut, setPreviewMode])
 
-  const currentDocHeight =
-    previewMode === "page" || safePageCount <= 1 ? A4_HEIGHT_PX : totalUnscaledHeight
+  const currentDocHeight = totalUnscaledHeight
 
   return {
     viewportRef,

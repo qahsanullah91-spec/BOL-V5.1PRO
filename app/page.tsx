@@ -64,6 +64,7 @@ const FileCenterWorkspace = createSafeModule('File Center', () => import('@/comp
 const CommunicationsWorkspace = createSafeModule('Communications Workspace', () => import('@/components/communications/communications-workspace').then(m => m.CommunicationsWorkspace))
 const BookingContainerCenter = createSafeModule('Container & Booking Fleet', () => import('@/components/booking/booking-container-center').then(m => m.BookingContainerCenter))
 const AiAssistantWorkspace = createSafeModule('Sky AI Operations Assistant', () => import('@/components/ai/ai-assistant-workspace').then(m => m.AiAssistantWorkspace))
+const DatabricksAppKitWorkspace = createSafeModule('Databricks Analytics & AI', () => import('@/components/databricks/databricks-appkit-workspace').then(m => m.DatabricksAppKitWorkspace))
 import type { CustomerPortalSession } from '@/lib/types/customer-portal'
 
 function MainContent() {
@@ -640,6 +641,13 @@ function MainContent() {
               <div key="ai-assistant" className="animate-page-crossfade w-full max-w-[1780px] mx-auto px-3 sm:px-6 py-2">
                 <ModuleErrorBoundary moduleName="Sky AI Operations Assistant">
                   <AiAssistantWorkspace />
+                </ModuleErrorBoundary>
+              </div>
+            )}
+            {view === 'databricks' && (
+              <div key="databricks" className="animate-page-crossfade w-full max-w-[1780px] mx-auto px-3 sm:px-6 py-2">
+                <ModuleErrorBoundary moduleName="Databricks Analytics & AI">
+                  <DatabricksAppKitWorkspace />
                 </ModuleErrorBoundary>
               </div>
             )}

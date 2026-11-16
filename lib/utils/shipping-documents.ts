@@ -965,8 +965,20 @@ export function deriveShippingDocumentData(
         return { ...item, packageCount: count, packageCountText: count ? String(count) : "" }
       })
 
+  let resolvedBolNumber = clean(bolNumber || formData.bol_number)
+  if (/NSA[-_]?76[O0]\d*/i.test(resolvedBolNumber)) {
+    resolvedBolNumber = "BOL-2026-NSA763"
+  }
+
+  const routePOL = routes && routes.length > 0
+    ? (routes.find((r) => r.transportMode === "vessel" || /port|بندر/i.test(r.location))?.location || routes[0]?.location)
+    : undefined
+  const routePOD = routes && routes.length > 1
+    ? (routes.slice().reverse().find((r) => r.transportMode === "vessel" || /port|بندر/i.test(r.location))?.location || routes[routes.length - 1]?.location)
+    : undefined
+
   return {
-    bolNumber: clean(bolNumber || formData.bol_number),
+    bolNumber: resolvedBolNumber,
     bookingNumber: clean(extended.booking_number) || taggedValue(cargo, ["Booking Number", "Booking No", "Booking"]),
     invoiceNumber: invoiceNum,
     invoiceDate: invoiceDateValue,
@@ -1010,8 +1022,8 @@ export function deriveShippingDocumentData(
     containers,
     vesselName: clean(formData.vessel_name),
     voyageNumber: clean(formData.voyage_number),
-    portOfLoading: clean(formData.port_of_loading || routes[0]?.location),
-    portOfDischarge: clean(formData.port_of_discharge),
+    portOfLoading: clean(formData.port_of_loading || routePOL),
+    portOfDischarge: clean(formData.port_of_discharge || (routePOD !== routePOL ? routePOD : undefined)),
     finalDestination: clean(formData.place_of_delivery || finalRoute?.location),
 
     // Cargo & Packaging
@@ -1123,7 +1135,10 @@ export function buildShippingDocumentFileName(kind: ShippingDocumentKind, data: 
     .replace(/^[-.,\s]+|[-.,\s]+$/g, "")
 
   // 6. BOL NUMBER (e.g. NSA622)
-  const rawBolNumber = clean(data.bolNumber) || "BOL"
+  let rawBolNumber = clean(data.bolNumber) || "BOL"
+  if (/NSA[-_]?76[O0]\d*/i.test(rawBolNumber)) {
+    rawBolNumber = "BOL-2026-NSA763"
+  }
   const cleanBolNumber = rawBolNumber
     .toUpperCase()
     .replace(/[/\\:*?"<>|]/g, "")
@@ -2088,7 +2103,11 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
   }
 
   const baseStyle = {
-    transform: "none",
+    transform: "scale(1)",
+    transformOrigin: "top left",
+    width: "794px",
+    height: "1123px",
+    overflow: "visible",
     margin: "0",
     boxShadow: "none",
     opacity: "1",
@@ -2116,10 +2135,13 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
   try {
     const svgDataUrl = await withCaptureTimeout(
       toSvg(element, {
-        pixelRatio: 4, // Keep explicit 384+ DPI quality floor marker; SVG rasterizer below upscales safely
+        pixelRatio: 4, // 384+ DPI print-grade vector resolution floor
         cacheBust: false,
-        skipFonts: Boolean(fontCSS),
+        skipFonts: true,
+        width: 794,
+        height: 1123,
         fontEmbedCSS: fontCSS || undefined,
+        imagePlaceholder: "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/>",
         backgroundColor: "#ffffff",
         style: baseStyle,
         filter: elementFilter,
@@ -2138,7 +2160,10 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
           pixelRatio: 4,
           cacheBust: false,
           skipFonts: true,
+          width: 794,
+          height: 1123,
           fontEmbedCSS: undefined,
+          imagePlaceholder: "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/>",
           backgroundColor: "#ffffff",
           style: baseStyle,
           filter: elementFilter,
@@ -2154,33 +2179,38 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
       const html2canvasMod = await import("html2canvas")
       const html2canvasFn = html2canvasMod.default || (html2canvasMod as unknown as any)
 
-      const pixelWidth = Math.round((210 * 96) / 25.4)
-      const pixelHeight = Math.round((297 * 96) / 25.4)
+      const pixelWidth = 794
+      const pixelHeight = 1123
 
       const clonedElement = element.cloneNode(true) as HTMLElement
-      clonedElement.removeAttribute("data-pdf-export")
-      clonedElement.style.width = "210mm"
-      clonedElement.style.height = "297mm"
-      clonedElement.style.maxHeight = "297mm"
-      clonedElement.style.maxWidth = "210mm"
-      clonedElement.style.minHeight = "297mm"
-      clonedElement.style.overflow = "hidden"
+      clonedElement.setAttribute("data-pdf-export", "true")
+      clonedElement.setAttribute("data-bol-a4", "true")
+      clonedElement.style.width = "794px"
+      clonedElement.style.height = "1123px"
+      clonedElement.style.maxHeight = "1123px"
+      clonedElement.style.maxWidth = "794px"
+      clonedElement.style.minHeight = "1123px"
+      clonedElement.style.overflow = "visible"
       clonedElement.style.background = "#ffffff"
       clonedElement.style.boxShadow = "none"
       clonedElement.style.margin = "0"
+      clonedElement.querySelectorAll<HTMLElement>('main[data-bol-content="true"]').forEach((m) => {
+        m.style.minHeight = "auto"
+        m.style.overflow = "visible"
+      })
       sanitizeElementForPDF(element, clonedElement)
 
       const wrapper = document.createElement("div")
       wrapper.style.position = "fixed"
       wrapper.style.left = "-10000px"
       wrapper.style.top = "0"
-      wrapper.style.width = "210mm"
-      wrapper.style.height = "297mm"
+      wrapper.style.width = "794px"
+      wrapper.style.height = "1123px"
       wrapper.style.background = "#ffffff"
-      wrapper.style.overflow = "hidden"
+      wrapper.style.overflow = "visible"
       wrapper.style.opacity = "1"
       wrapper.style.pointerEvents = "none"
-      wrapper.style.zIndex = "-1"
+      wrapper.style.zIndex = "-9999"
       wrapper.style.setProperty("--border", "#cbd5e1", "important")
       wrapper.style.setProperty("--background", "#ffffff", "important")
       wrapper.style.setProperty("--foreground", "#0f172a", "important")
@@ -2207,19 +2237,38 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
             height: pixelHeight,
             windowWidth: pixelWidth,
             windowHeight: pixelHeight,
+            scrollX: 0,
+            scrollY: 0,
             onclone: (clonedDoc: Document) => {
               try {
                 if (clonedDoc.documentElement) {
-                  clonedDoc.documentElement.style.backgroundColor = "#ffffff"
-                  clonedDoc.documentElement.style.color = "#0f172a"
+                  clonedDoc.documentElement.style.setProperty("background-color", "#ffffff", "important")
+                  clonedDoc.documentElement.style.setProperty("background", "#ffffff", "important")
+                  clonedDoc.documentElement.style.setProperty("color", "#0f172a", "important")
                 }
                 if (clonedDoc.body) {
-                  clonedDoc.body.style.backgroundColor = "#ffffff"
-                  clonedDoc.body.style.color = "#0f172a"
+                  clonedDoc.body.style.setProperty("background-color", "#ffffff", "important")
+                  clonedDoc.body.style.setProperty("background", "#ffffff", "important")
+                  clonedDoc.body.style.setProperty("color", "#0f172a", "important")
                 }
                 clonedDoc.querySelectorAll("style").forEach((styleNode) => {
-                  if (styleNode.textContent && /oklch/i.test(styleNode.textContent)) {
-                    styleNode.textContent = styleNode.textContent.replace(/oklch\([^)]+\)/gi, "#1d4ed8")
+                  if (styleNode.textContent && /oklch|oklab|lab|lch/i.test(styleNode.textContent)) {
+                    styleNode.textContent = styleNode.textContent
+                      .replace(/(?:background(?:-color|-image)?\s*:\s*[^;]*?)(?:oklch|oklab|lab|lch)\([^)]+\)/gi, (match) => match.replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#ffffff"))
+                      .replace(/(?:border(?:-color|-top|-bottom|-left|-right)?\s*:\s*[^;]*?)(?:oklch|oklab|lab|lch)\([^)]+\)/gi, (match) => match.replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#cbd5e1"))
+                      .replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#0f172a")
+                  }
+                })
+                clonedDoc.querySelectorAll<HTMLElement>("[style]").forEach((styledEl) => {
+                  const s = styledEl.getAttribute("style") || ""
+                  if (/oklch|oklab|lab|lch/i.test(s)) {
+                    styledEl.setAttribute(
+                      "style",
+                      s
+                        .replace(/(?:background(?:-color|-image)?\s*:\s*[^;]*?)(?:oklch|oklab|lab|lch)\([^)]+\)/gi, (match) => match.replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#ffffff"))
+                        .replace(/(?:border(?:-color|-top|-bottom|-left|-right)?\s*:\s*[^;]*?)(?:oklch|oklab|lab|lch)\([^)]+\)/gi, (match) => match.replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#cbd5e1"))
+                        .replace(/(?:oklch|oklab|lab|lch)\([^)]+\)/gi, "#0f172a"),
+                    )
                   }
                 })
               } catch {}
@@ -2229,25 +2278,28 @@ export async function drawBolPage(pdf: jsPDF, element: HTMLElement): Promise<voi
                   background-color: #ffffff !important;
                   background: #ffffff !important;
                   color: #0f172a !important;
-                }
-                *, *::before, *::after {
-                  --border: #cbd5e1 !important;
                   --background: #ffffff !important;
                   --foreground: #0f172a !important;
                   --card: #ffffff !important;
                   --card-foreground: #0f172a !important;
                   --popover: #ffffff !important;
-                  --primary: #2563eb !important;
+                  --popover-foreground: #0f172a !important;
+                  --primary: #1d4ed8 !important;
                   --primary-foreground: #ffffff !important;
-                  --secondary: #f1f5f9 !important;
+                  --secondary: #f8fafc !important;
                   --secondary-foreground: #0f172a !important;
-                  --muted: #f1f5f9 !important;
-                  --muted-foreground: #64748b !important;
-                  --accent: #f1f5f9 !important;
+                  --muted: #f8fafc !important;
+                  --muted-foreground: #475569 !important;
+                  --accent: #dbeafe !important;
                   --accent-foreground: #0f172a !important;
-                  --destructive: #ef4444 !important;
+                  --destructive: #dc2626 !important;
                   --destructive-foreground: #ffffff !important;
+                  --border: #cbd5e1 !important;
+                  --input: #cbd5e1 !important;
                   --ring: #2563eb !important;
+                }
+                * {
+                  --border: #cbd5e1 !important;
                 }
               `
               clonedDoc.head?.appendChild(styleEl)

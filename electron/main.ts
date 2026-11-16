@@ -445,7 +445,7 @@ function getSplashHtml(): string {
       <span class="status-dot"></span>
       <span id="txt">Starting core engine...</span>
     </div>
-    <div class="badge">AQ-SYSTEM v5.18.18 PRO • ULTRA PERFORMANCE RUNTIME</div>
+    <div class="badge">AQ-SYSTEM v5.28.1 PRO • ULTRA PERFORMANCE RUNTIME</div>
   </div>
   <script>
     const steps = [

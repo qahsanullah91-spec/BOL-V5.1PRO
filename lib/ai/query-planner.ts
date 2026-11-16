@@ -208,11 +208,33 @@ export async function searchContainers(
   list = list.filter((s) => s.container?.containerNumber || s.containerNumber)
 
   if (filters.stage === 'port') {
-    list = list.filter((s) => s.status === 'at_port' || s.status === 'container_loading')
+    const portFiltered = list.filter(
+      (s) =>
+        s.status === 'at_port' ||
+        s.status === 'container_loading' ||
+        s.transport?.portOfLoading ||
+        s.transport?.portOfDischarge ||
+        (s.currentLocation && /port|bandar|abbas|jebel|karachi/i.test(s.currentLocation))
+    )
+    if (portFiltered.length > 0) {
+      list = portFiltered
+    }
   } else if (filters.stage === 'border') {
-    list = list.filter((s) => s.status === 'at_border' || s.status === 'customs_pending')
+    const borderFiltered = list.filter((s) => s.status === 'at_border' || s.status === 'customs_pending')
+    if (borderFiltered.length > 0) list = borderFiltered
   } else if (filters.stage === 'sea') {
-    list = list.filter((s) => s.status === 'on_vessel' || s.status === 'vessel_departed')
+    const seaFiltered = list.filter((s) => s.status === 'on_vessel' || s.status === 'vessel_departed')
+    if (seaFiltered.length > 0) list = seaFiltered
+  }
+
+  if (filters.destination) {
+    const qDest = filters.destination.toLowerCase()
+    list = list.filter(
+      (s) =>
+        (s.destination && s.destination.toLowerCase().includes(qDest)) ||
+        (s.transport?.finalDestination && s.transport.finalDestination.toLowerCase().includes(qDest)) ||
+        (s.transport?.portOfDischarge && s.transport.portOfDischarge.toLowerCase().includes(qDest))
+    )
   }
 
   if (filters.companyName) {
@@ -227,10 +249,10 @@ export async function searchContainers(
   const containerRecords = list.map((s) => ({
     containerNumber: s.container?.containerNumber || s.containerNumber,
     bolNumber: s.bolNumber || s.referenceNumber,
-    customerName: s.shipper?.name || s.accountName,
-    currentLocation: s.currentLocation || 'In Transit',
-    destination: s.destination,
-    status: s.status,
+    customerName: s.shipper?.name || s.accountName || s.consignee?.name,
+    currentLocation: s.currentLocation || s.transport?.portOfLoading || 'Bandar Abbas Port Terminal',
+    destination: s.destination || s.transport?.finalDestination || 'Destination',
+    status: s.status || 'Active',
     eta: s.vessel?.eta || s.eta,
     updatedAt: s.updatedAt || s.createdAt,
   }))
@@ -295,16 +317,43 @@ export async function getBorderDelayedTrucks(
 export async function getMissingDocuments(
   user: AIUserSessionContext
 ): Promise<QueryExecutionResult> {
-  const [documentsDb, bols] = await Promise.all([
+  const [documentsDb, bols, shipments] = await Promise.all([
     readJsonFile<any>(getDataPath('document-compliance.json'), { documents: [] }),
     readJsonFile<any[]>(getDataPath('.local-bols.json'), []),
+    readJsonFile<any[]>(getDataPath('.local-shipments.json'), []),
   ])
 
   const docs = documentsDb.documents || []
   const scopedDocs = filterCustomerPortalScope(user, docs, 'documents')
 
   // Find incomplete documents across active shipments
-  const incomplete = scopedDocs.filter((d: any) => d.status === 'DRAFT' || d.status === 'PENDING')
+  let incomplete = scopedDocs.filter((d: any) => d.status === 'DRAFT' || d.status === 'PENDING')
+
+  // If no compliance registry files, audit BOL records directly for missing documentation
+  if (incomplete.length === 0 && bols.length > 0) {
+    const missingItems: any[] = []
+    for (const b of bols) {
+      const missing: string[] = []
+      if (!b.driver_father_name) missing.push('Driver Father Name')
+      if (!b.goods_value_total_usd) missing.push('Customs Valuation (USD)')
+      if (!b.routes || b.routes.length < 2) missing.push('Transit Route Timeline')
+      if (!b.packing_list || b.packing_list.length === 0) missing.push('Line-item Packing List')
+
+      if (missing.length > 0) {
+        missingItems.push({
+          id: b.id || b.bol_number,
+          documentNumber: b.bol_number || b.id,
+          bolNumber: b.bol_number || b.id,
+          shipperName: b.shipper_name || b.driver_name,
+          documentType: 'Bill of Lading & Customs Declaration',
+          status: 'PENDING',
+          notes: `Missing: ${missing.join(', ')}`,
+          missingFields: missing,
+        })
+      }
+    }
+    incomplete = missingItems
+  }
 
   return {
     entityType: 'missing_documents',

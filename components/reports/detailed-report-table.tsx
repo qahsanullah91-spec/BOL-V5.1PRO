@@ -121,8 +121,8 @@ export const COLUMN_DEFINITIONS: { id: ColumnId; label: string; minWidth: string
   { id: "route", label: "Route", minWidth: "170px", category: "Transport" },
   { id: "packages", label: "Packages", minWidth: "110px", category: "Cargo" },
   { id: "netWt", label: "Net Wt", minWidth: "105px", category: "Cargo" },
-  { id: "grossWt", label: "Gross Wt", minWidth: "105px", category: "Cargo" },
-  { id: "rate", label: "Rate/KG", minWidth: "95px", category: "Financial" },
+  { id: "grossWt", label: "Rate / Net / Gross Wt", minWidth: "135px", category: "Cargo" },
+  { id: "rate", label: "Rate/KG", minWidth: "100px", category: "Financial" },
   { id: "value", label: "Goods Value", minWidth: "135px", category: "Financial" },
   { id: "container", label: "Container", minWidth: "130px", category: "Transport" },
   { id: "seal", label: "Seal No.", minWidth: "100px", category: "Transport" },
@@ -134,19 +134,19 @@ export const COLUMN_DEFINITIONS: { id: ColumnId; label: string; minWidth: string
 export const COLUMN_PRESETS: Record<ColumnPreset, { label: string; columns: ColumnId[] }> = {
   operations: {
     label: "Operations",
-    columns: ["idx", "expand", "bolNo", "date", "truckDriver", "shipper", "consignee", "cargo", "route", "container", "status", "pdf", "actions"],
+    columns: ["idx", "expand", "bolNo", "date", "truckDriver", "shipper", "consignee", "cargo", "route", "grossWt", "container", "status", "pdf", "actions"],
   },
   finance: {
     label: "Finance",
-    columns: ["idx", "expand", "bolNo", "date", "invoice", "shipper", "consignee", "cargo", "rate", "value", "truckDriver", "pdf", "actions"],
+    columns: ["idx", "expand", "bolNo", "date", "invoice", "shipper", "consignee", "cargo", "grossWt", "value", "truckDriver", "pdf", "actions"],
   },
   shipping: {
     label: "Shipping",
-    columns: ["idx", "expand", "bolNo", "date", "truckDriver", "container", "route", "packages", "netWt", "grossWt", "status", "pdf", "actions"],
+    columns: ["idx", "expand", "bolNo", "date", "truckDriver", "container", "route", "packages", "grossWt", "status", "pdf", "actions"],
   },
   minimal: {
     label: "Minimal",
-    columns: ["idx", "expand", "bolNo", "date", "shipper", "consignee", "cargo", "value", "pdf", "actions"],
+    columns: ["idx", "expand", "bolNo", "date", "shipper", "consignee", "cargo", "grossWt", "value", "pdf", "actions"],
   },
   all: {
     label: "All Columns",
@@ -928,15 +928,29 @@ export function DetailedReportTable({
                 </div>
               </div>
 
-              {/* Packages, Weight & Goods Value */}
+              {/* Packages, Rate, Net & Gross Weight, Goods Value */}
               <div className="grid grid-cols-3 gap-2 py-1.5 px-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Packages</span>
                   <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">{pkgs.toLocaleString()} CTNS</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Weight</span>
-                  <span className="font-mono font-bold text-amber-700 dark:text-amber-400">{weightKg.toLocaleString()} KG</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Rate & Weights</span>
+                  <div className="flex flex-col space-y-0.5 font-mono text-[10px] leading-tight">
+                    {(doc.rate_per_kgs || (doc as any).rate_per_kg) && (
+                      <span className="font-black text-blue-700 dark:text-blue-300">
+                        @ {doc.rate_per_kgs || (doc as any).rate_per_kg}
+                      </span>
+                    )}
+                    {doc.net_weight && (
+                      <span className="font-bold text-amber-700 dark:text-amber-400">
+                        Net: {doc.net_weight}
+                      </span>
+                    )}
+                    <span className="font-extrabold text-slate-900 dark:text-slate-100">
+                      Gross: {weightKg.toLocaleString()} KG
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Goods Value</span>
@@ -1026,8 +1040,8 @@ export function DetailedReportTable({
       </div>
 
       {/* 4. MAIN DATA TABLE (Desktop & Tablet) */}
-      <div ref={tableContainerRef} className={`hidden md:block print:block w-full ${isFitScreen ? "overflow-x-hidden md:overflow-x-auto" : "overflow-x-auto"} print:overflow-visible border border-slate-200/90 dark:border-slate-800 print:border-none rounded-2xl print:rounded-none max-h-[calc(100vh-210px)] print:max-h-none overflow-y-auto print:overflow-y-visible shadow-xs bg-white dark:bg-slate-900 scrollbar-thin`}>
-        <table className={`w-full ${isFitScreen ? "min-w-0 table-fixed" : "min-w-[1850px]"} print:min-w-0 text-xs text-left border-separate border-spacing-0`}>
+      <div ref={tableContainerRef} className={`hidden md:block print:block w-full overflow-x-auto print:overflow-visible border border-slate-200/90 dark:border-slate-800 print:border-none rounded-2xl print:rounded-none max-h-[calc(100vh-210px)] print:max-h-none overflow-y-auto print:overflow-y-visible shadow-xs bg-white dark:bg-slate-900 scrollbar-thin`}>
+        <table className={`w-full ${isFitScreen ? "min-w-full table-auto xl:table-fixed" : "min-w-[1850px]"} print:min-w-0 text-xs text-left border-separate border-spacing-0`}>
           <thead className="sticky top-0 z-20 bg-slate-900 text-slate-100 shadow-sm print:static print:table-header-group">
             <tr className="border-b border-slate-700 bg-slate-900 text-slate-100">
               {/* Sticky # column */}
@@ -1211,25 +1225,29 @@ export function DetailedReportTable({
                 </th>
               )}
 
-              {/* Gross Wt */}
+              {/* Gross Wt & Rate Stack */}
               {visibleColumns.has("grossWt") && (
                 <th
                   data-col-id="grossWt"
                   onClick={() => handleSort("gross_weight")}
-                  className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider ${isFitScreen ? "w-22 min-w-0" : "min-w-[105px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}
+                  className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider ${isFitScreen ? "w-32 min-w-[125px]" : "min-w-[135px]"} print:min-w-0 cursor-pointer hover:text-white select-none ${tableDensity === "compact" ? "py-1.5 text-[10px]" : "py-2 text-[11px]"}`}
+                  title="Sort by Gross Weight (Displays Rate/KG on top, Net Wt in middle, Gross Wt on bottom)"
                 >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>Gross Wt</span>
-                    {sortField === "gross_weight" && (
-                      sortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-400" />
-                    )}
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[9px] text-blue-300 font-bold tracking-tight">Rate/KG</span>
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Gross Wt</span>
+                      {sortField === "gross_weight" && (
+                        sortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-400" />
+                      )}
+                    </div>
                   </div>
                 </th>
               )}
 
               {/* Rate */}
               {visibleColumns.has("rate") && (
-                <th data-col-id="rate" className={`px-2 font-extrabold text-slate-200 text-right uppercase tracking-wider ${isFitScreen ? "w-20 min-w-0" : "min-w-[95px]"} print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
+                <th data-col-id="rate" className={`px-2.5 font-extrabold text-slate-200 text-right uppercase tracking-wider ${isFitScreen ? "w-24 min-w-[95px]" : "min-w-[105px]"} print:min-w-0 ${tableDensity === "compact" ? "py-2 text-[10px]" : "py-2.5 text-[11px]"}`}>
                   Rate/KG
                 </th>
               )}
@@ -1319,6 +1337,25 @@ export function DetailedReportTable({
               // Comprehensive full cargo & multi-rate extraction
               const cargoData = extractBolCargoAndRates(doc)
               const isMultiCargo = cargoData.isMultiCargo
+
+              const parsedNet = parseWeight(doc.net_weight)
+              const parsedGross = parseWeight(doc.gross_weight)
+
+              const netDisplay = isMultiCargo
+                ? `Σ ${syncedCargo.totals.totalNetWeight.toLocaleString()} KG`
+                : parsedNet > 0
+                ? `${parsedNet.toLocaleString()} KG`
+                : doc.net_weight || "—"
+
+              const grossDisplay = isMultiCargo
+                ? `Σ ${syncedCargo.totals.totalGrossWeight.toLocaleString()} KG`
+                : parsedGross > 0
+                ? `${parsedGross.toLocaleString()} KG`
+                : doc.gross_weight || "—"
+
+              const rateDisplay = cargoData.allRates.length > 0
+                ? cargoData.allRates.join(" • ")
+                : doc.rate_per_kgs || cargoData.displayRate || (doc as any).rate_per_kg || ""
 
               return (
                 <React.Fragment key={`${doc.id}-${idx}`}>
@@ -1558,22 +1595,34 @@ export function DetailedReportTable({
                                       {item.fullTitle}
                                     </span>
                                   </div>
-                                  {(item.netWeight || item.rate) && (
-                                    <div className="flex items-center gap-2 pl-5 print:pl-4 text-[10px] print:text-[7.2px] text-slate-500 dark:text-slate-400 font-mono flex-wrap mt-0.5 print:mt-0">
-                                      {item.netWeight && (
-                                        <span className="text-amber-700 dark:text-amber-400 font-semibold" title="Net Weight">
-                                          ⚖️ {item.netWeight}
-                                        </span>
-                                      )}
+                                  {(item.netWeight || item.rate || item.grossWeight) && (
+                                    <div className="flex flex-col space-y-0.5 pl-5 print:pl-4 text-[9.5px] print:text-[7px] font-mono mt-0.5 border-l-2 border-blue-200/80 dark:border-blue-800/80">
+                                      {/* 1. Rate on top */}
                                       {item.rate && (
-                                        <span className="text-blue-700 dark:text-blue-300 font-bold" title="Item Rate">
-                                          @ {item.rate}
-                                        </span>
+                                        <div className="flex items-center gap-1 text-blue-700 dark:text-blue-300 font-bold" title="Item Rate">
+                                          <span className="text-[7.5px] font-sans font-bold text-blue-500/80 uppercase">Rate:</span>
+                                          <span>@ {item.rate}</span>
+                                        </div>
+                                      )}
+                                      {/* 2. Net Weight in middle */}
+                                      {item.netWeight && (
+                                        <div className="flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold" title="Net Weight">
+                                          <span className="text-[7.5px] font-sans font-bold text-amber-600/80 uppercase">Net:</span>
+                                          <span>{item.netWeight}</span>
+                                        </div>
+                                      )}
+                                      {/* 3. Gross Weight on bottom */}
+                                      {item.grossWeight && (
+                                        <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium" title="Gross Weight">
+                                          <span className="text-[7.5px] font-sans font-bold text-slate-400 uppercase">Gross:</span>
+                                          <span>{item.grossWeight}</span>
+                                        </div>
                                       )}
                                       {item.goodsValue && (
-                                        <span className="text-emerald-700 dark:text-emerald-400 font-medium" title="Item Goods Value">
-                                          💵 {item.goodsValue}
-                                        </span>
+                                        <div className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium" title="Item Goods Value">
+                                          <span className="text-[7.5px] font-sans font-bold text-emerald-600/80 uppercase">Val:</span>
+                                          <span>💵 {item.goodsValue}</span>
+                                        </div>
                                       )}
                                     </div>
                                   )}
@@ -1582,25 +1631,39 @@ export function DetailedReportTable({
                             </div>
                           </div>
                         ) : (
-                          <div className={`flex flex-col space-y-0.5 ${isFitScreen ? "min-w-0" : "min-w-[180px]"} print:min-w-0`}>
+                          <div className={`flex flex-col space-y-1 ${isFitScreen ? "min-w-0" : "min-w-[190px]"} print:min-w-0`}>
                             <span className={`font-bold text-slate-900 dark:text-white text-[11.5px] print:text-[8px] print:leading-tight ${isFitScreen ? "truncate" : "break-words"}`} title={cargoData.singleCommodityTitle}>
                               {cargoData.singleCommodityTitle}
                             </span>
-                            <div className="flex items-center gap-1.5 text-[10px] print:text-[7.2px] text-slate-500 font-mono flex-wrap">
-                              {cargoData.items[0]?.packageText && (
-                                <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                  📦 {cargoData.items[0].packageText}
-                                </span>
+                            {/* Packages */}
+                            {cargoData.items[0]?.packageText && (
+                              <div className="text-[10px] print:text-[7.2px] text-slate-600 dark:text-slate-300 font-semibold flex items-center gap-1">
+                                <span className="opacity-75">📦</span>
+                                <span>{cargoData.items[0].packageText}</span>
+                              </div>
+                            )}
+                            {/* 3-Tier Stack in Cargo Summary: Rate on top, Net Weight in middle, Gross Weight on bottom */}
+                            <div className="flex flex-col space-y-0.5 pt-1 border-t border-slate-100 dark:border-slate-800/60 font-mono text-[9.5px] print:text-[7px] leading-tight">
+                              {/* 1. Rate per KG on top */}
+                              {(cargoData.items[0]?.rate || doc.rate_per_kgs) && (
+                                <div className="flex items-center gap-1 text-blue-700 dark:text-blue-400 font-bold">
+                                  <span className="text-[8px] font-sans font-bold text-blue-500/80 uppercase">Rate:</span>
+                                  <span>@ {cargoData.items[0]?.rate || doc.rate_per_kgs}</span>
+                                </div>
                               )}
-                              {cargoData.items[0]?.netWeight && (
-                                <span className="text-amber-700 dark:text-amber-400 font-semibold">
-                                  • ⚖️ {cargoData.items[0].netWeight}
-                                </span>
+                              {/* 2. Net Weight in middle */}
+                              {(cargoData.items[0]?.netWeight || doc.net_weight) && (
+                                <div className="flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold">
+                                  <span className="text-[8px] font-sans font-bold text-amber-600/80 uppercase">Net:</span>
+                                  <span>{cargoData.items[0]?.netWeight || netDisplay}</span>
+                                </div>
                               )}
-                              {cargoData.items[0]?.rate && (
-                                <span className="text-blue-600 dark:text-blue-400 font-bold">
-                                  • @ {cargoData.items[0].rate}
-                                </span>
+                              {/* 3. Gross Weight on bottom */}
+                              {doc.gross_weight && (
+                                <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium">
+                                  <span className="text-[8px] font-sans font-bold text-slate-400 uppercase">Gross:</span>
+                                  <span>{grossDisplay}</span>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -1662,33 +1725,61 @@ export function DetailedReportTable({
 
                     {/* Net Wt */}
                     {visibleColumns.has("netWt") && (
-                      <td data-col-id="netWt" className={`${cellPad} font-bold tabular-nums text-right text-amber-700 whitespace-nowrap dark:text-amber-400`}>
-                        {isMultiCargo ? (
-                          <span>Σ {syncedCargo.totals.totalNetWeight.toLocaleString()} KG</span>
-                        ) : (
-                          <span>{doc.net_weight || "—"}</span>
-                        )}
+                      <td data-col-id="netWt" className={`${cellPad} font-bold tabular-nums text-right text-amber-700 whitespace-nowrap dark:text-amber-400 ${isFitScreen ? "w-24 min-w-[95px]" : "min-w-[105px]"} print:min-w-0 overflow-hidden`}>
+                        <div className="flex items-center justify-end gap-1 font-mono">
+                          <span className="text-[8px] font-black uppercase text-amber-600/70 dark:text-amber-500/70">Net</span>
+                          <span className="truncate">{netDisplay}</span>
+                        </div>
                       </td>
                     )}
 
-                    {/* Gross Wt */}
+                    {/* Gross Wt & Rate Stack: Rate / KG on top, Net Weight in middle, Gross Weight on bottom */}
                     {visibleColumns.has("grossWt") && (
-                      <td data-col-id="grossWt" className={`${cellPad} font-semibold tabular-nums text-right text-slate-700 whitespace-nowrap dark:text-slate-300`}>
-                        {isMultiCargo ? (
-                          <span className="text-slate-900 dark:text-white font-bold">
-                            Σ {syncedCargo.totals.totalGrossWeight.toLocaleString()} KG
-                          </span>
-                        ) : (
-                          <span>{doc.gross_weight || "—"}</span>
-                        )}
+                      <td
+                        data-col-id="grossWt"
+                        className={`${cellPad} text-right tabular-nums ${isFitScreen ? "w-32 min-w-[125px]" : "min-w-[135px]"} print:min-w-0 overflow-hidden`}
+                      >
+                        <div className="flex flex-col items-end justify-center space-y-0.5 leading-tight select-text">
+                          {/* 1. Rate per KG ON TOP */}
+                          <div
+                            className="flex items-center justify-end gap-1 font-mono"
+                            title={`Rate per KG: ${rateDisplay || "—"}`}
+                          >
+                            {rateDisplay ? (
+                              <span className="inline-flex items-center px-1.5 py-0.2 rounded-md bg-blue-50 dark:bg-blue-950/70 border border-blue-200/90 dark:border-blue-800 text-[10px] print:text-[7.5px] font-black text-blue-700 dark:text-blue-300 shadow-2xs">
+                                @ {rateDisplay}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-300 dark:text-slate-600 font-mono">—</span>
+                            )}
+                          </div>
+
+                          {/* 2. Net Weight in MIDDLE */}
+                          <div
+                            className="flex items-center justify-end gap-1 font-mono text-[10.5px] print:text-[8px] font-bold text-amber-700 dark:text-amber-400"
+                            title={`Net Weight: ${netDisplay}`}
+                          >
+                            <span className="text-[8px] print:text-[6.5px] font-black uppercase text-amber-600/70 dark:text-amber-500/70 tracking-tight">Net</span>
+                            <span className="truncate">{netDisplay}</span>
+                          </div>
+
+                          {/* 3. Gross Weight on BOTTOM */}
+                          <div
+                            className="flex items-center justify-end gap-1 font-mono text-[11px] print:text-[8.5px] font-black text-slate-900 dark:text-slate-100"
+                            title={`Gross Weight: ${grossDisplay}`}
+                          >
+                            <span className="text-[8px] print:text-[6.5px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-tight">Gross</span>
+                            <span className="truncate">{grossDisplay}</span>
+                          </div>
+                        </div>
                       </td>
                     )}
 
                     {/* Rate */}
                     {visibleColumns.has("rate") && (
-                      <td data-col-id="rate" className={`${cellPad} font-semibold tabular-nums text-right text-blue-700 dark:text-blue-300 whitespace-nowrap ${isFitScreen ? "min-w-0" : "min-w-[110px]"} print:min-w-0`}>
+                      <td data-col-id="rate" className={`${cellPad} font-semibold tabular-nums text-right text-blue-700 dark:text-blue-300 whitespace-nowrap ${isFitScreen ? "w-24 min-w-[95px]" : "min-w-[105px]"} print:min-w-0 overflow-hidden`}>
                         {cargoData.isMultiRate ? (
-                          <div className="flex flex-col items-end space-y-1 print:space-y-0">
+                          <div className="flex flex-col items-end space-y-0.5 print:space-y-0">
                             <span className="inline-flex items-center gap-1 text-[9px] print:text-[7px] font-black text-blue-900 dark:text-blue-200 bg-blue-100/90 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 rounded px-1.5 py-0.2 mb-0.5 print:mb-0 shadow-2xs print:hidden">
                               {cargoData.allRates.length} Rates
                             </span>
@@ -1714,16 +1805,16 @@ export function DetailedReportTable({
                           </div>
                         ) : cargoData.isUniformRate ? (
                           <div className="flex flex-col items-end space-y-0.5 print:space-y-0">
-                            <span className="font-black text-blue-800 dark:text-blue-300 text-[11px] print:text-[7.8px]">
-                              {cargoData.allRates[0]}
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-[10.5px] font-black text-blue-700 dark:text-blue-300">
+                              @ {cargoData.allRates[0]}
                             </span>
-                            <span className="text-[9px] print:text-[7px] font-medium text-slate-400 dark:text-slate-500 print:hidden">
+                            <span className="text-[8.5px] text-slate-400 dark:text-slate-500 font-sans">
                               (All {cargoData.items.length} Items)
                             </span>
                           </div>
                         ) : (
-                          <span className="font-bold text-slate-800 dark:text-slate-200 print:text-[7.8px]">
-                            {cargoData.displayRate || doc.rate_per_kgs || (doc as any).rate_per_kg || "—"}
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-[10.5px] font-black text-blue-700 dark:text-blue-300">
+                            {doc.rate_per_kgs ? `@ ${doc.rate_per_kgs}` : cargoData.displayRate || (doc as any).rate_per_kg || "—"}
                           </span>
                         )}
                       </td>
